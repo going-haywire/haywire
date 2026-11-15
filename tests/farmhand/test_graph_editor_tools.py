@@ -394,7 +394,7 @@ def test_unknown_graph_is_stable_error(farmhand_call):
 
 
 # ---------------------------------------------------------------------------
-# graph_editor_inspect_node
+# haybale-graph-editor_inspect_node
 # ---------------------------------------------------------------------------
 
 SETTINGS_NODE_KEY = "haybale-testing:node:SettingsNode"  # exercises every setting() flavour
@@ -1409,7 +1409,7 @@ def test_operate_refuses_a_non_operable_port(farmhand_call):
         assert result.isError is True
         assert "[not_operable]" in result.content[0].text
         assert "needs edit access" in result.content[0].text
-        assert "graph_editor_set_property" in result.content[0].text
+        assert "haybale-graph-editor_set_property" in result.content[0].text
     finally:
         _close(farmhand_call, bid)
 

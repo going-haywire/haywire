@@ -8,7 +8,7 @@ type: project
 
 Two traps that bite anything walking a node's settings generically (Farmhand
 tools, panels, exporters, doc generators). Both found while building
-`graph_editor_inspect_node`.
+`haybale-graph-editor_inspect_node`.
 
 ## 1. `props` is a settings bag
 
@@ -30,7 +30,7 @@ also the bag `set_property(..., prefer_setting=True)` targets for the resize
 commit (`props.width`), which is why it lives in the same dict rather than
 somewhere separate.
 
-`graph_editor_inspect_node` splits them into two selectable sections
+`haybale-graph-editor_inspect_node` splits them into two selectable sections
 (`settings` = author bags, `props` = framework) rather than merging or
 dropping.
 
@@ -64,7 +64,7 @@ bag.example_int          # 9999    <- accepted
 runtime enforcement.
 
 **Consequence for agent-facing tools:** the only reliable way to know a write
-landed is to read the value back and compare. `graph_editor_set_property` does
+landed is to read the value back and compare. `haybale-graph-editor_set_property` does
 this and raises `FarmhandError("set_rejected", ...)`. A legitimate no-op
 (writing the value the field already holds — `__set__` also returns early on
 equality) passes the check naturally, because the read-back equals the request
@@ -92,7 +92,7 @@ Both live in `haywire/ui/panel/render_utils.py`.
 **So: a `validator=` on a setting is sufficient for a UI-edited field** — the
 user sees why the edit was refused. Do not add read-back-and-notify plumbing for
 panel-edited settings; it already exists. Read-back is for *programmatic* and
-agent-facing writes, which is exactly what `graph_editor_set_property` does.
+agent-facing writes, which is exactly what `haybale-graph-editor_set_property` does.
 
 ## Bonus: where constraints actually live
 

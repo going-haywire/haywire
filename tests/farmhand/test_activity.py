@@ -19,27 +19,27 @@ def tracker():
 
 
 def test_a_started_call_is_current_for_its_principal(tracker):
-    tracker.start("builder", "graph_editor_add_node")
+    tracker.start("builder", "haybale-graph-editor_add_node")
     current = tracker.current("builder")
     assert current is not None
-    assert current.tool == "graph_editor_add_node"
+    assert current.tool == "haybale-graph-editor_add_node"
     assert current.running is True
 
 
 def test_a_finished_call_stops_being_current_and_becomes_last(tracker):
-    token = tracker.start("builder", "graph_editor_add_node")
+    token = tracker.start("builder", "haybale-graph-editor_add_node")
     tracker.finish(token)
 
     assert tracker.current("builder") is None
     last = tracker.last("builder")
     assert last is not None
-    assert last.tool == "graph_editor_add_node"
+    assert last.tool == "haybale-graph-editor_add_node"
     assert last.ok is True
     assert last.running is False
 
 
 def test_a_failed_call_records_its_error(tracker):
-    token = tracker.start("builder", "haystack_save_graph")
+    token = tracker.start("builder", "haybale-haystack_save_graph")
     tracker.finish(token, ok=False, error="[save_failed] disk full")
 
     last = tracker.last("builder")
@@ -49,11 +49,11 @@ def test_a_failed_call_records_its_error(tracker):
 
 
 def test_principals_do_not_see_each_others_activity(tracker):
-    tracker.start("builder", "graph_editor_add_node")
-    tracker.start("reader", "graph_editor_query_graph")
+    tracker.start("builder", "haybale-graph-editor_add_node")
+    tracker.start("reader", "haybale-graph-editor_query_graph")
 
-    assert tracker.current("builder").tool == "graph_editor_add_node"
-    assert tracker.current("reader").tool == "graph_editor_query_graph"
+    assert tracker.current("builder").tool == "haybale-graph-editor_add_node"
+    assert tracker.current("reader").tool == "haybale-graph-editor_query_graph"
 
 
 def test_concurrent_calls_by_one_principal_report_the_newest_as_current(tracker):
@@ -83,7 +83,7 @@ def test_finish_with_an_unknown_token_is_ignored(tracker):
 
 
 def test_finish_if_running_closes_an_open_call_and_reports_that_it_did(tracker):
-    token = tracker.start("builder", "studio_verify_component")
+    token = tracker.start("builder", "haybale-studio_verify_component")
 
     assert tracker.finish_if_running(token) is True
     last = tracker.last("builder")
@@ -94,7 +94,7 @@ def test_finish_if_running_closes_an_open_call_and_reports_that_it_did(tracker):
 
 def test_finish_if_running_is_a_no_op_once_the_call_already_finished(tracker):
     # The host calls it from a `finally` that also runs after the success path.
-    token = tracker.start("builder", "graph_editor_add_node")
+    token = tracker.start("builder", "haybale-graph-editor_add_node")
     tracker.finish(token, ok=True)
 
     assert tracker.finish_if_running(token) is False
@@ -122,8 +122,8 @@ def test_elapsed_of_a_finished_call_is_fixed(tracker):
 def test_auth_off_records_under_the_none_principal(tracker):
     # principal is None when authentication is disabled; the tracker must not
     # collapse that into "some agent" or drop it.
-    tracker.start(None, "graph_editor_add_node")
-    assert tracker.current(None).tool == "graph_editor_add_node"
+    tracker.start(None, "haybale-graph-editor_add_node")
+    assert tracker.current(None).tool == "haybale-graph-editor_add_node"
     assert tracker.current("builder") is None
 
 
@@ -173,34 +173,34 @@ def test_idle_agent_shows_no_running_tool(seen_builder, clean_tracker):
 
 
 def test_agent_mid_call_shows_the_running_tool(seen_builder, clean_tracker):
-    clean_tracker.start("builder", "graph_editor_add_node")
+    clean_tracker.start("builder", "haybale-graph-editor_add_node")
 
     entry = _agent_entry()
-    assert entry.running_tool == "graph_editor_add_node"
+    assert entry.running_tool == "haybale-graph-editor_add_node"
 
 
 def test_agent_after_a_call_shows_it_as_last_not_running(seen_builder, clean_tracker):
-    clean_tracker.finish(clean_tracker.start("builder", "graph_editor_add_node"))
+    clean_tracker.finish(clean_tracker.start("builder", "haybale-graph-editor_add_node"))
 
     entry = _agent_entry()
     assert entry.running_tool == ""
-    assert entry.last_tool == "graph_editor_add_node"
+    assert entry.last_tool == "haybale-graph-editor_add_node"
     assert entry.last_ok is True
 
 
 def test_agent_after_a_failed_call_reports_it_failed(seen_builder, clean_tracker):
-    token = clean_tracker.start("builder", "haystack_save_graph")
+    token = clean_tracker.start("builder", "haybale-haystack_save_graph")
     clean_tracker.finish(token, ok=False, error="[save_failed] nope")
 
     entry = _agent_entry()
-    assert entry.last_tool == "haystack_save_graph"
+    assert entry.last_tool == "haybale-haystack_save_graph"
     assert entry.last_ok is False
 
 
 def test_user_entries_never_carry_activity(clean_tracker):
     from haywire.core.access.presence import collect_presence
 
-    clean_tracker.start("alice", "graph_editor_add_node")
+    clean_tracker.start("alice", "haybale-graph-editor_add_node")
     manager = MagicMock()
     session = MagicMock()
     session.context.principal = "alice"
@@ -251,14 +251,16 @@ def test_running_calls_is_empty_when_idle(tracker):
 
 
 def test_a_running_call_carries_its_serialized_arguments(tracker):
-    tracker.start("builder", "graph_editor_add_node", {"binding_id": "g1", "registry_key": "core:node:echo"})
+    tracker.start(
+        "builder", "haybale-graph-editor_add_node", {"binding_id": "g1", "registry_key": "core:node:echo"}
+    )
 
     record = tracker.current("builder")
     assert json.loads(record.arguments) == {"binding_id": "g1", "registry_key": "core:node:echo"}
 
 
 def test_start_with_no_arguments_stores_an_empty_object(tracker):
-    tracker.start("builder", "studio_status")
+    tracker.start("builder", "haybale-studio_status")
 
     assert tracker.current("builder").arguments == "{}"
 
@@ -273,7 +275,7 @@ def test_a_finished_call_carries_its_serialized_result(tracker):
 
 
 def test_a_finished_call_with_no_result_leaves_result_none(tracker):
-    token = tracker.start("builder", "studio_status")
+    token = tracker.start("builder", "haybale-studio_status")
     tracker.finish(token, ok=False, error="[boom] nope")
 
     assert tracker.last("builder").result is None

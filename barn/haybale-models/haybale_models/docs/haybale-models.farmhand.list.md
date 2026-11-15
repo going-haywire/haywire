@@ -20,7 +20,7 @@ Lists the model catalog, the local model files and the download jobs.
 Returns every catalog entry with its variants (size and status: local, HF cache,
 queued, downloading, failed or not downloaded), every file indexed in the models
 volume, and every download job with its progress. Call it first, to learn the
-catalog keys that `models_fetch` takes and to follow a download. Pass
+catalog keys that `haybale-models_fetch` takes and to follow a download. Pass
 `detail=true` to add license, commercial (whether the author states the model may be used
 commercially) and description to the catalog rows.
 

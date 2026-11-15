@@ -6,7 +6,7 @@ Open haystack entries plus .haywire files on disk in the workspace.
 
 ## Agent Instructions
 
-List open graph sessions (with their binding_id, needed by every other haystack_*/graph_editor_* tool) plus every .haywire file found on disk under the workspace root, whether open or not. Use this first to discover a binding_id, or to find a file path to pass to haystack_open_graph.
+List open graph sessions (with their binding_id, needed by every other haybale-haystack_*/haybale-graph-editor_* tool) plus every .haywire file found on disk under the workspace root, whether open or not. Use this first to discover a binding_id, or to find a file path to pass to haybale-haystack_open_graph.
 
 ## Details
 

@@ -165,7 +165,7 @@ class FarmhandHost(SignalPeer):
         #: Principals already announced, so AgentConnected fires once each.
         self._known_principals: set[str] = set()
 
-        # Libraries (including haybale-studio's studio_* baseline) enabled
+        # Libraries (including haybale-studio's haybale-studio_* baseline) enabled
         # before the host exists — seed from the registry, then follow events.
         self._seed_tools()
         self._registry.add_batch_event_subscriber(self._on_lifecycle_batch)

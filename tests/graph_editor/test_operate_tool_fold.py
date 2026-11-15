@@ -1,4 +1,4 @@
-"""``graph_editor_operate`` sets a port inside a closed fold, and leaves the fold closed.
+"""``haybale-graph-editor_operate`` sets a port inside a closed fold, and leaves the fold closed.
 
 Opening a fold is itself an operate-level action, so refusing the write would only
 cost the agent a round trip; the card shows the value once the fold is open.

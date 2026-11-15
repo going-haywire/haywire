@@ -48,13 +48,13 @@ def test_format_tool_error_appends_help_line_when_present():
         "graph_not_found",
         "No open graph 'x'",
         ids={"binding_id": "x"},
-        help="Run haystack_list_graphs to see open graphs.",
+        help="Run haybale-haystack_list_graphs to see open graphs.",
     )
     text = _format_tool_error(err)
     # The [code] prefix is unchanged, so clients matching on it keep working.
     assert "[graph_not_found]" in text
     # The hint lands on its own line, greppable without parsing the prose.
-    assert "\nhelp: Run haystack_list_graphs to see open graphs." in text
+    assert "\nhelp: Run haybale-haystack_list_graphs to see open graphs." in text
 
 
 def test_format_tool_error_omits_help_line_when_absent():

@@ -1,5 +1,5 @@
-"""studio_scaffold_component / studio_read_component_source /
-studio_write_component_source / studio_verify_component.
+"""haybale-studio_scaffold_component / haybale-studio_read_component_source /
+haybale-studio_write_component_source / haybale-studio_verify_component.
 
 Authoring is self-contained through Farmhand (no client filesystem access
 assumed) and kind-generic. Writes are project-local-library-only; git is the
@@ -98,7 +98,7 @@ def _registration_result(
             "(file_watcher=True in @library); restart the studio to load the file."
         )
     elif outcome.status == "failed":
-        hints.append("Fix the errors, then write the file again with studio_write_component_source.")
+        hints.append("Fix the errors, then write the file again with haybale-studio_write_component_source.")
     if undeclared:
         hints.append(_HELP_UNDECLARED)
     if hints:
@@ -151,7 +151,7 @@ async def _scaffold_node(ctx: FarmhandContext, lib_id: str, name: str, label: st
             code,
             plan.refusal,
             ids={"path": str(plan.path), "registry_key": plan.registry_key},
-            help="Pick another name=, or edit the existing file with studio_write_component_source.",
+            help="Pick another name=, or edit the existing file with haybale-studio_write_component_source.",
         )
 
     undeclared = undeclared_imports(plan.source, library.identity, library_registry)
@@ -202,7 +202,7 @@ class StudioScaffoldComponentTool(Farmhand):
                 ids={"path": str(path)},
                 help=(
                     f"Pick another name=, or edit the existing file with "
-                    f"studio_write_component_source registry_key={lib_id}:{kind}:{name}."
+                    f"haybale-studio_write_component_source registry_key={lib_id}:{kind}:{name}."
                 ),
             )
         path.write_text(_template(kind, name), encoding="utf-8")
@@ -211,7 +211,7 @@ class StudioScaffoldComponentTool(Farmhand):
             "summary": f"Scaffolded {expected_key} at {path}.",
             "path": str(path),
             "expected_registry_key": expected_key,
-            "next": "Edit via studio_write_component_source, then studio_verify_component.",
+            "next": "Edit via haybale-studio_write_component_source, then haybale-studio_verify_component.",
         }
 
 
@@ -262,7 +262,7 @@ class StudioReadComponentSourceTool(Farmhand):
             end = offset + len(window)
             result["summary"] = f"{summary}{note}"
             result["help"] = (
-                f"Run studio_read_component_source registry_key={registry_key!r} offset={end} "
+                f"Run haybale-studio_read_component_source registry_key={registry_key!r} offset={end} "
                 f"for the next lines, or full=true for the whole file."
             )
         return result
@@ -276,7 +276,7 @@ class StudioReadComponentSourceTool(Farmhand):
     "or hot-reloads it, and the result reports registration ('added' | 'reloaded' | 'failed' | "
     "'timeout'), the observed registry_key, ledger errors, linked_libraries_added and "
     "undeclared_imports (pyproject declarations `haywire share` will ask for). Follow with "
-    "studio_verify_component.",
+    "haybale-studio_verify_component.",
     registry_id="write_component_source",
     annotations=ToolAnnotations(destructive_hint=True),
     requires=AccessTier.ADMIN,
@@ -301,7 +301,7 @@ class StudioWriteComponentSourceTool(Farmhand):
                     f"'{lib_id}' is not project-local; Farmhand only writes project-local sources.",
                     ids={"registry_key": registry_key},
                     help=(
-                        "Run studio_list_libraries to see which libraries are writable, "
+                        "Run haybale-studio_list_libraries to see which libraries are writable, "
                         "or copy this component into a project-local library first."
                     ),
                 )

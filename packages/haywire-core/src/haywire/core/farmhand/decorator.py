@@ -26,7 +26,7 @@ def farmhand(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
     Identity Fields (metadata):
         label (str): Human-readable display name. Default: registry_id
         description (str): SHORT human-facing blurb — shown in generated docs
-            (OVERVIEW.md/QUICKREF.md) and the studio_list_components catalog,
+            (OVERVIEW.md/QUICKREF.md) and the haybale-studio_list_components catalog,
             same role it plays for every other component kind. NOT sent to
             MCP clients — see instructions below. Default: ""
         instructions (str): REQUIRED. The text sent verbatim as the MCP
@@ -49,7 +49,7 @@ def farmhand(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         hidden (bool): Exclude from author-facing selection UIs. Default: False
         deprecation_warning (str): Advisory message. Default: ""
 
-    The library identity derives from the defining module; the studio_*
+    The library identity derives from the defining module; the haybale-studio_*
     baseline is simply barn/haybale-studio's farmhands/ folder — its library
     id IS 'studio', so no special registration path exists.
 
@@ -62,7 +62,7 @@ def farmhand(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
             description="Save an open graph.",
             instructions=(
                 "Save an open graph; save_as writes to a new path instead of "
-                "overwriting. Call haystack_list_graphs first if binding_id is "
+                "overwriting. Call haybale-haystack_list_graphs first if binding_id is "
                 "unknown — it is not the same as the graph's display name."
             ),
             registry_id="save_graph",

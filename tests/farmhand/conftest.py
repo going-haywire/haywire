@@ -109,7 +109,7 @@ def farmhand_bare_server(project_root: Path, tmp_path_factory):
 
     haybale-studio is symlinked into an otherwise-empty library root so the
     scan loads it without the rest of the barn (its @library linked_libraries=[] —
-    verified). No plugin libraries -> exactly the ten studio_* tools.
+    verified). No plugin libraries -> exactly the twelve haybale-studio_* tools.
     """
     workspace = tmp_path_factory.mktemp("farmhand_bare_ws")
     libs = tmp_path_factory.mktemp("farmhand_bare_libs")

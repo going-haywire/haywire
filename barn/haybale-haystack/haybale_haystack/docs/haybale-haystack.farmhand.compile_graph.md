@@ -6,7 +6,7 @@ Compile without starting; returns compile diagnostics.
 
 ## Agent Instructions
 
-Compile an open graph WITHOUT starting execution — use this to check for compile errors before haystack_start_graph, since starting a broken graph wastes the destructive-side-effects warning for nothing. Returns compile.ok and compile.error (null when ok).
+Compile an open graph WITHOUT starting execution — use this to check for compile errors before haybale-haystack_start_graph, since starting a broken graph wastes the destructive-side-effects warning for nothing. Returns compile.ok and compile.error (null when ok).
 
 ## Details
 

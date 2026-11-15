@@ -1,4 +1,4 @@
-"""marketplace_list_available / marketplace_refresh / marketplace_get_library_docs."""
+"""haybale-marketplace_list_available / _refresh / _get_library_docs: browse the marketplace catalog."""
 
 from __future__ import annotations
 
@@ -35,7 +35,10 @@ def _library_manager(ctx: FarmhandContext):
         raise FarmhandError(
             "marketplace_unavailable",
             "LibraryManager is not initialized on this studio.",
-            help="Run studio_status to check the studio's state; the marketplace may still be starting.",
+            help=(
+                "Run haybale-studio_status to check the studio's state; the marketplace may still be "
+                "starting."
+            ),
         )
     return manager
 
@@ -91,8 +94,8 @@ class MarketplaceListAvailableTool(Farmhand):
         result = {"summary": summary, "haybales": rows, "total": total}
         if rows:
             result["help"] = (
-                "Run marketplace_get_library_docs library=<name> to read a haybale's docs, "
-                "marketplace_dry_run_install install_spec=<install_spec> to preview an install"
+                "Run haybale-marketplace_get_library_docs library=<name> to read a haybale's docs, "
+                "haybale-marketplace_dry_run_install install_spec=<install_spec> to preview an install"
                 + ("" if detail else ", or re-run with detail=true for full records")
                 + "."
             )
@@ -103,7 +106,7 @@ class MarketplaceListAvailableTool(Farmhand):
     label="Refresh catalog",
     description="Re-fetch all subscribed markets/stalls (network; rewrites the project cache).",
     instructions="Re-fetch all subscribed markets/stalls over the network and rewrite the "
-    "project's marketplace cache. Call this when marketplace_list_available looks stale — "
+    "project's marketplace cache. Call this when haybale-marketplace_list_available looks stale — "
     "otherwise the cache is used as-is. Returns how many haybales were resolved.",
     registry_id="refresh",
     annotations=ToolAnnotations(open_world_hint=True),
@@ -177,7 +180,7 @@ class MarketplaceGetLibraryDocsTool(Farmhand):
                     f"No generated doc for '{component}' in installed '{library}'.",
                     ids={"library": library, "component": component},
                     help=(
-                        f"Run studio_describe_component registry_key={component!r} for its "
+                        f"Run haybale-studio_describe_component registry_key={component!r} for its "
                         f"identity and docstring, or omit component= for the library's docs."
                     ),
                 )
@@ -222,8 +225,8 @@ class MarketplaceGetLibraryDocsTool(Farmhand):
                 f"'{library}' ships no OVERVIEW/QUICKREF/README.",
                 ids={"library": library},
                 help=(
-                    f"Run studio_list_components library={library!r} to survey what it provides, "
-                    f"then studio_describe_component for a specific one."
+                    f"Run haybale-studio_list_components library={library!r} to survey what it provides, "
+                    f"then haybale-studio_describe_component for a specific one."
                 ),
             )
         for pkg in _marketplace_state(ctx).get_project_haybales():
@@ -241,7 +244,8 @@ class MarketplaceGetLibraryDocsTool(Farmhand):
             f"'{library}' is neither installed nor in the catalog.",
             ids={"library": library},
             help=(
-                "Run studio_list_libraries for installed libraries, marketplace_list_available "
-                "for the catalog, or marketplace_refresh if the catalog looks stale."
+                "Run haybale-studio_list_libraries for installed libraries, "
+                "haybale-marketplace_list_available "
+                "for the catalog, or haybale-marketplace_refresh if the catalog looks stale."
             ),
         )

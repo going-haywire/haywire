@@ -1,4 +1,4 @@
-"""graph_editor_* MCP tools: query, inspect, structural edits, set_property, promotion, undo/redo.
+"""haybale-graph-editor_* MCP tools: query, inspect, structural edits, set_property, promotion, undo/redo.
 
 Every mutating tool opens exactly one undo fence FIRST (ctx.fence(editor)); the host
 closes it when the call ends, so one tool call is one undo gesture. The tool then
@@ -47,7 +47,10 @@ def _editor(ctx: FarmhandContext, binding_id: str):
             "graph_not_found",
             f"No open graph '{binding_id}'.",
             ids={"binding_id": binding_id},
-            help="Run haystack_list_graphs to see open graphs, or haystack_open_graph to open one.",
+            help=(
+                "Run haybale-haystack_list_graphs to see open graphs, or haybale-haystack_open_graph to "
+                "open one."
+            ),
         )
     return container.editor.with_origin(StepOrigin(ctx.principal, None, "farmhand"))
 
@@ -59,7 +62,7 @@ def _node(editor, node_id):
             "node_not_found",
             f"No node '{node_id}'.",
             ids={"node_id": node_id},
-            help="Run graph_editor_query_graph to list the node ids in this graph.",
+            help="Run haybale-graph-editor_query_graph to list the node ids in this graph.",
         )
     return wrapper
 
@@ -272,9 +275,9 @@ def _inspect_setting_row(
 ) -> dict:
     """One settings field at the requested depth.
 
-    ``name`` is the flat handle ``graph_editor_set_property`` takes and the key
+    ``name`` is the flat handle ``haybale-graph-editor_set_property`` takes and the key
     that joins an ``info`` row to its ``value``/``all`` counterpart;
-    ``accessor`` is the bag handle ``graph_editor_promote_setting`` takes.
+    ``accessor`` is the bag handle ``haybale-graph-editor_promote_setting`` takes.
     ``info`` is this field's schema, pre-computed once by ``NodeInstanceInspector``.
     """
     row: dict = {"name": name, "accessor": accessor}
@@ -460,7 +463,7 @@ def _state_row(wrapper) -> dict:
     The per-stage booleans are the primary diagnostic after an agent edits a
     node's source and hot-reloads it — is_imported False is a syntax/import
     error, is_instantiated False a constructor bug, is_structural False a bad
-    port declaration. Tracebacks stay in studio_get_errors.
+    port declaration. Tracebacks stay in haybale-studio_get_errors.
     """
     state = wrapper.state
     errors = state.get_errors() or []
@@ -606,14 +609,14 @@ class GraphEditorQueryGraphTool(Farmhand):
         }
         if page:
             result["help"] = (
-                f"Run graph_editor_inspect_node binding_id={binding_id!r} node_id=<id> "
+                f"Run haybale-graph-editor_inspect_node binding_id={binding_id!r} node_id=<id> "
                 f"get=['summary'] to survey one node's bags before pulling them"
                 + ("." if detail else ", or re-run with detail=true for full port/edge health.")
             )
         else:
             result["help"] = (
-                f"Graph is empty — run graph_editor_add_node binding_id={binding_id!r} "
-                f"registry_key=<key> (find keys with studio_list_components kind=node)."
+                f"Graph is empty — run haybale-graph-editor_add_node binding_id={binding_id!r} "
+                f"registry_key=<key> (find keys with haybale-studio_list_components kind=node)."
             )
         return result
 
@@ -628,7 +631,7 @@ _DIRECTIONS = ("inlet", "swinglet", "outlet", "config")
     description="One node's ports, settings, and health, at a chosen depth.",
     instructions="Drill down on ONE node in three steps — name only the sections and depth you "
     "need, because a node can carry 30+ settings fields and an unfocused call wastes most of "
-    "what it returns. The read counterpart to graph_editor_set_property: a row's 'name' is "
+    "what it returns. The read counterpart to haybale-graph-editor_set_property: a row's 'name' is "
     "exactly what you pass back as name=, and it joins a row across all depths.\n"
     "Typical drill-down: get=['summary'] (returns setting_counts per bag, so you can see which "
     "bags are big) -> get=['settings'] by_bag=['the_relevant_bag'] at data='info' to learn "
@@ -836,11 +839,13 @@ class GraphEditorInspectNodeTool(Farmhand):
 
 @farmhand(
     label="Add node",
-    description="Add a node by registry key. Call studio_describe_component first to learn its ports.",
+    description=(
+        "Add a node by registry key. Call haybale-studio_describe_component first to learn its ports."
+    ),
     instructions="Add a node instance to an open graph by registry_key, at an optional (x, y) "
-    "canvas position (defaults near the origin). Call studio_describe_component or "
-    "studio_list_components first to find a valid registry_key. Opens one undo fence and "
-    "broadcasts to open studio UIs. Follow up with graph_editor_inspect_node to see the new "
+    "canvas position (defaults near the origin). Call haybale-studio_describe_component or "
+    "haybale-studio_list_components first to find a valid registry_key. Opens one undo fence and "
+    "broadcasts to open studio UIs. Follow up with haybale-graph-editor_inspect_node to see the new "
     "node's ports/settings before wiring or setting them.",
     registry_id="add_node",
     annotations=_MUTATING,
@@ -862,16 +867,16 @@ class GraphEditorAddNodeTool(Farmhand):
                 "add_node_failed",
                 f"Could not add node '{registry_key}'.",
                 ids={"registry_key": registry_key},
-                help="Run studio_list_components with kind=node to confirm the registry_key exists.",
+                help="Run haybale-studio_list_components with kind=node to confirm the registry_key exists.",
             )
         ctx.broadcast(GraphDataMutated())
         return {
             "summary": f"Added {wrapper.node_id}.",
             "node_id": wrapper.node_id,
             "help": (
-                f"Run graph_editor_inspect_node binding_id={binding_id!r} "
+                f"Run haybale-graph-editor_inspect_node binding_id={binding_id!r} "
                 f"node_id={wrapper.node_id!r} get=['ports','settings'] to see what to wire or set, "
-                f"then graph_editor_connect."
+                f"then haybale-graph-editor_connect."
             ),
         }
 
@@ -880,7 +885,7 @@ class GraphEditorAddNodeTool(Farmhand):
     label="Connect",
     description="Connect an outlet to an inlet.",
     instructions="Create an edge from one node's outlet to another node's inlet, by exact pin "
-    "id. Use graph_editor_inspect_node get=['ports'] on both endpoints first to find valid pin "
+    "id. Use haybale-graph-editor_inspect_node get=['ports'] on both endpoints first to find valid pin "
     "ids and confirm type compatibility — a bad id or an incompatible pair raises "
     "connect_failed. Opens one undo fence and broadcasts to open studio UIs on success.",
     registry_id="connect",
@@ -912,7 +917,7 @@ class GraphEditorConnectTool(Farmhand):
                 f"(check the pin ids and type compatibility, and that no edge already links "
                 f"these two pins in either direction).",
                 help=(
-                    f"Run graph_editor_inspect_node node_id={source_node_id!r} get=['ports'] "
+                    f"Run haybale-graph-editor_inspect_node node_id={source_node_id!r} get=['ports'] "
                     f"(and for {sink_node_id!r}) to see valid pin ids and their types."
                 ),
                 ids={
@@ -966,7 +971,7 @@ class GraphEditorRemoveElementsTool(Farmhand):
     description="Move nodes to absolute positions ({node_id: {x, y}}).",
     instructions="Move one or more nodes to absolute canvas positions in a single call: "
     "positions={node_id: {x, y}, ...}. Positions are absolute, not deltas — read current "
-    "positions with graph_editor_query_graph first if you need a relative move. Opens one undo "
+    "positions with haybale-graph-editor_query_graph first if you need a relative move. Opens one undo "
     "fence and broadcasts to open studio UIs on success.",
     registry_id="move_nodes",
     annotations=_MUTATING,
@@ -1063,7 +1068,7 @@ def _read_property(node, name: str):
     description="Set a node property (port value or settings field) by name. Undo-recorded.",
     instructions="Set a node property (port value or settings field) by name. Undo-recorded. "
     "'name' resolves to a port id first, then a settings field — use the exact 'name' from a "
-    "graph_editor_inspect_node row. The write is verified by reading the value back: a value "
+    "haybale-graph-editor_inspect_node row. The write is verified by reading the value back: a value "
     "rejected by the field's validator raises set_rejected rather than reporting a success that "
     "did not happen. Note min/max are UI hints only and are NOT enforced — an out-of-range write "
     "succeeds, so respect the bounds inspect_node reports. A port that holds no own value "
@@ -1084,7 +1089,7 @@ class GraphEditorSetPropertyTool(Farmhand):
                 f"Port '{name}' on node '{node_id}' holds no own value: its value comes only from "
                 f"its edges (a pooled inlet or an ADD slot).",
                 ids={"node_id": node_id, "name": name},
-                help=f"Wire an edge into '{name}' with graph_editor_connect instead of setting it.",
+                help=f"Wire an edge into '{name}' with haybale-graph-editor_connect instead of setting it.",
             )
         ok = editor.set_property(node_id, name, value)
         if not ok:
@@ -1093,7 +1098,7 @@ class GraphEditorSetPropertyTool(Farmhand):
                 f"Could not set '{name}' on node '{node_id}' (unknown property).",
                 ids={"node_id": node_id, "name": name},
                 help=(
-                    f"Run graph_editor_inspect_node node_id={node_id!r} get=['ports','settings'] "
+                    f"Run haybale-graph-editor_inspect_node node_id={node_id!r} get=['ports','settings'] "
                     f"to see the writable property names."
                 ),
             )
@@ -1109,7 +1114,7 @@ class GraphEditorSetPropertyTool(Farmhand):
                 f"drops such writes silently).",
                 ids={"node_id": node_id, "name": name},
                 help=(
-                    f"Run graph_editor_inspect_node node_id={node_id!r} get=['settings'] "
+                    f"Run haybale-graph-editor_inspect_node node_id={node_id!r} get=['settings'] "
                     f"to see the field's type and constraints."
                 ),
             )
@@ -1122,7 +1127,7 @@ class GraphEditorSetPropertyTool(Farmhand):
     description="Change the value of a widget that is shown on a node card. Not undo-recorded.",
     instructions="Change the value of a port whose widget is shown on its node card, the same "
     "change a person makes by using that widget. Use the exact port id from a "
-    "graph_editor_inspect_node row. A port with no widget, a hidden widget, or an inlet fed by "
+    "haybale-graph-editor_inspect_node row. A port with no widget, a hidden widget, or an inlet fed by "
     "an edge raises not_operable, and so does a port marked as needing edit access to change. "
     "A port inside a closed fold can be set; the fold stays closed, and its card shows the value "
     "once the fold is open. "
@@ -1146,8 +1151,8 @@ class GraphEditorOperateTool(Farmhand):
                 f"Port '{port_id}' on node '{node_id}' needs edit access to change, so it cannot be "
                 f"operated.",
                 ids={"node_id": node_id, "port_id": port_id},
-                help=f"Change it with graph_editor_set_property node_id={node_id!r} name={port_id!r}, "
-                "which needs edit access and records an undo step.",
+                help=f"Change it with haybale-graph-editor_set_property node_id={node_id!r} "
+                f"name={port_id!r}, which needs edit access and records an undo step.",
             )
         if (
             port is None
@@ -1161,7 +1166,10 @@ class GraphEditorOperateTool(Farmhand):
                 f"Port '{port_id}' on node '{node_id}' has no widget shown on its card, so it "
                 f"cannot be operated.",
                 ids={"node_id": node_id, "port_id": port_id},
-                help=f"Run graph_editor_inspect_node node_id={node_id!r} get=['ports'] to see the ports.",
+                help=(
+                    f"Run haybale-graph-editor_inspect_node node_id={node_id!r} get=['ports'] to see "
+                    "the ports."
+                ),
             )
         # Agents have no level and no lock: the route's mode is a constant OPERATE.
         if not EditRoute(lambda: editor, lambda: LevelMode.OPERATE).set_port(
@@ -1171,7 +1179,10 @@ class GraphEditorOperateTool(Farmhand):
                 "operate_refused",
                 f"The edit route refused the write to '{port_id}' on '{node_id}'; nothing changed.",
                 ids={"node_id": node_id, "port_id": port_id},
-                help=f"Run graph_editor_inspect_node node_id={node_id!r} get=['ports'] to see the ports.",
+                help=(
+                    f"Run haybale-graph-editor_inspect_node node_id={node_id!r} get=['ports'] to see "
+                    "the ports."
+                ),
             )
         actual = port.data.get_own_value()
         if actual != value:
@@ -1180,7 +1191,10 @@ class GraphEditorOperateTool(Farmhand):
                 f"Write to '{port_id}' on '{node_id}' did not take: requested {value!r}, "
                 f"value is still {actual!r}. The port's validator rejected it.",
                 ids={"node_id": node_id, "port_id": port_id},
-                help=f"Run graph_editor_inspect_node node_id={node_id!r} get=['ports'] for the port's type.",
+                help=(
+                    f"Run haybale-graph-editor_inspect_node node_id={node_id!r} get=['ports'] for the "
+                    "port's type."
+                ),
             )
         ctx.broadcast(GraphDataMutated())
         return {"summary": f"Set '{port_id}' on {node_id} to {actual!r}."}
@@ -1191,7 +1205,7 @@ class GraphEditorOperateTool(Farmhand):
     description="Promote a settings field to a data port. One undo step.",
     instructions="Promote a settings field to a live data port, so it can be wired instead of "
     "just set directly. accessor is the settings-bag accessor (e.g. 'depth') and field the "
-    "field name within it — both come from a graph_editor_inspect_node settings row. direction "
+    "field name within it — both come from a haybale-graph-editor_inspect_node settings row. direction "
     "is one of inlet/outlet/config (default inlet); an invalid direction raises bad_direction, "
     "and a field that can't be promoted raises not_promotable. One undo step on the shared "
     "undo timeline.",
@@ -1225,7 +1239,10 @@ class GraphEditorPromoteSettingTool(Farmhand):
                 f"Cannot promote {accessor}.{field} on node '{node_id}' as {direction}: the field is "
                 f"unknown, or its settings do not allow that direction.",
                 ids={"node_id": node_id, "field": field},
-                help=f"Run graph_editor_inspect_node node_id={node_id!r} get=['settings'] for the fields.",
+                help=(
+                    f"Run haybale-graph-editor_inspect_node node_id={node_id!r} get=['settings'] for "
+                    "the fields."
+                ),
             )
         ctx.broadcast(GraphDataMutated())
         return {"summary": f"Promoted {accessor}.{field} on {node_id} as {direction}."}
@@ -1234,7 +1251,7 @@ class GraphEditorPromoteSettingTool(Farmhand):
 @farmhand(
     label="Demote setting",
     description="Remove a promoted port, returning the field to a plain setting. One undo step.",
-    instructions="Reverse graph_editor_promote_setting: remove a promoted port by its port_id, "
+    instructions="Reverse haybale-graph-editor_promote_setting: remove a promoted port by its port_id, "
     "returning the underlying field to a plain (non-port) setting. Any edges on that port are "
     "removed along with it. One undo step. Broadcasts to open studio UIs on success.",
     registry_id="demote_setting",
@@ -1251,7 +1268,10 @@ class GraphEditorDemoteSettingTool(Farmhand):
                 f"Cannot demote port '{port_id}' on node '{node_id}': the port is unknown or was "
                 f"declared by the node's author, not promoted.",
                 ids={"node_id": node_id, "port_id": port_id},
-                help=f"Run graph_editor_inspect_node node_id={node_id!r} get=['ports'] to see the ports.",
+                help=(
+                    f"Run haybale-graph-editor_inspect_node node_id={node_id!r} get=['ports'] to see "
+                    "the ports."
+                ),
             )
         ctx.broadcast(GraphDataMutated())
         return {"summary": f"Demoted port {port_id} on {node_id}."}
@@ -1306,7 +1326,8 @@ class GraphEditorRedoTool(Farmhand):
     description="Apply or dismiss the previous setup nodes kept through a hot reload. One undo step.",
     instructions="A hot reload rebuilds every node of the reloaded class from its new code; a node "
     "whose setup that changed keeps its previous setup and lists a 'previous_setup' warning in "
-    "graph_editor_inspect_node (and a WARNING in studio_get_errors). action='apply' rebuilds the "
+    "haybale-graph-editor_inspect_node (and a WARNING in haybale-studio_get_errors). action='apply' "
+    "rebuilds the "
     "nodes from their previous setup, keeping where they are; action='dismiss' drops it. Every "
     "node in node_ids must hold one, or nothing changes and no_previous_setup is raised; an "
     "unknown action raises bad_action. One undo step on the shared undo timeline.",
@@ -1330,7 +1351,10 @@ class GraphEditorPreviousSetupTool(Farmhand):
                 "no_previous_setup",
                 f"Not every node in {node_ids} holds a previous setup; nothing changed.",
                 ids={"node_ids": ", ".join(node_ids)},
-                help="Run graph_editor_inspect_node; a node holding one lists a 'previous_setup' warning.",
+                help=(
+                    "Run haybale-graph-editor_inspect_node; a node holding one lists a 'previous_setup' "
+                    "warning."
+                ),
             )
         ctx.broadcast(GraphDataMutated())
         done = "Applied" if action == "apply" else "Dismissed"
@@ -1343,9 +1367,9 @@ class GraphEditorPreviousSetupTool(Farmhand):
     instructions="Set one or more of a graph's document metadata fields — label (free-text "
     "title), description (what the graph is for), author, version (the author's own version "
     "string, NOT the file format version). Omitted fields are left alone; pass several at once "
-    "when describing a graph you just built. Read the current values from graph_editor_"
-    "query_graph's 'metadata' key. One undo step; it marks the graph unsaved, and a later save "
-    "persists it.",
+    "when describing a graph you just built. Read the current values from "
+    "haybale-graph-editor_query_graph's 'metadata' key. One undo step; it marks the graph "
+    "unsaved, and a later save persists it.",
     registry_id="set_metadata",
     annotations=_MUTATING,
 )
@@ -1379,7 +1403,7 @@ class GraphEditorSetMetadataTool(Farmhand):
                 ids={"binding_id": binding_id},
                 help=(
                     f"Pass at least one of {', '.join(_META_FIELDS)}, e.g. "
-                    f"graph_editor_set_metadata binding_id={binding_id!r} description='...'."
+                    f"haybale-graph-editor_set_metadata binding_id={binding_id!r} description='...'."
                 ),
             )
 
@@ -1408,7 +1432,7 @@ class GraphEditorSetMetadataTool(Farmhand):
             "summary": f"Set {', '.join(sorted(writes))} on {binding_id}.",
             "metadata": _metadata_row(graph),
             "help": (
-                "The graph is marked unsaved — run haystack_save_graph "
+                "The graph is marked unsaved — run haybale-haystack_save_graph "
                 f"binding_id={binding_id!r} to persist it."
             ),
         }

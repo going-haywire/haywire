@@ -1,4 +1,4 @@
-"""models_list / models_needs / models_fetch."""
+"""haybale-models_list / haybale-models_needs / haybale-models_fetch."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ def _report(ctx: FarmhandContext, binding_id: str) -> NeedsReport:
             "graph_not_open",
             f"No open graph '{binding_id}'.",
             ids={"binding_id": binding_id},
-            help="Call haystack_list_graphs to see the open graphs and their binding_id.",
+            help="Call haybale-haystack_list_graphs to see the open graphs and their binding_id.",
         )
     models = _models(ctx)
 
@@ -85,7 +85,7 @@ class ModelsListTool(Farmhand):
     Returns every catalog entry with its variants (size and status: local, HF cache,
     queued, downloading, failed or not downloaded), every file indexed in the models
     volume, and every download job with its progress. Call it first, to learn the
-    catalog keys that `models_fetch` takes and to follow a download. Pass
+    catalog keys that `haybale-models_fetch` takes and to follow a download. Pass
     `detail=true` to add license, commercial (whether the author states the model may be used
     commercially) and description to the catalog rows.
 
@@ -134,7 +134,7 @@ class ModelsListTool(Farmhand):
             "catalog": catalog,
             "local": local,
             "jobs": job_rows,
-            "help": "Run models_fetch keys=[<key>] to download a catalog entry (admin). A job with "
+            "help": "Run haybale-models_fetch keys=[<key>] to download a catalog entry (admin). A job with "
             "assisted=true failed but can be finished by the user: send them to Download in browser in "
             "the Models editor, with its page_urls.",
         }
@@ -144,7 +144,8 @@ class ModelsListTool(Farmhand):
     label="Models a graph needs",
     description="The models an open graph references and does not have locally.",
     instructions="Returns the missing models of an open graph, interiors included: label, size "
-    "(null when unknown) and the node_ids that ask for it. Get binding_id from haystack_list_graphs.",
+    "(null when unknown) and the node_ids that ask for it. Get binding_id from "
+    "haybale-haystack_list_graphs.",
     registry_id="needs",
     annotations=ToolAnnotations(read_only_hint=True),
     requires=AccessTier.VIEW,
@@ -155,8 +156,8 @@ class ModelsNeedsTool(Farmhand):
     Returns, for the graph under `binding_id`, each missing model with its label, size
     (`null` when unknown) and the ids of the nodes that ask for it, interiors of
     subgraphs and macros included, plus the known total in bytes. Call it before
-    starting a graph, or to decide what `models_fetch` should download. Get
-    `binding_id` from `haystack_list_graphs`.
+    starting a graph, or to decide what `haybale-models_fetch` should download. Get
+    `binding_id` from `haybale-haystack_list_graphs`.
     """
 
     async def run(self, ctx: FarmhandContext, binding_id: str) -> dict:
@@ -170,14 +171,14 @@ class ModelsNeedsTool(Farmhand):
             "unknown_size": report.unknown_size,
         }
         if rows:
-            result["help"] = f"Run models_fetch binding_id={binding_id!r} to download them (admin)."
+            result["help"] = f"Run haybale-models_fetch binding_id={binding_id!r} to download them (admin)."
         return result
 
 
 @farmhand(
     label="Fetch models",
     description="Queue downloads: everything an open graph needs, or catalog entries by key (admin).",
-    instructions="Queues the downloads and returns their job ids; progress is in models_list jobs. "
+    instructions="Queues the downloads and returns their job ids; progress is in haybale-models_list jobs. "
     "Pass binding_id to fetch everything that graph needs, or keys=[<catalog key>, ...] to fetch "
     "the preferred variant of each entry. Needs admin access.",
     registry_id="fetch",
@@ -189,7 +190,7 @@ class ModelsFetchTool(Farmhand):
 
     Pass `binding_id` to fetch everything that open graph needs, or `keys` to fetch the
     preferred variant of each catalog entry. Returns the job ids at once; the files
-    arrive in the background, so call `models_list` to follow the jobs. Downloads use
+    arrive in the background, so call `haybale-models_list` to follow the jobs. Downloads use
     network and disk: call it only when the user wants the models.
     """
 
@@ -200,7 +201,10 @@ class ModelsFetchTool(Farmhand):
             raise FarmhandError(
                 "nothing_to_fetch",
                 "Pass binding_id or keys.",
-                help="Run models_needs binding_id=<id> for a graph, or models_list for catalog keys.",
+                help=(
+                    "Run haybale-models_needs binding_id=<id> for a graph, or haybale-models_list for "
+                    "catalog keys."
+                ),
             )
         models = _models(ctx)
         specs: list[FetchSpec] = []
@@ -214,12 +218,12 @@ class ModelsFetchTool(Farmhand):
                     "unknown_model",
                     f"No catalog entry '{key}'.",
                     ids={"key": key},
-                    help="Run models_list to see the catalog keys.",
+                    help="Run haybale-models_list to see the catalog keys.",
                 )
             specs.append(FetchSpec(entry=entry, resource=ranked[0][1]))
         job_ids = models.fetch(specs, ctx.principal)
         return {
             "summary": f"Queued {len(job_ids)} downloads.",
             "job_ids": job_ids,
-            "help": "Run models_list to follow the jobs.",
+            "help": "Run haybale-models_list to follow the jobs.",
         }

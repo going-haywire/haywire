@@ -6,7 +6,7 @@ Remove a promoted port, returning the field to a plain setting. One undo step.
 
 ## Agent Instructions
 
-Reverse graph_editor_promote_setting: remove a promoted port by its port_id, returning the underlying field to a plain (non-port) setting. Any edges on that port are removed along with it. One undo step. Broadcasts to open studio UIs on success.
+Reverse haybale-graph-editor_promote_setting: remove a promoted port by its port_id, returning the underlying field to a plain (non-port) setting. Any edges on that port are removed along with it. One undo step. Broadcasts to open studio UIs on success.
 
 ## Details
 

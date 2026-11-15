@@ -1,4 +1,4 @@
-"""haystack_* MCP tools: graph lifecycle + execution control (spec §5)."""
+"""haybale-haystack_* MCP tools: graph lifecycle + execution control (spec §5)."""
 
 from __future__ import annotations
 
@@ -30,7 +30,10 @@ def _entry(ctx: FarmhandContext, binding_id: str):
             "graph_not_found",
             f"No open graph '{binding_id}'.",
             ids={"binding_id": binding_id},
-            help="Run haystack_list_graphs to see open graphs, or haystack_open_graph to open one.",
+            help=(
+                "Run haybale-haystack_list_graphs to see open graphs, or haybale-haystack_open_graph to "
+                "open one."
+            ),
         )
     return entry
 
@@ -54,9 +57,9 @@ def _compile_row(result) -> dict:
     label="List graphs",
     description="Open haystack entries plus .haywire files on disk in the workspace.",
     instructions="List open graph sessions (with their binding_id, needed by every other "
-    "haystack_*/graph_editor_* tool) plus every .haywire file found on disk under the workspace "
-    "root, whether open or not. Use this first to discover a binding_id, or to find a file path "
-    "to pass to haystack_open_graph.",
+    "haybale-haystack_*/haybale-graph-editor_* tool) plus every .haywire file found on disk "
+    "under the workspace root, whether open or not. Use this first to discover a binding_id, or "
+    "to find a file path to pass to haybale-haystack_open_graph.",
     registry_id="list_graphs",
     annotations=_READ_ONLY,
     requires=AccessTier.VIEW,
@@ -83,13 +86,15 @@ class HaystackListGraphsTool(Farmhand):
         }
         if open_rows:
             result["help"] = (
-                "Run graph_editor_query_graph binding_id=<id> to inspect an open graph, or "
-                "haystack_open_graph path=<path> to open one of the files on disk."
+                "Run haybale-graph-editor_query_graph binding_id=<id> to inspect an open graph, or "
+                "haybale-haystack_open_graph path=<path> to open one of the files on disk."
             )
         elif files:
-            result["help"] = "Run haystack_open_graph path=<path> to open one, or haystack_create_graph."
+            result["help"] = (
+                "Run haybale-haystack_open_graph path=<path> to open one, or haybale-haystack_create_graph."
+            )
         else:
-            result["help"] = "Run haystack_create_graph to start a new graph."
+            result["help"] = "Run haybale-haystack_create_graph to start a new graph."
         return result
 
 
@@ -98,7 +103,7 @@ class HaystackListGraphsTool(Farmhand):
     description="Create a new untitled graph (appears in open browser sessions).",
     instructions="Create a new untitled, unsaved graph and return its binding_id. The graph "
     "appears in any open studio browser session immediately. It has no nodes yet — follow with "
-    "graph_editor_add_node, then haystack_save_graph (it stays unsaved until you do).",
+    "haybale-graph-editor_add_node, then haybale-haystack_save_graph (it stays unsaved until you do).",
     registry_id="create_graph",
     annotations=_MUTATING,
 )
@@ -109,8 +114,8 @@ class HaystackCreateGraphTool(Farmhand):
             "summary": f"Created {entry.binding_id}.",
             **_entry_row(entry),
             "help": (
-                f"Run graph_editor_add_node binding_id={entry.binding_id!r} registry_key=<key> to "
-                f"populate it, then haystack_save_graph binding_id={entry.binding_id!r} path=<path> "
+                f"Run haybale-graph-editor_add_node binding_id={entry.binding_id!r} registry_key=<key> to "
+                f"populate it, then haybale-haystack_save_graph binding_id={entry.binding_id!r} path=<path> "
                 f"(it is unsaved until you do)."
             ),
         }
@@ -121,7 +126,7 @@ class HaystackCreateGraphTool(Farmhand):
     description="Open a .haywire file (idempotent per path).",
     instructions="Open a .haywire file by path, relative to the workspace root, and return its "
     "binding_id. Idempotent: opening an already-open path returns the same session rather than "
-    "duplicating it. Raises file_not_found if the path doesn't exist — run haystack_list_graphs "
+    "duplicating it. Raises file_not_found if the path doesn't exist — run haybale-haystack_list_graphs "
     "to see valid paths.",
     registry_id="open_graph",
     annotations=_MUTATING,
@@ -134,7 +139,7 @@ class HaystackOpenGraphTool(Farmhand):
                 "file_not_found",
                 f"No file at {target}.",
                 ids={"path": path},
-                help="Run haystack_list_graphs to see graph files in the haystack.",
+                help="Run haybale-haystack_list_graphs to see graph files in the haystack.",
             )
         entry = _state(ctx).open_graph(target)
         return {"summary": f"Opened {entry.binding_id}.", **_entry_row(entry)}
@@ -145,7 +150,7 @@ class HaystackOpenGraphTool(Farmhand):
     description="Save an open graph; save_as writes to a new path.",
     instructions="Save an open graph (by binding_id) to its current path. Pass save_as=<path> "
     "(relative to the workspace root) to write to a new path instead — e.g. to save an untitled "
-    "graph from haystack_create_graph for the first time. Raises graph_not_found for an unknown "
+    "graph from haybale-haystack_create_graph for the first time. Raises graph_not_found for an unknown "
     "binding_id, save_failed if the write itself fails.",
     registry_id="save_graph",
     annotations=_MUTATING,
@@ -189,7 +194,7 @@ class HaystackRenameGraphTool(Farmhand):
     description="Close an open graph entry. NEVER deletes the file on disk.",
     instructions="Close an open graph session by binding_id, removing it from the open-entries "
     "list. NEVER deletes the file on disk — the graph can be reopened later with "
-    "haystack_open_graph. Raises graph_not_found for an unknown binding_id.",
+    "haybale-haystack_open_graph. Raises graph_not_found for an unknown binding_id.",
     registry_id="close_graph",
     annotations=_MUTATING,
 )
@@ -204,7 +209,7 @@ class HaystackCloseGraphTool(Farmhand):
     label="Compile graph",
     description="Compile without starting; returns compile diagnostics.",
     instructions="Compile an open graph WITHOUT starting execution — use this to check for "
-    "compile errors before haystack_start_graph, since starting a broken graph wastes the "
+    "compile errors before haybale-haystack_start_graph, since starting a broken graph wastes the "
     "destructive-side-effects warning for nothing. Returns compile.ok and compile.error (null "
     "when ok).",
     registry_id="compile_graph",
@@ -222,8 +227,8 @@ class HaystackCompileGraphTool(Farmhand):
     description="Compile and start execution. Destructive: nodes perform real I/O.",
     instructions="Compile and start executing an open graph. DESTRUCTIVE — nodes perform real "
     "I/O once running (hardware, network, file writes), not a dry run. Consider "
-    "haystack_compile_graph first to catch compile errors without side effects. Follow with "
-    "haystack_stop_graph when done.",
+    "haybale-haystack_compile_graph first to catch compile errors without side effects. Follow with "
+    "haybale-haystack_stop_graph when done.",
     registry_id="start_graph",
     annotations=ToolAnnotations(destructive_hint=True),
     requires=AccessTier.OPERATE,

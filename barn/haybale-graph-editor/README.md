@@ -14,7 +14,7 @@ Visual graph editor library — host-agnostic
 - **Node Skin** — Settings controlling node layout and pin geometry.
 
 ## Farmhands
-- **Add node** — Add a node by registry key. Call studio_describe_component first to learn its ports.
+- **Add node** — Add a node by registry key. Call haybale-studio_describe_component first to learn its ports.
 - **Arrange** — Auto-layout the flow of nodes, a node's downstream or upstream nodes, or the whole graph.
 - **Connect** — Connect an outlet to an inlet.
 - **Demote setting** — Remove a promoted port, returning the field to a plain setting. One undo step.

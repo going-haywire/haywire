@@ -6,7 +6,7 @@ Set a graph's document metadata (label, description, author, version). One undo 
 
 ## Agent Instructions
 
-Set one or more of a graph's document metadata fields — label (free-text title), description (what the graph is for), author, version (the author's own version string, NOT the file format version). Omitted fields are left alone; pass several at once when describing a graph you just built. Read the current values from graph_editor_query_graph's 'metadata' key. One undo step; it marks the graph unsaved, and a later save persists it.
+Set one or more of a graph's document metadata fields — label (free-text title), description (what the graph is for), author, version (the author's own version string, NOT the file format version). Omitted fields are left alone; pass several at once when describing a graph you just built. Read the current values from haybale-graph-editor_query_graph's 'metadata' key. One undo step; it marks the graph unsaved, and a later save persists it.
 
 ## Details
 

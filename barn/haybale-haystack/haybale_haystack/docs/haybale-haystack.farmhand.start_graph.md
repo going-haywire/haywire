@@ -6,7 +6,7 @@ Compile and start execution. Destructive: nodes perform real I/O.
 
 ## Agent Instructions
 
-Compile and start executing an open graph. DESTRUCTIVE — nodes perform real I/O once running (hardware, network, file writes), not a dry run. Consider haystack_compile_graph first to catch compile errors without side effects. Follow with haystack_stop_graph when done.
+Compile and start executing an open graph. DESTRUCTIVE — nodes perform real I/O once running (hardware, network, file writes), not a dry run. Consider haybale-haystack_compile_graph first to catch compile errors without side effects. Follow with haybale-haystack_stop_graph when done.
 
 ## Details
 

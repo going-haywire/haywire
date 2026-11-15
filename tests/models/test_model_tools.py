@@ -1,4 +1,4 @@
-"""models_list / models_needs / models_fetch, driven directly (no MCP transport)."""
+"""haybale-models_list / haybale-models_needs / haybale-models_fetch, driven directly (no MCP transport)."""
 
 from __future__ import annotations
 
@@ -183,7 +183,7 @@ def test_needs_unknown_binding_errors(env: _Env) -> None:
         env.run(ModelsNeedsTool, binding_id="nope")
     assert caught.value.code == "graph_not_open"
     assert caught.value.help is not None
-    assert "haystack_list_graphs" in caught.value.help
+    assert "haybale-haystack_list_graphs" in caught.value.help
 
 
 def test_fetch_requires_admin() -> None:

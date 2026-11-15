@@ -1,4 +1,4 @@
-"""studio_status — orientation floor for a connecting agent."""
+"""haybale-studio_status — orientation floor for a connecting agent."""
 
 from __future__ import annotations
 

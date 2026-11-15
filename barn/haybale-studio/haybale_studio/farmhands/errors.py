@@ -1,4 +1,4 @@
-"""studio_get_errors / studio_dismiss_errors — query and triage the error ledger."""
+"""haybale-studio_get_errors / haybale-studio_dismiss_errors — query and triage the error ledger."""
 
 from __future__ import annotations
 
@@ -87,7 +87,7 @@ class StudioDismissErrorsTool(Farmhand):
             raise FarmhandError(
                 "invalid_args",
                 "Pass seq=<n> to dismiss one entry, or all=true.",
-                help="Run studio_get_errors to find the seq of the entry to dismiss.",
+                help="Run haybale-studio_get_errors to find the seq of the entry to dismiss.",
             )
 
         ledger = get_error_ledger()

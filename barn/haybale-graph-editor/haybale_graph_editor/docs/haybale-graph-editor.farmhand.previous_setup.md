@@ -6,7 +6,7 @@ Apply or dismiss the previous setup nodes kept through a hot reload. One undo st
 
 ## Agent Instructions
 
-A hot reload rebuilds every node of the reloaded class from its new code; a node whose setup that changed keeps its previous setup and lists a 'previous_setup' warning in graph_editor_inspect_node (and a WARNING in studio_get_errors). action='apply' rebuilds the nodes from their previous setup, keeping where they are; action='dismiss' drops it. Every node in node_ids must hold one, or nothing changes and no_previous_setup is raised; an unknown action raises bad_action. One undo step on the shared undo timeline.
+A hot reload rebuilds every node of the reloaded class from its new code; a node whose setup that changed keeps its previous setup and lists a 'previous_setup' warning in haybale-graph-editor_inspect_node (and a WARNING in haybale-studio_get_errors). action='apply' rebuilds the nodes from their previous setup, keeping where they are; action='dismiss' drops it. Every node in node_ids must hold one, or nothing changes and no_previous_setup is raised; an unknown action raises bad_action. One undo step on the shared undo timeline.
 
 ## Details
 

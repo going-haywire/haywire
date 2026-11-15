@@ -1,4 +1,4 @@
-"""studio_list_libraries / studio_list_components / studio_describe_component."""
+"""haybale-studio_list_libraries / haybale-studio_list_components / haybale-studio_describe_component."""
 
 from __future__ import annotations
 
@@ -78,8 +78,8 @@ class StudioListLibrariesTool(Farmhand):
         }
         if rows:
             result["help"] = (
-                "Run studio_list_components library=<id> to see what a library provides, or "
-                "marketplace_get_library_docs library=<id> for its docs"
+                "Run haybale-studio_list_components library=<id> to see what a library provides, or "
+                "haybale-marketplace_get_library_docs library=<id> for its docs"
                 + ("" if detail else "; re-run with detail=true for descriptions and tags")
                 + "."
             )
@@ -125,7 +125,7 @@ def _matches_search(identity: Any, query_lower: str) -> bool:
     "Start with count_only=true to see totals per library/kind before listing rows — the "
     "cheapest way to survey scope.\n"
     f"kind: one of {', '.join(_KIND_ENUM)}\n"
-    "library: exact library id (see studio_list_libraries)\n"
+    "library: exact library id (see haybale-studio_list_libraries)\n"
     "search: substring match against label/description/search_tags (same algorithm as the "
     "node-menu search)\n"
     "count_only: return counts grouped by library/kind instead of rows\n"
@@ -195,7 +195,7 @@ class StudioListComponentsTool(Farmhand):
                 top_lib, per_kind = max(grouped.items(), key=lambda kv: sum(kv[1].values()))
                 top_kind = max(per_kind.items(), key=lambda kv: kv[1])[0]
                 result["help"] = (
-                    f"Run studio_list_components library={top_lib!r} kind={top_kind!r} to list "
+                    f"Run haybale-studio_list_components library={top_lib!r} kind={top_kind!r} to list "
                     f"that slice ({per_kind[top_kind]} components)."
                 )
             return result
@@ -223,7 +223,7 @@ class StudioListComponentsTool(Farmhand):
             )
         if rows:
             hints.append(
-                "Run studio_describe_component registry_key=<key> for ports, settings, and docs"
+                "Run haybale-studio_describe_component registry_key=<key> for ports, settings, and docs"
                 + ("." if detail else ", or re-run with detail=true for one-line descriptions.")
             )
         if hints:
@@ -235,7 +235,7 @@ class StudioListComponentsTool(Farmhand):
     label="Describe component",
     description="One component's identity, docstring, and authoring-guide link.",
     instructions="One component's identity and docstring, plus the canon_doc_uri for its kind's "
-    "authoring guide. For nodes: read before graph_editor_add_node.",
+    "authoring guide. For nodes: read before haybale-graph-editor_add_node.",
     registry_id="describe_component",
     annotations=_READ_ONLY,
     requires=AccessTier.VIEW,

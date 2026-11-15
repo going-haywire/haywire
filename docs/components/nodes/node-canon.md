@@ -512,7 +512,7 @@ Three `@node(...)` options decide how a node appears in the add-node menu:
   It hides the node *as a choice* only — not from browsing or debug surfaces.
   See **Hidden component** in the glossary.
 - **`template=True`** — the node becomes a **Node template**: a starting point
-  that the New Node wizard and Farmhand's `studio_scaffold_component` *copy*
+  that the New Node wizard and Farmhand's `haybale-studio_scaffold_component` *copy*
   into a library as a new class. It implies `hidden=True`.
   `NodeFactory.list_templates()` lists them.
 

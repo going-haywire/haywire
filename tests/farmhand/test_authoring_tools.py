@@ -1,4 +1,4 @@
-"""studio_scaffold_component and studio_write_component_source over the authoring pipeline.
+"""haybale-studio_scaffold_component and haybale-studio_write_component_source over the authoring pipeline.
 
 Both tools write into a throwaway library (``haybale_dst`` from the
 authoring fixtures), never into a real barn library. A helper thread plays

@@ -6,7 +6,7 @@ Save an open graph; save_as writes to a new path.
 
 ## Agent Instructions
 
-Save an open graph (by binding_id) to its current path. Pass save_as=<path> (relative to the workspace root) to write to a new path instead — e.g. to save an untitled graph from haystack_create_graph for the first time. Raises graph_not_found for an unknown binding_id, save_failed if the write itself fails.
+Save an open graph (by binding_id) to its current path. Pass save_as=<path> (relative to the workspace root) to write to a new path instead — e.g. to save an untitled graph from haybale-haystack_create_graph for the first time. Raises graph_not_found for an unknown binding_id, save_failed if the write itself fails.
 
 ## Details
 

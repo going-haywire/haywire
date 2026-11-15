@@ -9,7 +9,7 @@ Component catalog, filterable and searchable.
 ALWAYS pass at least one of kind=/library=/search= — omitting all three returns every installed component (100+) and is slow and almost never what you want. Component catalog, filterable and searchable.
 Start with count_only=true to see totals per library/kind before listing rows — the cheapest way to survey scope.
 kind: one of adapter, catalog, editor, farmhand, macro, node, panel, setting, skin, state, theme, type, widget
-library: exact library id (see studio_list_libraries)
+library: exact library id (see haybale-studio_list_libraries)
 search: substring match against label/description/search_tags (same algorithm as the node-menu search)
 count_only: return counts grouped by library/kind instead of rows
 detail: add each component's one-line description to the row (registry_key/label only by default — descriptions dominate a large listing)

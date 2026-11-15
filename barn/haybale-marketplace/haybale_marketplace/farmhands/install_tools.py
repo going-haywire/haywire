@@ -1,4 +1,4 @@
-"""marketplace_dry_run_install / marketplace_install_library / marketplace_uninstall_library."""
+"""haybale-marketplace_dry_run_install / _install_library / _uninstall_library: change installed haybales."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from haybale_marketplace.farmhands.catalog_tools import _library_manager, _progr
     description="Resolve what an install would remove/upgrade, without installing (informational valve).",
     instructions="Resolve what installing install_spec would remove or upgrade, WITHOUT actually "
     "installing — a preview only, no changes to the venv. Run this before "
-    "marketplace_install_library to see the blast radius. Returns the list of affected "
+    "haybale-marketplace_install_library to see the blast radius. Returns the list of affected "
     "distributions; raises resolver_failed if resolution itself fails.",
     registry_id="dry_run_install",
     annotations=ToolAnnotations(read_only_hint=True, open_world_hint=True),
@@ -40,9 +40,9 @@ class MarketplaceDryRunInstallTool(Farmhand):
 @farmhand(
     label="Install library",
     description="Install a library via uv pip (streams progress). Destructive: changes the venv. "
-    "Run marketplace_dry_run_install first.",
+    "Run haybale-marketplace_dry_run_install first.",
     instructions="Install a library via uv pip (streams progress). DESTRUCTIVE: changes the "
-    "venv. Run marketplace_dry_run_install first to preview what would be removed/upgraded. "
+    "venv. Run haybale-marketplace_dry_run_install first to preview what would be removed/upgraded. "
     "Raises install_failed with the underlying message on failure. On success, returns "
     "on_reload naming the follow-up action (e.g. whether a studio restart is needed) and "
     "broadcasts a catalog-changed signal.",
