@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 from collections.abc import AsyncGenerator
 from typing import Any
 
@@ -66,7 +67,7 @@ async def _forms(user: User, count: int, answers: dict | None = None, *, read_on
             form = QuestionnaireForm(
                 DEFINITION,
                 store,
-                on_answer=lambda name, value, i=index: _on_answer(i, name, value),
+                on_answer=functools.partial(_on_answer, index),
                 read_only=read_only,
             )
             form.build()

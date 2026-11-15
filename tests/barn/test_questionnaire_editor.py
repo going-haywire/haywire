@@ -130,6 +130,7 @@ async def test_another_sessions_answer_lands_in_place_and_a_new_post_redraws(
 ) -> None:
     state.post(copy.deepcopy(DEFINITION), principal="agent")
     editor = await _open(user, state)
+    wrapper: Any = editor.wrapper
     context = _context(state)
     assert editor._form is not None
     verdict = editor._form._fields["c1"].inputs[0]
@@ -137,12 +138,12 @@ async def test_another_sessions_answer_lands_in_place_and_a_new_post_redraws(
     state.set_answer("c1", {"verdict": "blocked", "note": "no server"})
     editor._on_changed(context, QuestionnaireChanged())
     assert verdict.value == "blocked"
-    editor.wrapper.redraw.assert_not_called()
-    editor.wrapper.refresh_tab_bar.assert_called()
+    wrapper.redraw.assert_not_called()
+    wrapper.refresh_tab_bar.assert_called()
 
     state.post({"title": "Next", "elements": [{"type": "boolean", "name": "ok"}]}, principal="agent")
     editor._on_changed(context, QuestionnaireChanged())
-    editor.wrapper.redraw.assert_called_once()
+    wrapper.redraw.assert_called_once()
 
 
 @pytest.mark.anyio
