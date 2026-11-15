@@ -2,9 +2,9 @@
 QuestionnaireEditor — the Questionnaire an agent posted, answered in the ASIDE slot.
 
 One tab, always present. It shows the current Questionnaire of
-``QuestionnaireState``; a new post replaces it. Answers are stored as they are
-given and reach every session in place, without a redraw; only a new post or
-a submit redraws. The tab's badge counts the unanswered questions, and stays
+``QuestionnaireState`` until it is closed; a new post replaces it. Answers are
+stored as they are given and reach every session in place, without a redraw;
+only a new post, a submit or a close redraws. The tab's badge counts the unanswered questions, and stays
 in view next to the top-bar toggle while ASIDE is closed.
 """
 
@@ -25,6 +25,8 @@ from haybale_studio.questionnaire.definition import unanswered
 from haybale_studio.questionnaire.form import QuestionnaireForm
 from haybale_studio.questionnaire.signals import QuestionnaireChanged
 from haybale_studio.states.questionnaire_state import (
+    DISCARDED,
+    Questionnaire,
     QuestionnaireClosed,
     QuestionnaireState,
     RequiredUnanswered,
@@ -50,17 +52,24 @@ class QuestionnaireEditor(BaseEditor):
     An agent posts it with the `post_questionnaire` tool and reads the answers
     back with `get_findings`. Answering needs the edit tier; a viewer sees the
     form read-only. After *Submit* the form is read-only for everyone.
+
+    It leaves the studio once the agent has read the submitted answers, or when
+    you press *Discard*.
     """
 
     def __init__(self, wrapper: "EditorWrapper") -> None:
         super().__init__(wrapper)
         self._context: Optional["SessionContext"] = None
         self._form: Optional[QuestionnaireForm] = None
-        self._shown: Optional[tuple[str, str]] = None
+        self._shown: Optional[tuple[str, str, Optional[str]]] = None
         self._status: Optional[ui.label] = None
 
     def _state(self, context: "SessionContext") -> QuestionnaireState:
         return context.app_data[QuestionnaireState]
+
+    def _on_show(self, context: "SessionContext") -> Optional[Questionnaire]:
+        q = self._state(context).current
+        return q if q is not None and q.on_show else None
 
     # ------------------------------------------------------------------
     # Rendering
@@ -68,9 +77,9 @@ class QuestionnaireEditor(BaseEditor):
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._context = context
-        q = self._state(context).current
+        q = self._on_show(context)
         self._form = None
-        self._shown = (q.id, q.status) if q is not None else None
+        self._shown = (q.id, q.status, q.closed) if q is not None else None
         with container:
             if q is None:
                 hui.empty_state(
@@ -95,18 +104,22 @@ class QuestionnaireEditor(BaseEditor):
                             read_only=q.submitted or not context.can_edit(),
                         )
                         self._form.build()
-                if not q.submitted and context.can_edit():
+                if context.can_edit():
                     with (
                         ui.row()
                         .classes("w-full justify-end gap-2 p-2")
                         .style("border-top: 1px solid var(--hw-border);")
                     ):
-                        ui.button("Submit anyway", on_click=lambda: self._submit(anyway=True)).props(
-                            "flat dense no-caps"
-                        ).mark("questionnaire-submit-anyway").tooltip("Submit with questions unanswered")
-                        ui.button("Submit", on_click=lambda: self._submit(anyway=False)).props(
-                            "dense no-caps"
-                        ).mark("questionnaire-submit")
+                        ui.button("Discard", on_click=self._discard).props("flat dense no-caps").classes(
+                            "mr-auto"
+                        ).mark("questionnaire-discard").tooltip("Remove it from the studio")
+                        if not q.submitted:
+                            ui.button("Submit anyway", on_click=lambda: self._submit(anyway=True)).props(
+                                "flat dense no-caps"
+                            ).mark("questionnaire-submit-anyway").tooltip("Submit with questions unanswered")
+                            ui.button("Submit", on_click=lambda: self._submit(anyway=False)).props(
+                                "dense no-caps"
+                            ).mark("questionnaire-submit")
         self._update_status()
 
     def draw_tab(self, context, *, orientation) -> None:
@@ -123,7 +136,7 @@ class QuestionnaireEditor(BaseEditor):
                 hui.count_badge(count, tone="info")
 
     def _unanswered_count(self, context: "SessionContext") -> int:
-        q = self._state(context).current
+        q = self._on_show(context)
         if q is None or q.submitted:
             return 0
         return len(unanswered(q.definition, q.answers))
@@ -137,7 +150,7 @@ class QuestionnaireEditor(BaseEditor):
     def _update_status(self) -> None:
         if self._status is None or self._context is None:
             return
-        q = self._state(self._context).current
+        q = self._on_show(self._context)
         if q is None:
             return
         count = self._unanswered_count(self._context)
@@ -172,6 +185,11 @@ class QuestionnaireEditor(BaseEditor):
         except QuestionnaireClosed:
             self.wrapper.redraw()
 
+    def _discard(self) -> None:
+        if self._context is None or not self._context.can_edit():
+            return
+        self._state(self._context).close(DISCARDED, principal=self._context.principal)
+
     @staticmethod
     def _user_agent() -> Optional[str]:
         """Return the submitting browser's user agent, or ``None`` outside a page request."""
@@ -186,9 +204,9 @@ class QuestionnaireEditor(BaseEditor):
 
     @react_on(QuestionnaireChanged)
     def _on_changed(self, context: "SessionContext", signal: QuestionnaireChanged) -> None:
-        """Redraw on a new post or a submit; otherwise show the new answers in place."""
-        q = self._state(context).current
-        shown = (q.id, q.status) if q is not None else None
+        """Redraw on a new post, a submit or a close; otherwise show the new answers in place."""
+        q = self._on_show(context)
+        shown = (q.id, q.status, q.closed) if q is not None else None
         if shown != self._shown or self._form is None or q is None:
             self.wrapper.redraw()
         else:

@@ -359,6 +359,60 @@ def test_answers_survive_a_restart(tmp_path) -> None:
     assert reloaded.current.answers == {"order": ["c", "a", "b"]}
 
 
+FOLLOW_UP: dict[str, Any] = {
+    "elements": [
+        {"type": "radiogroup", "name": "pick", "choices": ["A", "B"], "showOtherItem": True},
+        {"type": "comment", "name": "why", "visibleIf": "{pick} = 'B'"},
+        {"type": "comment", "name": "deeper", "visibleIf": "{why} notempty"},
+    ]
+}
+
+
+def test_submit_drops_the_answers_of_hidden_questions(tmp_path) -> None:
+    state = _state(tmp_path)
+    state.post(copy.deepcopy(FOLLOW_UP), principal=None)
+    state.set_answer("pick", "B")
+    state.set_answer("why", "because")
+    state.set_answer("deeper", "really")
+    state.set_answer("pick", "A")
+    assert state.current is not None
+    assert set(state.current.answers) == {"pick", "why", "deeper"}
+
+    state.submit(principal=None, user_agent=None)
+    assert state.current.answers == {"pick": "A"}
+
+
+def test_close_takes_it_out_of_the_studio_and_keeps_the_findings(tmp_path) -> None:
+    state = _state(tmp_path)
+    state.post(_live_check(), principal="agent")
+    state.set_answer("toggle_opens", {"verdict": "pass"})
+    state.close("discarded", principal="tester")
+    assert state.current is not None
+    assert state.current.on_show is False
+
+    findings = state.findings()
+    assert findings is not None
+    assert findings["closed"] == "discarded"
+    assert findings["closed_by"] == "tester"
+    assert findings["answers"] == {"toggle_opens": {"verdict": "pass"}}
+    with pytest.raises(QuestionnaireClosed):
+        state.set_answer("toggle_opens", {"verdict": "fail"})
+
+    state.close("read", principal="agent")
+    assert state.current.closed == "discarded"
+
+    reloaded = _state(tmp_path)
+    reloaded.on_enable()
+    assert reloaded.current is not None
+    assert reloaded.current.closed == "discarded"
+
+
+def test_close_before_a_post_does_nothing(tmp_path) -> None:
+    state = _state(tmp_path)
+    state.close("discarded", principal=None)
+    assert state.current is None
+
+
 # ---------------------------------------------------------------------------
 # Farmhand tools
 # ---------------------------------------------------------------------------
@@ -417,3 +471,25 @@ def test_get_findings_returns_the_answers_so_far(tool_state) -> None:
     assert findings["status"] == "open"
     assert findings["failed_checks"] == ["toggle_opens"]
     assert "1 failed or blocked checks" in findings["summary"]
+
+
+def test_get_findings_closes_a_submitted_questionnaire(tool_state) -> None:
+    _run(StudioPostQuestionnaireTool, questionnaire=_live_check())
+    tool_state.submit(principal="tester", user_agent=None, anyway=True)
+    findings = _run(StudioGetFindingsTool)
+    assert findings["closed"] == "read"
+    assert findings["closed_by"] == "agent"
+    assert "no longer shown" in findings["summary"]
+    assert tool_state.current is not None
+    assert tool_state.current.on_show is False
+
+    again = _run(StudioGetFindingsTool)
+    assert again["closed"] == "read"
+
+
+def test_get_findings_leaves_an_open_questionnaire_on_show(tool_state) -> None:
+    _run(StudioPostQuestionnaireTool, questionnaire=_live_check())
+    findings = _run(StudioGetFindingsTool)
+    assert findings["closed"] is None
+    assert tool_state.current is not None
+    assert tool_state.current.on_show is True

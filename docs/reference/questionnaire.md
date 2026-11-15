@@ -29,12 +29,16 @@ is rejected when it is posted, with an error that names the element and the prop
    count shows next to the aside toggle at the right of the top bar.
 3. The user answers. Each answer is stored as it is given and appears in every open
    studio session. *Submit* requires the required questions; *Submit anyway* does not.
-   After submitting, the form is read-only.
+   After submitting, the form is read-only, and the answers of questions hidden by a
+   condition are dropped.
 4. When the user says they are done, the agent calls `haybale-studio_get_findings`. `status` says
    whether the Questionnaire was submitted; an open one returns the answers so far.
+   Reading a submitted Questionnaire takes it out of the studio (`closed: "read"`).
+5. *Discard* takes it out of the studio at any time (`closed: "discarded"`). A closed
+   Questionnaire takes no more answers; its Findings stay readable until the next post.
 
-Posting needs the edit tier, answering in the studio needs the edit tier, and reading the
-Findings needs the view tier. There is no push to the agent: it asks for the Findings when
+Posting, answering and discarding need the edit tier; reading the Findings needs the view
+tier. There is no push to the agent: it asks for the Findings when
 the user says so.
 
 ## Top level
@@ -120,6 +124,7 @@ piping, custom widgets, and every presentation property not listed above (`logoP
 | `failed_checks` | Names of the checks answered `fail` or `blocked`. |
 | `posted_at`, `posted_by`, `submitted_at`, `submitted_by` | When and by whom, in UTC; the principal is `null` when authentication is off. |
 | `user_agent` | The submitting browser. |
+| `closed`, `closed_at`, `closed_by` | `"read"` once an agent read the submitted Findings, `"discarded"` when a user discarded it, `null` while it is on show; when and by whom. |
 | `ledger_seq` | The error ledger's cursor when posted, when submitted, and now. Pass `posted` as `since_seq` to `haybale-studio_get_errors` for the errors logged during the check. |
 
 ## Example

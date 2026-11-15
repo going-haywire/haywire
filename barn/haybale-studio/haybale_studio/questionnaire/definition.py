@@ -328,6 +328,24 @@ def unanswered(definition: Mapping[str, Any], answers: Mapping[str, Any]) -> lis
     ]
 
 
+def visible_answers(definition: Mapping[str, Any], answers: Mapping[str, Any]) -> dict[str, Any]:
+    """Return ``answers`` without those of hidden questions, as SurveyJS keeps them on completion.
+
+    Dropping an answer can hide further questions, so it repeats until nothing changes.
+    """
+    kept = dict(answers)
+    while True:
+        values = expression_values(definition, kept)
+        hidden: set[str] = set()
+        for element, parents in questions(definition):
+            if not is_visible(element, parents, values):
+                hidden |= {element["name"], f"{element['name']}-Comment"}
+        dropped = {key: value for key, value in kept.items() if key not in hidden}
+        if dropped == kept:
+            return kept
+        kept = dropped
+
+
 def missing_required(
     definition: Mapping[str, Any], answers: Mapping[str, Any], page: Mapping[str, Any] | None = None
 ) -> list[str]:

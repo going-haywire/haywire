@@ -20,6 +20,7 @@ from haybale_studio.questionnaire.definition import (
     failed_checks,
     missing_required,
     unanswered,
+    visible_answers,
 )
 from haybale_studio.questionnaire.signals import QuestionnaireChanged
 
@@ -27,6 +28,9 @@ logger = logging.getLogger(__name__)
 
 OPEN = "open"
 SUBMITTED = "submitted"
+
+READ = "read"
+DISCARDED = "discarded"
 
 
 @dataclass
@@ -50,11 +54,21 @@ class Questionnaire:
     """The error ledger's cursor when it was posted."""
     ledger_seq_submitted: Optional[int] = None
     """The error ledger's cursor when it was submitted."""
+    closed: Optional[str] = None
+    """Why it left the studio: ``"read"`` (an agent read the submitted Findings),
+    ``"discarded"`` (a user discarded it), or ``None`` while on show."""
+    closed_at: Optional[str] = None
+    closed_by: Optional[str] = None
 
     @property
     def title(self) -> str:
         """Return the definition's title, or its id."""
         return str(self.definition.get("title") or self.id)
+
+    @property
+    def on_show(self) -> bool:
+        """Return whether the studio shows it: posted and not yet closed."""
+        return self.closed is None
 
     @property
     def submitted(self) -> bool:
@@ -63,7 +77,7 @@ class Questionnaire:
 
 
 class QuestionnaireClosed(RuntimeError):
-    """An answer or a submit reached a Questionnaire that is missing or already submitted."""
+    """An answer or a submit reached a Questionnaire that is missing, submitted or closed."""
 
 
 class RequiredUnanswered(ValueError):
@@ -82,14 +96,16 @@ class QuestionnaireState(AppState):
     """Holds the current Questionnaire and stores every change under the library's storage folder.
 
     One Questionnaire is current at a time; a new post replaces it, and earlier
-    ones stay on disk under `questionnaires/`. Every change reaches every open
-    studio session.
+    ones stay on disk under `questionnaires/`. It leaves the studio when an agent
+    reads its submitted Findings, or when a user discards it; its Findings stay
+    readable until the next post. Every change reaches every open studio session.
 
     ```python
     q = state.post(definition, principal="agent")
     state.set_answer("login", {"verdict": "fail", "note": "button greyed out"})
     state.submit(principal="tester", user_agent="Firefox", anyway=True)
     state.findings()  # {"id": ..., "status": "submitted", "answers": {...}, ...}
+    state.close("read", principal="agent")  # leaves the studio
     ```
     """
 
@@ -173,12 +189,30 @@ class QuestionnaireState(AppState):
         missing = missing_required(q.definition, q.answers)
         if missing and not anyway:
             raise RequiredUnanswered(missing)
+        q.answers = visible_answers(q.definition, q.answers)
         q.status = SUBMITTED
         q.incomplete = bool(unanswered(q.definition, q.answers))
         q.submitted_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
         q.submitted_by = principal
         q.user_agent = user_agent
         q.ledger_seq_submitted = get_error_ledger().current_seq
+        self._changed()
+
+    def close(self, reason: str, *, principal: Optional[str]) -> None:
+        """Take the current Questionnaire out of the studio; its Findings stay readable.
+
+        Args:
+            reason: ``"read"`` or ``"discarded"``.
+            principal: Who closes it; ``None`` when authentication is off.
+
+        Does nothing when there is no current Questionnaire or it was closed already.
+        """
+        q = self.current
+        if q is None or not q.on_show:
+            return
+        q.closed = reason
+        q.closed_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        q.closed_by = principal
         self._changed()
 
     # -- reading -------------------------------------------------------------
@@ -206,6 +240,9 @@ class QuestionnaireState(AppState):
             "submitted_at": q.submitted_at,
             "submitted_by": q.submitted_by,
             "user_agent": q.user_agent,
+            "closed": q.closed,
+            "closed_at": q.closed_at,
+            "closed_by": q.closed_by,
             "ledger_seq": {
                 "posted": q.ledger_seq_posted,
                 "submitted": q.ledger_seq_submitted,
@@ -229,6 +266,8 @@ class QuestionnaireState(AppState):
             raise QuestionnaireClosed("No questionnaire has been posted.")
         if q.submitted:
             raise QuestionnaireClosed(f"Questionnaire {q.id} was already submitted.")
+        if not q.on_show:
+            raise QuestionnaireClosed(f"Questionnaire {q.id} was {q.closed}.")
         return q
 
     def _changed(self) -> None:

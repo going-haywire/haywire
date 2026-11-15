@@ -156,3 +156,39 @@ async def test_the_tab_counts_unanswered_questions(user: User, state: Questionna
     assert editor._unanswered_count(context) == 1
     state.submit(principal=None, user_agent=None, anyway=True)
     assert editor._unanswered_count(context) == 0
+
+
+@pytest.mark.anyio
+async def test_discard_takes_it_out_of_the_studio(user: User, state: QuestionnaireState) -> None:
+    state.post(copy.deepcopy(DEFINITION), principal="agent")
+    await _open(user, state)
+    user.find(marker="questionnaire-discard").click()
+    assert state.current is not None
+    assert state.current.closed == "discarded"
+    assert state.current.closed_by == "tester"
+
+
+@pytest.mark.anyio
+async def test_a_submitted_questionnaire_offers_discard_only(user: User, state: QuestionnaireState) -> None:
+    state.post(copy.deepcopy(DEFINITION), principal="agent")
+    state.submit(principal="tester", user_agent=None, anyway=True)
+    await _open(user, state)
+    await user.should_see("Submitted")
+    await user.should_see(marker="questionnaire-discard")
+    await user.should_not_see(marker="questionnaire-submit")
+
+
+@pytest.mark.anyio
+async def test_a_closed_questionnaire_shows_the_empty_state(user: User, state: QuestionnaireState) -> None:
+    state.post(copy.deepcopy(DEFINITION), principal="agent")
+    state.close("read", principal="agent")
+    editor = await _open(user, state)
+    await user.should_see("No questionnaire")
+    assert editor._unanswered_count(_context(state)) == 0
+
+
+@pytest.mark.anyio
+async def test_a_viewer_cannot_discard(user: User, state: QuestionnaireState) -> None:
+    state.post(copy.deepcopy(DEFINITION), principal="agent")
+    await _open(user, state, can_edit=False)
+    await user.should_not_see(marker="questionnaire-discard")

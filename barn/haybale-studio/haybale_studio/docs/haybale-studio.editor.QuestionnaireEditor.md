@@ -17,3 +17,6 @@ Shows the Questionnaire an agent posted, so the user can work through it and sub
 An agent posts it with the `post_questionnaire` tool and reads the answers
 back with `get_findings`. Answering needs the edit tier; a viewer sees the
 form read-only. After *Submit* the form is read-only for everyone.
+
+It leaves the studio once the agent has read the submitted answers, or when
+you press *Discard*.

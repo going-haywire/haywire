@@ -15,7 +15,7 @@ from haywire.core.farmhand import (
 )
 
 from haybale_studio.questionnaire.definition import FORMAT_URI, validate
-from haybale_studio.states.questionnaire_state import QuestionnaireState
+from haybale_studio.states.questionnaire_state import READ, SUBMITTED, QuestionnaireState
 
 _MAX_ISSUES = 20
 
@@ -76,20 +76,26 @@ class StudioPostQuestionnaireTool(Farmhand):
     "questions, the failed or blocked checks, who posted and submitted it and when, the browser user "
     "agent, and ledger_seq (posted / submitted / now): pass ledger_seq.posted as since_seq to "
     "haybale-studio_get_errors for the errors logged during the check. Answers are stored as they "
-    "are given, so an open questionnaire returns the answers so far.",
+    "are given, so an open questionnaire returns the answers so far. Reading a submitted "
+    "questionnaire takes it out of the studio (closed: 'read'); its Findings stay readable until the "
+    "next post. closed: 'discarded' means the user discarded it.",
     registry_id="get_findings",
-    annotations=ToolAnnotations(read_only_hint=True),
+    annotations=ToolAnnotations(read_only_hint=False, idempotent_hint=True),
     requires=AccessTier.VIEW,
 )
 class StudioGetFindingsTool(Farmhand):
     async def run(self, ctx: FarmhandContext) -> dict:
-        findings = ctx.state(QuestionnaireState).findings()
+        state = ctx.state(QuestionnaireState)
+        findings = state.findings()
         if findings is None:
             raise FarmhandError(
                 "no_questionnaire",
                 "No questionnaire has been posted.",
                 help="Post one with haybale-studio_post_questionnaire first.",
             )
+        if findings["status"] == SUBMITTED and findings["closed"] is None:
+            state.close(READ, principal=ctx.principal)
+            findings = state.findings() or findings
         failed = findings["failed_checks"]
         findings["summary"] = (
             f"Questionnaire {findings['id']!r} is {findings['status']}"
@@ -97,4 +103,6 @@ class StudioGetFindingsTool(Farmhand):
             f"{len(findings['answers'])} answers, {len(findings['unanswered'])} unanswered, "
             f"{len(failed)} failed or blocked checks."
         )
+        if findings["closed"]:
+            findings["summary"] += f" It is {findings['closed']} and no longer shown in the studio."
         return findings
