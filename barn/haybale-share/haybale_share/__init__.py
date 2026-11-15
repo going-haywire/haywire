@@ -9,9 +9,8 @@ The engine lives in :mod:`haywire.core.publishing`; everything here is UI.
 
 from pathlib import Path
 
-from haywire.core.library.base import BaseLibrary
-from haywire.core.library.decorator import library
-from haywire.ui.editor.registry import EditorRegistry
+from haywire.api import BaseLibrary, library
+from haywire.api.workbench import EditorRegistry
 
 
 @library(

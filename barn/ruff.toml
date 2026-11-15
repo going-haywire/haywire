@@ -10,7 +10,9 @@ extend = "../pyproject.toml"
 [lint.per-file-ignores]
 # PT is a pytest-only style; libraries hold no tests.
 "**" = ["PT"]
-# Libraries not yet moved onto the Author API. This list only shrinks.
+# Libraries that still import internals: not yet moved onto the Author API, or
+# moved and holding an allowlist in tests/api/allowlist.py, which a test keeps
+# shrinking. A library leaves this list when its allowlist is empty.
 "haybale-graph-editor/**" = ["TID251"]
 "haybale-haystack/**" = ["TID251"]
 "haybale-marketplace/**" = ["TID251"]

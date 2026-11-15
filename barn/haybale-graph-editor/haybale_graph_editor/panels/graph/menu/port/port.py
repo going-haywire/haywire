@@ -18,12 +18,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel
-from haywire.ui.panel.layout import PanelLayout
-from haywire.ui.panel.decorator import panel
+from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
 
-from haywire.core.types.enums import PortOrigin, ShowWidgetStrategy
+from haywire.api import PortOrigin, ShowWidgetStrategy, get_widget_class
 
 from haybale_graph_editor.panels.graph.menu.component_rows import component_row, identity_of, key_and_label
 from haybale_graph_editor.surfaces import PinEditMenu, PinMenu, PinWidgetMenu, PortActions
@@ -31,7 +28,7 @@ from haybale_graph_editor.states.edit_state import EditState
 
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 def _type_identity(ctx: "SessionContext") -> Any | None:
@@ -50,7 +47,6 @@ def _widget_identity(ctx: "SessionContext") -> Any | None:
     does a port with no widget at all (an outlet, or an inlet whose type
     carries no editor).
     """
-    from haywire.ui.widget.globals import get_widget_class
 
     port = ctx.data[EditState].active_port
     if port is None or not port.widget_key:

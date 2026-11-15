@@ -14,7 +14,8 @@ from typing import TYPE_CHECKING, Callable, Optional
 from nicegui import ui
 
 from haywire.core.workspace import default_save_dir
-from haywire.ui.modals import confirm_modal, save_as_modal
+from haywire.api.workbench import confirm_modal
+from haywire.ui.modals import save_as_modal
 
 if TYPE_CHECKING:
     from haybale_graph_editor.protocols import GraphContainer

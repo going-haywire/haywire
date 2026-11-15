@@ -13,12 +13,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.ui.surface import Surface
+from haywire.api.workbench import Surface
 
 from haybale_graph_editor.surfaces.selection import SelectionActions
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 class NodeAppearance(Surface):

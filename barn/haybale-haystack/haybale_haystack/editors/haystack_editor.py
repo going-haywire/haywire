@@ -6,27 +6,29 @@ from typing import Optional
 
 from nicegui import ui
 
-from haywire.core.access import AccessTier, LevelMode
-from haywire.ui import elements as hui
-from haywire.ui.components.popup import Popup
-from haywire.ui.editor import BaseEditor, SlotName, editor
-from haywire.core.session import (
-    IAppState,
-    SessionContext,
-    react_on,
-    redraw_on,
-)
-from haywire.core.signals import (
+from haywire.api.workbench import (
+    AccessTier,
     ActiveGraphMoved,
+    BaseEditor,
     BroadcastClose,
     Close,
     GraphDataMutated,
     GraphUnsavedChanged,
+    LevelMode,
     Reveal,
     RevealGraphInstance,
     Save,
+    SessionContext,
+    SlotName,
+    confirm_modal,
+    editor,
+    hui,
+    react_on,
+    redraw_on,
 )
-from haywire.ui.modals import confirm_modal, pick_modal, rename_modal
+from haywire.ui.components.popup import Popup
+from haywire.core.session import IAppState
+from haywire.ui.modals import pick_modal, rename_modal
 
 from haybale_graph_editor.notices import GraphNotice, GraphNoticesChanged
 from haybale_graph_editor.states.edit_state import EditState

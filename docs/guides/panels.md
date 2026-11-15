@@ -63,7 +63,7 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/properties/intros
 `NodeInfoPanel` shows the selected node's label, class name, and node ID:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py:22:56"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py:18:52"
 ```
 
 from: `NodeInfoPanel` — registry_key: `haybale-graph-editor:panel:NodeInfoPanel`
@@ -95,7 +95,7 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/graph/
 `GraphContextPanel` arranges an icon-shortcut row and a prime area, each its own hosted Surface, into the *same* popup:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/graph/context.py:38:56"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/graph/context.py:33:51"
 ```
 
 from: `GraphContextPanel` — registry_key: `haybale-graph-editor:panel:GraphContextPanel`
@@ -111,7 +111,7 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/select
 `DeleteSelectionMenuPanel` deletes every selected node and edge in one undo step, and renders its own greyed form when nothing is selected:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py:105:137"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py:100:132"
 ```
 
 from: `DeleteSelectionMenuPanel` — registry_key: `haybale-graph-editor:panel:DeleteSelectionMenuPanel`
@@ -127,7 +127,7 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/sel
 `LockToolbarPanel` renders a single lock/unlock icon:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py:97:146"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py:93:142"
 ```
 
 from: `LockToolbarPanel` — registry_key: `haybale-graph-editor:panel:LockToolbarPanel`
@@ -141,7 +141,7 @@ The other thing a toolbar icon can host: a *panel*, not a menu. `AppearanceToolb
 Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/appearance.py`
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/appearance.py:54:81"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/appearance.py:51:78"
 ```
 
 from: `AppearanceToolbarPanel` — registry_key: `haybale-graph-editor:panel:AppearanceToolbarPanel`
@@ -153,7 +153,7 @@ from: `AppearanceToolbarPanel` — registry_key: `haybale-graph-editor:panel:App
 `GraphMorePanel` (also in `panels/graph/menu/graph/context.py`) is the canvas menu's "…" — a panel that both is a leaf on one Surface (`GraphToolBar`) and hosts another (`GraphMoreActions`) itself. It shows the general shape any extension-point overflow takes: a library that wants to add a canvas-menu command with no obvious home renders into `GraphMoreActions` instead of asking the framework to add a new built-in Surface.
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/graph/context.py:100:123"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/graph/context.py:95:118"
 ```
 
 from: `GraphMorePanel` — registry_key: `haybale-graph-editor:panel:GraphMorePanel`
@@ -169,7 +169,7 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/p
 `PortTypeMenuPanel` names the pin's data type and opens its source when clicked:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py:95:115"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py:91:111"
 ```
 
 from: `PortTypeMenuPanel` — registry_key: `haybale-graph-editor:panel:PortTypeMenuPanel`
@@ -194,7 +194,7 @@ Source: `barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py
 `OpenInHaystackMenuPanel` opens a `.haywire` graph file in the GraphEditor:
 
 ```python
---8<-- "barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py:34:71"
+--8<-- "barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py:31:68"
 ```
 
 from: `OpenInHaystackMenuPanel` — registry_key: `haybale-haystack:panel:OpenInHaystackMenuPanel`

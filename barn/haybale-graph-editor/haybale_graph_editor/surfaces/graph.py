@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.ui import elements as hui
-from haywire.ui.surface import Presentation, Surface
+from haywire.api.workbench import Surface, hui
+from haywire.ui.surface import Presentation
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 class GraphInspector(Surface):

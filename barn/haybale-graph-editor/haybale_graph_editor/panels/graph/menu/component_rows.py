@@ -19,10 +19,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from haywire.ui import elements as hui
+from haywire.api.workbench import RevealComponentSource, hui
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 def identity_of(cls: object | None) -> Any | None:
@@ -66,7 +66,6 @@ def reveal_component(ctx: "SessionContext", registry_key: str) -> None:
     Fire-and-forget, like every other reveal: with no source viewer installed
     nothing answers, which is a working configuration rather than an error.
     """
-    from haywire.core.signals import RevealComponentSource
 
     ctx.session.publish(RevealComponentSource(registry_key=registry_key))
 

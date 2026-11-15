@@ -12,17 +12,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.core.access import AccessTier
+from haywire.api.workbench import AccessTier, BasePanel, PanelLayout, hui, panel
 from haywire.core.signals import GraphSaved
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel, PanelLayout
-from haywire.ui.panel.decorator import panel
 
 from haybale_graph_editor.surfaces import GraphInspector
 from haybale_graph_editor.states.edit_state import EditState
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 def _format_stamp(value: str | None) -> str:

@@ -31,12 +31,7 @@ from haybale_graph_editor.panels._gating import (
 )
 from nicegui import ui
 
-from haywire.core.access import AccessTier
-from haywire.core.signals import Copy, Delete
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel
-from haywire.ui.panel.layout import PanelLayout
-from haywire.ui.panel.decorator import panel
+from haywire.api.workbench import AccessTier, BasePanel, Copy, Delete, PanelLayout, hui, panel
 
 from haybale_graph_editor.panels import _previous_setup as previous_setup
 from haybale_graph_editor.panels.graph.menu.component_rows import component_row, identity_of, key_and_label
@@ -51,7 +46,7 @@ from haybale_graph_editor.surfaces import (
 from haybale_graph_editor.states.edit_state import EditState
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 def selection_label(verb: str, n_nodes: int, n_edges: int) -> str:

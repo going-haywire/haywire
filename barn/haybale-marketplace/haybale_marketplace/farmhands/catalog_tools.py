@@ -6,8 +6,8 @@ import asyncio
 from dataclasses import asdict
 from pathlib import Path
 
-from haywire.core.access import AccessTier
-from haywire.core.farmhand import (
+from haywire.api.workbench import (
+    AccessTier,
     Farmhand,
     FarmhandContext,
     FarmhandError,

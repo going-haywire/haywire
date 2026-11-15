@@ -19,17 +19,15 @@ import threading
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Optional
 
-from haywire.core.graph.base import BaseGraph
+from haywire.api.workbench import AppState, BaseGraph, state
 from haywire.core.signals import GraphHistoryChanged
-from haywire.core.state.base import AppState
-from haywire.core.state.decorator import state
 
 from haybale_graph_editor.notices import GraphNotice, GraphNoticesChanged
 from haybale_graph_editor.protocols import GraphContainer
 
 if TYPE_CHECKING:
     from haywire.core.graph.edit_route import EditRoute
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 logger = logging.getLogger(__name__)
 

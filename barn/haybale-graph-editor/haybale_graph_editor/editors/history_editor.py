@@ -7,16 +7,19 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from nicegui import ui
 
-from haywire.core.access import AccessTier
-from haywire.core.graph.base import BaseGraph
-from haywire.core.session.handlers import redraw_on
-from haywire.core.signals import ActiveGraphMoved, GraphHistoryChanged
+from haywire.api.workbench import (
+    AccessTier,
+    ActiveGraphMoved,
+    BaseEditor,
+    BaseGraph,
+    EditorWrapper,
+    SlotName,
+    editor,
+    hui,
+    redraw_on,
+)
+from haywire.core.signals import GraphHistoryChanged
 from haywire.core.undo.origin import HistoryEntry, HistoryMove
-from haywire.ui import elements as hui
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import SlotName
-from haywire.ui.editor.wrapper import EditorWrapper
 
 from haybale_graph_editor.protocols import GraphContainer
 from haybale_graph_editor.states.edit_state import EditState
@@ -25,7 +28,7 @@ from haybale_graph_editor.states.graph_app_state import GraphAppState
 if TYPE_CHECKING:
     from nicegui.element import Element
 
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 def _clock(timestamp: float) -> str:

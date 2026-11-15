@@ -115,7 +115,7 @@ Source: `barn/haybale-marketplace/haybale_marketplace/__init__.py` — pulled in
 live, so it cannot drift from the code:
 
 ```python
---8<-- "barn/haybale-marketplace/haybale_marketplace/__init__.py:11:50"
+--8<-- "barn/haybale-marketplace/haybale_marketplace/__init__.py:5:44"
 ```
 
 from: `Library` — registry_key: `haybale-marketplace:library:Library`

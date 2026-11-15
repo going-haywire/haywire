@@ -11,7 +11,7 @@ from typing import Any, Callable, Iterable, Optional, Set, Tuple, TYPE_CHECKING
 
 from nicegui import ui
 
-from haywire.core.access import LevelMode
+from haywire.api.workbench import LevelMode, SelectionMoved
 from haywire.core.graph.arrange import (
     ArrangeGaps,
     ArrangeScope,
@@ -23,7 +23,6 @@ from haywire.core.graph.arrange import (
 from haywire.core.graph.clipboard import build_clipboard_payload, is_haywire_payload
 from haywire.core.node.layout import PATCH, STAGE, LayoutChannel, layout_position_of, position_of
 from haywire.core.undo.actions.graph_actions import ClipboardData
-from haywire.core.signals import SelectionMoved
 
 from haywire.ui.components.graph.event_definitions import (
     ArrangeNodesEvent,
@@ -41,7 +40,7 @@ from haybale_graph_editor.states.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.graph.edit_route import EditRoute
-    from haywire.core.graph.base import BaseGraph
+    from haywire.api.workbench import BaseGraph
     from haywire.core.session.session import Session
     from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
 

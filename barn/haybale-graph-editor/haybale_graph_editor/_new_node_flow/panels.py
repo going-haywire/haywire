@@ -7,7 +7,7 @@ from typing import Callable
 from nicegui import ui
 
 from haywire.core.node.info import NodeInfo
-from haywire.ui import elements as hui
+from haywire.api.workbench import hui
 from haywire.ui.components.stepper import advance, busy_advance
 
 from haybale_graph_editor._new_node_flow._state import NewNodeFlow

@@ -16,11 +16,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from haywire.core.access import AccessTier, LevelMode
-from haywire.core.farmhand import (
+from haywire.api.workbench import (
+    AccessTier,
     Farmhand,
     FarmhandContext,
     FarmhandError,
+    GraphDataMutated,
+    LevelMode,
     ToolAnnotations,
     farmhand,
     truncation_note,
@@ -29,8 +31,7 @@ from haywire.core.node.inspector import NodeInstanceInspector, PortInfo, Setting
 from haywire.core.graph.arrange import ArrangeGaps, ArrangeScope, arrange_layout
 from haywire.core.graph.edit_route import EditRoute
 from haywire.core.graph.setting_owner import SettingOwner
-from haywire.core.signals import GraphDataMutated
-from haywire.core.types.enums import PortType
+from haywire.api import PortType
 from haywire.core.undo.origin import StepOrigin
 
 _READ_ONLY = ToolAnnotations(read_only_hint=True)
@@ -502,7 +503,7 @@ def _edge_style(edge) -> dict | None:
     values it saved; ``None`` for an edge whose wire type declares no style."""
     bag = edge.style
     if bag is not None:
-        from haywire.core.settings import settings_fields
+        from haywire.api import settings_fields
 
         return {name: getattr(bag, name) for name in settings_fields(type(bag))}
     saved = edge.style_values()

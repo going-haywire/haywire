@@ -1,7 +1,6 @@
 """MarketplaceSettings — library-wide settings for installing libraries."""
 
-from haywire.barn.builtin.types import CHOICES
-from haywire.core.settings import LibrarySettings, setting, settings
+from haywire.api import CHOICES, LibrarySettings, setting, settings
 
 #: Suggested ``--torch-backend`` values; any other value uv accepts can be typed in.
 TORCH_BACKENDS = (

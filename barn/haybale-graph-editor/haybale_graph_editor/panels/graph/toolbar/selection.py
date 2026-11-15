@@ -18,11 +18,7 @@ from typing import TYPE_CHECKING
 from haybale_graph_editor.panels._gating import is_reroute_node
 from nicegui import ui
 
-from haywire.core.access import LevelMode
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel
-from haywire.ui.panel.layout import PanelLayout
-from haywire.ui.panel.decorator import panel
+from haywire.api.workbench import BasePanel, LevelMode, PanelLayout, hui, panel
 
 from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu, SelectionToolbar
 
@@ -32,7 +28,7 @@ from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.states.graph_app_state import route_for
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 @panel(

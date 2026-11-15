@@ -18,17 +18,13 @@ from haybale_graph_editor.editors.graph_editor import GraphEditor
 from haybale_graph_editor.panels._gating import is_macro_placement, is_modified_instance
 from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.surfaces import SelectionActions, SelectionMacroMenu
-from haywire.core.errors import report_failure
-from haywire.core.signals import Reveal
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel
-from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.layout import PanelLayout
+from haywire.api import report_failure
+from haywire.api.workbench import BasePanel, PanelLayout, Reveal, hui, panel
 
 from haybale_haystack.states.haystack_state import HaystackState
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 @panel(

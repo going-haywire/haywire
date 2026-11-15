@@ -9,13 +9,16 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
-from haywire.core.access import AccessTier
+from haywire.api.workbench import (
+    AccessTier,
+    BasePanel,
+    PanelLayout,
+    hui,
+    panel,
+    render_settings,
+    stamp_requires,
+)
 from haywire.core.types.enums import Propagation
-from haywire.ui import elements as hui
-from haywire.ui.access_stamp import stamp_requires
-from haywire.ui.panel import BasePanel, PanelLayout
-from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.render_utils import render_settings
 
 from haybale_graph_editor.surfaces import EdgeInspector
 from haybale_graph_editor.states.edit_state import EditState
@@ -23,7 +26,7 @@ from haybale_graph_editor.states.graph_app_state import route_for
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapperState
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 def _state_from_context(ctx: "SessionContext") -> "EdgeWrapperState | None":

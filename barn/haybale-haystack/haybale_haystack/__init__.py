@@ -15,14 +15,8 @@ claim exclusive ownership of GraphEditor.
 
 from pathlib import Path
 
-from haywire.core.library.base import BaseLibrary
-from haywire.core.library.decorator import library
-from haywire.core.farmhand import FarmhandRegistry
-from haywire.core.settings.registry import SettingsRegistry
-from haywire.core.state import StateRegistry
-
-from haywire.ui.editor.registry import EditorRegistry
-from haywire.ui.panel.registry import PanelRegistry
+from haywire.api import BaseLibrary, SettingsRegistry, library
+from haywire.api.workbench import EditorRegistry, FarmhandRegistry, PanelRegistry, StateRegistry
 
 
 @library(

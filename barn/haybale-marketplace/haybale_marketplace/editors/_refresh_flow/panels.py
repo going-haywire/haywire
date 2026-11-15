@@ -7,7 +7,7 @@ from typing import Callable
 from nicegui import ui
 
 from haywire.core.marketstall import RefreshOutcome
-from haywire.ui import elements as hui
+from haywire.api.workbench import hui
 from haywire.ui.components.stepper import advance, busy_advance
 
 from haybale_marketplace.editors._refresh_flow._state import RefreshFlow

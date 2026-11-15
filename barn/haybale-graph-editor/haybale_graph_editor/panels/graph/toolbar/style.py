@@ -13,15 +13,12 @@ from typing import TYPE_CHECKING
 
 from haybale_graph_editor.panels._selection_forms import disabled_icon, edge_style_subject
 
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel
-from haywire.ui.panel.layout import PanelLayout
-from haywire.ui.panel.decorator import panel
+from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
 
 from haybale_graph_editor.surfaces import EdgeStyle, SelectionActions, SelectionToolbar
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 @panel(

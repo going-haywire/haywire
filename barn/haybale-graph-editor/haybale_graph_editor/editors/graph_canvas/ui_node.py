@@ -14,10 +14,9 @@ from typing import Any, Callable, Optional
 from nicegui import ui
 from haywire.core.graph.edit_route import EditRoute
 from haywire.core.graph.types import ChangeReason
-from haywire.core.node.base import BaseNode
+from haywire.api import BaseNode, NodeWrapper
 from haywire.core.node.layout import PATCH, LayoutChannel
 from haywire.core.errors.haywire_exception import HaywireException
-from haywire.core.node.node_wrapper import NodeWrapper
 
 from haywire.ui.skin.factory import SkinFactory, NO_SKIN_DEFINED
 from haywire.ui.skin.nodecard import UINodeCard

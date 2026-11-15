@@ -22,8 +22,7 @@ from haywire.core.marketstall import (
     remove_stale_haybale_from_project,
     resolve_catalog as runtime_resolve,
 )
-from haywire.core.state.base import AppState
-from haywire.core.state.decorator import state
+from haywire.api.workbench import AppState, state
 
 logger = logging.getLogger(__name__)
 

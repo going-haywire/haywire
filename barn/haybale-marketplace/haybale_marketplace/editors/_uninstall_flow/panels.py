@@ -6,7 +6,7 @@ from typing import Callable
 
 from nicegui import ui
 
-from haywire.ui import elements as hui
+from haywire.api.workbench import hui
 
 from haywire.ui.components.stepper import advance, busy_advance
 from haywire.ui.modals import restart_affordance

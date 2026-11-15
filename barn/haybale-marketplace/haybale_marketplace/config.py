@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from haywire.core.storage import library_storage_dir
+from haywire.api import library_storage_dir
 
 GLOBAL_MARKETPLACE_DIR: Path = library_storage_dir(__name__)
 

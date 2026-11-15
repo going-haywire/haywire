@@ -14,12 +14,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from haywire.ui.surface import Surface
+from haywire.api.workbench import Surface
 
 if TYPE_CHECKING:
     from haywire.core.graph.arrange import ArrangeScope
     from haywire.core.graph.stacking import Restack
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 @runtime_checkable

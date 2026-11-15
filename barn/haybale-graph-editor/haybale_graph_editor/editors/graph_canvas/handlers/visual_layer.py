@@ -23,13 +23,13 @@ from typing import Callable, Dict, Iterable, Optional, Tuple, TYPE_CHECKING
 
 from nicegui import Client, ui
 
-from haywire.core.access import LevelMode
+from haywire.api.workbench import LevelMode, RevealComponentDocs
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.execution import gc_freeze
 from haywire.core.graph.stacking import Restack
 from haywire.core.graph.stage import stage_takes_edge
 from haywire.core.graph.types import ChangeReason, ValidationResult
-from haywire.core.node import BaseNode
+from haywire.api import BaseNode, MacroRegistry
 from haywire.core.node.layout import PATCH, LayoutChannel
 from haywire.core.types.wire import wires_match
 
@@ -79,11 +79,10 @@ from haybale_graph_editor.states.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.graph.edit_route import EditRoute
-    from haywire.core.graph.base import BaseGraph
-    from haywire.core.node.node_wrapper import NodeWrapper
+    from haywire.api.workbench import BaseGraph, SessionContext
+    from haywire.api import NodeWrapper
     from haywire.ui.skin.factory import SkinFactory
     from haywire.ui.components.graph.canvas import GraphCanvasVue
-    from haywire.core.session.context import SessionContext
 
 logger = logging.getLogger(__name__)
 
@@ -1226,7 +1225,6 @@ class VisualLayerHandlers:
         wrapper = self.graph.get_node_wrapper(event.node_id)
         if wrapper is None:
             return
-        from haywire.core.signals import RevealComponentDocs
 
         self.context.session.publish(RevealComponentDocs(registry_key=wrapper.registry_key))
 
@@ -1243,7 +1241,6 @@ class VisualLayerHandlers:
             return
         from haywire.core.authoring.targets import authoring_targets
         from haywire.core.di.config import get_library_system
-        from haywire.core.macro.registry import MacroRegistry
 
         from haybale_graph_editor._promote_flow import EditorPromoteSource, show_promote_flow
 

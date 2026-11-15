@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from haywire.core.access import AccessTier
-from haywire.core.farmhand import (
+from haywire.api.workbench import (
+    AccessTier,
     Farmhand,
     FarmhandContext,
     FarmhandError,
+    LibraryCatalogChanged,
     ToolAnnotations,
     farmhand,
 )
-from haywire.core.signals import LibraryCatalogChanged
 
 from haybale_marketplace.farmhands.catalog_tools import _library_manager, _progress_cb
 

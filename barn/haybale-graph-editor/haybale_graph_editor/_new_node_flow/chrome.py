@@ -17,7 +17,7 @@ from haybale_graph_editor._new_node_flow.panels import (
 
 if TYPE_CHECKING:
     from haywire.core.node.factory import NodeFactory
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 class EditorNewNodeHost:
@@ -41,12 +41,12 @@ class EditorNewNodeHost:
         self._create_node(registry_key, self._position)
 
     def reveal_component(self, registry_key: str) -> None:
-        from haywire.core.signals import RevealComponentSource
+        from haywire.api.workbench import RevealComponentSource
 
         self._context.session.publish(RevealComponentSource(registry_key=registry_key))
 
     def open_file(self, path: Path) -> None:
-        from haywire.core.signals import RevealSource
+        from haywire.api.workbench import RevealSource
 
         self._context.session.publish(RevealSource(binding_id=str(path), label=path.name))
 
@@ -66,7 +66,7 @@ def new_node_flow(
     """
     from haywire.core.authoring import authoring_targets, list_clone_sources
     from haywire.core.errors.ledger import get_error_ledger
-    from haywire.core.node.registry import NodeRegistry
+    from haywire.api import NodeRegistry
 
     targets = [t for t in authoring_targets(library_system, NodeRegistry, workspace_root) if t.is_watched]
     menu = node_factory.get_menu_structure()

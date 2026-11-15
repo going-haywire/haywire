@@ -43,19 +43,26 @@ from haywire.core.signals import (
     ActiveGraphMoved,
     BroadcastClose,
     Close,
+    CommandSignal,
     Copy,
     Cut,
     Delete,
     Duplicate,
     EditorCommand,
+    ErrorLedgerChanged,
+    ErrorLogged,
     GraphDataMutated,
+    GraphUnsavedChanged,
+    LibraryCatalogChanged,
     Paste,
     Redo,
     Reveal,
     RevealComponentDocs,
     RevealComponentSource,
+    RevealGraphInstance,
     RevealSignal,
     RevealSource,
+    Save,
     SelectAll,
     SelectionMoved,
     Signal,
@@ -70,7 +77,7 @@ from haywire.ui.editor.wrapper import EditorWrapper
 from haywire.ui.hover_tip import set_hover_tip
 from haywire.ui.modals import confirm_modal
 from haywire.ui.panel import BasePanel, PanelLayout, PanelRegistry, panel
-from haywire.ui.panel.render_utils import render_schema
+from haywire.ui.panel.render_utils import render_schema, render_settings
 from haywire.ui.surface import Surface
 
 #: Names that left ``__all__`` and are still served, with a notice, until the
@@ -96,6 +103,7 @@ __all__ = [
     "PanelLayout",
     "panel",
     "render_schema",
+    "render_settings",
     # Surfaces a panel appears on
     "AppSettingsSurface",
     "BarnsSurface",
@@ -118,11 +126,17 @@ __all__ = [
     "ActiveGraphMoved",
     "BroadcastClose",
     "Close",
+    "CommandSignal",
     "EditorCommand",
+    "ErrorLedgerChanged",
+    "ErrorLogged",
     "GraphDataMutated",
+    "GraphUnsavedChanged",
+    "LibraryCatalogChanged",
     "Reveal",
     "RevealComponentDocs",
     "RevealComponentSource",
+    "RevealGraphInstance",
     "RevealSignal",
     "RevealSource",
     "SelectionMoved",
@@ -138,6 +152,7 @@ __all__ = [
     "Duplicate",
     "Paste",
     "Redo",
+    "Save",
     "SelectAll",
     "Undo",
     # State

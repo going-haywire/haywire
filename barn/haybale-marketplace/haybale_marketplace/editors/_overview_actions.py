@@ -9,12 +9,11 @@ from nicegui import ui
 from nicegui.element import Element
 
 from haywire.core.library.info import LibraryInfo
-from haywire.core.signals import LibraryCatalogChanged
-from haywire.ui import elements as hui
+from haywire.api.workbench import LibraryCatalogChanged, hui
 
 if TYPE_CHECKING:
     from haybale_marketplace.library_manager import LibraryManager
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 logger = logging.getLogger(__name__)
 

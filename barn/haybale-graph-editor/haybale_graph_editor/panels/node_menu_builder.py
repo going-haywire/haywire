@@ -2,7 +2,7 @@ from nicegui import ui
 from typing import Any, Dict, List, Optional, Callable
 from haywire.core.node.info import NodeInfo
 from haywire.core.node.factory import NodeFactory
-from haywire.ui import elements as hui
+from haywire.api.workbench import hui
 from haywire.ui.elements.flyout import FlyoutSiblings, flyout_category
 
 #: The macro root as ``_build_menu_tree`` titles it, from the ``macros/<library>``

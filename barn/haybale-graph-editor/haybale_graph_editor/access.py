@@ -8,7 +8,7 @@ which the level's ``EditRoute`` checks at every write.
 
 from typing import Callable
 
-from haywire.core.access import AccessTier, LevelMode
+from haywire.api.workbench import AccessTier, LevelMode
 
 
 def level_mode(can_access: Callable[[AccessTier], bool], locked: bool) -> LevelMode:

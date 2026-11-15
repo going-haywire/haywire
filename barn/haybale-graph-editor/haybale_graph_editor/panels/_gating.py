@@ -30,13 +30,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.core.session.context import SessionContext
+from haywire.api.workbench import SessionContext
 
 from haybale_graph_editor.states.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.node.properties import NodeProperties
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 def locked_bag(ctx: "SessionContext") -> "NodeProperties | None":

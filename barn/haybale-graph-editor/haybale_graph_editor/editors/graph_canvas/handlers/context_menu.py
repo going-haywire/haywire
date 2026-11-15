@@ -24,10 +24,8 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Optional, Tuple
 
-from haywire.core.access import LevelMode
-from haywire.core.session.context import SessionContext
+from haywire.api.workbench import LevelMode, PanelRegistry, SessionContext
 from haywire.core.session.session import Session
-from haywire.ui.panel.registry import PanelRegistry
 from haywire.ui.panel.context_menu_base import BaseContextMenuProvider
 from haywire.ui.surface import surface_by_id
 
@@ -903,7 +901,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         nothing unsaved (ADR 0055).
         """
         from haywire.core.node.promotion import set_promoted_show_widget
-        from haywire.core.types.enums import ShowWidgetStrategy
+        from haywire.api import ShowWidgetStrategy
 
         wrapper = self._context.data[EditState].active_node
         route = self._route()

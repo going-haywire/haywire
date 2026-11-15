@@ -7,15 +7,8 @@ libraries register their containers, this library renders them.
 
 from pathlib import Path
 
-from haywire.core.library.base import BaseLibrary
-from haywire.core.library.decorator import library
-from haywire.core.farmhand import FarmhandRegistry
-from haywire.core.node.registry import NodeRegistry
-from haywire.core.settings.registry import SettingsRegistry
-from haywire.core.state import StateRegistry
-from haywire.ui.editor.registry import EditorRegistry
-from haywire.ui.skin.registry import SkinRegistry
-from haywire.ui.panel.registry import PanelRegistry
+from haywire.api import BaseLibrary, NodeRegistry, SettingsRegistry, SkinRegistry, library
+from haywire.api.workbench import EditorRegistry, FarmhandRegistry, PanelRegistry, StateRegistry
 
 __all__ = ["GraphContainer", "GraphAppState", "Library"]
 
