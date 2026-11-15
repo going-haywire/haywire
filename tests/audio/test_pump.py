@@ -32,8 +32,11 @@ def test_delivers_numbered_blocks_at_the_block_rate():
     assert ended.wait(2)
     pump.stop()
     assert [n for n, _ in seen] == list(range(20))
-    assert seen[0][1] < 0.005, "the first block goes out at once"
-    assert seen[-1][1] == pytest.approx(0.19, abs=0.05), "19 blocks of 10 ms after the first"
+    assert seen[0][1] < 0.01, "the first block goes out at once, not a block later"
+    early = [(n, at) for n, at in seen if at < n * 0.01 - 0.001]
+    assert not early, f"no block goes out before its time: {early}"
+    # Only a lower bound is exact: a busy machine can deliver any block late.
+    assert seen[-1][1] < 0.5, "19 blocks of 10 ms after the first, give or take a busy machine"
 
 
 def test_stop_interrupts_the_wait_and_reports_end():

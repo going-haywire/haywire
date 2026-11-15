@@ -12,6 +12,10 @@ def _hold_the_interpreter() -> None:
     sum(range(60_000_000))
 
 
+def _caught_the_hold(caplog) -> bool:
+    return any("held up" in r.message and "_hold_the_interpreter" in r.message for r in caplog.records)
+
+
 @pytest.mark.unit
 def test_a_held_up_process_prints_the_stack_that_held_it(tmp_path, caplog):
     out = tmp_path / "stacks.txt"
@@ -19,13 +23,19 @@ def test_a_held_up_process_prints_the_stack_that_held_it(tmp_path, caplog):
         watchdog = StallWatchdog(50, file=stream)
         watchdog.start()
         time.sleep(0.2)
-        _hold_the_interpreter()
-        time.sleep(0.2)
+        # A hold that starts between two of the watchdog's arms goes unseen: hold again until one is seen.
+        for _ in range(5):
+            _hold_the_interpreter()
+            deadline = time.monotonic() + 1
+            while not _caught_the_hold(caplog) and time.monotonic() < deadline:
+                time.sleep(0.01)
+            if _caught_the_hold(caplog):
+                break
         watchdog.stop()
     text = out.read_text()
     assert "_hold_the_interpreter" in text, "the stack names the code that held the process"
     assert "Timeout (" not in text
-    assert any("held up" in r.message and "_hold_the_interpreter" in r.message for r in caplog.records)
+    assert _caught_the_hold(caplog)
 
 
 @pytest.mark.unit

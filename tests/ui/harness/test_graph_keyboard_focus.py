@@ -74,7 +74,9 @@ def _wait_for_focus(page: Page, index: int) -> None:
 
     def focused_in_view() -> bool:
         state = _focus_state(page)
-        return bool(state["idx"] == index and state["inView"])
+        # The browser's own reveal scroll puts the field in view a frame before the
+        # container's scroll handler turns that scroll into a pan, so wait for both.
+        return bool(state["idx"] == index and state["inView"] and state["scroll"] == [0, 0])
 
     wait_until(page, focused_in_view)
 

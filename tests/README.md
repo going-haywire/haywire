@@ -117,6 +117,18 @@ test, wait on the thing you are about to assert, not on a duration:
   `goto_ready` returns, which moves every pin. Call this before reading
   geometry, instead of sleeping.
 - A retrying `expect(locator)` assertion needs no wait in front of it at all.
+- `nav.wait_until(page, check)` polls any condition; in a NiceGUI user-simulation
+  test, `tests.ui.user_wait.eventually(check)` does the same on the event loop.
+
+The condition you wait on must be false *before* the action, or the wait returns
+at once and the assertion races the app. Check it against the state you start
+from: `to_contain_text("set")` already matches `"None|unset"`; a toolbar still up
+from the previous selection already passes a visibility wait; a field the browser
+scrolled into view is "in view" a frame before the canvas turns that scroll into
+a pan. Wait on the whole state the assertion reads. The same holds outside the
+browser: a fake file watcher waits for the file's text, not for the file to exist
+(`open(path, "x")` creates it empty). See
+[.insights/feedback_wait_true_before_the_action.md](../.insights/feedback_wait_true_before_the_action.md).
 
 Three sleeps survive deliberately, each with a comment saying why. Two are at
 `[data-testid="rekey"]`, which remounts the canvas: `_wait_for_all_edges` is

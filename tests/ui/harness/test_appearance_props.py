@@ -23,6 +23,8 @@ from playwright.sync_api import Page, expect
 from tests.ui.harness.nav import goto_ready
 
 _PATH = "/node-appearance"
+# The echo of a set value, "<value>|set". A substring "set" also matches the unset echo "None|unset".
+_SET = re.compile(r"\|set$")
 
 pytestmark = pytest.mark.ui
 
@@ -86,8 +88,7 @@ def test_picking_a_colour_reaches_the_model(page: Page, harness):
 
     _open_picker(page)
 
-    expect(_echo(page, "color_override")).to_contain_text("set")
-    expect(_echo(page, "color_override")).not_to_contain_text("unset")
+    expect(_echo(page, "color_override")).to_have_text(_SET)
 
 
 def test_a_picked_colour_carries_alpha(page: Page, harness):
@@ -104,7 +105,7 @@ def test_a_picked_colour_carries_alpha(page: Page, harness):
     # Wait for the value to land before reading it: the pick is a round trip
     # through the server, so a bare inner_text() races it and reads the
     # still-unset model. expect() retries; inner_text() does not.
-    expect(_echo(page, "color_override")).to_contain_text("set")
+    expect(_echo(page, "color_override")).to_have_text(_SET)
 
     css = _echo(page, "color_override").inner_text().split("|")[0]
     assert re.fullmatch(r"#[0-9a-fA-F]{8}", css), f"expected an 8-digit hexa colour, got {css!r}"
@@ -119,7 +120,7 @@ def test_clearing_the_colour_returns_to_inheriting(page: Page, harness):
     field = _color_input(page)
     field.fill("#123456ff")
     field.press("Enter")
-    expect(_echo(page, "color_override")).to_contain_text("set")
+    expect(_echo(page, "color_override")).to_have_text("#123456ff|set")
 
     field.fill("")
     field.press("Enter")
