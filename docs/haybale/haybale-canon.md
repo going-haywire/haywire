@@ -208,8 +208,8 @@ instantiates it.
 | `SkinRegistry` | `haywire.api` | `skins/` | skin classes |
 | `ThemeRegistry` | `haywire.api` | `themes/` | `@theme(theme_type=...)` classes |
 | `SettingsRegistry` | `haywire.api` | `settings/` | `@settings` classes |
-| `LibraryStateRegistry` | `haywire.api.workbench` | `states/` | `AppState` / `SessionState` |
-| `EditorTypeRegistry` | `haywire.api.workbench` | `editors/` | `@editor` classes |
+| `StateRegistry` | `haywire.api.workbench` | `states/` | `AppState` / `SessionState` |
+| `EditorRegistry` | `haywire.api.workbench` | `editors/` | `@editor` classes |
 | `PanelRegistry` | `haywire.api.workbench` | `panels/` | `@panel` classes |
 | `FarmhandRegistry` | `haywire.api.workbench` | `farmhands/` | MCP tool classes |
 | `MacroRegistry` | `haywire.api` | `macros/` | `.hwm` macro documents |

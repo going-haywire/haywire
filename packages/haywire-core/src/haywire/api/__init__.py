@@ -57,7 +57,7 @@ from haywire.barn.builtin.types import (
     FieldEntry,
     FLOATField,
     INTField,
-    is_valid_key,
+    is_valid_field_key,
 )
 from haywire.barn.builtin.widget_keys import (
     ARROW_HEAD_WIDGET,
@@ -101,7 +101,7 @@ from haywire.barn.builtin.widgets import (
 from haywire.barn.builtin.wires import CallbackWire, ControlWire, DataWire
 from haywire.core.adapter.base import BaseAdapter, adapter
 from haywire.core.adapter.registry import AdapterRegistry
-from haywire.core.edge.arrow_heads import NO_HEAD
+from haywire.core.edge.arrow_heads import NO_ARROW_HEAD
 from haywire.core.edge.style import dash_choices
 from haywire.core.catalog import CatalogEntry, CatalogRegistry, ModelFile, Resource
 from haywire.core.errors import Refusal, report_failure
@@ -132,7 +132,7 @@ from haywire.core.settings import (
     shadow,
     watch,
 )
-from haywire.core.skin.fonts import FONT_STACKS, FONTS, H_ALIGNS, V_ALIGNS
+from haywire.core.skin.fonts import FONT_STACKS, FONTS, TEXT_H_ALIGNS, TEXT_V_ALIGNS
 from haywire.core.skin.settings import skin_choices, widget_node_stage_skin_choices
 from haywire.core.skin.tags import (
     SKIN_TAG_GENERAL,
@@ -255,7 +255,7 @@ __all__ = [
     "ControlWire",
     "DataWire",
     "EdgeSettings",
-    "NO_HEAD",
+    "NO_ARROW_HEAD",
     "WireType",
     "dash_choices",
     # Builtin types (all of haywire.barn.builtin.types)
@@ -292,7 +292,7 @@ __all__ = [
     "VEC3I",
     "VEC4F",
     "VEC4I",
-    "is_valid_key",
+    "is_valid_field_key",
     # Carrier values
     "CarrierValue",
     "fields_from_text",
@@ -364,13 +364,13 @@ __all__ = [
     "BaseSkin",
     "FONTS",
     "FONT_STACKS",
-    "H_ALIGNS",
+    "TEXT_H_ALIGNS",
     "SKIN_TAG_GENERAL",
     "SKIN_TAG_GRAPH_NODE",
     "SKIN_TAG_SPECIAL",
     "SKIN_TAG_STAGE_ONLY",
     "SKIN_TAG_WIDGET_NODE",
-    "V_ALIGNS",
+    "TEXT_V_ALIGNS",
     "render_pin",
     "skin",
     "skin_choices",

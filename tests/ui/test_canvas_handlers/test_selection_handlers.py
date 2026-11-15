@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 from haywire.core.graph.clipboard import CLIPBOARD_FORMAT_VERSION
 from haywire.core.node.layout import PATCH
-from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
+from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.core.session.context import SessionContext
 from haywire.core.signals import SelectionMoved
 from haybale_graph_editor.editors.graph_canvas.handlers import selection as selection_module
@@ -64,7 +64,7 @@ def session_with_edit(register_edit_state):
     ``session.context.data[EditState]`` against the container's class
     reference (survives library hot-reloads).
     """
-    container = LibraryStateContainer(LibraryStateRegistry())
+    container = LibraryStateContainer(StateRegistry())
     sid = "test-session"
     EditStateCls = register_edit_state(container, sid)
     app = MagicMock()
@@ -147,7 +147,7 @@ def test_selection_changed_replaces_previous(handler):
 
 
 def test_selection_changed_notifies_session(register_edit_state):
-    container = LibraryStateContainer(LibraryStateRegistry())
+    container = LibraryStateContainer(StateRegistry())
     sid = "s"
     EditStateCls = register_edit_state(container, sid)
     app = MagicMock()

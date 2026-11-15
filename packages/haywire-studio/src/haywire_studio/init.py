@@ -655,7 +655,7 @@ from haywire.api import (
     WidgetRegistry,
     library,
 )
-from haywire.api.workbench import EditorTypeRegistry, LibraryStateRegistry, PanelRegistry
+from haywire.api.workbench import EditorRegistry, StateRegistry, PanelRegistry
 
 
 @library(
@@ -675,7 +675,7 @@ class Library(BaseLibrary):
 
         self.add_folder_to_registry(
             folder_path=str(base_path / 'states'),
-            registry_cls=LibraryStateRegistry,
+            registry_cls=StateRegistry,
         )
 
         self.add_folder_to_registry(
@@ -720,7 +720,7 @@ class Library(BaseLibrary):
 
         self.add_folder_to_registry(
             folder_path=str(base_path / 'editors'),
-            registry_cls=EditorTypeRegistry,
+            registry_cls=EditorRegistry,
         )
 
     def validate(self) -> bool:

@@ -35,7 +35,7 @@ level: framework
 - *An underscore prefix on every internal module.* A rename of most of core, breaking every existing import for a marking the rule already gives.
 - *A runtime check that refuses internal imports.* An internal import breaks nothing today; refusing it would break libraries to protect them.
 - *A separate `haywire-api` package.* A package split of core is a larger decision and not needed for the promise.
-- *Exporting `haywire.core.volumes` as a namespace*, so that `volumes.resolve(path)` keeps reading well. The promise would then cover the whole package. Its two functions whose names said little in a flat module were renamed instead: `resolve` to `resolve_volume_path`, `location_of` to `volume_location`.
+- *Exporting `haywire.core.volumes` as a namespace*, so that `volumes.resolve(path)` keeps reading well. The promise would then cover the whole package. Its two functions whose names said little in a flat module were renamed instead: `resolve` to `resolve_volume_path`, `location_of` to `volume_location`. Other names were aligned at the same time (`get_activity_tracker`, the `Surface` suffix on builtin surfaces, `EditorRegistry`, `StateRegistry`).
 
 **Consequences.**
 

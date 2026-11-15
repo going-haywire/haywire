@@ -13,10 +13,15 @@ Imports and ``__all__`` only; the one function serves deprecated names. ``hui`` 
 # haywire.api comes first: it fixes the import order of the core packages.
 import haywire.api  # noqa: F401
 
-from haywire.barn.builtin.surfaces import AppSettings, Barns, CanvasSettings, ExecutionInspector
+from haywire.barn.builtin.surfaces import (
+    AppSettingsSurface,
+    BarnsSurface,
+    CanvasSettingsSurface,
+    ExecutionInspectorSurface,
+)
 from haywire.core.access import AccessTier, LevelMode, resolve_tier
 from haywire.core.di.context import (
-    activity_tracker,
+    get_activity_tracker,
     get_catalog_registry,
     get_library_state_container,
 )
@@ -31,6 +36,7 @@ from haywire.core.farmhand import (
 )
 from haywire.core.graph.base import BaseGraph
 from haywire.core.library.deprecated_names import DeprecatedName, serve_deprecated
+from haywire.core.node.promotion import demote_setting, promote_setting
 from haywire.core.session import SessionContext, react_on, redraw_on
 from haywire.core.session.handlers import reveal_on
 from haywire.core.signals import (
@@ -56,10 +62,10 @@ from haywire.core.signals import (
     Undo,
     signal_field,
 )
-from haywire.core.state import AppState, LibraryState, LibraryStateRegistry, SessionState, state
+from haywire.core.state import AppState, LibraryState, StateRegistry, SessionState, state
 from haywire.ui import elements as hui
 from haywire.ui.access_stamp import stamp_requires
-from haywire.ui.editor import BaseEditor, EditorTypeRegistry, OpenBehavior, SlotName, editor
+from haywire.ui.editor import BaseEditor, EditorRegistry, OpenBehavior, SlotName, editor
 from haywire.ui.editor.wrapper import EditorWrapper
 from haywire.ui.hover_tip import set_hover_tip
 from haywire.ui.modals import confirm_modal
@@ -81,9 +87,9 @@ def __getattr__(name: str):
 
 __all__ = [
     # Registries a library's register_components() names
-    "EditorTypeRegistry",
+    "EditorRegistry",
     "FarmhandRegistry",
-    "LibraryStateRegistry",
+    "StateRegistry",
     "PanelRegistry",
     # Panel
     "BasePanel",
@@ -91,10 +97,10 @@ __all__ = [
     "panel",
     "render_schema",
     # Surfaces a panel appears on
-    "AppSettings",
-    "Barns",
-    "CanvasSettings",
-    "ExecutionInspector",
+    "AppSettingsSurface",
+    "BarnsSurface",
+    "CanvasSettingsSurface",
+    "ExecutionInspectorSurface",
     "Surface",
     # Editor
     "BaseEditor",
@@ -105,6 +111,9 @@ __all__ = [
     # Session
     "BaseGraph",
     "SessionContext",
+    # Promoting a setting to a port
+    "demote_setting",
+    "promote_setting",
     # Signals
     "ActiveGraphMoved",
     "BroadcastClose",
@@ -153,7 +162,7 @@ __all__ = [
     "hui",
     "set_hover_tip",
     # Ambient accessors
-    "activity_tracker",
+    "get_activity_tracker",
     "get_catalog_registry",
     "get_library_state_container",
 ]

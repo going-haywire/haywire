@@ -1,10 +1,10 @@
-"""Library settings panel for the Image library, on the ``Barns`` surface."""
+"""Library settings panel for the Image library, on the ``BarnsSurface`` surface."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.api.workbench import Barns, BasePanel, PanelLayout, panel, render_schema
+from haywire.api.workbench import BarnsSurface, BasePanel, PanelLayout, panel, render_schema
 
 from haybale_image.settings.image_settings import ImageSettings
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    surface=Barns,
+    surface=BarnsSurface,
     label="Image",
     description="Defaults for saving images.",
     icon="image",

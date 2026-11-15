@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 #: The value meaning "no head", as stored in a setting.
-NO_HEAD = "none"
+NO_ARROW_HEAD = "none"
 
 # Space around a glyph inside its marker viewport, in edge widths.
 _PAD = 2
@@ -114,7 +114,7 @@ def head_size_choices() -> dict[str, str]:
 
 
 def get_arrow_head(name: str | None) -> ArrowHead | None:
-    """Return the head called *name*; ``None`` for ``NO_HEAD``, ``None`` or an unknown name."""
+    """Return the head called *name*; ``None`` for ``NO_ARROW_HEAD``, ``None`` or an unknown name."""
     if name is None:
         return None
     return _BY_NAME.get(name)

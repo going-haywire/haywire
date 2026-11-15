@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from haywire.barn.builtin.types import FIELD_LIST, FLOAT, INT, FieldEntry, is_valid_key
+from haywire.barn.builtin.types import FIELD_LIST, FLOAT, INT, FieldEntry, is_valid_field_key
 from haywire.barn.builtin.widgets.field_list_widget import TypeChoice, type_choices
 from haywire.core.types.enums import StoreStrategy
 from haywire.core.types.utils import serialize_element_type
@@ -28,7 +28,7 @@ class TestKeysAndValues:
         ],
     )
     def test_key_rule(self, key, ok):
-        assert is_valid_key(key) is ok
+        assert is_valid_field_key(key) is ok
 
     def test_from_dict_drops_bad_and_duplicate_keys_without_raising(self):
         r = {"registry_key": "haywire-core:type:INT"}

@@ -153,7 +153,7 @@ def test_no_real_menu_surface_declares_presentation():
         SelectionRebuildMenu,
         SelectionToolbar,
     )
-    from haywire.barn.builtin.surfaces import AccountMenu
+    from haywire.barn.builtin.surfaces import AccountMenuSurface
 
     menu_surfaces = [
         GraphContext,
@@ -165,7 +165,7 @@ def test_no_real_menu_surface_declares_presentation():
         SelectionRebuildMenu,
         PinMenu,
         SelectionToolbar,
-        AccountMenu,
+        AccountMenuSurface,
     ]
     for surface in menu_surfaces:
         assert surface.presentation is None, f"{surface.id!r} is a menu surface but declares presentation"

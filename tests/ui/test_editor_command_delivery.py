@@ -13,7 +13,7 @@ from haywire.core.session.session import Session
 from haywire.core.signals import Copy, Delete, Signal
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.identity import SlotName
-from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.editor.registry import EditorRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 
 
@@ -51,7 +51,7 @@ def _make_wrapper(session: Session, binding_id: str) -> EditorWrapper:
     wrapper = EditorWrapper(
         editor_key="test:editor:command",
         editor_cls=_CommandEditor,
-        registry=EditorTypeRegistry(),
+        registry=EditorRegistry(),
         session=session,
         binding_id=binding_id,
     )

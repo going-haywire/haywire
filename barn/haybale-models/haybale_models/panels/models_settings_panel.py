@@ -1,10 +1,10 @@
-"""Library settings panel for the Models library, on the ``Barns`` surface."""
+"""Library settings panel for the Models library, on the ``BarnsSurface`` surface."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.api.workbench import Barns, BasePanel, PanelLayout, hui, panel, render_schema
+from haywire.api.workbench import BarnsSurface, BasePanel, PanelLayout, hui, panel, render_schema
 
 from haybale_models.settings.models_settings import ModelsSettings
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    surface=Barns,
+    surface=BarnsSurface,
     label="Models",
     description="Model download behaviour: how many files download in parallel.",
     icon=hui.icon.models,

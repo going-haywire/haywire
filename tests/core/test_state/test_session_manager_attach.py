@@ -3,7 +3,7 @@ around session creation / removal."""
 
 from unittest.mock import MagicMock
 
-from haywire.core.state import LibraryStateContainer, LibraryStateRegistry, SessionState
+from haywire.core.state import LibraryStateContainer, StateRegistry, SessionState
 from haywire.core.session.session_manager import SessionManager
 from haywire.core.signals import SignalDispatcher
 
@@ -16,7 +16,7 @@ class TestSessionManagerAttachDetach:
         return {"app_state": app_state, "workspace_manager": MagicMock()}
 
     def test_create_session_attaches_to_container(self):
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(StateRegistry())
         manager = SessionManager(dispatcher=SignalDispatcher(), container=container)
 
         session = manager.create_session(**self._make_session_kwargs(container))
@@ -24,7 +24,7 @@ class TestSessionManagerAttachDetach:
         assert session.session_id in container._known_session_ids
 
     def test_remove_session_detaches_from_container(self):
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(StateRegistry())
         manager = SessionManager(dispatcher=SignalDispatcher(), container=container)
         session = manager.create_session(**self._make_session_kwargs(container))
 
@@ -53,7 +53,7 @@ class TestSessionManagerAttachDetach:
         # Plant the SessionState class directly onto the container so we don't
         # need the registry plumbing for this unit test. (Integration test
         # exercises the registry path in Task 8.)
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(StateRegistry())
         key = TimelineCursor.class_identity.registry_key
         container._sessions[key] = {}
         container._class_by_registry_key[key] = TimelineCursor
@@ -84,7 +84,7 @@ class TestSessionManagerAttachDetach:
             label="Cursor",
         )
 
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(StateRegistry())
         key = Cursor.class_identity.registry_key
         container._sessions[key] = {}
         container._class_by_registry_key[key] = Cursor

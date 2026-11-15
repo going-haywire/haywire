@@ -41,7 +41,7 @@ class MidiPool(AppState):        register_components(self):     observes registr
      [])                            registry(                    on register: cls() →
    def on_enable(self): ...           folder=base/'state',         store → on_enable()
    def on_disable(self): ...          registry_cls=                on unregister:
-                                      LibraryStateRegistry)        on_disable() → drop
+                                      StateRegistry)        on_disable() → drop
 
 Worker / panel reads
 ────────────────────
@@ -142,9 +142,9 @@ class MyPanel(BasePanel):
         self.pool = ctx.app_data[MidiPool]   # don't
 ```
 
-**Folder convention and registration order.** State classes go in the library's `states/` folder; register that folder with `LibraryStateRegistry` in `register_components()`. The folder scan picks up both `AppState` and `SessionState` subclasses in one pass.
+**Folder convention and registration order.** State classes go in the library's `states/` folder; register that folder with `StateRegistry` in `register_components()`. The folder scan picks up both `AppState` and `SessionState` subclasses in one pass.
 
-**Recommended scan order in `register_components()`:** `settings → state → nodes / panels / editors / themes`. This mirrors the framework's hot-reload propagation chain (`SettingsRegistry → LibraryStateRegistry → NodeRegistry`, `PanelRegistry`, `EditorTypeRegistry`). Following the same order at first-load keeps initial-load aligned with hot-reload, so an `AppState` whose `on_enable` reads a `LibrarySettings()` value finds the schema already wired.
+**Recommended scan order in `register_components()`:** `settings → state → nodes / panels / editors / themes`. This mirrors the framework's hot-reload propagation chain (`SettingsRegistry → StateRegistry → NodeRegistry`, `PanelRegistry`, `EditorRegistry`). Following the same order at first-load keeps initial-load aligned with hot-reload, so an `AppState` whose `on_enable` reads a `LibrarySettings()` value finds the schema already wired.
 
 **`session_id` on SessionState.** Stamped by the container *between* `cls()` and `on_enable`. Read it in `on_enable` or later — `__init__` runs before stamping:
 
@@ -179,7 +179,7 @@ from haywire.api.workbench import (
     AppState,               # concrete app-scoped base
     SessionState,           # concrete per-session base
     state,                  # decorator
-    LibraryStateRegistry,   # for register_components()
+    StateRegistry,   # for register_components()
 )
 from haywire.api.workbench import signal_field
 ```
@@ -285,7 +285,7 @@ class MidiSelection(SessionState):
 from pathlib import Path
 
 from haywire.api import BaseLibrary, SettingsRegistry, library
-from haywire.api.workbench import LibraryStateRegistry
+from haywire.api.workbench import StateRegistry
 from haywire.api import NodeRegistry
 
 @library(
@@ -306,7 +306,7 @@ class Library(BaseLibrary):
         )
         self.add_folder_to_registry(
             folder_path=str(base / 'state'),
-            registry_cls=LibraryStateRegistry,
+            registry_cls=StateRegistry,
         )
         self.add_folder_to_registry(
             folder_path=str(base / 'nodes'),
@@ -385,7 +385,7 @@ What this example exercises:
 | `exec_ctx.app_data[Cls]` from a worker | `MidiSendNode.worker` |
 | No `exec_ctx.data` — workers can't reach SessionState | `MidiSendNode.worker` (commented) |
 
-For the framework mechanics — `LibraryStateRegistry`, `LibraryStateContainer`, registry events, hot-reload pipeline, lifecycle ordering — see [architecture/session-and-state](../../architecture/session-and-state/session-and-state-arch.md).
+For the framework mechanics — `StateRegistry`, `LibraryStateContainer`, registry events, hot-reload pipeline, lifecycle ordering — see [architecture/session-and-state](../../architecture/session-and-state/session-and-state-arch.md).
 
 ---
 
@@ -398,7 +398,7 @@ For the framework mechanics — `LibraryStateRegistry`, `LibraryStateContainer`,
 - [ ] Inherit from chosen base; never inherit from `LibraryState` directly
 - [ ] Use `signal_field()` for fields that should drive UI re-renders; plain attributes otherwise
 - [ ] Implement `on_enable` / `on_disable` for resource lifecycle (both optional)
-- [ ] Place file in `states/` folder; register the folder via `LibraryStateRegistry` in `register_components`
+- [ ] Place file in `states/` folder; register the folder via `StateRegistry` in `register_components`
 - [ ] For SessionState: read `self.session_id` in `on_enable` (not `__init__`)
 - [ ] For AppState composing settings: instantiate `LibrarySettings()` in `on_enable` (not class body or `__init__`)
 
@@ -407,7 +407,7 @@ For the framework mechanics — `LibraryStateRegistry`, `LibraryStateContainer`,
 ```python
 from haywire.api.workbench import (
     AppState,
-    LibraryStateRegistry,
+    StateRegistry,
     SessionState,
     signal_field,
     state,

@@ -12,7 +12,7 @@ from haywire.core.session.session import Session
 from haywire.core.signals import Signal
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.identity import SlotName
-from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.editor.registry import EditorRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 from haywire.ui.keymap import build_keymap
 
@@ -51,7 +51,7 @@ def _listener(session: Session) -> _TargetListener:
     wrapper = EditorWrapper(
         editor_key="test:target",
         editor_cls=_TargetListener,
-        registry=EditorTypeRegistry(),
+        registry=EditorRegistry(),
         session=session,
     )
     assert wrapper._instantiate() is True

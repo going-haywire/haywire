@@ -85,6 +85,22 @@ widget and starting value. Here you *use* the built-in `FLOAT` and
 [widget](../widgets/widget-canon.md) chapters. Everything a port accepts:
 [guides/ports](../../guides/ports.md).
 
+**Where the imports go.** Framework names (`FLOAT`, `NumberWidget`, `BaseNode`)
+are imported at the top of the file from `haywire.api`: they ship with the
+framework and cannot be missing. A type or widget from **another library** is
+imported inside `init()`:
+
+```python
+def init(self):
+    from haybale_image.types.image import IMAGE   # another library's type
+
+    self.add(IMAGE.as_inlet("image"))
+```
+
+If that library is not installed, the node's file still imports and the node
+still registers. The failure happens when the node is placed, where the graph
+can show it on that node, instead of in a stream of import errors at startup.
+
 **The worker — `worker()`.** One rule: **a worker parameter named like an inlet
 receives that inlet's value.** `value_a: float` gets the value of the port with
 `id="value_a"`, already unwrapped. To send a result, call

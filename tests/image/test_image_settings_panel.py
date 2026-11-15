@@ -11,10 +11,10 @@ pytestmark = pytest.mark.unit
 
 def test_panel_is_registered_under_barns():
     from haybale_image.panels.image_settings_panel import ImageSettingsPanel
-    from haywire.barn.builtin.surfaces import Barns
+    from haywire.barn.builtin.surfaces import BarnsSurface
 
     identity = ImageSettingsPanel.class_identity
-    assert identity.surface is Barns
+    assert identity.surface is BarnsSurface
     assert identity.label == "Image"
 
 

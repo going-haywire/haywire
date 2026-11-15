@@ -40,7 +40,7 @@ from haybale_models.store.index import ModelIndex
 from haybale_models.store.layout import safe_name, target_path
 from haybale_models.store.records import FetchRecord, FetchRecords
 
-from haywire.api.workbench import activity_tracker
+from haywire.api.workbench import get_activity_tracker
 from haywire.api import ModelFile, Refusal, VolumeError, volume_location, report_failure
 
 logger = logging.getLogger(__name__)
@@ -274,7 +274,7 @@ class DownloadQueue:
             token = None
             try:
                 self._claim_upload(task, place, target)
-                token = activity_tracker().start(
+                token = get_activity_tracker().start(
                     principal, "models.download", {"label": job.label, "source": "browser"}
                 )
                 receiver = UploadReceiver(
@@ -295,7 +295,7 @@ class DownloadQueue:
                 if not isinstance(exc, OSError):  # A disk refusing a file is no bug; the user gets told.
                     report_failure(exc, operation="Start a model upload", label=job.label)
                 if token is not None:
-                    activity_tracker().finish(token, ok=False, error=str(exc))
+                    get_activity_tracker().finish(token, ok=False, error=str(exc))
                 raise ReceiveRefused(exc.message if isinstance(exc, Refusal) else str(exc)) from exc
             self._tasks[new_id] = task
         self._notify()
@@ -361,7 +361,7 @@ class DownloadQueue:
             task.claimed.clear()
         if token is not None:
             try:
-                activity_tracker().finish(
+                get_activity_tracker().finish(
                     token, ok=state == "done", error=error or (state if state != "done" else None)
                 )
             except Exception:
@@ -513,7 +513,7 @@ class DownloadQueue:
         state: JobState = "failed"
         error: str | None = None
         try:
-            token = activity_tracker().start(
+            token = get_activity_tracker().start(
                 job.principal, "models.download", {"label": job.label, "source": job.sources[0]}
             )
             self._download(task)
@@ -531,7 +531,7 @@ class DownloadQueue:
             task.claimed.clear()
         if token is not None:
             try:
-                activity_tracker().finish(
+                get_activity_tracker().finish(
                     token, ok=state == "done", error=error or (state if state != "done" else None)
                 )
             except Exception:

@@ -1,10 +1,10 @@
-"""Unit tests for LibraryStateRegistry."""
+"""Unit tests for StateRegistry."""
 
 from typing import cast
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.state import AppState, LibraryState
-from haywire.core.state.registry import LibraryStateRegistry
+from haywire.core.state.registry import StateRegistry
 
 
 def make_lib_identity(lib_id: str = "midi") -> LibraryIdentity:
@@ -24,11 +24,11 @@ class TestLibraryStateRegistry:
         class MyState(AppState):
             pass
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         assert reg._class_filter(MyState) is True
 
     def test_class_filter_rejects_marker_bases(self):
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         assert reg._class_filter(LibraryState) is False
         assert reg._class_filter(AppState) is False
 
@@ -36,14 +36,14 @@ class TestLibraryStateRegistry:
         class Unrelated:
             pass
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         assert reg._class_filter(Unrelated) is False
 
     def test_register_class_creates_identity_and_stores_class(self):
         class MyState(AppState):
             pass
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         lib_id = make_lib_identity()
         key = cast(str, reg._register_class(MyState, lib_id))
 
@@ -57,7 +57,7 @@ class TestLibraryStateRegistry:
         class MyState(AppState):
             pass
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         lib_id = make_lib_identity()
         first_key = reg._register_class(MyState, lib_id)
         # Re-registering the same class returns the same key without error.
@@ -68,7 +68,7 @@ class TestLibraryStateRegistry:
         class MyState(AppState):
             pass
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         lib_id = make_lib_identity()
         key = cast(str, reg._register_class(MyState, lib_id))
         removed = reg._unregister_class(key)
@@ -79,7 +79,7 @@ class TestLibraryStateRegistry:
 
 class TestGetClassesForLibrary:
     def test_empty_registry_returns_empty_dict(self):
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         result = reg.get_classes_for_library(make_lib_identity("midi"))
         assert result == {}
 
@@ -90,7 +90,7 @@ class TestGetClassesForLibrary:
         class StateB(AppState):
             pass
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         midi = make_lib_identity("midi")
         key_a = reg._register_class(StateA, midi)
         key_b = reg._register_class(StateB, midi)
@@ -105,7 +105,7 @@ class TestGetClassesForLibrary:
         class AudioState(AppState):
             pass
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         midi = make_lib_identity("midi")
         audio = make_lib_identity("audio")
         midi_key = reg._register_class(MidiState, midi)
@@ -118,7 +118,7 @@ class TestGetClassesForLibrary:
         class MyState(AppState):
             pass
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         midi = make_lib_identity()
         key = cast(str, reg._register_class(MyState, midi))
         reg._unregister_class(key)
@@ -133,7 +133,7 @@ class TestGetClassesForLibrary:
         class MyState(AppState):
             pass
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         first = make_lib_identity("midi")
         reg._register_class(MyState, first)
 

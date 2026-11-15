@@ -19,7 +19,7 @@ from haywire.api import (
     library,
 )
 
-from haywire.api.workbench import EditorTypeRegistry, PanelRegistry
+from haywire.api.workbench import EditorRegistry, PanelRegistry
 
 
 @library(
@@ -59,7 +59,7 @@ class Library(BaseLibrary):
         self.add_folder_to_registry(folder_path=str(base_path / "panels"), registry_cls=PanelRegistry)
 
         # Register nodes
-        self.add_folder_to_registry(folder_path=str(base_path / "editors"), registry_cls=EditorTypeRegistry)
+        self.add_folder_to_registry(folder_path=str(base_path / "editors"), registry_cls=EditorRegistry)
 
     def validate(self) -> bool:
         """Validate that the core library is properly structured"""

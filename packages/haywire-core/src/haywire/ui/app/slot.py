@@ -11,7 +11,7 @@ from nicegui import ui
 from haywire.core.access import required_tier
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.ui.editor.identity import SlotName
-from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.editor.registry import EditorRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 
 if TYPE_CHECKING:
@@ -35,7 +35,7 @@ class Slot(ABC):
         self,
         session: "Session",
         name: SlotName,
-        registry: EditorTypeRegistry,
+        registry: EditorRegistry,
         on_visibility_change: Optional[Callable[[bool], object]] = None,
         bar_place: Literal["left", "right", "top", "bottom"] = "left",
         foldable: bool = False,
@@ -70,7 +70,7 @@ class Slot(ABC):
         """
         self._session = session
         self.name = name
-        self._registry: EditorTypeRegistry = registry
+        self._registry: EditorRegistry = registry
         self._bindings: list[EditorWrapper] = []
         self._active: Optional[EditorWrapper] = None
         self._visible: bool = visible

@@ -1,6 +1,6 @@
 # packages/haywire-core/src/haywire/ui/editor_framework/registry.py
 """
-EditorTypeRegistry for managing editor type registrations.
+EditorRegistry for managing editor type registrations.
 
 Extends BaseRegistry for hot-reload support, folder scanning, lifecycle
 events, dependency tracking, and snapshot rollback.
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class EditorTypeRegistry(BaseRegistry[BaseEditor]):
+class EditorRegistry(BaseRegistry[BaseEditor]):
     """
     Registry of editor types.
 
@@ -56,7 +56,7 @@ class EditorTypeRegistry(BaseRegistry[BaseEditor]):
     ) -> "str | None":
         """Register an editor class by its registry_key."""
         registry_key = cls.class_identity.registry_key
-        logger.debug(f"EditorTypeRegistry: Registering '{registry_key}' ({cls.__name__})")
+        logger.debug(f"EditorRegistry: Registering '{registry_key}' ({cls.__name__})")
         return super()._register(registry_key, cls, library_identity)
 
     def _unregister_class(self, registry_key: str) -> "type[BaseEditor] | None":
@@ -132,6 +132,10 @@ class EditorTypeRegistry(BaseRegistry[BaseEditor]):
                     cb(event)
                 except Exception as exc:
                     logger.error(
-                        f"EditorTypeRegistry: per-key subscriber for '{event.registry_key}' raised: {exc}",
+                        f"EditorRegistry: per-key subscriber for '{event.registry_key}' raised: {exc}",
                         exc_info=True,
                     )
+
+
+# The name libraries outside this repository import until they move onto haywire.api.
+EditorTypeRegistry = EditorRegistry

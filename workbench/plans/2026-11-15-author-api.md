@@ -245,6 +245,33 @@ gives `haywire.ui.elements`.
 and `volume_location` on the maintainer's word (2026-11-15), in core and every
 caller, so the flat module reads on its own.
 
+## Renames (2026-11-15)
+
+Decided by the maintainer before the first release, so the flat modules read
+as one vocabulary. Each was renamed in core, every library here, the tests and
+the docs.
+
+| Was | Is | Why |
+|---|---|---|
+| `resolve`, `location_of` | `resolve_volume_path`, `volume_location` | the bare names said little outside `core.volumes` |
+| `activity_tracker()` | `get_activity_tracker()` | the other ambient accessors start with `get_` |
+| `AppSettings`, `CanvasSettings`, `ExecutionInspector`, `Barns`, `AccountMenu` (surfaces) | the same with a `Surface` suffix | they read like settings classes, and `CanvasSettings` is also a settings class; `DebugSurface` had the suffix |
+| `EditorTypeRegistry`, `LibraryStateRegistry` | `EditorRegistry`, `StateRegistry` | every other registry is `<Kind>Registry` |
+| `NO_HEAD` | `NO_ARROW_HEAD` | matches `ArrowHeadWidget` |
+| `is_valid_key` | `is_valid_field_key` | "key" also means registry key and volume key |
+| `H_ALIGNS`, `V_ALIGNS` | `TEXT_H_ALIGNS`, `TEXT_V_ALIGNS` | text style choices, beside `FONTS` |
+
+Three old names stay importable from their internal modules, as plain aliases,
+because libraries outside this repository import them today (protokol, comfyui
+and spandrel; the first two through the `haywire init` scaffold of their
+time): `EditorTypeRegistry` (`ui.editor.registry`), `LibraryStateRegistry`
+(`core.state`), `Barns` (`barn.builtin.surfaces`). Slice 7 removes the aliases
+once those libraries import `haywire.api`.
+
+Not renamed: the surfaces of haybale-graph-editor (about thirty, none with the
+suffix, none in the Author API). Whether they take the suffix is decided when
+graph-editor migrates (slice 5).
+
 ## Further decisions (2026-11-15)
 
 | # | Question | Decision |
@@ -273,7 +300,7 @@ The last task of each slice marks it done here (commit, date, deviations).
 | Slice | Status |
 |---|---|
 | 1 | done 2026-11-15, PR #108. 170 component names, 64 workbench names after slices 2 and 4 added theirs; ADRs 0084 and 0085; glossary terms. The checked-in list is `tests/api/names.py` |
-| 2 | in part, 2026-11-15, PR #108. Done: every import line in `docs/components`, `docs/guides` and `docs/haybale`; the Author API section and registry table in the haybale canon; the Data node template; the `haywire init` scaffold and its ruff lines. Open: (a) six names the docs teach and no library uses stay on internal imports in the docs and need a decision each: `IAdapter`, `GraphProperties`, `graph` (the graph-settings descriptor), `promote_setting`, `demote_setting`, `HaywireDarkTheme`; (b) the canons do not yet document the exported names the tables above mark "document"; (c) prose that names an internal module path was left as it is; (d) `.claude/skills/haywire-themes/SKILL.md` has one internal import line |
+| 2 | in part, 2026-11-15, PR #108. Done: every import line in `docs/components`, `docs/guides` and `docs/haybale`; the Author API section and registry table in the haybale canon; the Data node template; the `haywire init` scaffold and its ruff lines. The six names the docs taught and no node library used are decided: `IAdapter` left the adapter canon; `GraphProperties` and `graph` stay internal and the setting canon shows them as framework internals; `promote_setting` and `demote_setting` are in the workbench API; `HaywireDarkTheme` is haybale-studio's class, so the theme canon imports it from `haybale_studio` (a library-to-library import, Q3). The node canon states where imports go (framework names at the top, another library's inside `init()`). Open: (b) the canons do not yet document the exported names the tables above mark "document"; (c) prose that names an internal module path was left as it is; (d) `.claude/skills/haywire-themes/SKILL.md` has one internal import line |
 | 3 | done 2026-11-15, PR #108 (merged into slice 1, as allowed). Deviations: notices are collected in a `ContextVar` (`core/library/deprecated_names.py`), not with `warnings.catch_warnings`; the warning is `HaywireDeprecationWarning`, a `DeprecationWarning` subclass, so third-party deprecations stay out of the ledger; the entry is written with `report_loss` |
 | 4 | done 2026-11-15, PR #108, one commit per library instead of one PR (the PR for slice 1 was still open, and stacked PRs do not survive squash merges). example, audio, image, core and models import only the Author API; `barn/ruff.toml` enforces it. 748 names moved by the codemod; four users rewritten by hand (Print node, `array_widget`, models editor menu, one docstring) |
 | 5–7 | not started. For slice 5, ruff cannot hold an allowlist of names: either the library keeps TID251 off and the AST test is its only check, or each allowlisted import carries `# noqa: TID251` |

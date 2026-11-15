@@ -34,7 +34,7 @@ from haywire.core.signals import (
     Reveal,
     SelectionMoved,
 )
-from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
+from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.core.session.session import Session
 from haywire.core.session.session_manager import SessionManager
 from haywire.core.signals import SignalDispatcher
@@ -279,7 +279,7 @@ def test_broadcast_delivers_to_every_session_including_origin():
     """Every registered session — including the origin — receives the
     signal exactly once."""
     dispatcher = SignalDispatcher()
-    sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(LibraryStateRegistry()))
+    sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(StateRegistry()))
     origin = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
     peer_a = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
     peer_b = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
@@ -299,7 +299,7 @@ def test_broadcast_delivers_to_every_session_including_origin():
 def test_broadcast_swallows_per_peer_exceptions():
     """A subscriber raising in one session does not abort delivery to others."""
     dispatcher = SignalDispatcher()
-    sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(LibraryStateRegistry()))
+    sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(StateRegistry()))
     origin = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
     bad = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
     good = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
@@ -320,7 +320,7 @@ def test_publish_end_to_end_with_session_manager():
     """A cross_session=True signal published via Session.publish() reaches
     every peer's bus subscribers."""
     dispatcher = SignalDispatcher()
-    sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(LibraryStateRegistry()))
+    sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(StateRegistry()))
     origin = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
     peer = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
 
@@ -340,7 +340,7 @@ def test_broadcast_close_end_to_end_with_session_manager():
     """A BroadcastClose published on one session reaches every session's
     BroadcastClose subscribers."""
     dispatcher = SignalDispatcher()
-    sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(LibraryStateRegistry()))
+    sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(StateRegistry()))
     origin = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
     peer = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
 
@@ -365,7 +365,7 @@ def test_error_ledger_listener_broadcasts_to_every_session():
     from haywire.core.errors.ledger import ErrorLedger
 
     dispatcher = SignalDispatcher()
-    sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(LibraryStateRegistry()))
+    sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(StateRegistry()))
     a = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
     b = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
 

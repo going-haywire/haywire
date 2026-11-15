@@ -8,7 +8,7 @@ on the other, which is exactly why a sibling group belongs to the container
 (the popup) rather than to a surface.
 
 This is also where the menu half of the old ``CanvasFocus`` lands. Its
-inspector half stays in core as ``CanvasSettings`` (``id="canvas"``), so the
+inspector half stays in core as ``CanvasSettingsSurface`` (``id="canvas"``), so the
 double duty one focus id did — six properties panels and two menu panels
 sharing ``id="canvas"``, kept apart only by whether a Protocol was set —
 resolves into two surfaces without either changing what a user sees.

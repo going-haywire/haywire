@@ -166,7 +166,7 @@ def _session_with_context() -> SimpleNamespace:
 
 
 class _FakeRegistry:
-    """Stub EditorTypeRegistry — provides all subscriber hooks wrappers need."""
+    """Stub EditorRegistry — provides all subscriber hooks wrappers need."""
 
     def __init__(self):
         self._subscribers: dict = {}

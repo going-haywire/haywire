@@ -17,7 +17,7 @@ from ..wires import DataWire
 _KEY = re.compile(r"[a-zA-Z0-9_]+")
 
 
-def is_valid_key(key: str) -> bool:
+def is_valid_field_key(key: str) -> bool:
     """Return whether ``key`` can name a field: one or more of ``a-z``, ``A-Z``, ``0-9`` and ``_``."""
     return _KEY.fullmatch(key) is not None
 
@@ -27,7 +27,7 @@ class FieldEntry:
     """One declared field.
 
     Attributes:
-        key: The field's name; see ``is_valid_key``.
+        key: The field's name; see ``is_valid_field_key``.
         recipe: The field's type, as ``serialize_element_type`` gives it. It is
             resolved when pins are built, so an entry whose library is not
             installed survives a load.
@@ -53,7 +53,7 @@ def _entry_from(item: Any) -> FieldEntry | None:
     if not isinstance(item, dict):
         return None
     key, recipe = item.get("key"), item.get("recipe")
-    if not isinstance(key, str) or not is_valid_key(key) or not isinstance(recipe, dict):
+    if not isinstance(key, str) or not is_valid_field_key(key) or not isinstance(recipe, dict):
         return None
     return FieldEntry(key, recipe)
 
@@ -103,7 +103,7 @@ class FIELD_LIST(BaseType):
         Raises:
             ValueError: ``key`` is not valid, or is already in the list.
         """
-        if not is_valid_key(key):
+        if not is_valid_field_key(key):
             raise ValueError(f"A key holds only letters, digits and _, got {key!r}")
         if any(e.key == key for e in self.entries):
             raise ValueError(f"Field {key!r} is already in the list")

@@ -12,7 +12,7 @@ from typing import Any, cast
 import pytest
 from unittest.mock import MagicMock
 
-from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
+from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.core.undo.actions.graph_actions import ClipboardData
 from haywire.core.session.context import SessionContext
 from haywire.ui.panel import BasePanel
@@ -50,7 +50,7 @@ class FakeApp:
     library_service = None
 
     def __init__(self) -> None:
-        self.library_state_container = LibraryStateContainer(LibraryStateRegistry())
+        self.library_state_container = LibraryStateContainer(StateRegistry())
 
 
 def make_context(

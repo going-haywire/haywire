@@ -1,6 +1,6 @@
 # tests/ui/test_editor_registry.py
 """
-Tests for the EditorTypeRegistry and @editor decorator.
+Tests for the EditorRegistry and @editor decorator.
 """
 
 import pytest
@@ -9,7 +9,7 @@ from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEvent
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior, SlotName
-from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.editor.registry import EditorRegistry
 
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
@@ -100,13 +100,13 @@ class TestEditorDecorator:
 
 
 # ---------------------------------------------------------------------------
-# EditorTypeRegistry tests
+# EditorRegistry tests
 # ---------------------------------------------------------------------------
 
 
 class TestEditorTypeRegistry:
     def setup_method(self):
-        self.registry = EditorTypeRegistry()
+        self.registry = EditorRegistry()
 
     def test_empty_on_init(self):
         assert self.registry.list_names() == []
@@ -257,7 +257,7 @@ class _PlainCls:
 
 class TestPerKeyEventSubscribers:
     def test_per_key_subscriber_receives_event_for_its_key(self):
-        reg = EditorTypeRegistry()
+        reg = EditorRegistry()
         received: list[LifeCycleEvent] = []
         reg.add_event_subscriber("a:editor:1", lambda evt: received.append(evt))
 
@@ -275,7 +275,7 @@ class TestPerKeyEventSubscribers:
         assert received[0].registry_key == "a:editor:1"
 
     def test_per_key_subscriber_does_not_receive_other_keys(self):
-        reg = EditorTypeRegistry()
+        reg = EditorRegistry()
         received: list[LifeCycleEvent] = []
         reg.add_event_subscriber("a:editor:1", lambda evt: received.append(evt))
 
@@ -292,7 +292,7 @@ class TestPerKeyEventSubscribers:
         assert received == []
 
     def test_remove_event_subscriber_stops_callbacks(self):
-        reg = EditorTypeRegistry()
+        reg = EditorRegistry()
         received: list[LifeCycleEvent] = []
 
         def cb(evt: LifeCycleEvent) -> None:
@@ -315,7 +315,7 @@ class TestPerKeyEventSubscribers:
 
     def test_per_key_subscriber_exception_does_not_block_other_callbacks(self):
         """A throwing callback must not prevent later callbacks from firing."""
-        reg = EditorTypeRegistry()
+        reg = EditorRegistry()
         received: list[str] = []
 
         def throwing_cb(evt):

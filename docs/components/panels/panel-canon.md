@@ -153,10 +153,10 @@ class SelectionMenu(Surface):
 
 | Surface class | `id` | Kind | `poll(ctx)` |
 |---|---|---|---|
-| `AppSettings` | `app` | inspector | always true |
-| `Barns` | `barns` | inspector | always true |
-| `ExecutionInspector` | `execution` | inspector | always true |
-| `CanvasSettings` | `canvas` | inspector | always true |
+| `AppSettingsSurface` | `app` | inspector | always true |
+| `BarnsSurface` | `barns` | inspector | always true |
+| `ExecutionInspectorSurface` | `execution` | inspector | always true |
+| `CanvasSettingsSurface` | `canvas` | inspector | always true |
 | `GraphInspector` | `graph` | inspector | active graph not None |
 | `NodeInspector` | `node` | inspector | active node not None |
 | `SettingsInspector` | `settings` | inspector | active node not None |
@@ -169,7 +169,7 @@ class SelectionMenu(Surface):
 | `GraphContext` | `graph-context` | menu | active graph not None |
 | `GraphToolBar` / `GraphContextBody` / `GraphMoreActions` | `graph-toolbar` / `graph-body` / `graph-more` | menu | hosted by `GraphContextPanel` / `GraphMorePanel` — see [guides/panels](../../guides/panels.md) |
 | `FileMenu` | `file` | menu | right-clicked file has a matching extension |
-| `AccountMenu` | `account` | menu | always true |
+| `AccountMenuSurface` | `account` | menu | always true |
 
 Surface matching is by `id`, not by class identity — class objects can drift after hot-reload, but ids remain stable ([ADR-0009](../../adr/0009-surface-id-stable-key.md)).
 
@@ -320,7 +320,7 @@ from haywire.api.workbench import BasePanel, PanelLayout, panel
 
 # Built-in surfaces live in haywire.barn.builtin.surfaces (framework-wide)
 # or a library's own surfaces/ package (e.g. haybale_graph_editor.surfaces).
-from haywire.api.workbench import AppSettings, ExecutionInspector
+from haywire.api.workbench import AppSettingsSurface, ExecutionInspectorSurface
 # For a panel that calls back into its host: import the Surface's own Protocol
 # from my_lib.surfaces import MySurface, MyActions
 ```
@@ -386,10 +386,10 @@ For the host Properties editor (a panel-aware editor in `haybale-studio`), see [
 
 ```python
 from haywire.api.workbench import (
-    AppSettings,
+    AppSettingsSurface,
     BasePanel,
-    CanvasSettings,
-    ExecutionInspector,
+    CanvasSettingsSurface,
+    ExecutionInspectorSurface,
     PanelLayout,
     panel,
 )

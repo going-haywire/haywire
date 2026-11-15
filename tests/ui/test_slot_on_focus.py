@@ -106,7 +106,7 @@ def _make_session():
 
 
 class _FakeRegistry:
-    """Stub EditorTypeRegistry — provides all subscriber hooks wrappers need."""
+    """Stub EditorRegistry — provides all subscriber hooks wrappers need."""
 
     def __init__(self):
         self._subscribers: dict = {}

@@ -129,7 +129,7 @@ Clearing a field returns it to inheriting: emptiness *is* the unset mechanism, s
 **Subclassing for partial overrides.** Override only the tokens you want; everything else inherits:
 
 ```python
-from haywire.ui.themes.builtin import HaywireDarkTheme
+from haybale_studio.themes.workbench import HaywireDarkTheme  # the studio library's theme
 
 @theme(theme_type='workbench', label='Dark — Red Accent')
 class DarkRedAccentTheme(HaywireDarkTheme):

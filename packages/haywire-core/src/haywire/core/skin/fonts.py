@@ -16,5 +16,5 @@ FONT_STACKS = {
 }
 
 #: Choices of the horizontal and vertical alignment settings.
-H_ALIGNS = ("left", "center", "right")
-V_ALIGNS = ("top", "middle", "bottom")
+TEXT_H_ALIGNS = ("left", "center", "right")
+TEXT_V_ALIGNS = ("top", "middle", "bottom")

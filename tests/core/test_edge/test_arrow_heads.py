@@ -2,7 +2,7 @@
 
 import pytest
 
-from haywire.core.edge.arrow_heads import ARROW_HEADS, NO_HEAD, ArrowHead, get_arrow_head
+from haywire.core.edge.arrow_heads import ARROW_HEADS, NO_ARROW_HEAD, ArrowHead, get_arrow_head
 
 pytestmark = pytest.mark.unit
 
@@ -11,7 +11,7 @@ def test_fifteen_heads_with_unique_names():
     names = [head.name for head in ARROW_HEADS]
     assert len(names) == 15
     assert len(set(names)) == 15
-    assert NO_HEAD not in names
+    assert NO_ARROW_HEAD not in names
 
 
 def test_the_picker_shows_four_common_arrows_first():
@@ -26,7 +26,7 @@ def test_a_head_paints_with_the_edge_stroke_only(head: ArrowHead):
 
 
 def test_lookup_answers_none_for_no_head_and_unknown_names():
-    assert get_arrow_head(NO_HEAD) is None
+    assert get_arrow_head(NO_ARROW_HEAD) is None
     assert get_arrow_head("not-a-head") is None
     assert get_arrow_head(None) is None
     head = get_arrow_head("open")

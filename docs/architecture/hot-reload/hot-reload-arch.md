@@ -16,7 +16,7 @@ see-also:
 
 Hot-reload is the framework's response to a `.py` file change in a library that has `file_watcher=True`. It re-imports the changed module, re-registers any decorated classes from that module under their existing `registry_key`s, and allows thus every wrapper to rebuild the referenced class on the spot.
 
-It is a **cross-cutting** subsystem: every registry (NodeRegistry, AdapterRegistry, WidgetRegistry, SkinRegistry, ThemeRegistry, SettingsRegistry, LibraryStateRegistry, EditorTypeRegistry, PanelRegistry) subscribes to the same `BaseRegistry` event pipeline. Hot-reload doesn't know what kind of class is reloading — it just fires events; consumers (factories, wrappers, the graph) handle the rebuild for their own concerns.
+It is a **cross-cutting** subsystem: every registry (NodeRegistry, AdapterRegistry, WidgetRegistry, SkinRegistry, ThemeRegistry, SettingsRegistry, StateRegistry, EditorRegistry, PanelRegistry) subscribes to the same `BaseRegistry` event pipeline. Hot-reload doesn't know what kind of class is reloading — it just fires events; consumers (factories, wrappers, the graph) handle the rebuild for their own concerns.
 
 The discipline is: **every wrapper rebuilds references of a reloaded class** so user code sees only the new class. Managed modules are evicted from `sys.modules` before re-import (`del sys.modules[name]` in `folder_scan.py`), so the module object is replaced — not accumulated. Closures and direct attribute references to old classes can still pin memory, but the module slot itself is reused.
 
@@ -93,8 +93,8 @@ Each registry attaches its own consumers:
 | `WidgetRegistry` | New widget instances pick up the new class; existing widgets don't swap mid-render (NiceGUI element teardown is risky) |
 | `ThemeRegistry` | Active workbench theme is re-applied via `apply_workbench_theme()` (CSS variables re-injected) |
 | `SettingsRegistry` | Schema descriptors re-bind; `cls._registry` is re-wired on the new class |
-| `LibraryStateRegistry` | Container disable/re-enable cycle — `on_disable` on old instance, swap class, `on_enable` on new instance ([session-and-state §3.4](../session-and-state/session-and-state-arch.md#34-hot-reload-semantics)) |
-| `PanelRegistry` / `EditorTypeRegistry` | New classes picked up at next render boundary; existing instances continue until natural slot/binding change |
+| `StateRegistry` | Container disable/re-enable cycle — `on_disable` on old instance, swap class, `on_enable` on new instance ([session-and-state §3.4](../session-and-state/session-and-state-arch.md#34-hot-reload-semantics)) |
+| `PanelRegistry` / `EditorRegistry` | New classes picked up at next render boundary; existing instances continue until natural slot/binding change |
 
 **Wire-type modules.** A wire type is a class that is never instantiated and is not a registered component, so its module reloads as an unmanaged module, and the type modules that import it reload after it. The cascade follows module imports, so a library imports a wire type by its module path (`from mylib.wires import MyWire`); `from mylib import MyWire` does not reach it. See [ADR 0042](../../adr/0042-wire-types-replace-flowtype.md).
 
@@ -147,7 +147,7 @@ State classes ([components/states](../../components/states/state-canon.md)) foll
 
 ```text
 1. on_disable() runs on the OLD instance, against the OLD class
-2. Class is swapped in LibraryStateRegistry
+2. Class is swapped in StateRegistry
 3. on_enable() runs on a NEW instance, against the NEW class
 ```
 
@@ -221,7 +221,7 @@ Adapters are cheap to reload — typically under 50ms.
 
 ```text
 1. FileWatcher fires
-2. LibraryStateRegistry updates the class
+2. StateRegistry updates the class
 3. LibraryStateContainer:
    - For AppState: disable old instance → store new instance → enable
    - For SessionState: per-session disable → per-session new instance → per-session enable

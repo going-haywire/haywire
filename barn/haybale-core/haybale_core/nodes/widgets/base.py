@@ -8,7 +8,7 @@ from haywire.api import (
     CHOICES,
     COLOR,
     FONTS,
-    H_ALIGNS,
+    TEXT_H_ALIGNS,
     INT,
     OPTIONAL,
     BaseNode,
@@ -113,7 +113,7 @@ class WidgetNode(BaseNode):
             label="Label Alignment",
             category="layout",
             order=3,
-            widget_config={"options": list(H_ALIGNS)},
+            widget_config={"options": list(TEXT_H_ALIGNS)},
             promotable=_NONE,
         )
         font = setting[CHOICES](

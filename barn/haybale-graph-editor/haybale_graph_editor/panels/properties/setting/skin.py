@@ -1,11 +1,11 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/properties/setting/skin.py
-"""NodeSkinSettingsPanel — the default skins' geometry, on the ``CanvasSettings`` surface."""
+"""NodeSkinSettingsPanel — the default skins' geometry, on the ``CanvasSettingsSurface`` surface."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.barn.builtin.surfaces import CanvasSettings as CanvasSurface
+from haywire.barn.builtin.surfaces import CanvasSettingsSurface
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    surface=CanvasSurface,
+    surface=CanvasSettingsSurface,
     label="Skin",
     description="Skin Configuration:Node dimensions, typography and label visibility.",
     icon=hui.icon.skin,

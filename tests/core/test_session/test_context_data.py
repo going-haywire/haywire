@@ -3,7 +3,7 @@
 from haywire.core.state import (
     AppState,
     LibraryStateContainer,
-    LibraryStateRegistry,
+    StateRegistry,
 )
 from haywire.core.state.data_namespace import AppDataNamespace, SessionDataNamespace
 from haywire.core.session.context import SessionContext
@@ -18,7 +18,7 @@ class FakeApp:
 
 class TestSessionContextAppData:
     def test_session_context_exposes_app_data_namespace(self):
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(StateRegistry())
         app = FakeApp(container)
         ctx = SessionContext(session_id="s1", app=app)  # type: ignore[arg-type]
 
@@ -38,7 +38,7 @@ class TestSessionContextAppData:
             label="Pool",
         )
 
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(StateRegistry())
         instance = Pool()
         container._app[Pool.class_identity.registry_key] = instance
         container._class_by_registry_key[Pool.class_identity.registry_key] = Pool
@@ -51,7 +51,7 @@ class TestSessionContextAppData:
 
 class TestSessionContextSessionData:
     def test_session_context_exposes_data_namespace_bound_to_session_id(self):
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(StateRegistry())
         app = FakeApp(container)
         ctx = SessionContext(session_id="s1", app=app)  # type: ignore[arg-type]
 
@@ -61,7 +61,7 @@ class TestSessionContextSessionData:
 
     def test_session_context_no_longer_has_metadata(self):
         """metadata field removed in v1; this is the regression test."""
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(StateRegistry())
         app = FakeApp(container)
         ctx = SessionContext(session_id="s1", app=app)  # type: ignore[arg-type]
 

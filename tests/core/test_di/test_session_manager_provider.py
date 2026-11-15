@@ -11,9 +11,9 @@ def test_provider_returns_session_manager():
 
     from haywire.core.di.config import HaywireModule
     from haywire.core.session.session_manager import SessionManager
-    from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
+    from haywire.core.state import LibraryStateContainer, StateRegistry
 
-    container = LibraryStateContainer(LibraryStateRegistry())
+    container = LibraryStateContainer(StateRegistry())
     module = HaywireModule(workspace_root="/tmp/test")
     dispatcher = module.provide_signal_dispatcher(container)
     sm = module.provide_session_manager(dispatcher, container)
@@ -32,9 +32,9 @@ def test_provider_publishes_to_ambient_context():
 
     from haywire.core.di.config import HaywireModule
     from haywire.core.di.context import get_session_manager
-    from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
+    from haywire.core.state import LibraryStateContainer, StateRegistry
 
-    container = LibraryStateContainer(LibraryStateRegistry())
+    container = LibraryStateContainer(StateRegistry())
     module = HaywireModule(workspace_root="/tmp/test")
     dispatcher = module.provide_signal_dispatcher(container)
     sm = module.provide_session_manager(dispatcher, container)
@@ -55,9 +55,9 @@ def test_dispatcher_provider_publishes_and_binds_container():
     from haywire.core.di.config import HaywireModule
     from haywire.core.di.context import get_signal_dispatcher
     from haywire.core.signals import SignalDispatcher
-    from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
+    from haywire.core.state import LibraryStateContainer, StateRegistry
 
-    container = LibraryStateContainer(LibraryStateRegistry())
+    container = LibraryStateContainer(StateRegistry())
     module = HaywireModule(workspace_root="/tmp/test")
     dispatcher = module.provide_signal_dispatcher(container)
 

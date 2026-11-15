@@ -1,4 +1,4 @@
-"""LibraryStateRegistry — class registry for LibraryState subclasses.
+"""StateRegistry — class registry for LibraryState subclasses.
 
 Holds *classes*, not instances. The companion LibraryStateContainer subscribes
 to this registry's batch lifecycle events and manages instance lifecycle.
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 _MARKER_BASES: tuple[type, ...] = (LibraryState, AppState, SessionState)
 
 
-class LibraryStateRegistry(BaseRegistry[LibraryState]):
+class StateRegistry(BaseRegistry[LibraryState]):
     """Registry for LibraryState classes.
 
     Registry key format: '{library_id}:state:{class_name}'.
@@ -50,7 +50,7 @@ class LibraryStateRegistry(BaseRegistry[LibraryState]):
         # LibraryState classes derive their registry_key from the owning library,
         # so unlike other registries this one requires a non-None identity.
         if library_identity is None:
-            raise ValueError("LibraryStateRegistry._register_class requires a library_identity")
+            raise ValueError("StateRegistry._register_class requires a library_identity")
         if not hasattr(cls, "class_identity"):
             registry_key = f"{library_identity.name}:state:{cls.__name__}"
             cls.class_identity = LibraryStateClassIdentity(

@@ -102,7 +102,6 @@ The pipeline is documented in [architecture/hot-reload](../../architecture/hot-r
 
 ```python
 from haywire.api import BaseAdapter, adapter
-from haywire.core.adapter.base import IAdapter
 from haywire.api import AdapterRegistry
 ```
 

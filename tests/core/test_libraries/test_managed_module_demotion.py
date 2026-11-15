@@ -22,7 +22,7 @@ import pytest
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.base import FileChangeEvent, FileEventType
-from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.editor.registry import EditorRegistry
 
 MODULE = "haybale_demo.editors.demo_editor"
 # No Library class in the temp package, so @editor derives the '__system__'
@@ -69,7 +69,7 @@ def library(tmp_path, monkeypatch):
 @pytest.fixture
 def registry(library):
     root, identity = library
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     reg.add_folder(str(root / "editors"), identity)
     return reg
 

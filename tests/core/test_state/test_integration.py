@@ -16,7 +16,7 @@ from haywire.core.registry.lifecycle_event import (
 from haywire.core.state import (
     AppState,
     LibraryStateContainer,
-    LibraryStateRegistry,
+    StateRegistry,
 )
 
 
@@ -29,7 +29,7 @@ class TestLibraryStateIntegration:
         service = LibrarySystemService(injector)
         service.initialize()
 
-        registry = injector.get(LibraryStateRegistry)
+        registry = injector.get(StateRegistry)
         container = injector.get(LibraryStateContainer)
 
         calls: list[str] = []

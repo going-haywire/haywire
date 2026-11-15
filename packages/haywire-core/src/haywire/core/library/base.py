@@ -258,7 +258,7 @@ class BaseLibrary(ABC):
     _REGISTRY_SCAN_PRIORITY: ClassVar[Dict[str, int]] = {
         "ThemeRegistry": 10,
         "SettingsRegistry": 20,
-        "LibraryStateRegistry": 30,
+        "StateRegistry": 30,
         "TypeRegistry": 40,
         "AdapterRegistry": 50,
         "WidgetRegistry": 60,
@@ -268,7 +268,7 @@ class BaseLibrary(ABC):
         "CatalogRegistry": 76,
         "SkinRegistry": 80,
         "PanelRegistry": 90,
-        "EditorTypeRegistry": 100,
+        "EditorRegistry": 100,
         "FarmhandRegistry": 110,
     }
 

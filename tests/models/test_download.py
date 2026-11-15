@@ -12,7 +12,7 @@ from typing import Any
 
 import pytest
 
-from haywire.core.farmhand.activity import activity_tracker
+from haywire.core.farmhand.activity import get_activity_tracker
 from haywire.core.catalog import ModelFile, Resource
 from haywire.core.volumes import VolumeStore
 
@@ -61,10 +61,10 @@ class Env:
 def env(models_env: VolumeStore, tmp_path: Path) -> Iterator[Env]:
     (tmp_path / "models").mkdir(exist_ok=True)
     e = Env(tmp_path)
-    activity_tracker().clear()
+    get_activity_tracker().clear()
     yield e
     e.queue.stop()
-    activity_tracker().clear()
+    get_activity_tracker().clear()
 
 
 def spec(*urls: str, sha: str | None = SHA, size: int | None = None) -> FetchSpec:
@@ -260,7 +260,7 @@ def test_activity_record_per_job(env, http_server):
     ok = env.run(spec(http_server.file("/ok", DATA)))
     bad = env.run(spec(http_server.file("/bad", b"x"), sha="e" * 64))
     assert (ok.state, bad.state) == ("done", "failed")
-    records = [r for r in activity_tracker().recent() if r.tool == "models.download"]
+    records = [r for r in get_activity_tracker().recent() if r.tool == "models.download"]
     assert len(records) == 2
     by_ok = {r.ok: r for r in records}
     assert "demo" in by_ok[True].arguments
@@ -453,7 +453,7 @@ def test_raising_tracker_fails_the_job(env, http_server, monkeypatch):
         def start(self, *args: Any, **kwargs: Any) -> Any:
             raise RuntimeError("tracker down")
 
-    monkeypatch.setattr("haybale_models.download.activity_tracker", lambda: Broken())
+    monkeypatch.setattr("haybale_models.download.get_activity_tracker", lambda: Broken())
     job = env.run(spec(http_server.file("/t", DATA)))
     assert job.state == "failed"
     assert job.error == "tracker down"

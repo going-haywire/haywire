@@ -21,7 +21,7 @@ from ...ui.widget.registry import WidgetRegistry
 from ...ui.skin.factory import SkinFactory
 from ...ui.widget.factory import WidgetFactory
 from ...ui.themes.registry import ThemeRegistry
-from ...ui.editor.registry import EditorTypeRegistry
+from ...ui.editor.registry import EditorRegistry
 from ...ui.panel.registry import PanelRegistry
 
 from ..host import HostStore
@@ -50,7 +50,7 @@ from ..adapter.factory import AdapterFactory
 from ..types.registry import TypeRegistry
 from ..node.factory import NodeFactory
 from ..settings import SettingsRegistry
-from ..state import LibraryStateContainer, LibraryStateRegistry
+from ..state import LibraryStateContainer, StateRegistry
 from ..session.session_manager import SessionManager
 from ..signals import SignalDispatcher
 from .context import (
@@ -239,12 +239,12 @@ class HaywireModule(Module):
 
     @provider
     @singleton
-    def provide_editor_type_registry(self) -> EditorTypeRegistry:
-        """Provide singleton EditorTypeRegistry.
+    def provide_editor_type_registry(self) -> EditorRegistry:
+        """Provide singleton EditorRegistry.
 
         All editors are registered in haywire-app/app.py after injector creation.
         """
-        registry = EditorTypeRegistry()
+        registry = EditorRegistry()
         return registry
 
     @provider
@@ -261,13 +261,13 @@ class HaywireModule(Module):
 
     @provider
     @singleton
-    def provide_library_state_registry(self) -> LibraryStateRegistry:
-        """Provide singleton LibraryStateRegistry — class registry for LibraryState subclasses."""
-        return LibraryStateRegistry()
+    def provide_library_state_registry(self) -> StateRegistry:
+        """Provide singleton StateRegistry — class registry for LibraryState subclasses."""
+        return StateRegistry()
 
     @provider
     @singleton
-    def provide_library_state_container(self, state_registry: LibraryStateRegistry) -> LibraryStateContainer:
+    def provide_library_state_container(self, state_registry: StateRegistry) -> LibraryStateContainer:
         """Provide singleton LibraryStateContainer — instance pool for LibraryStates.
 
         Holds the state_registry so on_library_enabled / catch-up can query
@@ -425,8 +425,8 @@ class LibrarySystemService:
         catalog_registry = self.injector.get(CatalogRegistry)
         skin_registry = self.injector.get(SkinRegistry)
         panel_registry = self.injector.get(PanelRegistry)
-        editor_registry = self.injector.get(EditorTypeRegistry)
-        library_state_registry = self.injector.get(LibraryStateRegistry)
+        editor_registry = self.injector.get(EditorRegistry)
+        library_state_registry = self.injector.get(StateRegistry)
         farmhand_registry = self.injector.get(FarmhandRegistry)
         library_state_container = self.injector.get(LibraryStateContainer)
         # NOTE: container subscriptions are wired in two stages — lifecycle
@@ -450,8 +450,8 @@ class LibrarySystemService:
         library_registry.add_class_registry(CatalogRegistry, catalog_registry)
         library_registry.add_class_registry(SkinRegistry, skin_registry)
         library_registry.add_class_registry(PanelRegistry, panel_registry)
-        library_registry.add_class_registry(EditorTypeRegistry, editor_registry)
-        library_registry.add_class_registry(LibraryStateRegistry, library_state_registry)
+        library_registry.add_class_registry(EditorRegistry, editor_registry)
+        library_registry.add_class_registry(StateRegistry, library_state_registry)
         library_registry.add_class_registry(FarmhandRegistry, farmhand_registry)
 
         # Set up registry subscribers for cross-registry updates
@@ -634,7 +634,7 @@ class LibrarySystemService:
         skin_registry = self.injector.get(SkinRegistry)
         node_registry = self.injector.get(NodeRegistry)
         type_registry = self.injector.get(TypeRegistry)
-        editor_registry = self.injector.get(EditorTypeRegistry)
+        editor_registry = self.injector.get(EditorRegistry)
         panel_registry = self.injector.get(PanelRegistry)
         theme_registry = self.injector.get(ThemeRegistry)
         farmhand_registry = self.injector.get(FarmhandRegistry)
@@ -789,13 +789,13 @@ class LibrarySystemService:
         """Get the panel registry."""
         return self.injector.get(PanelRegistry)
 
-    def get_editor_registry(self) -> EditorTypeRegistry:
+    def get_editor_registry(self) -> EditorRegistry:
         """Get the editor type registry."""
-        return self.injector.get(EditorTypeRegistry)
+        return self.injector.get(EditorRegistry)
 
-    def get_state_registry(self) -> LibraryStateRegistry:
+    def get_state_registry(self) -> StateRegistry:
         """Get the library state registry."""
-        return self.injector.get(LibraryStateRegistry)
+        return self.injector.get(StateRegistry)
 
     def get_farmhand_registry(self) -> FarmhandRegistry:
         """Get the farmhand (MCP tool) registry."""

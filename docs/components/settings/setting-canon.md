@@ -54,7 +54,7 @@ Use `cache` for "lost on restart, fine"; `store` for "must survive saves, hidden
 
 ## 3. Important concepts
 
-**Library-wide settings get a panel.** A `LibrarySettings` class that users should edit gets a panel on the `Barns` surface (`haywire.barn.builtin.surfaces.Barns`, the "Barns" tab right below "Application" in the Properties editor) that calls `render_schema()` on it; see `ImageSettingsPanel` in `haybale-image`.
+**Library-wide settings get a panel.** A `LibrarySettings` class that users should edit gets a panel on the `BarnsSurface` surface (`haywire.barn.builtin.surfaces.Barns`, the "Barns" tab right below "Application" in the Properties editor) that calls `render_schema()` on it; see `ImageSettingsPanel` in `haybale-image`.
 
 **The four Settings classes.** All four inherit from `Settings`. Pick by scope:
 
@@ -288,7 +288,7 @@ The outer key is the accessor name; the inner dict maps field name → locally-s
 **Promoting a setting to a port (field + direction).** A setting can be *promoted* to a DATA port so the graph can drive it or read it. Promotion is a **field + a direction**; the port and the setting become one cell, two views (the port borrows the setting's cell by reference — see [architecture §6.5](../../architecture/settings/settings-arch.md#65-promotion-field-direction) and [ADR 0014](../../adr/0014-promotion-as-direction.md)).
 
 ```python
-from haywire.core.node.promotion import promote_setting, demote_setting
+from haywire.api.workbench import demote_setting, promote_setting
 from haywire.api import PortType
 
 promote_setting(node, "filter", "threshold", direction=PortType.INLET)   # edge drives the setting
@@ -547,7 +547,7 @@ from haywire.api import (
     CHOICES,
     COLOR,
     FLOAT,
-    NO_HEAD,
+    NO_ARROW_HEAD,
     STRING,
     EdgeSettings,
     WireRole,
@@ -561,7 +561,7 @@ class NoteStyle(EdgeSettings):
     color = setting[COLOR]("#8e8e8e", label="Colour")
     width = setting[FLOAT](2.0, label="Width", min=0.5, max=12.0)
     dash = setting[CHOICES]("solid", label="Dash", widget_config={"options": dash_choices})
-    arrow_start = setting[STRING](NO_HEAD, label="Start Head", widget={"key": ARROW_HEAD_WIDGET})
+    arrow_start = setting[STRING](NO_ARROW_HEAD, label="Start Head", widget={"key": ARROW_HEAD_WIDGET})
     arrow_end = setting[STRING]("arrow", label="End Head", widget={"key": ARROW_HEAD_WIDGET})
 
 
