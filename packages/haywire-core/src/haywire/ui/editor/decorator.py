@@ -39,7 +39,7 @@ def editor(**kwargs: Any):
         icon: Material Design icon name. Defaults to 'extension'.
         default_slot: Which slot this editor belongs in by default. A
             :class:`SlotName` or its string value — one of 'action',
-            'context', 'edit', 'info'. Defaults to ``SlotName.EDIT``. An
+            'context', 'edit', 'info', 'aside'. Defaults to ``SlotName.EDIT``. An
             unknown value raises ``ValueError`` at class-definition time.
         opens: Instance-creation behavior. One of 'required', 'on_context',
             'on_payload'. Defaults to 'required'. Any value is permitted on

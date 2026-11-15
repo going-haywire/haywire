@@ -198,6 +198,8 @@ class AppIcon:
     """Filter icon: shows or hides a list's filters."""
     find_replace: Final[str] = "find_replace"
     """Find and replace icon."""
+    aside: Final[str] = "view_sidebar"
+    """Top-bar toggle that opens and closes the ASIDE slot."""
     locked: Final[str] = "lock"
     """Locked / read-only state."""
     unlocked: Final[str] = "lock_open"

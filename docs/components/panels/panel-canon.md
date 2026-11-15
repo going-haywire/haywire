@@ -35,7 +35,7 @@ This separation means:
 | **Lifecycle** | Ephemeral; recreated on every redraw | Persistent per session |
 | **Instance state** | None; panels are stateless across redraws | Owns local state (unsaved changes, form drafts, interaction mode) |
 | **Visibility** | Polled dynamically via `poll(ctx)` on each redraw | Always shown when active (slot-managed) |
-| **Slot** | Hosted inside another editor; no slot of its own | Occupies one of the four workspace slots (Left/Right/Main/Bottom) |
+| **Slot** | Hosted inside another editor; no slot of its own | Occupies one of the five workspace slots (ACTION/CONTEXT/EDIT/INFO/ASIDE) |
 | **Signals** | Subscribed by host editor via `redraw_on=` | Subscribed directly via `@redraw_on()` or `@react_on()` |
 | **Use case** | Properties panel, debug info, metadata display | Code editor, library browser, graph editor, file explorer |
 

@@ -155,5 +155,5 @@ radiogroup + comment) cost about 1.2 KB per check, 31 KB in all — the reason f
 
 | Slice | State | Commit | Date | Deviations |
 |---|---|---|---|---|
-| 1 ASIDE slot | not started | | | |
+| 1 ASIDE slot | built, live check pending | (this commit) | 2026-11-15 | `AsideSlot(TabSlot)` in `ui/app/aside_slot.py` owns the column, the toggle and the closed-state tab group (`render_toggle`, like `IconSlot.set_footer`); the toggle icon is `hui.icon.aside` (`view_sidebar`). Glossary gains **Aside toggle**. |
 | 2 Questionnaire | not started | | | |

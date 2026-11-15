@@ -1,7 +1,7 @@
 ---
 name: questionnaires-use-the-surveyjs-format-with-our-own-renderer
 description: A Questionnaire is written in a subset of SurveyJS JSON plus a check element, validated on post and drawn by the studio's own NiceGUI renderer; the SurveyJS library itself is not used
-status: proposed
+status: accepted
 level: architectural
 ---
 
