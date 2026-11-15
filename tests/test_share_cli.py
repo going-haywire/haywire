@@ -499,7 +499,7 @@ def test_first_release_refuses_a_name_that_exists(
     code = run_share_cli(repo_root=pypi_project, bump=None, message=None, first_release=True)
 
     assert code == EXIT_REFUSED
-    assert "already exist on PyPI" in capsys.readouterr().out
+    assert "already exists on PyPI" in capsys.readouterr().out
     assert _tags(pypi_project) == []
 
 
@@ -555,3 +555,93 @@ def test_first_release_is_refused_for_a_git_project(
 
     assert code == EXIT_REFUSED
     assert 'distribute = "pypi"' in capsys.readouterr().out
+
+
+# ── --first-release in a project that already has names on PyPI ─────────────
+
+
+@pytest.fixture
+def mixed_project(pypi_project: Path) -> Path:
+    """The pypi project plus a second library, haybale-beta, at the same version."""
+    lib = pypi_project / "barn" / "haybale-beta"
+    lib.mkdir(parents=True)
+    (lib / "pyproject.toml").write_text('[project]\nname = "haybale-beta"\nversion = "0.3.1"\n')
+    (lib / "haybale_beta").mkdir()
+    (lib / "haybale_beta" / "__init__.py").write_text("")
+    (lib / "haybale_beta" / "haybale.toml").write_text('name = "haybale-beta"\nversion = "0.3.1"\n')
+    subprocess.run(["git", "add", "-A"], cwd=pypi_project, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "beta"], cwd=pypi_project, check=True, capture_output=True)
+    subprocess.run(["git", "push"], cwd=pypi_project, check=True, capture_output=True)
+    return pypi_project
+
+
+def _pypi_names(monkeypatch: pytest.MonkeyPatch, answers: dict[str, bool | None]) -> None:
+    """PyPI answers per distribution name; GitHub is the host."""
+    from haywire.core.publishing import human_steps
+    from haywire.core.publishing.pipeline.steps import preconditions
+
+    monkeypatch.setattr(preconditions, "_pypi_name_is_registered", lambda name, **kw: answers[name])
+    monkeypatch.setattr(human_steps, "github_owner_repo", lambda url: ("o", "r"))
+
+
+def test_first_release_with_bump_creates_the_new_name_and_updates_the_existing(
+    mixed_project: Path, monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    _pypi_names(monkeypatch, {"haybale-alpha": True, "haybale-beta": False})
+    with (
+        patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift),
+        _fake_docs(),
+    ):
+        code = run_share_cli(repo_root=mixed_project, bump="patch", message=None, first_release=True)
+
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "creates on PyPI: haybale-beta" in out
+    assert "adds a version to: haybale-alpha" in out
+    assert _tags(mixed_project) == ["v0.3.2"]
+
+
+def test_first_release_without_bump_is_refused_when_some_names_exist(
+    mixed_project: Path, monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    from haywire_studio.packaging.share_cli import EXIT_REFUSED, run_share_cli
+
+    _pypi_names(monkeypatch, {"haybale-alpha": True, "haybale-beta": False})
+    code = run_share_cli(repo_root=mixed_project, bump=None, message=None, first_release=True)
+
+    out = capsys.readouterr().out
+    assert code == EXIT_REFUSED
+    assert "needs a new version" in out
+    assert "NEXT: uv run --frozen haywire share --first-release --bump patch" in out
+    assert _tags(mixed_project) == []
+
+
+def test_first_release_is_refused_when_no_name_is_new(
+    mixed_project: Path, monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    from haywire_studio.packaging.share_cli import EXIT_REFUSED, run_share_cli
+
+    _pypi_names(monkeypatch, {"haybale-alpha": True, "haybale-beta": True})
+    code = run_share_cli(repo_root=mixed_project, bump="patch", message=None, first_release=True)
+
+    assert code == EXIT_REFUSED
+    assert "Every name already exists on PyPI" in capsys.readouterr().out
+    assert _tags(mixed_project) == []
+
+
+def test_the_owner_checklist_lists_only_the_missing_names_and_asks_for_a_bump(
+    mixed_project: Path, monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    from haywire_studio.packaging.share_cli import EXIT_HUMAN_NEEDED, run_share_cli
+
+    _pypi_names(monkeypatch, {"haybale-alpha": True, "haybale-beta": False})
+    code = run_share_cli(repo_root=mixed_project, bump="patch", message=None)
+
+    out = capsys.readouterr().out
+    assert code == EXIT_HUMAN_NEEDED
+    assert "haybale-beta" in out
+    assert "haybale-alpha" not in out.split("Give this to the owner")[1].split("THEN")[0]
+    assert "THEN, once the owner confirms: uv run --frozen haywire share --first-release --bump patch" in out
+    assert _tags(mixed_project) == []
