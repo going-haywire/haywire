@@ -23,7 +23,7 @@ from typing import Any
 
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.edge.style import DASH_PATTERNS, STYLE_FIELDS
-from haywire.core.settings import settings_fields
+from haywire.api import settings_fields
 from haywire.core.types import ArrowAt
 
 logger = logging.getLogger(__name__)

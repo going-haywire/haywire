@@ -10,7 +10,7 @@ This module provides:
 
 from typing import Callable, Dict, List, Type
 
-from haywire.core.access import LevelMode
+from haywire.api.workbench import LevelMode
 from haywire.ui.components.graph.event_definitions import BaseGraphEvent
 
 

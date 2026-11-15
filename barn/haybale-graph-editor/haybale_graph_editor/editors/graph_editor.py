@@ -26,38 +26,38 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, cast
 
 from nicegui import ui
 
-from haywire.ui import elements as hui
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import OpenBehavior, SlotName
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.modals.confirm_modal import confirm_modal
-from haywire.core.access import AccessTier, LevelMode
-from haywire.core.node.layout import PATCH, STAGE
-from haywire.core.session.context import SessionContext
-from haywire.core.session.handlers import react_on
-from haywire.core.signals.keys import format_combo
-from haywire.core.signals.signal import EditorCommand
-from haywire.ui.components.zoom.pan import Viewport
-from haywire.core.signals import (
+from haywire.api.workbench import (
+    AccessTier,
     ActiveGraphMoved,
+    BaseEditor,
     Copy,
     Cut,
     Delete,
     Duplicate,
-    Paste,
-    Redo,
-    SubgraphNavigation,
+    EditorCommand,
     GraphDataMutated,
     GraphUnsavedChanged,
+    LevelMode,
+    OpenBehavior,
+    Paste,
+    Redo,
     Reveal,
     RevealGraphInstance,
     Save,
     SelectAll,
     SelectionMoved,
-    ToggleLock,
-    ToggleStageView,
+    SessionContext,
+    SlotName,
     Undo,
+    confirm_modal,
+    editor,
+    hui,
+    react_on,
 )
+from haywire.core.node.layout import PATCH, STAGE
+from haywire.core.signals.keys import format_combo
+from haywire.ui.components.zoom.pan import Viewport
+from haywire.core.signals import SubgraphNavigation, ToggleLock, ToggleStageView
 
 from haywire.core.graph.edit_route import EditRoute
 from haywire.core.undo.origin import StepOrigin
@@ -71,7 +71,7 @@ from haybale_graph_editor.protocols import GraphContainer, SubgraphContainer
 
 if TYPE_CHECKING:
     from haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar import SelectionToolbarProvider
-    from haywire.core.graph.base import BaseGraph
+    from haywire.api.workbench import BaseGraph
     from haywire.core.graph.subgraph import SubgraphDefinition
     from haywire.core.session.protocols import IAppState
     from nicegui.element import Element

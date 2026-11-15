@@ -13,10 +13,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from haywire.ui.surface import Presentation, Surface
+from haywire.api.workbench import Surface
+from haywire.ui.surface import Presentation
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
     from haywire.core.types.enums import Propagation
 
 

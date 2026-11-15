@@ -15,18 +15,20 @@ from nicegui import ui
 # bare specifier then fails to resolve.
 from nicegui.elements.sortable.sortable import Sortable as _Sortable  # noqa: F401
 
-from haywire.core.access import AccessTier, LevelMode
-from haywire.core.signals import (
+from haywire.api.workbench import (
+    AccessTier,
     ActiveGraphMoved,
+    BasePanel,
     GraphDataMutated,
+    LevelMode,
+    PanelLayout,
     SelectionMoved,
+    hui,
+    panel,
+    set_hover_tip,
+    stamp_requires,
 )
-from haywire.core.types.enums import PortOrigin
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel, PanelLayout
-from haywire.ui.access_stamp import stamp_requires
-from haywire.ui.panel.decorator import panel
-from haywire.ui.hover_tip import set_hover_tip
+from haywire.api import PortOrigin
 from haywire.ui.skin.pin_render import port_type_name
 from haywire.ui.utils import anchor_cleanup_to_element
 
@@ -35,7 +37,7 @@ from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.states.graph_app_state import route_for
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 _DRAG_HANDLE_CLASS = "hw-port-drag-handle"

@@ -2,16 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional, Set
 
-from haywire.core.signals import signal_field
-from haywire.core.state import SessionState, state
+from haywire.api.workbench import SessionState, signal_field, state
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapper
     from haywire.core.graph.edit_route import EditRoute
-    from haywire.core.graph.base import BaseGraph
-    from haywire.core.types import DataPort
-    from haywire.core.node.node_wrapper import NodeWrapper
-    from haywire.core.signals import RevealGraphInstance
+    from haywire.api.workbench import BaseGraph, RevealGraphInstance
+    from haywire.api import DataPort, NodeWrapper
     from haywire.core.undo.actions.graph_actions import ClipboardData
 
 

@@ -7,10 +7,8 @@ deliberate difference: it always shows everything.
 
 from nicegui import ui
 
-from haywire.core.node.base import BaseNode
-from haywire.core.node.node_wrapper import NodeWrapper
+from haywire.api import BaseNode, NodeWrapper, skin
 
-from haywire.ui.skin.decorator import skin
 
 from haybale_graph_editor.skins.node_skin import NodeSkin
 

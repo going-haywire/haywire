@@ -28,16 +28,13 @@ from typing import TYPE_CHECKING
 from haybale_graph_editor.panels._selection_forms import disabled_icon, node_appearance_subject, render_form
 from nicegui import ui
 
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel
-from haywire.ui.panel.layout import PanelLayout
-from haywire.ui.panel.decorator import panel
+from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
 
 from haybale_graph_editor.surfaces import NodeAppearance, SelectionActions, SelectionToolbar
 from haybale_graph_editor.states.edit_state import EditState
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 # The one category of NodeProperties this surface owns. Declared once here so
 # the panel and its tests cannot disagree about which slice is on show.

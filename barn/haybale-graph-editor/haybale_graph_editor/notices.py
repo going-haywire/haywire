@@ -11,11 +11,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar
 
-from haywire.core.access import AccessTier
-from haywire.core.signals import Signal
+from haywire.api.workbench import AccessTier, Signal
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 @dataclass(frozen=True)

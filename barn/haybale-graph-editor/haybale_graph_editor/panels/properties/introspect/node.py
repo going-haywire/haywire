@@ -7,12 +7,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.core.access import AccessTier
-from haywire.core.settings.descriptor import UiState
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel, PanelLayout
-from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.render_utils import render_settings
+from haywire.api.workbench import AccessTier, BasePanel, PanelLayout, hui, panel, render_settings
+from haywire.api import UiState
 
 from haybale_graph_editor.surfaces import NodeInspector
 from haybale_graph_editor.states.edit_state import EditState
@@ -20,7 +16,7 @@ from haybale_graph_editor.panels import _previous_setup as previous_setup
 from haybale_graph_editor.states.graph_app_state import route_for
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 @panel(

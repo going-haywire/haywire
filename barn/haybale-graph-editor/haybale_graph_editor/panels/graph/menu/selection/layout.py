@@ -13,10 +13,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 
 from haywire.core.graph.arrange import ArrangeScope
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel
-from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.layout import PanelLayout
+from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
 
 from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.surfaces import (
@@ -27,7 +24,7 @@ from haybale_graph_editor.surfaces import (
 )
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 def _start_node(ctx: "SessionContext") -> Optional[str]:

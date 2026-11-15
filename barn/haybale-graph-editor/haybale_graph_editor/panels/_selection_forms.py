@@ -24,11 +24,9 @@ from typing import TYPE_CHECKING, Any, Callable, Literal
 
 from nicegui import ui
 
-from haywire.core.access import LevelMode
+from haywire.api.workbench import LevelMode, hui, render_settings
 from haywire.core.di.context import get_settings_registry
 from haywire.core.node.properties import NodeProperties
-from haywire.ui import elements as hui
-from haywire.ui.panel.render_utils import render_settings
 from haywire.ui.utils import anchor_cleanup_to_element
 
 from haybale_graph_editor.states.edit_state import EditState
@@ -36,8 +34,8 @@ from haybale_graph_editor.states.graph_app_state import route_for
 
 if TYPE_CHECKING:
     from haywire.core.graph.edit_route import EditRoute
-    from haywire.core.session.context import SessionContext
-    from haywire.core.settings.settings import Settings
+    from haywire.api.workbench import SessionContext
+    from haywire.api import Settings
 
 Status = Literal["hidden", "greyed", "own", "neutral"]
 

@@ -21,7 +21,6 @@ _INTERNAL = ("haywire.core", "haywire.ui", "haywire.barn")
 
 #: Libraries whose imports have not been moved yet. This set only shrinks.
 NOT_YET_MIGRATED = {
-    "haybale-graph-editor",
     "haybale-studio",
     "haybale-testing",
     "haybale-TEST_A",

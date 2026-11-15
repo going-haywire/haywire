@@ -25,8 +25,7 @@ from __future__ import annotations
 
 from typing import Callable, List, Optional, Tuple, TYPE_CHECKING
 
-from haywire.core.access import LevelMode
-from haywire.ui import elements as hui
+from haywire.api.workbench import LevelMode, PanelLayout, hui
 from haywire.ui.panel.host_rendering import (
     poll_surface,
     counting_leaves,
@@ -34,7 +33,6 @@ from haywire.ui.panel.host_rendering import (
     render_panels,
     render_path_extended,
 )
-from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.components.graph.event_definitions import (
     SelectionBoundsEvent,
     SelectionBoundsHideEvent,
@@ -49,10 +47,8 @@ from haybale_graph_editor.states.edit_state import EditState
 if TYPE_CHECKING:
     from haywire.core.graph.arrange import ArrangeScope
     from haywire.core.graph.stacking import Restack
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import BasePanel, PanelRegistry, SessionContext
     from haywire.core.session.session import Session
-    from haywire.ui.panel import BasePanel
-    from haywire.ui.panel.registry import PanelRegistry
     from haywire.ui.components.popup import Popup
     from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import SessionContextMenuProvider
 

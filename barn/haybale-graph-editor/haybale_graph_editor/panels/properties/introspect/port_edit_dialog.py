@@ -20,14 +20,14 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from nicegui import ui
 
-from haywire.ui import elements as hui
+from haywire.api.workbench import hui
 from haywire.ui.components.popup import Popup
 from haywire.ui.utils import anchor_cleanup_to_element
 from haywire.ui.panel.port_default_widget_model import PortDefaultWidgetModel
 
 if TYPE_CHECKING:
     from haywire.core.graph.editor import Editor
-    from haywire.core.types import DataPort
+    from haywire.api import DataPort
 
 
 def open_port_edit_dialog(
@@ -125,7 +125,7 @@ def _render_default_field(
     declares no widget, or its widget class cannot be resolved — there is then
     no editor to offer, and the default is left alone.
     """
-    from haywire.ui.widget.globals import get_widget_class
+    from haywire.api import get_widget_class
 
     if port.widget_key is None:
         return None

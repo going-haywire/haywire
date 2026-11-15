@@ -10,18 +10,15 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
-from haywire.core.access import LevelMode
+from haywire.api.workbench import LevelMode, PanelLayout, hui, stamp_requires
 from haywire.core.node.previous_setup import PREVIOUS_SETUP_WARNING
-from haywire.ui import elements as hui
-from haywire.ui.access_stamp import stamp_requires
-from haywire.ui.panel.layout import PanelLayout
 
 from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.states.graph_app_state import route_for
 
 if TYPE_CHECKING:
     from haywire.core.graph.edit_route import EditRoute
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 HEADING = "Settings reset by a code change"
 

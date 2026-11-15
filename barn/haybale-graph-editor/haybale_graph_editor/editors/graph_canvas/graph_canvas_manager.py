@@ -11,7 +11,7 @@ import traceback
 from typing import Callable, Dict, Optional, Set
 from nicegui import background_tasks, ui
 
-from haywire.core.access import LevelMode
+from haywire.api.workbench import LevelMode, SelectionMoved
 from haywire.core.graph.edit_route import EditRoute
 from haywire.core.graph.types import ValidationResult
 from haywire.core.node.layout import PATCH, LayoutChannel
@@ -37,7 +37,6 @@ from haywire.ui.components.graph.event_definitions import (
     UserResizeEndEvent,
 )
 from haywire.core.session.session import Session
-from haywire.core.signals import SelectionMoved
 
 from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.editors.graph_canvas.event_handlers import (

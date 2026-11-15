@@ -16,13 +16,8 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
-from haywire.core.access import AccessTier
+from haywire.api.workbench import AccessTier, BasePanel, PanelLayout, Paste, hui, panel
 from haywire.core.node.info import NodeInfo
-from haywire.core.signals import Paste
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel
-from haywire.ui.panel.layout import PanelLayout
-from haywire.ui.panel.decorator import panel
 
 from haybale_graph_editor.surfaces import (
     GraphActions,
@@ -34,7 +29,7 @@ from haybale_graph_editor.surfaces import (
 from haybale_graph_editor.panels.node_menu_builder import NodeMenuBuilder
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 @panel(

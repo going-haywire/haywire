@@ -36,7 +36,7 @@ import logging
 
 from nicegui import ui
 
-from haywire.ui import elements as hui
+from haywire.api.workbench import hui
 
 from haywire.ui.components.popup.popup import Popup
 

@@ -9,9 +9,8 @@ the fence pair on drag start/end.
 import logging
 from typing import TYPE_CHECKING, Optional
 
-from haywire.core.access import LevelMode
+from haywire.api.workbench import GraphDataMutated, LevelMode
 from haywire.core.node.layout import PATCH, LayoutChannel
-from haywire.core.signals import GraphDataMutated
 from haywire.ui.components.graph.event_definitions import (
     UserDragStartEvent,
     UserDragUpdateEvent,

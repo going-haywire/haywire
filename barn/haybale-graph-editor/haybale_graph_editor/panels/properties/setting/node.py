@@ -10,17 +10,18 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 
-from haywire.core.access import AccessTier
-from haywire.core.signals import (
+from haywire.api.workbench import (
+    AccessTier,
     ActiveGraphMoved,
+    BasePanel,
     GraphDataMutated,
+    PanelLayout,
     SelectionMoved,
+    hui,
+    panel,
+    render_settings,
 )
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel, PanelLayout
-from haywire.ui.panel.decorator import panel
 
-from haywire.ui.panel.render_utils import render_settings
 
 from haybale_graph_editor.panels._gating import is_reroute_node
 from haybale_graph_editor.states.graph_app_state import route_for
@@ -28,9 +29,8 @@ from haybale_graph_editor.surfaces import SettingsInspector
 from haybale_graph_editor.states.edit_state import EditState
 
 if TYPE_CHECKING:
-    from haywire.core.node.base import BaseNode
-    from haywire.core.session.context import SessionContext
-    from haywire.core.settings.settings import Settings
+    from haywire.api import BaseNode, Settings
+    from haywire.api.workbench import SessionContext
 
 
 @panel(
