@@ -10,6 +10,7 @@ Shows an image on the node, as a live stream or as a still picture
 |---|---|---|---|
 | `exec` | inlet | `haywire-core:type:EXEC` | Shows the image |
 | `image` | inlet | `haybale-image:type:IMAGE` | Image to show |
+| `viewer.mode` | config | `haywire-core:type:CHOICES` | stream for images that change often (a camera); still for large, rarely changing ones |
 | `next` | outlet | `haywire-core:type:EXEC` | Runs after showing |
 | `image_out` | outlet | `haybale-image:type:IMAGE` | The same image, passed on |
 
@@ -27,7 +28,8 @@ Shows `Image` on the node and passes it on to `Image Out`.
 
 - `Mode`: `stream` for images that change many times a second, such as a camera;
   `still` for large images that change rarely, such as a loaded file. A still
-  image keeps its transparency.
+  image keeps its transparency. `Mode` shows on the node as a config row, so a
+  `still` view of a live source is easy to spot and switch.
 
 Click a still image to enlarge the view: it gets `Enlarge view` times wider and
 takes the image's shape, and the image shows `Zoom image` times the view's width

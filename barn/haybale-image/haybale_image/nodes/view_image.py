@@ -10,6 +10,7 @@ from haywire.api import (
     ExecutionContext,
     NodeSettings,
     NodeType,
+    PortType,
     ShowWidgetStrategy,
     bag,
     node,
@@ -29,6 +30,7 @@ class ViewerSettings(NodeSettings):
         label="Mode",
         description="stream for images that change often (a camera); still for large, rarely changing ones",
         widget_config={"options": list(VIEW_MODES)},
+        promote_default=PortType.CONFIG,  # on the card, so a wrong mode for a live source is seen at once
     )
     enlarge = setting[FLOAT](
         3.0,
@@ -58,7 +60,8 @@ class ViewImageNode(BaseNode):
 
     - `Mode`: `stream` for images that change many times a second, such as a camera;
       `still` for large images that change rarely, such as a loaded file. A still
-      image keeps its transparency.
+      image keeps its transparency. `Mode` shows on the node as a config row, so a
+      `still` view of a live source is easy to spot and switch.
 
     Click a still image to enlarge the view: it gets `Enlarge view` times wider and
     takes the image's shape, and the image shows `Zoom image` times the view's width
