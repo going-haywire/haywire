@@ -117,6 +117,7 @@ from haywire.core.library.compatibility import CompatibilityWarning
 from haywire.core.library.decorator import library
 from haywire.core.library.deprecated_names import DeprecatedName, serve_deprecated
 from haywire.core.macro import MacroRegistry
+from haywire.core.di.context import get_workspace_root
 from haywire.core.settings import (
     EdgeSettings,
     LibrarySettings,
@@ -132,6 +133,7 @@ from haywire.core.settings import (
     shadow,
     watch,
 )
+from haywire.core.settings.types import Mat3, Mat4, Vec2f, Vec2i, Vec3f, Vec3i, Vec4f, Vec4i
 from haywire.core.skin.fonts import FONT_STACKS, FONTS, TEXT_H_ALIGNS, TEXT_V_ALIGNS
 from haywire.core.skin.settings import skin_choices, widget_node_stage_skin_choices
 from haywire.core.skin.tags import (
@@ -142,6 +144,7 @@ from haywire.core.skin.tags import (
     SKIN_TAG_WIDGET_NODE,
 )
 from haywire.core.storage import library_storage_dir
+from haywire.core.tomlio import plain, read_toml, write_toml
 from haywire.core.types import (
     BaseType,
     CompoundType,
@@ -356,6 +359,19 @@ __all__ = [
     "settings_fields",
     "shadow",
     "watch",
+    "Mat3",
+    "Mat4",
+    "Vec2f",
+    "Vec2i",
+    "Vec3f",
+    "Vec3i",
+    "Vec4f",
+    "Vec4i",
+    # Files and workspace
+    "get_workspace_root",
+    "plain",
+    "read_toml",
+    "write_toml",
     # Progress
     "ProgressSettings",
     "ProgressSpan",
