@@ -49,9 +49,17 @@ requests*); the procedures in the
   `mark-workflow-skill.sh` records the load per session id under
   `$TMPDIR/claude-haywire-workflow/`. `guard-pr-merge.sh` refuses `gh pr merge` while the
   PR is a draft, carries `needs introduction` or `agent files`, has an unresolved review
-  thread, or the newest run of any check has not passed, and until a macOS check has
-  passed. The user merges by hand when they want to override it. `tests/scripts/test_claude_hooks.py`
+  thread, or the newest run of any check has not passed, and, in going-haywire/haywire,
+  until a macOS check has passed. It reads the PR in the repository `--repo` / `-R`
+  names; a library repository without CI may report no checks. The hook parses the
+  literal command line, so a loop over `$n` gives it nothing to read: one merge per
+  command, with the number written out. The user merges by hand when they want to override it. `tests/scripts/test_claude_hooks.py`
   runs them all against a stand-in `gh`.
+- **`agent files` comes back on every push and on *ready*.** `pr-intake.yml` runs on
+  `synchronize` and `ready_for_review` and labels by the PR's whole file list, so a push
+  (even one that changes no agent file) or marking the PR ready puts the label back after
+  the maintainer removed it, and the guard refuses the merge again. Mark the PR ready and
+  push everything before asking the maintainer to remove it; the agent never removes it.
 - **Only line-comment threads can block a merge.** A conversation comment has no resolved
   state, and Claude comments with the user's account, so no hook can tell whether one was
   answered; the skill has Claude read them all before merging. Feedback that must block a
