@@ -271,6 +271,9 @@ only the main folder, so search with grep there.
   it and its branch.
 - `~/.haywire` (global settings, security document, models, volumes) is shared too: a
   library installed or a setting changed there is seen by every stream.
+- A worktree drives only its own studio, started with
+  `.claude/skills/haywire-live-studio/scripts/studioctl start` from inside the worktree,
+  on the port `worktree_setup.py` gave it; 8124 is the main folder's studio.
 
 **When the branch is merged**, the user right-clicks the worktree's space → *Remove
 worktree* in herdr (it deletes the folder and keeps the branch), or without herdr:
