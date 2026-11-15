@@ -1,4 +1,4 @@
-"""SelectWidget with callable ``options``: re-read on every dropdown open, optionally from the bag."""
+"""SelectWidget with callable ``options`` (re-read on open, optionally from the bag) and ``refresh``."""
 
 from typing import Any, cast
 
@@ -122,3 +122,76 @@ def test_a_callable_without_parameters_is_called_bare():
 def test_static_options_are_not_refreshed():
     widget, _, _ = _rendered({"options": ["a", "b"]})
     assert _refreshers(widget) == []
+
+
+def _click_refresh(widget: Any, client: Client, monkeypatch) -> None:
+    """Run the refresh button's handler, with the worker thread replaced by a direct call."""
+    import asyncio
+
+    from nicegui import run
+
+    async def io_bound(fn, *args):
+        return fn(*args)
+
+    monkeypatch.setattr(run, "io_bound", io_bound)
+    with client:
+        asyncio.run(widget._query_options())
+
+
+def test_refresh_shows_a_button_only_when_asked():
+    widget, _, _ = _rendered({"options": lambda: ["a"]})
+    assert getattr(widget, "_refresh_button", None) is None
+    widget, _, _ = _rendered({"options": lambda: ["a"], "refresh": True})
+    assert widget._refresh_button.props["icon"] == "refresh"
+
+
+def test_refresh_runs_the_query_and_shows_its_result(monkeypatch):
+    bag = type("Bag", (), {"backend": "syphon"})()
+    queried: list = []
+
+    def query(b: Any) -> list[str]:
+        queried.append(b)
+        return ["s1", "s2"]
+
+    widget, _, client = _rendered({"options": lambda: [], "refresh": query}, value="", settings=bag)
+    assert widget.ui_element.options == []
+    assert queried == []  # building never runs the query
+
+    _click_refresh(widget, client, monkeypatch)
+
+    assert queried == [bag]
+    assert widget.ui_element.options == ["s1", "s2"]
+    assert "loading" not in widget._refresh_button.props
+
+
+def test_with_refresh_opening_the_dropdown_keeps_what_refresh_found(monkeypatch):
+    widget, _, client = _rendered({"options": lambda: [], "refresh": lambda: ["s1"]}, value="")
+    assert _refreshers(widget) == []
+    _click_refresh(widget, client, monkeypatch)
+    _open_dropdown(widget, client)
+    assert widget.ui_element.options == ["s1"]
+
+
+def test_refresh_true_calls_options_again(monkeypatch):
+    found = ["a"]
+    widget, _, client = _rendered({"options": lambda: list(found), "refresh": True})
+    found.append("b")
+    _click_refresh(widget, client, monkeypatch)
+    assert widget.ui_element.options == ["a", "b"]
+
+
+def test_a_failing_refresh_keeps_the_options(monkeypatch):
+    def query() -> list[str]:
+        raise RuntimeError("network down")
+
+    widget, _, client = _rendered({"options": lambda: ["a"], "refresh": query})
+    _click_refresh(widget, client, monkeypatch)
+    assert widget.ui_element.options == ["a"]
+
+
+def test_refresh_keeps_the_current_value_listed(monkeypatch):
+    widget, cell, client = _rendered({"options": lambda: ["a"], "refresh": lambda: ["b"]}, value="a")
+    _click_refresh(widget, client, monkeypatch)
+    assert widget.ui_element.options == ["b", "a"]
+    assert widget.ui_element.value == "a"
+    assert cell.get_value() == "a"

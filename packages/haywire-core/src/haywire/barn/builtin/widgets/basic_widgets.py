@@ -2,8 +2,9 @@
 Basic widget implementations for common data types
 """
 
+import logging
 from typing import Any
-from nicegui import ui
+from nicegui import run, ui
 
 from haywire.barn.builtin.types import INT
 from haywire.core.types.utils import resolve_options
@@ -13,6 +14,8 @@ from haywire.ui.widget.decorator import widget
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.converters import DisplayTextConverter, PrimitiveUnwrappingConverter
 from haywire.ui.components.number.drag import NumberDrag
+
+log = logging.getLogger(__name__)
 
 
 @widget(description="Fast number input widget")
@@ -276,6 +279,13 @@ class SelectWidget(BaseWidget):
       callable with a positional parameter receives the ``Settings`` bag that
       owns the field (``None`` when there is none), so the list can depend on a
       sibling setting. The current value stays listed across a refresh.
+    - ``refresh`` (``True`` or callable): Shows a refresh button beside the
+      dropdown. Clicking it runs the query off the UI thread, so it may block
+      (e.g. look for senders on the network), and shows its result as the
+      options. A callable is called like a callable ``options``; ``True``
+      calls ``options`` again. With ``refresh`` the button is the only update:
+      opening the dropdown does not re-read ``options``, which is read once at
+      ``build()`` and should be fast (e.g. what the last refresh found).
     - ``clearable`` (bool): If ``True``, shows a clear button to reset the selection.
     - ``multiple`` (bool): If ``True``, allows selecting multiple values.
     - ``new_value_mode`` (``"add-unique"``, ``"add"`` or ``"toggle"``): Lets the
@@ -291,6 +301,8 @@ class SelectWidget(BaseWidget):
         SelectWidget.config(properties={'options': lambda: list_available_skins()})
         # Depends on a sibling setting of the same bag:
         SelectWidget.config(properties={'options': lambda bag: list_sources(bag.backend)})
+        # A slow query, run when the user clicks refresh:
+        SelectWidget.config(properties={'options': known_sources, 'refresh': find_sources})
         # Suggestions, plus any typed value:
         SelectWidget.config(properties={'options': ['auto', 'cpu'], 'new_value_mode': 'add-unique'})
     """
@@ -304,7 +316,14 @@ class SelectWidget(BaseWidget):
                 kwargs[prop] = props[prop]
 
         element = self.bind(ui.select(**kwargs).classes("w-full text-xs"))
-        if callable(props.get("options")):
+        if props.get("refresh"):
+            with element.add_slot("append"):
+                self._refresh_button = (
+                    ui.button(icon="refresh").props("flat dense round size=sm").tooltip("Refresh the list")
+                )
+            # .stop: the click must not also open the dropdown.
+            self._refresh_button.on("click.stop", self._query_options)
+        elif callable(props.get("options")):
             element.on("popup-show", self._refresh_options)
         return element
 
@@ -317,11 +336,34 @@ class SelectWidget(BaseWidget):
         return dict(options) if isinstance(options, dict) else list(options)
 
     def _refresh_options(self) -> None:
-        """Re-read callable options as the dropdown opens, keeping the current value listed."""
+        """Re-read callable options as the dropdown opens."""
+        self._show_options(self._resolve_options())
+
+    async def _query_options(self) -> None:
+        """Run the ``refresh`` query off the UI thread and show what it returns."""
+        button = self._refresh_button
+        button.props("loading")
+        try:
+            options = await run.io_bound(self._run_query)
+        except Exception:
+            log.warning("SelectWidget refresh failed", exc_info=True)
+            return
+        finally:
+            button.props(remove="loading")
+        if options is not None:
+            self._show_options(options)
+
+    def _run_query(self) -> list | dict:
+        props = self._config.get("properties", {})
+        query = props.get("options", []) if props.get("refresh") is True else props["refresh"]
+        options = resolve_options(query, getattr(self.port, "settings", None))
+        return dict(options) if isinstance(options, dict) else list(options)
+
+    def _show_options(self, options: list | dict) -> None:
+        """Show *options*, keeping the current value listed."""
         element = self.ui_element
         if element is None:
             return
-        options = self._resolve_options()
         # NiceGUI shows a value its new options lack as empty, though the model still holds it.
         current = element.value if isinstance(element.value, list) else [element.value]
         for value in current:
