@@ -313,6 +313,10 @@
          <lastmod>2026-11-15</lastmod>
     </url>
     <url>
+         <loc>https://going-haywire.github.io/haywire/docs/adr/0083-questionnaires-use-the-surveyjs-format-with-our-own-renderer/</loc>
+         <lastmod>2026-11-15</lastmod>
+    </url>
+    <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0084-a-library-imports-the-framework-through-the-author-api/</loc>
          <lastmod>2026-11-15</lastmod>
     </url>
@@ -566,6 +570,10 @@
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/reference/publish_releases/</loc>
+         <lastmod>2026-11-15</lastmod>
+    </url>
+    <url>
+         <loc>https://going-haywire.github.io/haywire/docs/reference/questionnaire/</loc>
          <lastmod>2026-11-15</lastmod>
     </url>
     <url>

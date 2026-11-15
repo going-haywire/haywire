@@ -3180,6 +3180,8 @@
       
         
       
+        
+      
     
     
     
@@ -3348,6 +3350,41 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../reference/questionnaire/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Questionnaire
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../reference/doc-authoring/" class="md-nav__link">
         
   
@@ -3408,10 +3445,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_6" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_6" id="__nav_7_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
             
   
   
@@ -3429,8 +3466,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_6">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3969,7 +4006,7 @@
 </ul>
 <h2 id="2-components">2. Components<a class="headerlink" href="#2-components" title="Permanent link">&para;</a></h2>
 <h3 id="21-the-layout-model-slots-and-bars">2.1 The layout model — slots and bars<a class="headerlink" href="#21-the-layout-model-slots-and-bars" title="Permanent link">&para;</a></h3>
-<p>A studio session is a single-page workspace with four named <strong>slots</strong> arranged around a fixed-chrome <code>TopBar</code> and <code>StatusBar</code>:</p>
+<p>A studio session is a single-page workspace with five named <strong>slots</strong> (<code>SlotName</code>) arranged around a fixed-chrome <code>TopBar</code> and <code>StatusBar</code>:</p>
 <table>
 <thead>
 <tr>
@@ -3981,34 +4018,41 @@
 </thead>
 <tbody>
 <tr>
-<td><strong>Left</strong></td>
+<td><strong>ACTION</strong> (left edge)</td>
 <td><code>IconSlot</code></td>
 <td>Vertical icon bar + content area (drag-resizable width)</td>
-<td>One <code>opens='required'</code> editor visible at a time, switched by clicking icons</td>
+<td>One editor visible at a time, switched by clicking icons</td>
 </tr>
 <tr>
-<td><strong>Right</strong></td>
+<td><strong>CONTEXT</strong> (right edge)</td>
 <td><code>IconSlot</code></td>
 <td>Vertical icon bar + content area (drag-resizable width)</td>
-<td>One <code>opens='required'</code> editor visible at a time, switched by clicking icons</td>
+<td>One editor visible at a time, switched by clicking icons</td>
 </tr>
 <tr>
-<td><strong>Main</strong></td>
+<td><strong>EDIT</strong> (centre)</td>
 <td><code>TabSlot</code></td>
 <td>Horizontal tab bar + content area (fills remaining space)</td>
-<td>Multiple tabbed editors, supports <code>required</code> / <code>on_context</code> / <code>on_payload</code></td>
+<td>Multiple tabbed editors</td>
 </tr>
 <tr>
-<td><strong>Bottom</strong></td>
+<td><strong>INFO</strong> (under EDIT)</td>
 <td><code>TabSlot</code></td>
 <td>Horizontal tab bar + content area (drag-resizable height; foldable)</td>
-<td>Multiple tabbed editors, supports all <code>OpenBehavior</code> modes</td>
+<td>Multiple tabbed editors</td>
+</tr>
+<tr>
+<td><strong>ASIDE</strong> (between EDIT/INFO and CONTEXT)</td>
+<td><code>AsideSlot</code></td>
+<td>Full-height column: horizontal tab bar + content area (drag-resizable width); opened and closed only from its <code>TopBar</code> toggle, closed by default</td>
+<td>Multiple tabbed editors</td>
 </tr>
 </tbody>
 </table>
 <p>Each slot is a concrete subclass of <code>Slot</code> (<code>packages/haywire-core/src/haywire/ui/app/slot.py</code>):
-- <code>IconSlot</code> — uses an <code>IconSlotBar</code> with vertical icon buttons; only one binding is visible at a time and the bar acts as the selector. Only <code>opens='required'</code> editors are valid here (enforced by the <code>@editor</code> decorator at class-definition time).
-- <code>TabSlot</code> — uses a <code>TabSlotBar</code> with horizontal tab headers; multiple bindings can coexist; the user picks which is in front.</p>
+- <code>IconSlot</code> — a vertical bar of icon tabs; only one binding is visible at a time and the bar acts as the selector. Clicking the active icon collapses the area, clicking any icon re-expands it. Any <code>opens</code> value is accepted, though <code>required</code> is the usual choice here.
+- <code>TabSlot</code> — a horizontal tab bar; multiple bindings can coexist; the user picks which is in front. Every <code>OpenBehavior</code> is supported.
+- <code>AsideSlot</code> — a <code>TabSlot</code> whose whole column, tab bar included, leaves the layout while closed; it has no rail. The shell mounts its toggle in the <code>TopBar</code> (lit while open). While closed, the toggle region also shows each ASIDE editor's vertical <code>draw_tab</code> interior, so a badge an editor draws stays in view; clicking one opens ASIDE on that editor. A <code>Reveal</code> into a closed ASIDE opens it, as it does a collapsed ACTION or CONTEXT and a folded INFO. Its first editor is the <em>Questionnaire</em> (haybale-studio), which shows what an agent posted for a live check (<a href="../../../reference/questionnaire/">reference/questionnaire</a>).</p>
 <p>Slots own:</p>
 <ul>
 <li>their list of <code>EditorWrapper</code> bindings (<code>self._bindings</code>),</li>
@@ -4016,7 +4060,7 @@
 <li>the NiceGUI area container that hosts the active wrapper's UI subtree,</li>
 <li>visibility state and the divider that resizes them.</li>
 </ul>
-<p>The <code>AppShell</code> (<code>packages/haywire-core/src/haywire/ui/app/shell.py</code>) is the layout container that hosts the four slots, builds the resizable dividers between areas, and subscribes to <code>Reveal</code> / <code>Close</code> / <code>BroadcastClose</code> lifecycle commands on the session signal bus — <code>Reveal</code> is dispatched point-to-point to the editor's <code>default_slot</code>; <code>Close</code> (and <code>BroadcastClose</code>) fan out across every slot. <code>AppShell</code> is constructed once per browser session.</p>
+<p>The <code>AppShell</code> (<code>packages/haywire-core/src/haywire/ui/app/shell.py</code>) is the layout container that hosts the five slots, builds the resizable dividers between areas, and subscribes to <code>Reveal</code> / <code>Close</code> / <code>BroadcastClose</code> lifecycle commands on the session signal bus — <code>Reveal</code> is dispatched point-to-point to the editor's <code>default_slot</code>; <code>Close</code> (and <code>BroadcastClose</code>) fan out across every slot. <code>AppShell</code> is constructed once per browser session.</p>
 <h3 id="22-workspaces">2.2 Workspaces<a class="headerlink" href="#22-workspaces" title="Permanent link">&para;</a></h3>
 <p>A <strong>workspace snapshot</strong> is a plain JSON dict — one key per slot name — persisted to <code>.haywire/workspace_state.json</code> per project. (Earlier versions also stored a <code>"haystack"</code> key naming the active haystack TOML; that responsibility moved to <code>HaystackSettings.last_haystack_name</code> in the haybale-haystack library.) The <code>WorkspaceManager</code> (<code>packages/haywire-core/src/haywire/core/session/workspace/manager.py</code>) is intentionally dumb:</p>
 <ul>
@@ -4147,7 +4191,7 @@
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>  └─ shell.render()
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>      ├─ subscribe Reveal / Close / BroadcastClose on session.subscribe(...)
 </span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>      ├─ build TopBar / StatusBar
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>      ├─ instantiate four slots (ACTION/CONTEXT IconSlot, EDIT/INFO TabSlot)
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>      ├─ instantiate five slots (ACTION/CONTEXT IconSlot, EDIT/INFO TabSlot, ASIDE AsideSlot)
 </span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>      ├─ each slot.populate_from_snapshot(workspace_manager.snapshot[slot_name])
 </span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>      │   └─ each EditorWrapper wires its editor&#39;s @redraw_on / @react_on
 </span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>      │      handlers as session.subscribe(...) closures

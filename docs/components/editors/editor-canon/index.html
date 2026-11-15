@@ -3041,6 +3041,8 @@
       
         
       
+        
+      
     
     
     
@@ -3209,6 +3211,41 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../reference/questionnaire/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Questionnaire
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../reference/doc-authoring/" class="md-nav__link">
         
   
@@ -3269,10 +3306,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_6" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_6" id="__nav_7_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
             
   
   
@@ -3290,8 +3327,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_6">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3726,7 +3763,7 @@
 <td><code>default_slot</code></td>
 <td>no</td>
 <td><code>SlotName.EDIT</code></td>
-<td><code>SlotName.ACTION</code> / <code>CONTEXT</code> / <code>EDIT</code> / <code>INFO</code> (or their string values <code>'action'</code> / <code>'context'</code> / <code>'edit'</code> / <code>'info'</code>)</td>
+<td><code>SlotName.ACTION</code> / <code>CONTEXT</code> / <code>EDIT</code> / <code>INFO</code> / <code>ASIDE</code> (or their string values <code>'action'</code> / <code>'context'</code> / <code>'edit'</code> / <code>'info'</code> / <code>'aside'</code>)</td>
 </tr>
 <tr>
 <td><code>icon</code></td>
@@ -4285,6 +4322,11 @@
 </tr>
 <tr>
 <td><code>SlotName.INFO</code> (bottom)</td>
+<td>tab bar</td>
+<td><code>required</code>, <code>on_context</code>, <code>on_payload</code></td>
+</tr>
+<tr>
+<td><code>SlotName.ASIDE</code> (between EDIT and CONTEXT; opened from the top bar)</td>
 <td>tab bar</td>
 <td><code>required</code>, <code>on_context</code>, <code>on_payload</code></td>
 </tr>

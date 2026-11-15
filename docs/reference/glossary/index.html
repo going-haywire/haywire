@@ -2892,6 +2892,8 @@
       
         
       
+        
+      
     
     
     
@@ -3512,6 +3514,41 @@
   
   
     <li class="md-nav__item">
+      <a href="../questionnaire/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Questionnaire
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../doc-authoring/" class="md-nav__link">
         
   
@@ -3575,10 +3612,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_6" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_6" id="__nav_7_6_label" tabindex="">
+          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
             
   
   
@@ -3596,8 +3633,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_6">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -5284,6 +5321,26 @@ Macro is registered and placed.</p>
 <td>Process-wide mutable state reached through an ambient <code>get_</code>/<code>set_</code> accessor in <code>core/di/context.py</code>, which fires a zero-arg listener on every state change (the <strong>Error ledger</strong> skips a repeat merged into an unseen entry, since nothing new appeared); an app-side bridge turns those fires into a cross-session <strong>Signal</strong>. The store never broadcasts itself — not a layering rule (core <em>can</em> reach the dispatcher) but a safety one: <code>SignalDispatcher.broadcast</code> dispatches into the single-threaded bus, and a store like the <strong>Error ledger</strong> fires from watchdog threads with no running loop to hop from. The bridge owns that hop, so the pattern is safe wherever it is copied. It also keeps the store inert in tests and leaves the choice of <em>which</em> signal to the application. Instances: <strong>Error ledger</strong>, <strong>Activity tracker</strong>. Distinct from a <strong>strategy hook</strong> (e.g. <code>access_resolver</code>), which holds a <em>callable</em> whose absence is a valid operating mode.</td>
 <td>global, singleton (both true but they miss the listener/bridge half)</td>
 </tr>
+<tr>
+<td><strong>Questionnaire</strong></td>
+<td>What an agent posts through <code>haybale-studio_post_questionnaire</code> for the user to answer in the studio during a <strong>Live check</strong>: SurveyJS JSON restricted to a subset, plus the <strong>Check</strong> element, drawn by the studio's own renderer in the <em>Questionnaire</em> editor in ASIDE. One is current at a time; a new post replaces it. Answers are stored as they are given and shared by every session; once submitted it is read-only. It leaves the studio when an agent reads its submitted <strong>Findings</strong> or the user discards it. A structured exchange channel, not a survey system: no list, history or management in the studio. See <a href="../questionnaire/">reference/questionnaire</a> and <a href="../../adr/0083-questionnaires-use-the-surveyjs-format-with-our-own-renderer/">ADR 0083</a></td>
+<td>survey, form, test plan</td>
+</tr>
+<tr>
+<td><strong>Check</strong></td>
+<td>One <em>do this, expect that</em> item of a <strong>Questionnaire</strong> (<code>"type": "check"</code>, with <code>do</code> and <code>expect</code>), answered with a verdict — pass, fail, blocked or skip — and a note on fail or blocked. Haywire's own element, not SurveyJS</td>
+<td>test case, step, assertion</td>
+</tr>
+<tr>
+<td><strong>Findings</strong></td>
+<td>What <code>haybale-studio_get_findings</code> returns for the current <strong>Questionnaire</strong>: its status, the answers by question name, what is unanswered, the failed or blocked <strong>Checks</strong>, who posted and submitted it and when, the browser, and the <strong>Error ledger</strong> cursor range while it was open</td>
+<td>results, report, responses</td>
+</tr>
+<tr>
+<td><strong>Live check</strong></td>
+<td>Trying a change in the running studio rather than in tests; the activity a <strong>Questionnaire</strong> structures</td>
+<td>manual test, smoke test</td>
+</tr>
 </tbody>
 </table>
 <hr />
@@ -6402,7 +6459,7 @@ Macro is registered and placed.</p>
 <tbody>
 <tr>
 <td><strong>Editor</strong></td>
-<td>A full-slot UI component occupying one workspace Slot (ACTION, CONTEXT, EDIT, INFO); one instance per slot per session</td>
+<td>A full-slot UI component occupying one workspace Slot (ACTION, CONTEXT, EDIT, INFO, ASIDE); one instance per slot per session</td>
 <td>Panel (Panels are sub-components of editors), view</td>
 </tr>
 <tr>
@@ -6587,22 +6644,27 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Slot</strong></td>
-<td>One of the four named positions in the AppShell where an editor is mounted, identified by a <code>SlotName</code>: <strong>ACTION</strong> (left edge), <strong>CONTEXT</strong> (right edge), <strong>EDIT</strong> (centre), <strong>INFO</strong> (bottom). Each slot = bar + area</td>
+<td>One of the five named positions in the AppShell where an editor is mounted, identified by a <code>SlotName</code>: <strong>ACTION</strong> (left edge), <strong>CONTEXT</strong> (right edge), <strong>EDIT</strong> (centre), <strong>INFO</strong> (bottom), <strong>ASIDE</strong> (between EDIT and CONTEXT). Each slot = bar + area</td>
 <td>Area (deprecated), pane, region, zone; left/main/right/bottom (former slot names — removed)</td>
 </tr>
 <tr>
 <td><strong>SlotName</strong></td>
-<td>The <code>StrEnum</code> of the four slot identifiers: <code>ACTION</code> / <code>CONTEXT</code> / <code>EDIT</code> / <code>INFO</code>, with string values <code>'action'</code> / <code>'context'</code> / <code>'edit'</code> / <code>'info'</code>. A member <em>is</em> a <code>str</code>, so it serializes to its value in <code>workspace_state.json</code> and the <code>hw-slot-&lt;value&gt;</code> DOM ids with no conversion. <code>SlotName(x).label</code> gives the human-facing name (e.g. <code>'Edit'</code>)</td>
+<td>The <code>StrEnum</code> of the five slot identifiers: <code>ACTION</code> / <code>CONTEXT</code> / <code>EDIT</code> / <code>INFO</code> / <code>ASIDE</code>, with string values <code>'action'</code> / <code>'context'</code> / <code>'edit'</code> / <code>'info'</code> / <code>'aside'</code>. A member <em>is</em> a <code>str</code>, so it serializes to its value in <code>workspace_state.json</code> and the <code>hw-slot-&lt;value&gt;</code> DOM ids with no conversion. <code>SlotName(x).label</code> gives the human-facing name (e.g. <code>'Edit'</code>)</td>
 <td>slot string, slot key</td>
 </tr>
 <tr>
 <td><strong>Bar</strong></td>
-<td>The control strip attached to a Slot; either a tab bar (horizontal, for EDIT/INFO) or an icon bar (vertical, for ACTION/CONTEXT)</td>
+<td>The control strip attached to a Slot; either a tab bar (horizontal, for EDIT/INFO/ASIDE) or an icon bar (vertical, for ACTION/CONTEXT)</td>
 <td>—</td>
 </tr>
 <tr>
+<td><strong>Aside toggle</strong></td>
+<td>The button on the right of the TopBar that opens and closes the ASIDE slot, lit while it is open — the only way into a closed ASIDE besides a <code>Reveal</code>. While ASIDE is closed, each ASIDE editor's tab interior (icon and badge) sits beside it</td>
+<td>aside button, sidebar toggle</td>
+</tr>
+<tr>
 <td><strong>Slot bar</strong></td>
-<td>The 36px strip on top of a slot, lit when its slot is the <strong>Active slot</strong>: the tab bar in EDIT/INFO, the editor's <code>hui.slot_header</code> in ACTION/CONTEXT. Not every ACTION/CONTEXT editor draws one</td>
+<td>The 36px strip on top of a slot, lit when its slot is the <strong>Active slot</strong>: the tab bar in EDIT/INFO/ASIDE, the editor's <code>hui.slot_header</code> in ACTION/CONTEXT. Not every ACTION/CONTEXT editor draws one</td>
 <td>—</td>
 </tr>
 <tr>
@@ -6617,17 +6679,17 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>default_slot</strong></td>
-<td>The <code>@editor()</code> decorator parameter and <code>EditorIdentity</code> field that declares which Slot an editor occupies by default; a <code>SlotName</code> (<code>ACTION</code> / <code>CONTEXT</code> / <code>EDIT</code> / <code>INFO</code>), defaulting to <code>SlotName.EDIT</code>. The decorator coerces a bare string value and raises <code>ValueError</code> on an unknown one</td>
+<td>The <code>@editor()</code> decorator parameter and <code>EditorIdentity</code> field that declares which Slot an editor occupies by default; a <code>SlotName</code> (<code>ACTION</code> / <code>CONTEXT</code> / <code>EDIT</code> / <code>INFO</code> / <code>ASIDE</code>), defaulting to <code>SlotName.EDIT</code>. The decorator coerces a bare string value and raises <code>ValueError</code> on an unknown one</td>
 <td>canvas_area (deprecated)</td>
 </tr>
 <tr>
 <td><strong>slot snapshot</strong></td>
-<td>The persisted state of one slot — a plain dict produced by <code>Slot.to_snapshot()</code> with keys <code>active_key</code> (the active binding id), <code>visible</code>, <code>size</code>, and <code>editors</code> (the per-tab list). Keyed by <code>SlotName</code> value in <code>workspace_state.json</code>. There are no per-slot state <em>dataclasses</em> — all four slots use this uniform dict shape</td>
+<td>The persisted state of one slot — a plain dict produced by <code>Slot.to_snapshot()</code> with keys <code>active_key</code> (the active binding id), <code>visible</code>, <code>size</code>, and <code>editors</code> (the per-tab list). Keyed by <code>SlotName</code> value in <code>workspace_state.json</code>. There are no per-slot state <em>dataclasses</em> — all five slots use this uniform dict shape</td>
 <td>SlotState / MainSlotState / BottomSlotState / TabState (former dataclasses — removed), active_tab_key (removed; the field is <code>active_key</code>)</td>
 </tr>
 <tr>
 <td><strong>AppShell</strong></td>
-<td>The top-level layout component composed of: TopBar + ActivityBar + ACTION/CONTEXT/EDIT/INFO Slots + ContextBar + StatusBar. See <a href="../../architecture/studio/app-shell/app-shell-arch/">architecture/studio/app-shell</a></td>
+<td>The top-level layout component composed of: TopBar (with the <strong>Aside toggle</strong>) + ActivityBar + ACTION/CONTEXT/EDIT/INFO/ASIDE Slots + ContextBar + StatusBar. See <a href="../../architecture/studio/app-shell/app-shell-arch/">architecture/studio/app-shell</a></td>
 <td>Shell, frame</td>
 </tr>
 <tr>
@@ -7057,7 +7119,7 @@ Macro is registered and placed.</p>
 <li>A <strong>Haybale</strong> package is always a <strong>Library</strong>; not all Libraries are distributed as haybale packages.</li>
 <li>An <strong>Editor</strong> occupies one <strong>Slot</strong> in the <strong>AppShell</strong>; an <strong>Editor</strong> may host many <strong>Panels</strong>, grouped by <strong>Surface</strong>.</li>
 <li>A <strong>Panel</strong> may itself be a <strong>Host</strong>, rendering further <strong>Surfaces</strong>; visibility and the <code>provides</code> Protocol compose down that path.</li>
-<li>The <strong>AppShell</strong> is composed of: <strong>TopBar</strong>, <strong>ActivityBar</strong>, <strong>ContextBar</strong>, <strong>StatusBar</strong>, and the four <strong>Slots</strong> (<strong>ACTION</strong>, <strong>CONTEXT</strong>, <strong>EDIT</strong>, <strong>INFO</strong>).</li>
+<li>The <strong>AppShell</strong> is composed of: <strong>TopBar</strong>, <strong>ActivityBar</strong>, <strong>ContextBar</strong>, <strong>StatusBar</strong>, and the five <strong>Slots</strong> (<strong>ACTION</strong>, <strong>CONTEXT</strong>, <strong>EDIT</strong>, <strong>INFO</strong>, <strong>ASIDE</strong>).</li>
 <li>Each <strong>Slot</strong> has a <strong>Bar</strong> and an area: the ACTION and CONTEXT slots have icon bars (<strong>ActivityBar</strong>, <strong>ContextBar</strong>); the EDIT and INFO slots have tab bars (<strong>MainTabBar</strong>, <strong>BottomTabBar</strong>).</li>
 <li>The <strong>ActivityBar</strong> switches editors in the <strong>ACTION Slot</strong>; the <strong>ContextBar</strong> switches editors in the <strong>CONTEXT Slot</strong>; the <strong>SurfaceToolbar</strong> (inside the PropertiesEditor) switches the active <strong>Surface</strong>.</li>
 <li>Each slot's persisted state is a uniform <strong>slot snapshot</strong> dict (<code>active_key</code>, <code>visible</code>, <code>size</code>, <code>editors</code>) produced by <code>Slot.to_snapshot()</code> and keyed by <strong>SlotName</strong> value in <code>workspace_state.json</code>; there are no per-slot state dataclasses.</li>
