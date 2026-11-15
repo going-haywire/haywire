@@ -76,6 +76,7 @@ def test_the_release_gates_section_creates_and_checks_every_label() -> None:
         assert f"| `{label.name}` |" in text
         assert f"gh label create {label.name} --color {label.color}" in text
     assert WAITS_FOR_PREFIX in text
+    assert "open one only when the owner agrees" in text
 
 
 def test_generated_claude_md_has_release_gates(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -580,20 +580,21 @@ A published version is permanent.
   wait; never attempt them yourself.
 - Never force-push, and never delete or move a tag.
 
-## Release-gated issues
+## Release reminders
 
-GitHub labels tie an issue to a release
-([sharing-libraries](https://github.com/going-haywire/haywire/blob/master/docs/guides/sharing-libraries.md#44-work-that-waits-for-a-release)):
+([sharing-libraries §7.1](https://github.com/going-haywire/haywire/blob/master/docs/guides/sharing-libraries.md#71-release-reminders))
 
 {render_release_gates()}
 
 ## Live checks
 
-A change a user sees or works with is tried in the running studio (`uv run haywire`)
-before it is released. With Farmhand connected, post the steps as a Questionnaire
-(`haybale-studio_post_questionnaire`, format:
+A live check asks the owner to confirm in the running studio (`uv run haywire`) that a
+change works. It costs their time: ask only for a change only a person can judge (UI,
+interaction, a device), only once your own tests and checks leave you confident it works,
+and only with the steps that need a person. With Farmhand connected, post those steps as a
+Questionnaire (`haybale-studio_post_questionnaire`, format:
 [questionnaire](https://github.com/going-haywire/haywire/blob/master/docs/reference/questionnaire.md)),
-then read the user's answers with `haybale-studio_get_findings` once they say they are done.
+then read the answers with `haybale-studio_get_findings` once the owner says they are done.
 
 ## Where it publishes
 

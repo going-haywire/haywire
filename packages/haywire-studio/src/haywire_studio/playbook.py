@@ -5,9 +5,10 @@
 differ, so the instructions written into a project's ``CLAUDE.md`` cannot omit a
 state the tool can print.
 
-``RELEASE_GATE_LABELS`` are the GitHub labels that tie an issue to a release, and
-``render_release_gates`` the ``CLAUDE.md`` section that tells an agent when to check
-them (``docs/guides/sharing-libraries.md`` §4.4).
+``RELEASE_GATE_LABELS`` are the GitHub labels of the release reminders, issues that
+record a decision affecting the next release, and ``render_release_gates`` the
+``CLAUDE.md`` section that tells an agent when to read them and to open one only on the
+owner's word (``docs/guides/sharing-libraries.md`` §7.1).
 """
 
 from __future__ import annotations
@@ -103,7 +104,7 @@ def render_playbook() -> str:
 
 @dataclass(frozen=True)
 class GateLabel:
-    """A GitHub label that ties an issue to a release, and when an agent checks it."""
+    """A GitHub label of a release reminder, and when an agent reads the issues carrying it."""
 
     name: str
     color: str
@@ -117,20 +118,20 @@ RELEASE_GATE_LABELS: tuple[GateLabel, ...] = (
     GateLabel(
         "todo-pre-release",
         "D93F0B",
-        "Must be closed before this library is released",
-        "Must be done before this project is released.",
+        "Reminder: to do before the next release",
+        "Something the owner decided to do before the next release of this project.",
         "Before `haywire share`, `--dry-run` included: "
         "`gh issue list --label todo-pre-release --state open`. "
-        "If any are open, list them, stop and ask; do not release until they are closed.",
+        "If any are open, list them and ask the owner whether to release anyway.",
     ),
     GateLabel(
         "after-core-release",
         "FBCA04",
-        "Can be done only once a haywire-core release contains the needed change",
-        "Can be done only once a released haywire-core contains the change on the issue's "
-        "`Waits for:` line.",
+        "Reminder: to do once a haywire-core release contains the needed change",
+        "A dependency to raise (usually the `haywire-core` floor) once a released "
+        "haywire-core contains the change on the issue's `Waits for:` line.",
         "At the start of a session: `gh issue list --label after-core-release --state open`; "
-        "check each one as below and tell the owner which can now proceed.",
+        "check each one as below and tell the owner which can now be done.",
     ),
 )
 
@@ -138,15 +139,23 @@ WAITS_FOR_PREFIX = "Waits for: going-haywire/haywire@"
 
 
 def render_release_gates() -> str:
-    """Return the Markdown for the release-gated issues section of a project's ``CLAUDE.md``."""
-    lines = ["| Label | Meaning | Checked |", "|---|---|---|"]
+    """Return the Markdown for the release reminders section of a project's ``CLAUDE.md``."""
+    lines = [
+        "A release reminder is an issue that records a decision affecting the next release, so "
+        "it is not forgotten. It is a help, not a rule: open one only when the owner agrees. "
+        "When a change you make needs something done at release time (most often a "
+        "dependency floor to raise once a release contains a change), propose the issue to "
+        "the owner: its title, the label, the steps, and for `after-core-release` a first "
+        f"line `{WAITS_FOR_PREFIX}<sha> (#<pr>)`. Link a prepared branch's draft PR to it.",
+        "",
+        "| Label | Meaning | Read |",
+        "|---|---|---|",
+    ]
     lines += [f"| `{label.name}` | {label.meaning} | {label.checked} |" for label in RELEASE_GATE_LABELS]
     lines += [
         "",
-        "Work that needs an unreleased haywire-core change gets an `after-core-release` issue "
-        f"whose first line is `{WAITS_FOR_PREFIX}<sha> (#<pr>)`; link the prepared branch's "
-        "draft PR to it. The change is released when the latest haywire-core on PyPI contains "
-        "the commit:",
+        "The change on a `Waits for:` line is released when the latest haywire-core on PyPI "
+        "contains the commit:",
         "",
         "```sh",
         "v=$(curl -s https://pypi.org/pypi/haywire-core/json | jq -r .info.version)",
@@ -154,7 +163,7 @@ def render_release_gates() -> str:
         "# behind or identical: released",
         "```",
         "",
-        "Create the labels the first time one is needed (safe to repeat):",
+        "Create the labels when the owner agrees to the first reminder (safe to repeat):",
         "",
         "```sh",
     ]
@@ -165,8 +174,7 @@ def render_release_gates() -> str:
     lines += [
         "```",
         "",
-        "If `gh` is missing or not logged in, or the repository is not on GitHub, say that the "
-        "check could not run and ask before releasing. Never read a check that could not run "
-        "as nothing open.",
+        "If `gh` is missing or not logged in, or the repository is not on GitHub, tell the "
+        "owner the reminders could not be read; never report that none are open.",
     ]
     return "\n".join(lines)

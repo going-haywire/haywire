@@ -93,20 +93,28 @@ Tiers, parallelism and test traps: `tests/README.md`.
 
 ## Live check
 
-Tests cannot judge everything. A change whose effect the user sees or works with (UI,
-layout, interaction, a theme, a real device or stream, a library inside the real studio)
-gets a **live check** in the running studio before the PR is marked ready, and again after
-a fix to what failed. The user may waive it; a change tests fully cover needs none. Say in
-the PR which case applies.
+A **live check** asks the user to confirm in the running studio that a change works. It
+costs the user's time, so it is rare and it is the last step: a confirmation, never a
+way to find bugs. Ask for one only when you are confident everything works.
 
-1. **Write the Checks** from the issue's or plan's acceptance points: one `check` per
-   behaviour, `do` what the user does, `expect` what they should see. For a bug fix, the
-   first Check reproduces the bug.
+**When.** A change whose effect only a person can judge (UI, layout, interaction, a theme,
+a real device or stream), once, before the PR is marked ready. Not for a change the tests
+cover, and not when the user waives it. Say in the PR which case applies.
+
+**Before asking**, check everything you can yourself: the tests, then the worktree's
+studio through Farmhand (`haybale-studio_verify_component`, the graph tools,
+`haybale-studio_get_errors` empty). Anything you could have found this way and the user
+finds instead is a wasted round.
+
+1. **Write few Checks**: only what needs a person's eyes or hands, from the issue's or
+   plan's acceptance points. One `check` per behaviour, `do` what the user does,
+   `expect` what they should see.
 2. **Run it** as a Questionnaire in this worktree's studio: the loop is in the
    `haywire-live-studio` skill (*Live check with a Questionnaire*), the format in
    [docs/reference/questionnaire.md](../../../docs/reference/questionnaire.md).
-3. **Fix** each failed or blocked Check, then post a new Questionnaire with only those
-   Checks (plus any the fix may have broken), until none fail.
+3. **A failed Check** means your confidence was wrong: fix it and verify the fix yourself
+   as above. Ask the user before posting another round, with only the Checks that
+   failed.
 4. **Record** each round's Findings in the PR body, section *Live check*, before the next
    post replaces them:
 
@@ -182,8 +190,8 @@ them.
 
 ## Finishing as the maintainer
 
-1. When the work is done and its live check has no failed Check (*Live check*), mark the
-   PR ready: `gh pr ready <n>`. macOS joins the checks.
+1. When the work is done and its live check, if one was due, has no failed Check
+   (*Live check*), mark the PR ready: `gh pr ready <n>`. macOS joins the checks.
 2. Ask the user to review, as in *Asking the user for a decision*, with the last live
    check round's table, or why there was none.
 3. Merge only on the user's word ("merge"), and only once the checks are green:

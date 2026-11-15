@@ -6,6 +6,20 @@ workflow. Settled with the user on 2026-11-15: every **(rec)** option below was 
 (A1, A7, B1, B5 asked explicitly; the rest taken as proposed). Each slice's last task
 marks its row in *Status*.
 
+**Corrections by the user, 2026-11-15, after slices 1–2 were drafted** (they override the
+tables below):
+
+- **Live checks are rare and last.** They cost the user's time, so they confirm a change
+  the agent is already confident in; they never find bugs. The agent first checks
+  everything it can itself (tests, Farmhand tools, an empty error ledger), asks only
+  for what needs a person, and asks before a second round. (Narrows B1, B2, B4.)
+- **Release gates are reminders, not rules.** A labelled issue records a decision that
+  affects the next release (most often a dependency floor to raise once a release
+  contains a change). An agent proposes one and opens it only on the user's word, and an
+  open `todo-pre-release` is listed before a release, not a stop. The convention moves
+  from `sharing-libraries.md` §4.4 (*What has to be true before you publish*) to §7.1
+  *Release reminders*. (Changes A3–A6, A8.)
+
 ## Problem
 
 1. **Release-gated work is forgotten.** Library work prepared before the core release it

@@ -216,14 +216,16 @@ and the workflow deploys the entire directory to GitHub Pages at:
 https://going-haywire.github.io/haywire/marketplace.toml
 ```
 
-### After the release: work it unblocks
+### Release reminders
 
-Libraries outside the monorepo track work that needs a core change with the
-`after-core-release` label and a `Waits for: going-haywire/haywire@<sha>` line
-([sharing-libraries §4.4](../guides/sharing-libraries.md#44-work-that-waits-for-a-release)).
-After a publish, `/haywire-release` (Step 10) lists those issues across the
-organisation and which of them the new tag contains. Open `todo-pre-release`
-issues in this repository stop a release before the bump (Step 2).
+A library outside the monorepo may record, with the owner's agreement, a dependency to
+raise once a core release contains a change: an `after-core-release` issue with a
+`Waits for: going-haywire/haywire@<sha>` line
+([sharing-libraries §7.1](../guides/sharing-libraries.md#71-release-reminders)).
+After a publish, `/haywire-release` (Step 10) lists those reminders across the
+organisation and which of them the new tag contains. Open `todo-pre-release` reminders
+in this repository are listed before the bump (Step 2), and the user decides whether to
+release anyway.
 
 ## Recovery procedures
 

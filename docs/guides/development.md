@@ -55,10 +55,11 @@ uv run haywire                  # launch the studio
 uv run python -m haywire_studio # same, with module syntax
 ```
 
-A change you can see or interact with is tried in the running studio before its pull
-request is ready: a **live check**. An agent hands you its steps as a
-[Questionnaire](../reference/questionnaire.md) in the studio's aside; you answer each
-Check there and submit, and the agent reads the Findings back.
+A change only a person can judge (UI, interaction, a device) ends with a **live check**:
+you confirm in the running studio that it works, once, before its pull request is ready.
+An agent asks for one only when its own tests and checks leave it confident, and hands
+you the steps as a [Questionnaire](../reference/questionnaire.md) in the studio's aside;
+you answer each Check there and submit, and the agent reads the Findings back.
 
 ## Checks
 

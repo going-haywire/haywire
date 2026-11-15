@@ -7,8 +7,8 @@ description: >
   confirmation commits `chore: release vX.Y.Z` on a release branch, merges it
   through a PR once its checks pass, tags the merged commit, and hands the user the
   tag push (a local hook blocks tag pushes) so the publish CI workflow takes over.
-  Stops on open `todo-pre-release` issues first, and after the publish reports which
-  libraries' `after-core-release` issues the release unblocks. Supports `--dry-run` to
+  Lists open `todo-pre-release` reminders first, and after the publish reports which
+  libraries' `after-core-release` reminders the release unblocks. Supports `--dry-run` to
   preview the flow without committing. Use this skill whenever the user wants
   to cut, ship, publish, release, or version-bump the monorepo. Trigger
   phrases: "/haywire-release", "cut a release", "ship a release", "release
@@ -120,17 +120,18 @@ Expected: `headSha` equals `HEAD`, `status` is `completed` and `conclusion` is
 - **No run for `HEAD`:** the commit reached `master` without CI (an admin bypass).
   Start one with `gh workflow run CI --ref master`, wait for it, then continue.
 
-Then check for work that must land before this release:
+Then read the release reminders, decisions recorded for this release:
 
 ```bash
 gh issue list --repo going-haywire/haywire --label todo-pre-release --state open \
   --json number,title,url
 ```
 
-Expected: `[]`. Otherwise STOP: list each issue with its URL and ask the user whether
-to finish it first or move the label off. If `gh` cannot answer (not logged in, no
-network), say so and ask; never take a check that could not run as nothing open. The
-convention: [sharing-libraries §4.4](../../../docs/guides/sharing-libraries.md#44-work-that-waits-for-a-release).
+Usually `[]`. Otherwise list each issue with its URL and ask the user whether to deal
+with it first or release anyway; a reminder is a help, not a gate. If `gh` cannot answer
+(not logged in, no network), say the reminders could not be read; never report that none
+are open. The convention:
+[sharing-libraries §7.1](../../../docs/guides/sharing-libraries.md#71-release-reminders).
 
 ### Step 2.5 — dependency audit (non-blocking report)
 
@@ -444,11 +445,10 @@ gh run watch
 (This blocks until the workflow finishes. Useful for quick releases; skip for
 fire-and-forget.)
 
-### Step 10 — sweep the work this release unblocks
+### Step 10 — report the reminders this release unblocks
 
-Once the publish run has succeeded and PyPI serves `haywire-core <NEW_VERSION>`, find
-the library work that waited for it. Every open `after-core-release` issue across the
-organisation:
+Once the publish run has succeeded and PyPI serves `haywire-core <NEW_VERSION>`, read the
+`after-core-release` reminders across the organisation:
 
 ```bash
 gh search issues --owner going-haywire --label after-core-release --state open \
@@ -467,6 +467,7 @@ An issue with no `Waits for:` line is listed as `no Waits for line`; read its bo
 say what it waits for. Then offer, per released issue, one comment: "Unblocked:
 haywire-core <NEW_VERSION> contains <sha>." Post them only on the user's word: they
 appear under the user's name. The work itself happens in each library's own session.
+Never open a reminder issue without the user's word either.
 
 ## Dry-run mode
 

@@ -28,9 +28,9 @@ up/down with `scripts/studioctl`.
 - You want to call any Farmhand tool and read the result.
 - You're verifying a component change end-to-end: scaffold → write → hot-reload →
   `haybale-studio_verify_component` → `haybale-studio_get_errors`.
-- A change needs the user to try it in the studio: a live check, run as a Questionnaire
-  (below). When one is due and where its Findings go: the `haywire-workflow` skill,
-  *Live check*.
+- A finished change needs the user to confirm it in the studio: a live check, run as a
+  Questionnaire (below). When one is due and where its Findings go: the
+  `haywire-workflow` skill, *Live check*.
 
 Do **not** use for offline work the test suite covers — prefer `pytest` when you
 don't need a live app.
@@ -60,22 +60,26 @@ Once the studio is up, call its tools directly by name in this session —
 
 ## Live check with a Questionnaire
 
-The user does the checking; you post the Checks and read the answers. Format, every
-element and the Findings fields: [docs/reference/questionnaire.md](../../../docs/reference/questionnaire.md).
+The user confirms; you post the Checks and read the answers. It costs the user's time:
+post one only when your own checks (tests, Farmhand tools, an empty error ledger) leave
+you confident everything works, and only with Checks that need a person. When one is due:
+the `haywire-workflow` skill, *Live check*. Format, every element and the Findings
+fields: [docs/reference/questionnaire.md](../../../docs/reference/questionnaire.md).
 
 1. `studioctl start` from inside this worktree, so the user tests this branch's code.
 2. `haybale-studio_post_questionnaire` with a title naming the change and one `check`
    per behaviour (`do`, `expect`, `isRequired: true`). A rejected post names the element
    and property to fix.
 3. Tell the user it waits in the studio's aside, give the studio's URL
-   (`http://127.0.0.1:<port>`, the port `studioctl status` prints), and wait for them to say they are done. Nothing tells you
-   earlier.
+   (`http://127.0.0.1:<port>`, the port `studioctl status` prints), and wait for them
+   to say they are done. Nothing tells you earlier.
 4. `haybale-studio_get_findings`. `status: "open"` means not submitted yet: say so, or
    read the answers so far if the user asks. `failed_checks` lists the failed and
    blocked ones; their `note` says what the user saw.
 5. `haybale-studio_get_errors` with `since_seq` = `ledger_seq.posted`: the errors logged
    while the user was checking.
-6. Record the Findings where the workflow says, then fix, and post the next round.
+6. Record the Findings where the workflow says. After a fix, ask the user before posting
+   another round.
 
 Traps:
 
