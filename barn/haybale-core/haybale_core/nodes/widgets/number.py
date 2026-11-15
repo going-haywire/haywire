@@ -3,10 +3,7 @@
 from typing import Any
 
 from haybale_core.nodes.widgets.base import WidgetNode
-from haywire.barn.builtin.types import FLOAT, INT, OPTIONAL
-from haywire.barn.builtin.widget_keys import NUMBER_WIDGET
-from haywire.core.node import NodeType, node
-from haywire.core.settings import NodeSettings, setting
+from haywire.api import FLOAT, INT, NUMBER_WIDGET, OPTIONAL, NodeSettings, NodeType, node, setting
 
 
 @node(

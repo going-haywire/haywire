@@ -1,5 +1,4 @@
-from haywire.core.types import type, PrimitiveType
-from haywire.barn.builtin.wires import DataWire
+from haywire.api import DataWire, PrimitiveType, type
 
 # ============================================================================
 # Binary Type

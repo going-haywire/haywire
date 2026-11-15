@@ -1,8 +1,6 @@
 """Settings shared by the loop nodes that record failed iterations (For Each File, Loop Array)."""
 
-from haywire.barn.builtin.types import STRING
-from haywire.barn.builtin.widgets import SelectWidget
-from haywire.core.settings import NodeSettings, Promotable, setting
+from haywire.api import STRING, NodeSettings, Promotable, SelectWidget, setting
 
 __all__ = ["ON_ERROR", "LoopErrors"]
 

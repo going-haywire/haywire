@@ -1,6 +1,4 @@
-from haywire.core.execution.event_source import CallbackEvent
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.api import CALLBACK, EXEC, FLOAT, BaseNode, CallbackEvent, ExecutionContext, NodeType, node
 
 
 @node(
@@ -23,9 +21,6 @@ class TickEventNode(BaseNode):
     """
 
     def init(self):
-        from haywire.barn.builtin.types import FLOAT
-        from haywire.barn.builtin.types import CALLBACK, EXEC
-
         # Callback outlet — broadcasts this node's listener ID
         self.add(CALLBACK.as_outlet("listen_callback", label="Listen"))
 

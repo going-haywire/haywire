@@ -6,13 +6,22 @@ import os
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING
 
-from haywire.barn.builtin.types import BOOL, INT, STRING
-from haywire.barn.builtin.widgets import NumberWidget, SimpleLabelWidget
-from haywire.core.settings import NodeSettings, Promotable, setting
-from haywire.core.types.enums import PortType, StoreStrategy
+from haywire.api import (
+    BOOL,
+    INT,
+    STRING,
+    NodeSettings,
+    NumberWidget,
+    PortType,
+    Promotable,
+    SimpleLabelWidget,
+    StoreStrategy,
+    resolve,
+    setting,
+)
 
 if TYPE_CHECKING:
-    from haywire.core.volumes import VolumePath
+    from haywire.api import VolumePath
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +85,6 @@ def folder_root(folder: "VolumePath") -> Path:
         VolumeUndefinedError: *folder*'s volume has no location.
         VolumeEscapeError: *folder* leads outside its volume.
     """
-    from haywire.core.volumes import resolve
 
     root = resolve(folder)
     if not root.is_dir():

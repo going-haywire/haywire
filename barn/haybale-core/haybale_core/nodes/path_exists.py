@@ -1,8 +1,6 @@
 """Path Exists? — branch on whether a path is there."""
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.volumes import VolumePath, resolve
+from haywire.api import EXEC, PATH, BaseNode, ExecutionContext, NodeType, VolumePath, node, resolve
 
 
 @node(
@@ -27,8 +25,6 @@ class PathExistsNode(BaseNode):
     """
 
     def init(self) -> None:
-        from haywire.barn.builtin.types import EXEC, PATH
-
         self.add(EXEC.as_inlet("exec", label="Execute", description="Checks the path"))
         self.add(PATH.as_inlet("path", label="Path", description="File or folder to look for"))
         self.add(EXEC.as_outlet("exists", label="Exists", description="Runs when it is there"))

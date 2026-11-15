@@ -3,8 +3,7 @@
 from typing import Any, Optional
 
 from haybale_core.array_ports import array_element_type, array_of
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
+from haywire.api import ADD, EXEC, INT, STRING, BaseNode, ExecutionContext, NodeType, SelectWidget, node
 
 MODES = ("once", "loop", "palindrome")
 
@@ -50,9 +49,6 @@ class StepArrayNode(BaseNode):
     _pending: Optional[int]
 
     def init(self) -> None:
-        from haywire.barn.builtin.types import EXEC, INT, STRING
-        from haywire.barn.builtin.widgets import SelectWidget
-
         self.add(
             EXEC.as_inlet("start", label="Start", description="Reads the array and steps to its first item")
         )
@@ -111,7 +107,6 @@ class StepArrayNode(BaseNode):
 
     def _add_array_ports(self, element: Optional[Any]) -> None:
         """Add `Array` and `Item`: open slots until an array is wired in."""
-        from haywire.barn.builtin.types import ADD
 
         self._element = element
         if element is None:

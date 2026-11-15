@@ -1,6 +1,4 @@
-from haywire.core.execution.event_source import SystemEvent, SystemEventType
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.api import EXEC, FLOAT, BaseNode, ExecutionContext, NodeType, SystemEvent, SystemEventType, node
 
 
 @node(
@@ -20,9 +18,6 @@ class BeginPlayNode(BaseNode):
     """
 
     def init(self):
-        from haywire.barn.builtin.types import FLOAT
-        from haywire.barn.builtin.types import EXEC
-
         # Control output
         self.add(EXEC.as_outlet("exec", label="Execute"))
 
