@@ -1,4 +1,4 @@
-# haybale-testing — component index (v0.5.2)
+# haybale-testing — component index (v0.5.3)
 
 ## node
 - `haybale-testing:node:AddPortTestNode` — Add Port TestNode —   _tags: testing, add, placeholder, resolve, variadic_

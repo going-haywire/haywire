@@ -1010,7 +1010,7 @@ wheels = [
 
 [[package]]
 name = "haybale-audio"
-version = "0.5.2"
+version = "0.5.3"
 source = { editable = "barn/haybale-audio" }
 dependencies = [
     { name = "haybale-core" },
@@ -1033,7 +1033,7 @@ requires-dist = [
 
 [[package]]
 name = "haybale-core"
-version = "0.5.2"
+version = "0.5.3"
 source = { editable = "barn/haybale-core" }
 dependencies = [
     { name = "haywire-core" },
@@ -1050,7 +1050,7 @@ requires-dist = [
 
 [[package]]
 name = "haybale-example"
-version = "0.5.2"
+version = "0.5.3"
 source = { editable = "barn/haybale-example" }
 dependencies = [
     { name = "haybale-core" },
@@ -1069,7 +1069,7 @@ requires-dist = [
 
 [[package]]
 name = "haybale-graph-editor"
-version = "0.5.2"
+version = "0.5.3"
 source = { editable = "barn/haybale-graph-editor" }
 dependencies = [
     { name = "haywire-core" },
@@ -1084,7 +1084,7 @@ requires-dist = [
 
 [[package]]
 name = "haybale-haystack"
-version = "0.5.2"
+version = "0.5.3"
 source = { editable = "barn/haybale-haystack" }
 dependencies = [
     { name = "haybale-graph-editor" },
@@ -1105,7 +1105,7 @@ requires-dist = [
 
 [[package]]
 name = "haybale-image"
-version = "0.5.2"
+version = "0.5.3"
 source = { editable = "barn/haybale-image" }
 dependencies = [
     { name = "fastapi" },
@@ -1137,7 +1137,7 @@ provides-extras = ["torch"]
 
 [[package]]
 name = "haybale-marketplace"
-version = "0.5.2"
+version = "0.5.3"
 source = { editable = "barn/haybale-marketplace" }
 dependencies = [
     { name = "haybale-studio" },
@@ -1156,7 +1156,7 @@ requires-dist = [
 
 [[package]]
 name = "haybale-models"
-version = "0.5.2"
+version = "0.5.3"
 source = { editable = "barn/haybale-models" }
 dependencies = [
     { name = "fastapi" },
@@ -1181,7 +1181,7 @@ requires-dist = [
 
 [[package]]
 name = "haybale-share"
-version = "0.5.2"
+version = "0.5.3"
 source = { editable = "barn/haybale-share" }
 dependencies = [
     { name = "haywire-core" },
@@ -1196,7 +1196,7 @@ requires-dist = [
 
 [[package]]
 name = "haybale-studio"
-version = "0.5.2"
+version = "0.5.3"
 source = { editable = "barn/haybale-studio" }
 dependencies = [
     { name = "haywire-core" },
@@ -1213,7 +1213,7 @@ requires-dist = [
 
 [[package]]
 name = "haybale-test-a"
-version = "0.5.2"
+version = "0.5.3"
 source = { editable = "barn/haybale-TEST_A" }
 dependencies = [
     { name = "haywire-core" },
@@ -1224,7 +1224,7 @@ requires-dist = [{ name = "haywire-core", editable = "packages/haywire-core" }]
 
 [[package]]
 name = "haybale-testing"
-version = "0.5.2"
+version = "0.5.3"
 source = { editable = "barn/haybale-testing" }
 dependencies = [
     { name = "haybale-core" },
@@ -1245,7 +1245,7 @@ requires-dist = [
 
 [[package]]
 name = "haywire-core"
-version = "0.5.2"
+version = "0.5.3"
 source = { editable = "packages/haywire-core" }
 dependencies = [
     { name = "attrs" },
@@ -1280,7 +1280,7 @@ requires-dist = [
 
 [[package]]
 name = "haywire-studio"
-version = "0.5.2"
+version = "0.5.3"
 source = { editable = "packages/haywire-studio" }
 dependencies = [
     { name = "cryptography" },
