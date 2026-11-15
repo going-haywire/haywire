@@ -1,9 +1,9 @@
 """
 QuestionnaireEditor — the Questionnaire an agent posted, answered in the ASIDE slot.
 
-One closeable tab, opened in every session by ``RevealQuestionnaire`` when an
-agent posts. It shows the current Questionnaire of ``QuestionnaireState`` until
-it is closed; a new post replaces it and opens the tab again. Answers are
+One tab, always present; ``RevealQuestionnaire`` brings it to the front in every
+session when an agent posts. It shows the current Questionnaire of
+``QuestionnaireState`` until it is closed; a new post replaces it. Answers are
 stored as they are given and reach every session in place, without a redraw;
 only a new post, a submit or a close redraws. The tab's badge counts the unanswered questions, and stays
 in view next to the top-bar toggle while ASIDE is closed.
@@ -45,7 +45,7 @@ if TYPE_CHECKING:
     label="Questionnaire",
     icon=hui.icon.questionnaire,
     default_slot=SlotName.ASIDE,
-    opens=OpenBehavior.ON_CONTEXT,
+    opens=OpenBehavior.REQUIRED,
     description="The Questionnaire an agent posted for a live check. Answer it, then submit.",
     requires=AccessTier.VIEW,
 )
@@ -56,10 +56,9 @@ class QuestionnaireEditor(BaseEditor):
     back with `get_findings`. Answering needs the edit tier; a viewer sees the
     form read-only. After *Submit* the form is read-only for everyone.
 
-    The tab opens by itself when an agent posts, in every studio window. Close
-    it whenever you like: the questionnaire and its answers stay, and the next
-    post opens the tab again. The questionnaire leaves the studio once the
-    agent has read the submitted answers, or when you press *Discard*.
+    When an agent posts, the aside opens on this tab in every studio window.
+    The questionnaire leaves the studio once the agent has read the submitted
+    answers, or when you press *Discard*.
     """
 
     def __init__(self, wrapper: "EditorWrapper") -> None:

@@ -20,7 +20,7 @@ class QuestionnaireChanged(Signal):
 
 @dataclass(frozen=True, kw_only=True)
 class RevealQuestionnaire(RevealSignal):
-    """Open the Questionnaire tab in every session and bring it to the front. Cross-session.
+    """Bring the Questionnaire tab to the front in every session. Cross-session.
 
     Names no editor: ``QuestionnaireEditor`` answers it (see
     ``haywire.api.workbench.reveal_on``). A closed ASIDE opens. Send it with

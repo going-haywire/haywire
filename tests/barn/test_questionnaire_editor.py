@@ -73,10 +73,10 @@ async def _open(user: User, state: QuestionnaireState, *, can_edit: bool = True)
     return holder["editor"]
 
 
-def test_identity_puts_it_in_aside_as_one_closeable_tab_a_post_opens() -> None:
+def test_identity_puts_it_in_aside_as_one_required_tab_a_post_reveals() -> None:
     identity = QuestionnaireEditor.class_identity
     assert identity.default_slot is SlotName.ASIDE
-    assert identity.opens is OpenBehavior.ON_CONTEXT
+    assert identity.opens is OpenBehavior.REQUIRED
     assert identity.requires is AccessTier.VIEW
     assert discover_reveal_handlers(QuestionnaireEditor) == {RevealQuestionnaire: "_on_reveal_questionnaire"}
 
@@ -84,16 +84,18 @@ def test_identity_puts_it_in_aside_as_one_closeable_tab_a_post_opens() -> None:
 class _Registry:
     """The slice of EditorRegistry the shell's reveal and a slot's wrappers touch."""
 
+    _KEY = QuestionnaireEditor.class_identity.registry_key
+
     def list_names(self) -> list[str]:
-        return [QuestionnaireEditor.class_identity.registry_key]
+        return [self._KEY]
 
     def get(self, key: str) -> Any:
-        return QuestionnaireEditor if key == QuestionnaireEditor.class_identity.registry_key else None
+        return QuestionnaireEditor if key == self._KEY else None
 
     get_by_key = get
 
-    def get_by_default_slot(self, _slot) -> dict:
-        return {}
+    def get_by_default_slot(self, slot) -> dict:
+        return {self._KEY: QuestionnaireEditor} if slot is SlotName.ASIDE else {}
 
     def add_batch_event_subscriber(self, _cb) -> None:
         pass
@@ -118,6 +120,7 @@ def _window(dispatcher: SignalDispatcher, state: QuestionnaireState) -> tuple[As
     session.subscribe = peer.subscribe
     registry: Any = _Registry()
     slot = AsideSlot(session=session, name=SlotName.ASIDE, registry=registry, bar_place="top", visible=False)
+    slot.populate_from_snapshot({})
     with ui.row() as row:
         slot.render(row)
     with ui.row() as toggle_box:
@@ -133,7 +136,7 @@ def _buttons(box: ui.element) -> list[ui.button]:
 
 
 @pytest.mark.anyio
-async def test_a_post_opens_the_tab_in_every_window_and_closing_it_takes_its_top_bar_button(
+async def test_a_post_opens_the_aside_on_the_tab_in_every_window(
     user: User, state: QuestionnaireState
 ) -> None:
     dispatcher = SignalDispatcher()
@@ -145,35 +148,26 @@ async def test_a_post_opens_the_tab_in_every_window_and_closing_it_takes_its_top
         windows.append(_window(dispatcher, state))
 
     await user.open("/")
-    (first, first_box), (second, _second_box) = windows
-    assert first.bindings == []
-    assert second.bindings == []
-    assert len(_buttons(first_box)) == 1  # the toggle alone: no tab, no button for it
+    key = QuestionnaireEditor.class_identity.registry_key
+    for slot, box in windows:
+        assert [w.editor_key for w in slot.bindings] == [key]
+        assert slot.bindings[0].can_close is False
+        assert slot.visible is False
+        assert len(_buttons(box)) == 2  # the tab's button next to the toggle
 
     state.post(copy.deepcopy(DEFINITION), principal="agent")
     dispatcher.broadcast(RevealQuestionnaire())
 
-    key = QuestionnaireEditor.class_identity.registry_key
     for slot, _box in windows:
         assert slot.visible is True
         assert slot.active_binding_id == key
-        assert slot.bindings[0].can_close is True
-    await user.should_see("Editor test")
+        assert len(slot.bindings) == 1
 
+    first, _first_box = windows[0]
     first.set_visible(False)
-    assert len(_buttons(first_box)) == 2  # closed ASIDE: the tab's button next to the toggle
-
-    await first.bindings[0].close()
-    assert first.bindings == []
-    assert len(_buttons(first_box)) == 1
-    assert second.active_binding_id == key  # closing is per window
-    assert state.findings() is not None  # the questionnaire stays
-
-    state.post({"title": "Next", "elements": [{"type": "boolean", "name": "ok"}]}, principal="agent")
     dispatcher.broadcast(RevealQuestionnaire())
     assert first.visible is True
-    assert first.active_binding_id == key
-    assert len(second.bindings) == 1  # a second post reveals the one tab, never a second
+    assert len(first.bindings) == 1
 
 
 @pytest.mark.anyio
