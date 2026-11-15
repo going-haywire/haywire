@@ -3652,7 +3652,7 @@
 <h1 id="farmhand-canonical-example">Farmhand — Canonical Example<a class="headerlink" href="#farmhand-canonical-example" title="Permanent link">&para;</a></h1>
 <h2 id="1-what-it-solves">1. What it solves<a class="headerlink" href="#1-what-it-solves" title="Permanent link">&para;</a></h2>
 <p>A <strong>Farmhand</strong> is one MCP tool exposed by a running Haywire studio to an attached AI agent (Claude Desktop, Claude Code, or any MCP client). Where a node runs inside a graph and a panel renders inside the studio UI, a Farmhand tool runs on behalf of an external agent that wants to <em>drive</em> the studio — list what's installed, inspect a component, mutate an open graph, query the error ledger.</p>
-<p>You author a Farmhand tool when a library wants to expose one of its capabilities to an agent as a callable action. Examples already shipping: <code>studio_list_components</code> (catalog search), <code>studio_describe_component</code> (identity + docstring lookup), <code>graph_editor_add_node</code> / <code>graph_editor_connect</code> (graph mutation), <code>graph_editor_inspect_node</code> (one node's live values + health), <code>haystack_open_graph</code> (session management), <code>marketplace_get_library_docs</code> (doc retrieval).</p>
+<p>You author a Farmhand tool when a library wants to expose one of its capabilities to an agent as a callable action. Examples already shipping: <code>haybale-studio_list_components</code> (catalog search), <code>haybale-studio_describe_component</code> (identity + docstring lookup), <code>haybale-graph-editor_add_node</code> / <code>haybale-graph-editor_connect</code> (graph mutation), <code>haybale-graph-editor_inspect_node</code> (one node's live values + health), <code>haybale-haystack_open_graph</code> (session management), <code>haybale-marketplace_get_library_docs</code> (doc retrieval).</p>
 <p><strong>Pair every mutation with a way to read what it changed.</strong> An agent that can write but not read has to guess names and cannot verify outcomes. The graph-editor tools are deliberately layered by breadth, and share one addressing vocabulary so a read result feeds straight back into a write:</p>
 <table>
 <thead>
@@ -3664,35 +3664,35 @@
 </thead>
 <tbody>
 <tr>
-<td><code>studio_describe_component</code></td>
+<td><code>haybale-studio_describe_component</code></td>
 <td>a component <strong>class</strong></td>
 <td>"what is this kind of node for?" (identity, docstring)</td>
 </tr>
 <tr>
-<td><code>graph_editor_query_graph</code></td>
+<td><code>haybale-graph-editor_query_graph</code></td>
 <td>a whole <strong>graph</strong></td>
 <td>"what nodes and edges exist, and how are they wired?" (topology, no values)</td>
 </tr>
 <tr>
-<td><code>graph_editor_inspect_node</code></td>
+<td><code>haybale-graph-editor_inspect_node</code></td>
 <td>one <strong>node instance</strong></td>
 <td>"what is on this node, what is it set to, and is it healthy?" — at three depths (see <code>data=</code> below)</td>
 </tr>
 <tr>
-<td><code>graph_editor_set_property</code></td>
+<td><code>haybale-graph-editor_set_property</code></td>
 <td>one <strong>field</strong></td>
 <td>writes a port value or settings field by the same flat <code>name</code> <code>inspect_node</code> reports</td>
 </tr>
 </tbody>
 </table>
 <p>The intended path narrows at every step, so an agent never pays for detail it did not ask for:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>studio_describe_component      what kind of node is this?        (class docstring)
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  └─ graph_editor_query_graph  which node instances exist?       (topology)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>haybale-studio_describe_component      what kind of node is this?        (class docstring)
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  └─ haybale-graph-editor_query_graph  which node instances exist?       (topology)
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>      └─ inspect_node get=[&#39;summary&#39;]                is it ok, and which bags are big?
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>          └─ inspect_node get=[&#39;settings&#39;] by_bag=[&#39;depth&#39;]      what fields does it have?
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>              └─ ... data=&#39;value&#39;                               what are they set to?
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>                  └─ ... data=&#39;all&#39; by_name=[&#39;threshold&#39;]        what can I write?
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>                      └─ graph_editor_set_property               write it
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>                      └─ haybale-graph-editor_set_property               write it
 </span></code></pre></div>
 <p>A row from <code>inspect_node</code> carries both handles the write tools need: flat <code>name</code> for <code>set_property</code>, and <code>accessor</code> for <code>promote_setting</code> (which addresses fields as <code>accessor</code> + <code>field</code>, not a flat name). <code>name</code> is stable across all three <code>data</code> levels, so it is also the key that joins a shallow row to its detailed counterpart.</p>
 <p>Farmhand tools are <strong>not</strong> the same as MCP <em>resources</em>. Tools are actions the agent invokes with arguments and gets a structured result back (<code>list_tools</code> / <code>call_tool</code> in the MCP spec). Resources are addressable, read-only documents the agent fetches by URI (<code>list_resources</code> / <code>read_resource</code>) — the baked documentation tree (<code>farmhand://docs/...</code>) and per-library <code>OVERVIEW.md</code>/<code>QUICKREF.md</code> files (<code>farmhand://library/&lt;id&gt;/...</code>) are resources, not tools. If what you're exposing is "read this static text," prefer a resource; if it's "do something and return structured data," write a Farmhand tool.</p>
@@ -3733,7 +3733,7 @@
 <tr>
 <td><code>description</code></td>
 <td>no</td>
-<td>Short human-facing blurb — shown in generated docs and the <code>studio_list_components</code> catalog. Not sent to MCP clients.</td>
+<td>Short human-facing blurb — shown in generated docs and the <code>haybale-studio_list_components</code> catalog. Not sent to MCP clients.</td>
 </tr>
 <tr>
 <td><code>instructions</code></td>
@@ -3830,7 +3830,7 @@
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="s2">&quot;graph_not_found&quot;</span><span class="p">,</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="sa">f</span><span class="s2">&quot;No open graph &#39;</span><span class="si">{</span><span class="n">binding_id</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
 </span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">ids</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;binding_id&quot;</span><span class="p">:</span> <span class="n">binding_id</span><span class="p">},</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Run haystack_list_graphs to see open graphs, or haystack_open_graph to open one.&quot;</span><span class="p">,</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Run haybale-haystack_list_graphs to see open graphs, or haybale-haystack_open_graph to open one.&quot;</span><span class="p">,</span>
 </span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">)</span>
 </span></code></pre></div>
 <p><strong>Folder convention and registration.</strong> Farmhand tools go in the library's <code>farmhands/</code> folder; register it with <code>FarmhandRegistry</code> in <code>register_components()</code>, alongside the same-shaped calls for <code>nodes/</code>, <code>panels/</code>, <code>states/</code>, etc:</p>
@@ -3843,7 +3843,7 @@
 </span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        <span class="n">registry_cls</span><span class="o">=</span><span class="n">FarmhandRegistry</span><span class="p">,</span>
 </span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="p">)</span>
 </span></code></pre></div>
-<p><strong>The <code>'haybale-studio'</code> registry-key prefix is reserved.</strong> <code>barn/haybale-studio</code>'s baseline tools (<code>studio_status</code>, <code>studio_list_components</code>, ...) own it; the reservation is enforced by distribution-name uniqueness at discovery, not by <code>FarmhandRegistry</code> itself. Don't register a second library under that distribution name.</p>
+<p><strong>The <code>'haybale-studio'</code> registry-key prefix is reserved.</strong> <code>barn/haybale-studio</code>'s baseline tools (<code>haybale-studio_status</code>, <code>haybale-studio_list_components</code>, ...) own it; the reservation is enforced by distribution-name uniqueness at discovery, not by <code>FarmhandRegistry</code> itself. Don't register a second library under that distribution name.</p>
 <h2 id="4-agent-facing-output">4. Agent-facing output<a class="headerlink" href="#4-agent-facing-output" title="Permanent link">&para;</a></h2>
 <p>Everything above is about making a tool <em>work</em>. This section is about making it <em>usable by an agent</em> — a different discipline, with its own failure modes, and the one most easily skipped because a tool that ignores all of it still passes its tests.</p>
 <p>Two costs drive every rule here:</p>
@@ -3853,8 +3853,8 @@
 </ul>
 <p>An agent has no peripheral vision. It cannot skim, scroll back, or notice that a list looked short. Whatever your response does not say, it does not know.</p>
 <h3 id="41-return-the-least-that-lets-the-agent-act">4.1 Return the least that lets the agent act<a class="headerlink" href="#41-return-the-least-that-lets-the-agent-act" title="Permanent link">&para;</a></h3>
-<p><strong>Default to the smallest useful row; put the rest behind <code>detail=true</code>.</strong> Return the 3-4 fields a caller needs to <em>decide what to do next</em> — an identifier, a label, a status — and gate prose, URLs, and provenance behind <code>detail</code>. Never <code>asdict()</code> a domain dataclass straight into a row: it ships whatever the class happens to hold, including fields that are empty for every row. Measured on a real 5-row <code>marketplace_list_available</code>, <code>asdict()</code> emitted 21 fields per row of which 41% of all values were empty, and 8 fields were empty on <em>every</em> row; trimming to four cut the payload 77%. When <code>detail=true</code> does return the full record, still drop empty values and runtime-only internals — an absent value says nothing worth a token.</p>
-<p><strong>Make the caller drill down: separate WHICH from HOW MUCH.</strong> A tool whose full response is expensive should force the caller to choose, on each independent axis, rather than defaulting to everything. <code>graph_editor_inspect_node</code> is the reference implementation, with three orthogonal parameters:</p>
+<p><strong>Default to the smallest useful row; put the rest behind <code>detail=true</code>.</strong> Return the 3-4 fields a caller needs to <em>decide what to do next</em> — an identifier, a label, a status — and gate prose, URLs, and provenance behind <code>detail</code>. Never <code>asdict()</code> a domain dataclass straight into a row: it ships whatever the class happens to hold, including fields that are empty for every row. Measured on a real 5-row <code>haybale-marketplace_list_available</code>, <code>asdict()</code> emitted 21 fields per row of which 41% of all values were empty, and 8 fields were empty on <em>every</em> row; trimming to four cut the payload 77%. When <code>detail=true</code> does return the full record, still drop empty values and runtime-only internals — an absent value says nothing worth a token.</p>
+<p><strong>Make the caller drill down: separate WHICH from HOW MUCH.</strong> A tool whose full response is expensive should force the caller to choose, on each independent axis, rather than defaulting to everything. <code>haybale-graph-editor_inspect_node</code> is the reference implementation, with three orthogonal parameters:</p>
 <table>
 <thead>
 <tr>
@@ -3893,7 +3893,7 @@
 <li><strong>Put the cost preview in the summary.</strong> <code>get=["summary"]</code> returns per-bag <code>setting_counts</code> (<code>{"color": 17, "depth": 6, …}</code>), not just a total — a bare "29 settings in 5 bags" leaves the caller with an all-or-nothing choice, while per-bag counts let it pick a <code>by_bag</code> and fetch one slice.</li>
 <li><strong>Don't show an agent what the user cannot see.</strong> A field whose <code>effective_ui_state</code> is <code>HIDDEN</code> is absent from the properties panel entirely (ADR 0020), so returning it in full puts the agent in a different reality from the human sharing the graph. Collapse it to <code>{name, ui_state: "hidden"}</code> — <strong>collapse, not omit</strong>: the gate is state, not structure, so an agent that flips the controlling flag must still be able to find the field. Naming it in <code>by_name</code> expands it in full.</li>
 <li><strong>The host validates <code>input_schema_override</code> before <code>run()</code> executes</strong> — an empty <code>get</code> or a misspelled <code>enum</code> value is rejected at the protocol boundary (<code>Input validation error: [] should be non-empty</code>), so the tool body never sees it. Keep the in-body guards for non-MCP callers, but write tests against the schema error, not the <code>FarmhandError</code>.</li>
-<li><code>summary</code> is emitted <strong>unconditionally</strong> (the canon rule above) <em>and</em> is selectable, so <code>get=["summary"]</code> is a legitimate cheap survey — the same ergonomic as <code>count_only=true</code> on <code>studio_list_components</code>.</li>
+<li><code>summary</code> is emitted <strong>unconditionally</strong> (the canon rule above) <em>and</em> is selectable, so <code>get=["summary"]</code> is a legitimate cheap survey — the same ergonomic as <code>count_only=true</code> on <code>haybale-studio_list_components</code>.</li>
 </ul>
 <p>Prefer these axes over a pile of <code>include_*</code> booleans: booleans multiply combinatorially and each one has to be discovered separately, whereas one enum per axis is self-describing in the derived schema.</p>
 <h3 id="42-never-hide-that-something-was-withheld">4.2 Never hide that something was withheld<a class="headerlink" href="#42-never-hide-that-something-was-withheld" title="Permanent link">&para;</a></h3>
@@ -3912,13 +3912,13 @@
 <p><code>truncation_note</code> returns <code>''</code> when the page already covers the whole collection, and a suffix like <code>' (showing 1-50 of 200 — pass limit/offset for more)'</code> otherwise — append it to <code>summary</code> so a client that only reads the summary string still learns the result was truncated.</p>
 <p><strong>Large single payloads truncate too.</strong> Pagination covers lists; a tool returning one <em>big</em> value (a source file, a README) needs the same guarantee, because an uncapped read silently dominates the caller's context. Cap by default, report the full size, and offer the escape hatch:</p>
 <ul>
-<li>Return the natural unit — lines for source (<code>studio_read_component_source</code>, <code>total_lines</code>, absolute line numbers preserved so a windowed read stays quotable), characters for prose (<code>marketplace_get_library_docs</code>, <code>total_chars</code>).</li>
+<li>Return the natural unit — lines for source (<code>haybale-studio_read_component_source</code>, <code>total_lines</code>, absolute line numbers preserved so a windowed read stays quotable), characters for prose (<code>haybale-marketplace_get_library_docs</code>, <code>total_chars</code>).</li>
 <li>Say it was truncated in <code>summary</code>, and add a <code>help</code> key naming the exact follow-up call (<code>offset=&lt;end&gt;</code> for the next window, or <code>full=true</code>).</li>
 <li>Accept <code>full=true</code> to bypass the cap. Never omit a large field entirely — a preview plus the total beats forcing a second blind call.</li>
 </ul>
 <p><strong>Every result should carry a <code>summary</code> string.</strong> The host injects a fallback (<code>f"{name}: ok"</code>) if a returned dict omits one, but an explicit, information-dense summary is the first (and sometimes only) thing a token-conscious agent reads — write one deliberately rather than relying on the fallback.</p>
 <h3 id="43-say-what-to-do-next">4.3 Say what to do next<a class="headerlink" href="#43-say-what-to-do-next" title="Permanent link">&para;</a></h3>
-<p><strong>Put a <code>help</code> key on list and mutation results, not just on errors.</strong> <code>FarmhandError(help=)</code> covers the failure path; the success path needs the same courtesy — the asymmetry is the bug. After a list, name the drill-down (<code>studio_describe_component registry_key=&lt;key&gt;</code>); after a mutation, name what makes the change useful (<code>haystack_create_graph</code> → add a node, then save — it is unsaved until you do). Carry forward ids you already hold so the hint is a runnable command rather than a template, and prefer a concrete value over a placeholder when you know it: <code>studio_list_components count_only=true</code> names its own biggest bucket. Omit <code>help</code> on detail views — they are self-contained, and a hint there is noise. Omit it on an empty page too, except to say how to create the first item.</p>
+<p><strong>Put a <code>help</code> key on list and mutation results, not just on errors.</strong> <code>FarmhandError(help=)</code> covers the failure path; the success path needs the same courtesy — the asymmetry is the bug. After a list, name the drill-down (<code>haybale-studio_describe_component registry_key=&lt;key&gt;</code>); after a mutation, name what makes the change useful (<code>haybale-haystack_create_graph</code> → add a node, then save — it is unsaved until you do). Carry forward ids you already hold so the hint is a runnable command rather than a template, and prefer a concrete value over a placeholder when you know it: <code>haybale-studio_list_components count_only=true</code> names its own biggest bucket. Omit <code>help</code> on detail views — they are self-contained, and a hint there is noise. Omit it on an empty page too, except to say how to create the first item.</p>
 <p>The error-path half of this rule lives with the <code>FarmhandError</code> contract in §3 — same principle, applied where the agent needs it most.</p>
 <h3 id="44-be-honest-about-what-you-know">4.4 Be honest about what you know<a class="headerlink" href="#44-be-honest-about-what-you-know" title="Permanent link">&para;</a></h3>
 <p><strong>Resist inventing causality the framework does not record.</strong> A tempting addition to <code>inspect_node</code> was a <code>disabled_reason</code> explaining <em>why</em> a field is <code>DISABLED</code>. <code>effective_ui_state</code> composes a severity-max over three independent sources and discards which one won, so any such field would be a guess — and a plausible-but-wrong reason is worse for an agent than no reason at all. Report the state; leave the cause to whoever declared it.</p>
@@ -3975,7 +3975,7 @@
 </tr>
 <tr>
 <td>§8 no-args shows live content</td>
-<td>Closest equivalent is <code>studio_status</code>, not a per-tool behaviour.</td>
+<td>Closest equivalent is <code>haybale-studio_status</code>, not a per-tool behaviour.</td>
 </tr>
 </tbody>
 </table>
@@ -4061,8 +4061,8 @@
 </span><span id="__span-9-46"><a id="__codelineno-9-46" name="__codelineno-9-46" href="#__codelineno-9-46"></a>        <span class="p">}</span>
 </span><span id="__span-9-47"><a id="__codelineno-9-47" name="__codelineno-9-47" href="#__codelineno-9-47"></a>        <span class="k">if</span> <span class="n">rows</span><span class="p">:</span>
 </span><span id="__span-9-48"><a id="__codelineno-9-48" name="__codelineno-9-48" href="#__codelineno-9-48"></a>            <span class="n">result</span><span class="p">[</span><span class="s2">&quot;help&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-9-49"><a id="__codelineno-9-49" name="__codelineno-9-49" href="#__codelineno-9-49"></a>                <span class="s2">&quot;Run studio_list_components library=&lt;id&gt; to see what a library provides, or &quot;</span>
-</span><span id="__span-9-50"><a id="__codelineno-9-50" name="__codelineno-9-50" href="#__codelineno-9-50"></a>                <span class="s2">&quot;marketplace_get_library_docs library=&lt;id&gt; for its docs&quot;</span>
+</span><span id="__span-9-49"><a id="__codelineno-9-49" name="__codelineno-9-49" href="#__codelineno-9-49"></a>                <span class="s2">&quot;Run haybale-studio_list_components library=&lt;id&gt; to see what a library provides, or &quot;</span>
+</span><span id="__span-9-50"><a id="__codelineno-9-50" name="__codelineno-9-50" href="#__codelineno-9-50"></a>                <span class="s2">&quot;haybale-marketplace_get_library_docs library=&lt;id&gt; for its docs&quot;</span>
 </span><span id="__span-9-51"><a id="__codelineno-9-51" name="__codelineno-9-51" href="#__codelineno-9-51"></a>                <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;&quot;</span> <span class="k">if</span> <span class="n">detail</span> <span class="k">else</span> <span class="s2">&quot;; re-run with detail=true for descriptions and tags&quot;</span><span class="p">)</span>
 </span><span id="__span-9-52"><a id="__codelineno-9-52" name="__codelineno-9-52" href="#__codelineno-9-52"></a>                <span class="o">+</span> <span class="s2">&quot;.&quot;</span>
 </span><span id="__span-9-53"><a id="__codelineno-9-53" name="__codelineno-9-53" href="#__codelineno-9-53"></a>            <span class="p">)</span>
@@ -4101,7 +4101,7 @@
 </span><span id="__span-10-29"><a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a>            <span class="k">raise</span> <span class="n">FarmhandError</span><span class="p">(</span>
 </span><span id="__span-10-30"><a id="__codelineno-10-30" name="__codelineno-10-30" href="#__codelineno-10-30"></a>                <span class="s2">&quot;invalid_args&quot;</span><span class="p">,</span>
 </span><span id="__span-10-31"><a id="__codelineno-10-31" name="__codelineno-10-31" href="#__codelineno-10-31"></a>                <span class="s2">&quot;Pass seq=&lt;n&gt; to dismiss one entry, or all=true.&quot;</span><span class="p">,</span>
-</span><span id="__span-10-32"><a id="__codelineno-10-32" name="__codelineno-10-32" href="#__codelineno-10-32"></a>                <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Run studio_get_errors to find the seq of the entry to dismiss.&quot;</span><span class="p">,</span>
+</span><span id="__span-10-32"><a id="__codelineno-10-32" name="__codelineno-10-32" href="#__codelineno-10-32"></a>                <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Run haybale-studio_get_errors to find the seq of the entry to dismiss.&quot;</span><span class="p">,</span>
 </span><span id="__span-10-33"><a id="__codelineno-10-33" name="__codelineno-10-33" href="#__codelineno-10-33"></a>            <span class="p">)</span>
 </span><span id="__span-10-34"><a id="__codelineno-10-34" name="__codelineno-10-34" href="#__codelineno-10-34"></a>
 </span><span id="__span-10-35"><a id="__codelineno-10-35" name="__codelineno-10-35" href="#__codelineno-10-35"></a>        <span class="n">ledger</span> <span class="o">=</span> <span class="n">get_error_ledger</span><span class="p">()</span>
@@ -4281,11 +4281,11 @@
 </tr>
 <tr>
 <td>Returning a list without <code>limit</code>/<code>offset</code></td>
-<td>No way for a caller to scope a large result — the exact problem <code>studio_list_components</code> had before it grew filters</td>
+<td>No way for a caller to scope a large result — the exact problem <code>haybale-studio_list_components</code> had before it grew filters</td>
 </tr>
 <tr>
 <td>Slicing a list by hand instead of <code>page()</code> + <code>truncation_note()</code></td>
-<td>Silently drops the rest with no signal — <code>marketplace_list_available</code> and <code>studio_get_errors</code> both shipped this way, reporting a bare <code>total</code> a caller had no way to act on</td>
+<td>Silently drops the rest with no signal — <code>haybale-marketplace_list_available</code> and <code>haybale-studio_get_errors</code> both shipped this way, reporting a bare <code>total</code> a caller had no way to act on</td>
 </tr>
 <tr>
 <td>Returning a whole file or document uncapped</td>
@@ -4297,7 +4297,7 @@
 </tr>
 <tr>
 <td><code>asdict()</code>-ing a domain dataclass into a list row</td>
-<td>Ships every field the class happens to hold — <code>marketplace_list_available</code> emitted 21 fields/row with 41% of values empty and 8 fields empty on <em>every</em> row. Pick fields explicitly; gate the rest behind <code>detail=true</code></td>
+<td>Ships every field the class happens to hold — <code>haybale-marketplace_list_available</code> emitted 21 fields/row with 41% of values empty and 8 fields empty on <em>every</em> row. Pick fields explicitly; gate the rest behind <code>detail=true</code></td>
 </tr>
 <tr>
 <td>A successful list or mutation with no <code>help</code></td>
@@ -4321,7 +4321,7 @@
 </tr>
 <tr>
 <td>Trusting a mutating tool's success when the write path is silent</td>
-<td><code>setting.__set__</code> drops a validator-rejected write and returns normally, so the action "succeeds". Verify by reading the value back (<code>graph_editor_set_property</code> raises <code>set_rejected</code>)</td>
+<td><code>setting.__set__</code> drops a validator-rejected write and returns normally, so the action "succeeds". Verify by reading the value back (<code>haybale-graph-editor_set_property</code> raises <code>set_rejected</code>)</td>
 </tr>
 <tr>
 <td>Walking <code>type(node)._settings_bags</code> without filtering</td>

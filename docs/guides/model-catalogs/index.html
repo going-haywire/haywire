@@ -4119,7 +4119,7 @@
 <p>Some hosts (Mega, Google Drive, OneDrive…) answer a script with a web page, not the file. Nothing recognises such a host: the download fails like any other, and the row then offers <strong>Download in browser</strong> (ADMIN). The dialog links each address of the file; the user gets it in their browser and drops it on the dialog. It is checked and stored like a downloaded file, under its uploaded name where the entry does not fix one.</p>
 <p>The offer needs something that would find the stored file: a digest, a <code>cache</code> address, or an <code>https://</code> address. A whole-repo <code>hf://</code> address and an <code>hf://</code> file without a digest get no offer.</p>
 <p><strong>Give every file a <code>sha256</code>.</strong> With one, a wrong file is refused with what was expected. Without one, the dialog warns <code>No digest in the catalog: this file can't be verified.</code> and accepts what it gets. List a direct address first and a file host after it: the automatic download then succeeds without the user.</p>
-<p>Agents see a failed job's <code>assisted</code> and <code>page_urls</code> in <code>models_list</code>, and send the user to the dialog; they have no upload path.</p>
+<p>Agents see a failed job's <code>assisted</code> and <code>page_urls</code> in <code>haybale-models_list</code>, and send the user to the dialog; they have no upload path.</p>
 
 
 

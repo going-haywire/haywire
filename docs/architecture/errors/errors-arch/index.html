@@ -3674,7 +3674,7 @@
 
 
 <h1 id="errors-architecture">Errors — Architecture<a class="headerlink" href="#errors-architecture" title="Permanent link">&para;</a></h1>
-<p>Every failure on the studio's editing, running, load/save, hot-reload and Farmhand pathways, and every detected loss of user work, lands in the <strong>error ledger</strong> with the context to act on it: the Errors editor shows it with its unseen badge, and agents read it through <code>studio_get_errors</code>. Expected rejections do not. Inner code keeps raising plain Python exceptions; a short, named list of <strong>error boundaries</strong> records them. The why is in <a href="../../../adr/0061-errors-reach-the-ledger-at-named-boundaries/">ADR 0061</a>.</p>
+<p>Every failure on the studio's editing, running, load/save, hot-reload and Farmhand pathways, and every detected loss of user work, lands in the <strong>error ledger</strong> with the context to act on it: the Errors editor shows it with its unseen badge, and agents read it through <code>haybale-studio_get_errors</code>. Expected rejections do not. Inner code keeps raising plain Python exceptions; a short, named list of <strong>error boundaries</strong> records them. The why is in <a href="../../../adr/0061-errors-reach-the-ledger-at-named-boundaries/">ADR 0061</a>.</p>
 <h2 id="1-three-outcomes">1. Three outcomes<a class="headerlink" href="#1-three-outcomes" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

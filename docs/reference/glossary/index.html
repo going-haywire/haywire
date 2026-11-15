@@ -4805,7 +4805,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Node template</strong></td>
-<td>A registered node class declared with <code>@node(template=True)</code> that exists to be <strong>cloned</strong>, never placed: <code>template=True</code> implies <code>hidden=True</code>, so it is absent from the add-node menu, search and <code>QUICKREF.md</code>, and <code>NodeFactory.list_templates()</code> is the one call that lists it. The New Node wizard and Farmhand's <code>studio_scaffold_component</code> start a new node from one. A template holds only absolute imports and no module-level names besides them, so its clone imports nothing from the template's library. Any library may ship templates; builtin ships the Data template. Distinct from a <strong>Macro template</strong> — see <em>"template" — two meanings</em></td>
+<td>A registered node class declared with <code>@node(template=True)</code> that exists to be <strong>cloned</strong>, never placed: <code>template=True</code> implies <code>hidden=True</code>, so it is absent from the add-node menu, search and <code>QUICKREF.md</code>, and <code>NodeFactory.list_templates()</code> is the one call that lists it. The New Node wizard and Farmhand's <code>haybale-studio_scaffold_component</code> start a new node from one. A template holds only absolute imports and no module-level names besides them, so its clone imports nothing from the template's library. Any library may ship templates; builtin ships the Data template. Distinct from a <strong>Macro template</strong> — see <em>"template" — two meanings</em></td>
 <td>Starter, stub, skeleton, prototype</td>
 </tr>
 <tr>
@@ -5263,7 +5263,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Farmhand server</strong></td>
-<td>The in-studio MCP server subsystem through which AI-agent clients operate the studio via library-contributed tools. The host (transport mounted at <code>/mcp</code> on the studio app, session registry, <code>mcp</code> SDK dependency) lives in haywire-studio; the SDK-free contribution seam (<code>FarmhandRegistry</code>, <code>Farmhand</code>/<code>@farmhand</code>, <code>FarmhandContext</code>) lives in haywire-core. The <code>studio_*</code> baseline tools ship in barn/haybale-studio, registering through the same folder-scan mechanism as every other library's tools.</td>
+<td>The in-studio MCP server subsystem through which AI-agent clients operate the studio via library-contributed tools. The host (transport mounted at <code>/mcp</code> on the studio app, session registry, <code>mcp</code> SDK dependency) lives in haywire-studio; the SDK-free contribution seam (<code>FarmhandRegistry</code>, <code>Farmhand</code>/<code>@farmhand</code>, <code>FarmhandContext</code>) lives in haywire-core. The <code>haybale-studio_*</code> baseline tools ship in barn/haybale-studio, registering through the same folder-scan mechanism as every other library's tools.</td>
 <td>MCP server (ambiguous — any third-party MCP server)</td>
 </tr>
 <tr>
@@ -5293,7 +5293,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Error ledger</strong></td>
-<td>A bounded, in-memory, sequence-numbered collection where every <code>HaywireException</code> registers at <code>.log()</code> time (registry-scan import errors wrapped in), queryable "since sequence N". First consumers are Farmhand's <code>studio_get_errors</code> and <code>studio_verify_component</code>. It takes <strong>Failures</strong> and detected losses (<code>WARNING</code>), never a <strong>Refusal</strong>. Repeats merge into the unseen entry with the same fingerprint (<code>count</code>) — operation, registry key, graph, node, edge, category, source file and line, and the message with digits normalized; a merge adds no entry and fires no listener, and a repeat of a seen or deleted entry is new. An <strong>Observable store</strong>. See <a href="../../architecture/errors/errors-arch/">architecture/errors</a></td>
+<td>A bounded, in-memory, sequence-numbered collection where every <code>HaywireException</code> registers at <code>.log()</code> time (registry-scan import errors wrapped in), queryable "since sequence N". First consumers are Farmhand's <code>haybale-studio_get_errors</code> and <code>haybale-studio_verify_component</code>. It takes <strong>Failures</strong> and detected losses (<code>WARNING</code>), never a <strong>Refusal</strong>. Repeats merge into the unseen entry with the same fingerprint (<code>count</code>) — operation, registry key, graph, node, edge, category, source file and line, and the message with digits normalized; a merge adds no entry and fires no listener, and a repeat of a seen or deleted entry is new. An <strong>Observable store</strong>. See <a href="../../architecture/errors/errors-arch/">architecture/errors</a></td>
 <td>error log (file logs are unqueryable), exception history</td>
 </tr>
 <tr>
