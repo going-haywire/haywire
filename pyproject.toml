@@ -168,6 +168,11 @@ ban-relative-imports = "all"
 "haybale_share".msg = "haywire-core/-studio must not import a barn library — publish a signal a library answers."
 "haybale_core".msg = "haywire-core/-studio must not import a barn library — publish a signal a library answers."
 "haybale_testing".msg = "haywire-core/-studio must not import a barn library — publish a signal a library answers."
+# The Author API points one way: haywire.api -> core / ui / barn.builtin
+# (ADR 0084). The framework never imports its own public module; the
+# exceptions are the module itself and the node templates, which are copied
+# into authors' libraries (per-file-ignores below).
+"haywire.api".msg = "The framework does not import the Author API (ADR 0084) — import the internal module."
 
 [tool.ruff.lint.per-file-ignores]
 # The banned-api list above governs only the two packages the arrow
@@ -179,6 +184,8 @@ ban-relative-imports = "all"
 # every file fails to match at least one half — which is how this rule first
 # shipped enforcing nothing.
 "!packages/**" = ["TID251"]
+"packages/haywire-core/src/haywire/api/**" = ["TID251"]
+"packages/haywire-core/src/haywire/barn/builtin/nodes/templates/**" = ["TID251"]
 # Relative imports are banned in haybale libraries only; packages/ keeps them.
 "!barn/**" = ["TID252"]
 # PT is a pytest-only style; production code has no test functions to lint.

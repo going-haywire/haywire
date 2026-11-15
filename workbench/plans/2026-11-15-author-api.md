@@ -1,13 +1,13 @@
 # Author API: a declared public import path for library authors
 
-Status: design settled 2026-11-15 (design session, Q1–Q9), nothing built.
-Open: the three names marked "decide" in [Names to decide](#names-to-decide),
-presented at the start of slice 1.
+Status: design settled 2026-11-15 (design session, Q1–Q9). Slices 1 and 3 are
+built (see [Slices](#slices)); the names are decided
+([Names decided](#names-decided)). Next: slice 2.
 
 ## Picking this up
 
 Branch `refactor-API-surface`, draft PR
-[#108](https://github.com/going-haywire/haywire/pull/108) (plan only).
+[#108](https://github.com/going-haywire/haywire/pull/108) (plan, slices 1 and 3).
 
 - **The name lists** are in the appendix
   [2026-11-15-author-api-names.md](2026-11-15-author-api-names.md): the first
@@ -17,15 +17,10 @@ Branch `refactor-API-surface`, draft PR
   (the two external checkouts are optional arguments; without them their names
   drop out). Its "documented" test is a word match over `docs/`, so read each
   first-cut name once before exporting it.
-- **Next step is slice 1.** Its tasks in order:
-  1. Present the three "decide" names to the maintainer (`declaring_type_of`,
-     `FONTS` / `FONT_STACKS`, `console_print`): what each does, who calls it,
-     the cost of either answer.
-  2. Write `haywire/api/__init__.py` and `haywire/api/workbench.py` from the
-     appendix's first cut plus the decided names, with the whole-block rule for
-     builtin types and widgets.
-  3. Snapshot test, the `packages/**` lint entry, the two ADRs, the glossary
-     terms.
+- **Next step is slice 2** (what authors read), then slice 4 one library at a
+  time. A name a library needs that the two modules lack is decided when its
+  library migrates: export and document, or rewrite the user. Adding a name
+  needs an edit to `tests/api/names.py`.
 - **Each slice gets its own detailed plan** in `workbench/plans/` before code;
   this file is the design, not a task list.
 - **Patterns to copy,** all named again where they apply below:
@@ -188,14 +183,17 @@ To verify while building: `warnings.catch_warnings` changes process-global
 state. If library imports can run off the main thread while another thread
 imports, record through a filter installed once instead.
 
-## Names to decide
+## Names decided
 
 Used by a node-authoring library, not mentioned in `docs/` (ADRs excluded).
-Each needs: document and export, or keep internal and rewrite the user.
+Each was decided: document and export, or keep internal and rewrite the user.
+The maintainer left the three open rows to the implementer (2026-11-15); the
+"Decision" column is what slice 1 built. Documenting the exported ones is
+slice 2; rewriting the users is slice 4.
 
 ### Component tier
 
-| Name | From | Used by | Lean |
+| Name | From | Used by | Decision |
 |---|---|---|---|
 | `CatalogEntry`, `ModelFile` | `core.catalog` | models | export, document in the catalog page |
 | `CarrierValue` | `barn.builtin.carrier` | image | export, document (ADR 0075) |
@@ -204,26 +202,33 @@ Each needs: document and export, or keep internal and rewrite the user.
 | `SwitchWidget` | `barn.builtin.widgets` | example, testing | export (whole-block rule) |
 | `element_from_dict` | `core.types.fields` | core, example | export, document in the datatype canon |
 | `volume_name` | `core.volumes` | core, studio | export |
-| `declaring_type_of` | `core.types.wire` | core | decide |
-| `SKIN_TAG_SPECIAL`, `SKIN_TAG_STAGE_ONLY`, `SKIN_TAG_WIDGET_NODE` | `core.skin.tags` | core | export, document in the skin canon |
-| `BUTTON_WIDGET`, `SWITCH_WIDGET`, `NUMBER_WIDGET`, `SLIDER_WIDGET`, `TEXT_WIDGET` | `barn.builtin.widget_keys` | core | export as a block |
-| `FONTS`, `FONT_STACKS` | `core.skin.fonts` | core | decide |
-| `H_ALIGNS` | `barn.builtin.nodes.annotation` | core | internal; move the constant to where both can reach it |
-| `console_print` | `ui.console_bridge` | core | decide |
+| `declaring_type_of` | `core.types.wire` | core | export, document in the datatype canon: a container type (array, drain, pooled) written outside core needs it to give its ports the element type's wire |
+| `SKIN_TAG_SPECIAL`, `SKIN_TAG_STAGE_ONLY`, `SKIN_TAG_WIDGET_NODE` | `core.skin.tags` | core | export all five tags as a block, with `skin_choices` (the skin canon teaches it) |
+| `_widget_node_stage_skin_choices` | `core.skin.settings` | core | renamed `widget_node_stage_skin_choices` and exported: a third-party widget node offers the same skin list |
+| `BUTTON_WIDGET`, `SWITCH_WIDGET`, `NUMBER_WIDGET`, `SLIDER_WIDGET`, `TEXT_WIDGET` | `barn.builtin.widget_keys` | core | export all 17 keys as a block (tested like types and widgets) |
+| `FONTS`, `FONT_STACKS` | `core.skin.fonts` | core | export: a skin that styles text offers the same choices as the annotation and the widget nodes, and they are four strings and a dict that rarely change |
+| `H_ALIGNS` | `barn.builtin.nodes.annotation` | core | moved with `V_ALIGNS` to `core.skin.fonts` beside `FONTS`, and exported with them as the text style choices |
+| `console_print` | `ui.console_bridge` | core | internal: its body is `print(*args, **kwargs)`, and the studio log already shows `print()`. The Print node calls `print()` (slice 4) |
+| `WIDGET_REGISTRY` | `ui.widget.globals` | core | internal (it was in the first cut by a loose word match): export `get_widget_class()`, which the widget canon teaches; `array_widget` calls it (slice 4) |
+| `Event` | `core.types.event` | core | not exported yet: one user (`array_widget`), and the docs match was another meaning of the word. Decided when haybale-core migrates |
+| `theme`, `BaseTheme`, `watch` | `ui.themes`, `core.settings` | studio, testing | exported now: the theme and settings canons teach them to authors |
 
 ### Workbench tier
 
-| Name | From | Used by | Lean |
+| Name | From | Used by | Decision |
 |---|---|---|---|
 | `set_hover_tip` | `ui.hover_tip` | graph-editor, models | export |
 | `resolve_tier` | `core.access.resolver` | models | export |
-| `MENU_CARD_CLASS` | `ui.elements.flyout` | models | internal; reach it through `hui` |
+| `MENU_CARD_CLASS` | `ui.elements.flyout` | models | internal; `hui` gets a menu element carrying the class when haybale-models migrates (slice 4) |
 | `get_library_state_container`, `activity_tracker`, `get_catalog_registry` | `core.di.context` | models, haystack, studio | export (D1) |
 
-The leans stand unless the maintainer changes one. The three rows marked
-"decide" (`declaring_type_of`, `FONTS` / `FONT_STACKS`, `console_print`) are
-presented to the maintainer as the first task of slice 1, each with what it
-does, who calls it and the cost of either answer.
+The design system is exported as `hui`
+(`from haywire.api.workbench import hui`), the name every library already
+gives `haywire.ui.elements`.
+
+`resolve` and `location_of` (`core.volumes`) are exported under their own
+names. Clearer names were weighed (ADR 0084, *Considered*) and left: about a
+hundred call sites and the docs use the bare names.
 
 ## Further decisions (2026-11-15)
 
@@ -252,11 +257,14 @@ The last task of each slice marks it done here (commit, date, deviations).
 
 | Slice | Status |
 |---|---|
-| 1–7 | not started |
+| 1 | done 2026-11-15, PR #108. 165 component names, 35 workbench names; ADRs 0084 and 0085; glossary terms. The checked-in list is `tests/api/names.py` |
+| 2 | not started |
+| 3 | done 2026-11-15, PR #108 (merged into slice 1, as allowed). Deviations: notices are collected in a `ContextVar` (`core/library/deprecated_names.py`), not with `warnings.catch_warnings`; the warning is `HaywireDeprecationWarning`, a `DeprecationWarning` subclass, so third-party deprecations stay out of the ledger; the entry is written with `report_loss` |
+| 4–7 | not started |
 
 ## Lands with the code
 
-**Glossary** (`docs/reference/glossary.md`):
+**Glossary** (`docs/reference/glossary.md`, added in slice 1):
 
 - **Author API**: the names a library may import with a compatibility promise;
   the two modules together. Avoid: "API surface", "public surface" ("surface"
@@ -269,11 +277,13 @@ The last task of each slice marks it done here (commit, date, deviations).
 - Amend the "component overloaded" entry, which calls the registry meaning
   "public API".
 
-**ADRs** (numbers assigned when written; 0083 is taken by the proposal in PR #105):
+**ADRs** (written in slice 1):
 
-- "A library imports the framework through the Author API": Q1, Q2, Q4, Q5, Q6
+- [ADR 0084](../../docs/adr/0084-a-library-imports-the-framework-through-the-author-api.md),
+  "A library imports the framework through the Author API": Q1, Q2, Q4, Q5, Q6
   and the template exception.
-- "A name leaves the Author API through a deprecation window": Q8, Q9.
+- [ADR 0085](../../docs/adr/0085-a-name-leaves-the-author-api-through-a-deprecation-window.md),
+  "A name leaves the Author API through a deprecation window": Q8, Q9.
 
 ## Not in this design
 
