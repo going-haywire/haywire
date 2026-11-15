@@ -1,10 +1,20 @@
 # haybale_testing/settings/testing.py
 """Library-level settings for the testing library."""
 
-from haywire.core.settings.settings_library import LibrarySettings
-from haywire.core.settings import setting, Vec2i, Vec3f
-from haywire.core.settings.decorator import settings
-from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, FLOAT, INT, STRING, VEC2I, VEC3F
+from haywire.api import (
+    BOOL,
+    CHOICES,
+    COLOR,
+    FLOAT,
+    INT,
+    STRING,
+    VEC2I,
+    VEC3F,
+    LibrarySettings,
+    setting,
+    settings,
+)
+from haywire.core.settings import Vec2i, Vec3f
 
 
 @settings(namespace="testing", label="Testing")

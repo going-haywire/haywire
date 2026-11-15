@@ -334,7 +334,7 @@ Source: [`barn/haybale-testing/haybale_testing/panels/graph/menu/`](../../../bar
 **Simple action panel** — `TestDeleteNodeMenuPanel` from `barn/haybale-testing/haybale_testing/panels/graph/menu/node/node.py`. Demonstrates the minimal action-panel skeleton: `@panel` decorator, `actions: TestNodeActions` class-body annotation, `poll()` checking `EditState`, `draw()` rendering with `with layout: hui.menu_row(...)` and dispatching through `self.actions`:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/panels/graph/menu/node/node.py:22:53"
+--8<-- "barn/haybale-testing/haybale_testing/panels/graph/menu/node/node.py:19:50"
 ```
 
 from: `TestDeleteNodeMenuPanel` — registry_key: `haybale-testing:panel:TestDeleteNodeMenuPanel`
@@ -342,7 +342,7 @@ from: `TestDeleteNodeMenuPanel` — registry_key: `haybale-testing:panel:TestDel
 **SessionState-reading panel** — `TestSessionStateMenuPanel` from `barn/haybale-testing/haybale_testing/panels/graph/menu/canvas/canvas.py`. Demonstrates `poll()` reading a `SessionState` signal field and `draw()` displaying it with `with layout: hui.label(...)`:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/panels/graph/menu/canvas/canvas.py:55:76"
+--8<-- "barn/haybale-testing/haybale_testing/panels/graph/menu/canvas/canvas.py:52:73"
 ```
 
 from: `TestSessionStateMenuPanel` — registry_key: `haybale-testing:panel:TestSessionStateMenuPanel`

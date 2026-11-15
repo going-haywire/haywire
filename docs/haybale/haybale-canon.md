@@ -440,7 +440,7 @@ Source: `barn/haybale-testing/haybale_testing/__init__.py`
 the codebase. Pulled in live, so it cannot drift:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/__init__.py:24:87"
+--8<-- "barn/haybale-testing/haybale_testing/__init__.py:23:86"
 ```
 
 from: `Library` — registry_key: `haybale-testing:library:Library`

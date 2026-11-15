@@ -13,14 +13,10 @@ from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
 
-from haywire.core.access import AccessTier
-from haywire.ui import elements as hui
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import OpenBehavior, SlotName
+from haywire.api.workbench import AccessTier, BaseEditor, OpenBehavior, SlotName, editor, hui
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
     from nicegui.element import Element
 
 

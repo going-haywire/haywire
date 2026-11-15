@@ -14,10 +14,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from nicegui import ui
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel, PanelLayout
-from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.render_utils import render_schema
+from haywire.api.workbench import (
+    AccessTier,
+    AppSettingsSurface,
+    BasePanel,
+    PanelLayout,
+    hui,
+    panel,
+    render_schema,
+)
 
 from haybale_studio.settings.network_settings import NetworkSettings
 from haybale_studio.settings.theme_settings import WorkbenchThemeSettings, NodeThemeSettings
@@ -26,14 +31,12 @@ from haywire.core.tooling.settings import ExternalToolsSettings
 from haywire.core.undo.settings import UndoSettings
 from haywire.core.farmhand.settings import ActivitySettings
 
-from haywire.barn.builtin.surfaces import AppSettingsSurface
 
-from haywire.core.access import AccessTier
 from haywire_studio.network.tls_operations import status as tls_status
 from haywire_studio.security.posture import Severity, assess_document
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
     from haywire_studio.security.posture import Posture
 
 

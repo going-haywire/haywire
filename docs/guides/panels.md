@@ -79,7 +79,7 @@ Source: `barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py`
 `CanvasSettingsPanel` renders the entire `CanvasSettings` schema into the panel:
 
 ```python
---8<-- "barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py:37:53"
+--8<-- "barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py:33:49"
 ```
 
 from: `CanvasSettingsPanel` — registry_key: `haybale-studio:panel:CanvasSettingsPanel`

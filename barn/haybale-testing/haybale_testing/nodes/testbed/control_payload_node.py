@@ -1,5 +1,4 @@
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.api import EXEC, BaseNode, ExecutionContext, NodeType, node
 
 
 # --8<-- [start:control_payload_test_node]
@@ -37,8 +36,6 @@ class ControlPayloadTestNode(BaseNode):
     received = None
 
     def init(self):
-        from haywire.barn.builtin.types import EXEC
-
         self.add(EXEC.as_inlet("exec_in"))
         self.add(EXEC.as_outlet("exec_out"))
 

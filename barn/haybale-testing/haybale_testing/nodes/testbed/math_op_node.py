@@ -1,5 +1,4 @@
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.api import FLOAT, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(
@@ -13,8 +12,6 @@ class TestAddFloatNode(BaseNode):
     """Test-only data node that adds two float values."""
 
     def init(self):
-        from haywire.barn.builtin.types import FLOAT
-
         self.add(FLOAT.as_inlet(id="value_a", label="Value A", default=0.0))
         self.add(FLOAT.as_inlet(id="value_b", label="Value B", default=0.0))
         self.add(FLOAT.as_outlet(id="result", label="Result"))

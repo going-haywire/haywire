@@ -5,9 +5,7 @@ node's size floor is a whole-card property, so widgets sharing a node would
 floor it together and the declaration under test would not be isolated.
 """
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
-from haywire.barn.builtin.types import STRING
+from haywire.api import STRING, BaseNode, ExecutionContext, NodeType, node
 
 
 class _SizeBoxNode(BaseNode):

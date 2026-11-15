@@ -1,7 +1,6 @@
 """Test-only nodes with a swinglet: one port that may be either end of an edge."""
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
+from haywire.api import EXEC, FLOAT, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(
@@ -15,8 +14,6 @@ class SwingletPassProbeNode(BaseNode):
     """Data node with a float swinglet `s`. Each run records `s` in `seen`, then writes `s * 10` to it."""
 
     def init(self) -> None:
-        from haywire.barn.builtin.types import FLOAT
-
         self.add(FLOAT.as_swinglet("s", default=0.0))
 
     def post_init(self) -> None:
@@ -39,8 +36,6 @@ class SwingletStopProbeNode(BaseNode):
     """Data node with a float swinglet `s`. Each run records `s` in `seen` and writes nothing."""
 
     def init(self) -> None:
-        from haywire.barn.builtin.types import FLOAT
-
         self.add(FLOAT.as_swinglet("s", default=0.0))
 
     def post_init(self) -> None:
@@ -62,8 +57,6 @@ class SwingletControlProbeNode(BaseNode):
     """Control node with an `EXEC` swinglet `flow`. Each run increments `runs` and returns `flow`."""
 
     def init(self) -> None:
-        from haywire.barn.builtin.types import EXEC
-
         self.add(EXEC.as_swinglet("flow"))
 
     def post_init(self) -> None:
@@ -105,8 +98,6 @@ class SwingletEchoProbeNode(BaseNode):
     then writes that value plus one to `s`."""
 
     def init(self) -> None:
-        from haywire.barn.builtin.types import FLOAT
-
         self.add(FLOAT.as_swinglet("s", default=0.0, on_change="hb_s"))
 
     def post_init(self) -> None:

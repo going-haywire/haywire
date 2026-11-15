@@ -16,8 +16,7 @@ from typing import Any
 
 from nicegui import ui
 
-from haywire.ui.widget.base import BaseWidget
-from haywire.ui.widget.decorator import widget
+from haywire.api import BaseWidget, widget
 
 # Matches a 720p frame — the case that motivated the feature.
 CONTENT_WIDTH = 1280

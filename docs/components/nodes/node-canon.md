@@ -347,7 +347,7 @@ added with `self.add(...)` and named by `id` (Section 3), and the ports a node
 has right now are what is saved (Section 5).
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_test.py:13:65"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_test.py:12:64"
 ```
 from: `DynamicPortTestNode` — registry_key: `haybale-testing:node:DynamicPortTestNode`
 

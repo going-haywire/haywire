@@ -8,8 +8,7 @@ EXEC inlet/outlet — so the number reflects the control-edge machinery, not nod
 work. Editing it shifts the baseline; add a new frozen node instead.
 """
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.api import EXEC, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(
@@ -23,8 +22,6 @@ class BenchExecNode(BaseNode):
     """Single EXEC inlet/outlet pass-through. Worker only advances."""
 
     def init(self):
-        from haywire.barn.builtin.types import EXEC
-
         self.add(EXEC.as_inlet("exec_in"))
         self.add(EXEC.as_outlet("exec_out"))
 

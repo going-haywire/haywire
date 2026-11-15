@@ -1,7 +1,6 @@
 """Test-only nodes carrying containers of control and callback elements."""
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
+from haywire.api import CALLBACK, EXEC, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(
@@ -23,8 +22,6 @@ class ArrayExecProbeNode(BaseNode):
 
     def init(self):
         from haybale_core.types import ArrayType
-
-        from haywire.barn.builtin.types import EXEC
 
         self.add(EXEC.as_inlet("exec_in"))
         self.add(ArrayType[EXEC].as_inlet("exec_list_in"))
@@ -50,8 +47,6 @@ class ArrayCallbackProbeNode(BaseNode):
 
     def init(self):
         from haybale_core.types import ArrayType
-
-        from haywire.barn.builtin.types import CALLBACK
 
         self.add(ArrayType[CALLBACK].as_outlet("names_out"))
         self.add(ArrayType[CALLBACK].as_inlet("names_in", on_change="_on_names"))

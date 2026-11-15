@@ -14,7 +14,15 @@ import inspect
 from pathlib import Path
 from typing import Any
 
-from haywire.core.access import AccessTier
+from haywire.api.workbench import (
+    AccessTier,
+    Farmhand,
+    FarmhandContext,
+    FarmhandError,
+    ToolAnnotations,
+    farmhand,
+    truncation_note,
+)
 from haywire.core.authoring import (
     DEFAULT_TIMEOUT_S,
     AuthoringTarget,
@@ -31,14 +39,6 @@ from haywire.core.docs.canons import canon_uri
 from haywire.core.errors.ledger import get_error_ledger
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.library.utils import get_kind_from_key
-from haywire.core.farmhand import (
-    Farmhand,
-    FarmhandContext,
-    FarmhandError,
-    ToolAnnotations,
-    farmhand,
-    truncation_note,
-)
 
 from haybale_studio.farmhands._helpers import (
     KIND_FOLDERS,
@@ -126,7 +126,7 @@ async def _write_and_watch(
 async def _scaffold_node(ctx: FarmhandContext, lib_id: str, name: str, label: str | None) -> dict:
     """Clone the builtin Data template into ``lib_id`` and report what registered."""
     from haywire.barn.builtin.nodes.templates.data_node import DataNodeTemplate
-    from haywire.core.node.registry import NodeRegistry
+    from haywire.api import NodeRegistry
 
     library_registry = ctx.registry(LibraryRegistry)
     node_registry = ctx.registry(NodeRegistry)
@@ -362,7 +362,7 @@ class StudioVerifyComponentTool(Farmhand):
         result["stage_reached"] = "registered"
 
         if get_kind_from_key(registry_key) == "node":
-            from haywire.core.graph.base import BaseGraph
+            from haywire.api.workbench import BaseGraph
             from haywire.core.graph.scheduler import SyncScheduler
 
             graph = BaseGraph("verify", validation_scheduler=SyncScheduler())

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
-from haywire.ui.surface import Surface
+from haywire.api.workbench import Surface
 
 
 @runtime_checkable

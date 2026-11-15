@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from importlib.metadata import version as pkg_version
 
-from haywire.core.access import AccessTier
-from haywire.core.farmhand import Farmhand, FarmhandContext, ToolAnnotations, farmhand
+from haywire.api.workbench import AccessTier, Farmhand, FarmhandContext, ToolAnnotations, farmhand
 from haywire.core.library.registry import LibraryRegistry
 
 

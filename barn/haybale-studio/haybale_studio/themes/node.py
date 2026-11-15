@@ -5,8 +5,7 @@ Hot-reloadable: edit this file in an editable install and ThemeRegistry
 will update automatically on the next library reload cycle.
 """
 
-from haywire.ui.themes.workbench import BaseTheme
-from haywire.ui.themes.decorator import theme
+from haywire.api import BaseTheme, theme
 
 
 @theme(

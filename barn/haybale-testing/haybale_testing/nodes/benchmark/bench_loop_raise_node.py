@@ -5,8 +5,7 @@ raises on odd input, so every other loop iteration fails. Editing it shifts the
 baseline; add a new frozen node instead.
 """
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
+from haywire.api import FLOAT, BaseNode, ExecutionContext, NodeType, node
 
 
 class BenchOddFailure(Exception):
@@ -24,8 +23,6 @@ class BenchLoopRaiseNode(BaseNode):
     """FLOAT inlet `x`, FLOAT outlet `y = x`; raises when `x` is odd."""
 
     def init(self):
-        from haywire.barn.builtin.types import FLOAT
-
         self.add(FLOAT.as_inlet("x", default=0.0))
         self.add(FLOAT.as_outlet("y"))
 

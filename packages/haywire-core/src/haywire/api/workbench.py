@@ -14,9 +14,11 @@ Imports and ``__all__`` only; the one function serves deprecated names. ``hui`` 
 import haywire.api  # noqa: F401
 
 from haywire.barn.builtin.surfaces import (
+    AccountMenuSurface,
     AppSettingsSurface,
     BarnsSurface,
     CanvasSettingsSurface,
+    DebugSurface,
     ExecutionInspectorSurface,
 )
 from haywire.core.access import AccessTier, LevelMode, resolve_tier
@@ -104,10 +106,12 @@ __all__ = [
     "panel",
     "render_schema",
     "render_settings",
-    # Surfaces a panel appears on
+    # Surfaces a panel appears on (all of haywire.barn.builtin.surfaces)
+    "AccountMenuSurface",
     "AppSettingsSurface",
     "BarnsSurface",
     "CanvasSettingsSurface",
+    "DebugSurface",
     "ExecutionInspectorSurface",
     "Surface",
     # Editor

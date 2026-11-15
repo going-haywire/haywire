@@ -9,11 +9,8 @@ from __future__ import annotations
 
 from nicegui import ui
 
-from haywire.barn.builtin.surfaces import AccountActions, AccountMenuSurface
-from haywire.core.access import AccessTier
-from haywire.ui import elements as hui
-from haywire.ui.panel.base import BasePanel
-from haywire.ui.panel.decorator import panel
+from haywire.api.workbench import AccessTier, AccountMenuSurface, BasePanel, hui, panel
+from haywire.barn.builtin.surfaces import AccountActions
 
 
 @panel(

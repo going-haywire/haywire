@@ -7,20 +7,22 @@ from typing import Any, TYPE_CHECKING
 
 from nicegui import ui
 
-from haywire.core.access import AccessTier
-from haywire.ui import elements as hui
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import SlotName
-from haywire.ui.panel.base import BasePanel
-from haywire.ui.panel.layout import PanelLayout
-from haywire.ui.panel.registry import PanelRegistry
+from haywire.api.workbench import (
+    AccessTier,
+    BaseEditor,
+    BasePanel,
+    PanelLayout,
+    PanelRegistry,
+    SlotName,
+    Surface,
+    editor,
+    hui,
+)
 from haywire.ui.panel.host_rendering import panel_accessible, poll_surface, render_panel, visible_panels
-from haywire.ui.surface import Surface
 from haywire.ui.panel.redraw_coordinator import PanelRedrawCoordinator
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)

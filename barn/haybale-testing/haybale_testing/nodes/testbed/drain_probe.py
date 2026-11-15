@@ -1,7 +1,6 @@
 import threading
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.api import EXEC, FLOAT, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(
@@ -19,8 +18,6 @@ class DrainProducerProbeNode(BaseNode):
     """
 
     def init(self):
-        from haywire.barn.builtin.types import EXEC, FLOAT
-
         self.add(EXEC.as_inlet("exec_in"))
         self.add(FLOAT.as_outlet("value"))
         self.add(EXEC.as_outlet("exec_out"))
@@ -53,7 +50,6 @@ class DrainConsumerProbeNode(BaseNode):
 
     def init(self):
         from haybale_core.types import DRAIN
-        from haywire.barn.builtin.types import EXEC, FLOAT
 
         self.add(EXEC.as_inlet("exec_in"))
         self.add(DRAIN[FLOAT].as_inlet("queue", default={"max_len": 1024}))

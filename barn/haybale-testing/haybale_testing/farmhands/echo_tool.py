@@ -1,7 +1,6 @@
 """Canned read tool for Farmhand integration tests."""
 
-from haywire.core.access import AccessTier
-from haywire.core.farmhand import Farmhand, FarmhandContext, ToolAnnotations, farmhand
+from haywire.api.workbench import AccessTier, Farmhand, FarmhandContext, ToolAnnotations, farmhand
 
 
 @farmhand(

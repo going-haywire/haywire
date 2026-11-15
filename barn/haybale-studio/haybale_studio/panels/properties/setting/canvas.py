@@ -20,17 +20,13 @@ from typing import TYPE_CHECKING
 
 from haywire.core.edge.settings import EdgeDefaultSettings
 from haywire.core.graph.arrange_settings import ArrangeSettings
-from haywire.ui import elements as hui
+from haywire.api.workbench import BasePanel, CanvasSettingsSurface, PanelLayout, hui, panel, render_schema
 from haywire.ui.components.zoom.settings import EditorPanZoomSettings
-from haywire.ui.panel import BasePanel, PanelLayout
-from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.render_utils import render_schema
 from haywire.ui.components.minimap.settings import MinimapSettings
 from haywire.ui.components.graph.settings import CanvasSettings
-from haywire.barn.builtin.surfaces import CanvasSettingsSurface
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 @panel(

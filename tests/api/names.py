@@ -182,6 +182,7 @@ COMPONENT = [
 #: ``haywire.api.workbench.__all__``, sorted.
 WORKBENCH = [
     "AccessTier",
+    "AccountMenuSurface",
     "ActiveGraphMoved",
     "AppSettingsSurface",
     "AppState",
@@ -195,6 +196,7 @@ WORKBENCH = [
     "CommandSignal",
     "Copy",
     "Cut",
+    "DebugSurface",
     "Delete",
     "Duplicate",
     "EditorCommand",

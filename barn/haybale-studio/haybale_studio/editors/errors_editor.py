@@ -35,20 +35,24 @@ from haybale_studio.editors.error_navigation import (
     open_file_in_studio,
     reveal_instance,
 )
-from haywire.core.access import AccessTier
+from haywire.api.workbench import (
+    AccessTier,
+    BaseEditor,
+    ErrorLedgerChanged,
+    ErrorLogged,
+    Signal,
+    SlotName,
+    editor,
+    hui,
+    react_on,
+)
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.errors.ledger import get_error_ledger
-from haywire.core.session.handlers import react_on
-from haywire.core.signals import ErrorLedgerChanged, ErrorLogged, Signal
-from haywire.ui import elements as hui
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import SlotName
 from haywire.ui.components.popup import Popup
 from haywire.ui.errors.haywire_exception import render_error_details
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
     from nicegui.element import Element
 
 # The tab's count badge, by the worst unseen severity.

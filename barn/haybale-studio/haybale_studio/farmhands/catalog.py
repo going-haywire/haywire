@@ -7,15 +7,15 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from haywire.core.access import AccessTier
-from haywire.core.docs.canons import canon_uri
-from haywire.core.farmhand import (
+from haywire.api.workbench import (
+    AccessTier,
     Farmhand,
     FarmhandContext,
     ToolAnnotations,
     farmhand,
     truncation_note,
 )
+from haywire.core.docs.canons import canon_uri
 from haywire.core.library.haybale_toml import read_haybale
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.library.utils import get_kind_from_key
@@ -257,7 +257,7 @@ class StudioDescribeComponentTool(Farmhand):
             "docstring": inspect.getdoc(cls) or "",
         }
         if kind == "node":
-            from haywire.core.graph.base import BaseGraph
+            from haywire.api.workbench import BaseGraph
             from haywire.core.graph.scheduler import SyncScheduler
             from haywire.core.node.inspector import NodeInstanceInspector
 

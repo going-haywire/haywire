@@ -36,7 +36,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from haywire.core.errors.haywire_exception import HaywireException
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 def open_component(error: "HaywireException", context: "SessionContext") -> bool:
@@ -60,7 +60,7 @@ def open_component_docs(registry_key: str, context: "SessionContext") -> None:
     key rather than a HaywireException because they serve plain navigation (a
     component row in the library overview), not error triage.
     """
-    from haywire.core.signals import RevealComponentDocs
+    from haywire.api.workbench import RevealComponentDocs
 
     context.session.publish(RevealComponentDocs(registry_key=registry_key))
 
@@ -71,7 +71,7 @@ def open_component_source(registry_key: str, context: "SessionContext") -> None:
     The key-taking form of :func:`open_component`, which does the same for a
     HaywireException's ``registry_key``.
     """
-    from haywire.core.signals import RevealComponentSource
+    from haywire.api.workbench import RevealComponentSource
 
     context.session.publish(RevealComponentSource(registry_key=registry_key))
 
@@ -83,7 +83,7 @@ def open_file_in_studio(filepath: str, line_number: "int | None", context: "Sess
     one it can edit — a file it vetoes opens nothing rather than landing in
     CodeMirror. ``line_number`` is accepted for a future goto; the CodeEditor
     binds by path today."""
-    from haywire.core.signals import RevealSource
+    from haywire.api.workbench import RevealSource
 
     path = Path(filepath)
     context.session.publish(RevealSource(binding_id=str(path), label=path.name))
@@ -102,7 +102,7 @@ def reveal_instance(error: "HaywireException", context: "SessionContext") -> Non
     if not error.can_reveal_instance():
         return
 
-    from haywire.core.signals import RevealGraphInstance
+    from haywire.api.workbench import RevealGraphInstance
 
     assert error.graph_id is not None  # can_reveal_instance guarantees it
     context.session.publish(

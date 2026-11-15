@@ -8,18 +8,21 @@ Displays identifiers with copy buttons, usage snippets, and a Docs tab (markdown
 import inspect
 from typing import TYPE_CHECKING
 
-from haywire.core.access import AccessTier
+from haywire.api.workbench import (
+    AccessTier,
+    BaseEditor,
+    RevealComponentDocs,
+    SelectionMoved,
+    SessionContext,
+    SlotName,
+    editor,
+    hui,
+    redraw_on,
+    reveal_on,
+)
 from haywire.core.library.utils import split_reg_key
 from nicegui import ui
 
-from haywire.ui import elements as hui
-
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import SlotName
-from haywire.ui.editor.base import BaseEditor
-from haywire.core.session.context import SessionContext
-from haywire.core.session.handlers import redraw_on, reveal_on
-from haywire.core.signals import RevealComponentDocs, SelectionMoved
 
 if TYPE_CHECKING:
     from nicegui.element import Element

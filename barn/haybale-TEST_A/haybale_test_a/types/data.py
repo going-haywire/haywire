@@ -8,10 +8,8 @@ by nodes in other libraries (like test_b).
 from dataclasses import dataclass, field, asdict
 from typing import Any
 
-from haywire.core.types.decorator import type
-from haywire.core.types.base import BaseType
-from haywire.ui import elements as hui
-from haywire.barn.builtin.wires import DataWire
+from haywire.api import BaseType, DataWire, type
+from haywire.api.workbench import hui
 
 
 @type(

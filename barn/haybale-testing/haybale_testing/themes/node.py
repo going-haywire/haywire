@@ -2,8 +2,7 @@
 Minimal node-flavoured theme fixture for testing the theme system.
 """
 
-from haywire.ui.themes.workbench import BaseTheme
-from haywire.ui.themes.decorator import theme
+from haywire.api import BaseTheme, theme
 
 
 @theme(theme_type="node", label="Test Node", hidden=True)

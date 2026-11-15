@@ -1,7 +1,6 @@
 """Test-only node with pins on a drawn-only wire."""
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
+from haywire.api import FLOAT, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(
@@ -17,8 +16,6 @@ class VisualProbeNode(BaseNode):
 
     def init(self):
         from haybale_testing.types import TEST_VISUAL, TEST_VISUAL_COUNT
-
-        from haywire.barn.builtin.types import FLOAT
 
         self.add(TEST_VISUAL.as_inlet("note_in"))
         self.add(TEST_VISUAL_COUNT.as_inlet("count_in"))

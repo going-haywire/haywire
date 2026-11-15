@@ -1,7 +1,6 @@
 """Reorder probe — static and dynamic ports for port-ordering tests."""
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
+from haywire.api import FLOAT, STRING, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(
@@ -19,8 +18,6 @@ class ReorderProbeNode(BaseNode):
     """
 
     def init(self):
-        from haywire.barn.builtin.types import FLOAT, STRING
-
         self.add(FLOAT.as_inlet("a"))
         self.add(FLOAT.as_inlet("b"))
         self.add(FLOAT.as_inlet("c"))
@@ -29,7 +26,6 @@ class ReorderProbeNode(BaseNode):
 
     def rebuild(self):
         """Re-add the dynamic inlets, as post_init would on every load."""
-        from haywire.barn.builtin.types import FLOAT
 
         with self.rejig(include=r"^dyn_"):
             for name in ("dyn_a", "dyn_b", "dyn_c"):

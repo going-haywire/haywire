@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from haywire.core.farmhand import FarmhandContext, FarmhandError
+from haywire.api.workbench import FarmhandContext, FarmhandError
 from haywire.core.library.kinds import KIND_FOLDERS, kind_registry_map  # noqa: F401
 from haywire.core.library.registry import LibraryRegistry
 

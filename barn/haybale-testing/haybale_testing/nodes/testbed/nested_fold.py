@@ -1,7 +1,6 @@
 """Nested fold probe — a fold holds ports, not other folds, so this raises."""
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.api import FLOAT, STRING, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(
@@ -15,8 +14,6 @@ class NestedFoldNode(BaseNode):
     """Test-only."""
 
     def init(self):
-        from haywire.barn.builtin.types import FLOAT, STRING
-
         self.add(STRING.as_outlet("out"))
         with self.fold("Outer"):
             self.add(FLOAT.as_config("substeps", default=10.0))

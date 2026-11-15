@@ -6,19 +6,22 @@ from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
 
-from haywire.core.access import AccessTier
-from haywire.core.session.context import SessionContext
-from haywire.core.session.handlers import react_on, redraw_on
-from haywire.ui import elements as hui
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import SlotName
-from haywire.ui.editor.wrapper import EditorWrapper
+from haywire.api.workbench import (
+    AccessTier,
+    BaseEditor,
+    EditorWrapper,
+    SessionContext,
+    SlotName,
+    editor,
+    hui,
+    react_on,
+    redraw_on,
+)
 
 if TYPE_CHECKING:
     from nicegui.element import Element
 
-    from haywire.core.signals import EditorCommand
+    from haywire.api.workbench import EditorCommand
     from haywire.ui.keymap import Keymap
 
 
