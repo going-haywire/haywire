@@ -1,4 +1,4 @@
-# haybale-marketplace — component index (v0.4.2)
+# haybale-marketplace — component index (v0.5.0)
 
 ## setting
 - `haybale-marketplace:setting:MarketplaceSettings` — Marketplace — How libraries are installed
