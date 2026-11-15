@@ -55,11 +55,11 @@ requests*); the procedures in the
   literal command line, so a loop over `$n` gives it nothing to read: one merge per
   command, with the number written out. The user merges by hand when they want to override it. `tests/scripts/test_claude_hooks.py`
   runs them all against a stand-in `gh`.
-- **`agent files` comes back on every push.** `pr-intake.yml` runs on `synchronize` and
-  labels by the PR's whole file list, so a push after the maintainer removed the label
-  (even one that changes no agent file) puts it back, and the guard refuses the merge
-  again. Push nothing between the maintainer's removal and the merge, or ask them to
-  remove it again; the agent never removes it.
+- **`agent files` comes back on every push and on *ready*.** `pr-intake.yml` runs on
+  `synchronize` and `ready_for_review` and labels by the PR's whole file list, so a push
+  (even one that changes no agent file) or marking the PR ready puts the label back after
+  the maintainer removed it, and the guard refuses the merge again. Mark the PR ready and
+  push everything before asking the maintainer to remove it; the agent never removes it.
 - **Only line-comment threads can block a merge.** A conversation comment has no resolved
   state, and Claude comments with the user's account, so no hook can tell whether one was
   answered; the skill has Claude read them all before merging. Feedback that must block a
