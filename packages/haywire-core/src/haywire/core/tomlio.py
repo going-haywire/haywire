@@ -37,10 +37,10 @@ import tomlkit
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["edit_toml", "plain", "read_toml", "write_toml"]
+__all__ = ["edit_toml", "read_toml", "to_builtin", "write_toml"]
 
 
-def plain(value: Any) -> Any:
+def to_builtin(value: Any) -> Any:
     """Strip tomlkit's wrapper types, recursively — builtins all the way down.
 
     :func:`read_toml` parses with tomlkit so a document can be written back
@@ -74,9 +74,9 @@ def plain(value: Any) -> Any:
     serializes those correctly and ``datetime`` compares fine.
     """
     if isinstance(value, dict):
-        return {str(key): plain(item) for key, item in value.items()}
+        return {str(key): to_builtin(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
-        return [plain(item) for item in value]
+        return [to_builtin(item) for item in value]
     if isinstance(value, bool):
         return bool(value)
     if isinstance(value, int):

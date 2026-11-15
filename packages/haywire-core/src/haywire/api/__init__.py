@@ -144,7 +144,7 @@ from haywire.core.skin.tags import (
     SKIN_TAG_WIDGET_NODE,
 )
 from haywire.core.storage import library_storage_dir
-from haywire.core.tomlio import plain, read_toml, write_toml
+from haywire.core.tomlio import to_builtin, read_toml, write_toml
 from haywire.core.types import (
     BaseType,
     CompoundType,
@@ -369,7 +369,7 @@ __all__ = [
     "Vec4i",
     # Files and workspace
     "get_workspace_root",
-    "plain",
+    "to_builtin",
     "read_toml",
     "write_toml",
     # Progress

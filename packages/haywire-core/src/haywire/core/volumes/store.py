@@ -12,7 +12,7 @@ from typing import Any
 
 import tomlkit
 
-from haywire.core.tomlio import plain, read_toml
+from haywire.core.tomlio import to_builtin, read_toml
 from haywire.core.volumes.keys import (
     PROJECT_KEY,
     VOLUME_KEY_RE,
@@ -133,7 +133,7 @@ class VolumeStore:
             doc = read_toml(self.path)
         except Exception as exc:
             raise _Unreadable(str(exc)) from exc
-        table = plain(doc).get("volumes", {})
+        table = to_builtin(doc).get("volumes", {})
         if not isinstance(table, dict):
             raise _Unreadable("[volumes] is not a table")
         entries: dict[str, VolumeEntry] = {}
