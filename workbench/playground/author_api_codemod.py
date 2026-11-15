@@ -26,6 +26,13 @@ import haywire.api.workbench as workbench
 
 API = {"haywire.api": component, "haywire.api.workbench": workbench}
 
+#: Names core renamed when the Author API was introduced: (module, old name) -> new name.
+RENAMED = {
+    ("haywire.barn.builtin.surfaces", "Barns"): "BarnsSurface",
+    ("haywire.core.volumes", "location_of"): "volume_location",
+    ("haywire.core.volumes", "resolve"): "resolve_volume_path",
+}
+
 
 def target_of(module: str, name: str) -> str | None:
     """The Author API module exporting ``module.name`` as the same object, or ``None``."""
@@ -46,6 +53,7 @@ def rewrite(path: pathlib.Path, write: bool, left: dict) -> int:
     text = path.read_text(encoding="utf-8")
     lines = text.split("\n")
     moved = 0
+    renamed: dict[str, str] = {}
     nodes = [n for n in ast.walk(ast.parse(text)) if isinstance(n, ast.ImportFrom)]
     for node in sorted(nodes, key=lambda n: n.lineno, reverse=True):
         module = node.module or ""
@@ -53,8 +61,10 @@ def rewrite(path: pathlib.Path, write: bool, left: dict) -> int:
             continue
         groups: dict[str, list[str]] = collections.defaultdict(list)
         for alias in node.names:
-            target = target_of(module, alias.name)
-            name = alias.name
+            name = RENAMED.get((module, alias.name), alias.name)
+            if name != alias.name and alias.asname is None:
+                renamed[alias.name] = name
+            target = target_of(module, name)
             if target and module == "haywire.ui" and name == "elements":
                 # `hui` is the exported name; keep any other alias the file uses.
                 spelled = "hui" if alias.asname in (None, "hui") else f"hui as {alias.asname}"
@@ -73,7 +83,10 @@ def rewrite(path: pathlib.Path, write: bool, left: dict) -> int:
         new = [f"{indent}from {mod} import {', '.join(names)}" for mod, names in sorted(groups.items())]
         lines[node.lineno - 1 : node.end_lineno] = new
     if moved and write:
-        path.write_text(merge("\n".join(lines)), encoding="utf-8")
+        out = merge("\n".join(lines))
+        for old, new in renamed.items():
+            out = re.sub(rf"\b{re.escape(old)}\b", new, out)
+        path.write_text(out, encoding="utf-8")
     return moved
 
 
