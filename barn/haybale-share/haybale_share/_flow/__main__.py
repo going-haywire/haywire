@@ -22,7 +22,7 @@ from typing import Callable
 
 from nicegui import app, ui
 
-from haywire.ui import elements as hui
+from haywire.api.workbench import hui
 
 from haywire.core.di.config import (
     create_library_system_service,

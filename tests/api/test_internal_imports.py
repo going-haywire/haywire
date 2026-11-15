@@ -23,7 +23,6 @@ _INTERNAL = ("haywire.core", "haywire.ui", "haywire.barn")
 NOT_YET_MIGRATED = {
     "haybale-graph-editor",
     "haybale-marketplace",
-    "haybale-share",
     "haybale-studio",
     "haybale-testing",
     "haybale-TEST_A",

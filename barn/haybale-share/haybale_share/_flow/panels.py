@@ -18,7 +18,7 @@ from typing import Callable
 from nicegui import ui
 
 from haywire.core.publishing.pipeline import ShareDecisions
-from haywire.ui import elements as hui
+from haywire.api.workbench import hui
 from haywire.ui.components.stepper import busy_advance as _busy_advance
 
 from haybale_share._flow._state import ShareFlow
