@@ -116,6 +116,11 @@ def test_in_herdr_the_agent_learns_its_place_and_how_to_message(tmp_path):
     assert "after your branch" in context
 
 
+def test_without_a_where_label_the_address_stands_alone(tmp_path, monkeypatch):
+    monkeypatch.setitem(_SELF, "labels", {})
+    assert "You run in herdr as `t3g`. Other agents" in _place(tmp_path)
+
+
 def test_in_the_main_folder_the_tab_is_named_by_role(tmp_path):
     context = _place(tmp_path, main=True)
     assert "main folder" in context

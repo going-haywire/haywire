@@ -28,7 +28,7 @@ fi
 rename=""
 [ -n "$tab" ] && rename=" Rename it with: \`herdr-app do tab.rename --id $tab --name <name>\`."
 
-context="You run in herdr as ${where:+\`$where\` }(\`$HC_TERMINAL_ID\`). Other agents: \`hc ls\`. Message one: \`hc send <address> \"...\"\` (it arrives as their next input). Protocol: \`hc --skill\`. Refer to an agent by its space / tab, the address only in brackets. $branch_hint$rename"
+context="You run in herdr as ${where:+\`$where\` (}\`$HC_TERMINAL_ID\`${where:+)}. Other agents: \`hc ls\`. Message one: \`hc send <address> \"...\"\` (it arrives as their next input). Protocol: \`hc --skill\`. Refer to an agent by its space / tab, the address only in brackets. $branch_hint$rename"
 
 if $main_folder; then
   others=$(bounded hc ls --json | jq -r --arg dir "$dir" --arg self "$HC_TERMINAL_ID" '
