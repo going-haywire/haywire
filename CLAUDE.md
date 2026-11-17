@@ -20,10 +20,6 @@ When user runs a slash command or skill, execute it immediately without asking c
 
 Before editing any file, read it first. Before modifying a function, grep for all callers. Research before you edit.
 
-### Package Layout
-
-`.codemap/INDEX.md` provides an entry point to get a grasp on the layout of this repo.
-
 ## Documentation
 
 When looking up how a system works (API, parameters, behaviour), check `docs/` first before reading source code. Layout:
