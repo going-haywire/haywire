@@ -46,7 +46,9 @@ PLAYBOOK: tuple[Row, ...] = (
         State.READY,
         "Everything is in order.",
         "Run `uv run --frozen haywire share --bump patch`. "
-        "Use `minor` or `major` only if the owner said so.",
+        "Use `minor` or `major` only if the owner said so. "
+        "Add `--pr` when the default branch only accepts pull requests: it opens a release PR "
+        "(`RELEASE_PR_OPEN`) instead of tagging.",
     ),
     Row(State.RELEASED, "This change is already released.", "Nothing. Do not run `share` again."),
     Row(
@@ -141,8 +143,8 @@ RELEASE_GATE_LABELS: tuple[GateLabel, ...] = (
         "after-core-release",
         "FBCA04",
         "Reminder: to do once a haywire-core release contains the needed change",
-        "A dependency to raise (usually the `haywire-core` floor) once a released "
-        "haywire-core contains the change on the issue's `Waits for:` line.",
+        "A dependency to raise once a released haywire-core contains the change on the "
+        "issue's `Waits for:` line, when no floor can record the wait yet.",
         "At the start of a session: `gh issue list --label after-core-release --state open`; "
         "check each one as below and tell the owner which can now be done.",
     ),
@@ -154,12 +156,16 @@ WAITS_FOR_PREFIX = "Waits for: going-haywire/haywire@"
 def render_release_gates() -> str:
     """Return the Markdown for the release reminders section of a project's ``CLAUDE.md``."""
     lines = [
-        "A release reminder is an issue that records a decision affecting the next release, so "
-        "it is not forgotten. It is a help, not a rule: open one only when the owner agrees. "
-        "When a change you make needs something done at release time (most often a "
-        "dependency floor to raise once a release contains a change), propose the issue to "
-        "the owner: its title, the label, the steps, and for `after-core-release` a first "
-        f"line `{WAITS_FOR_PREFIX}<sha> (#<pr>)`. Link a prepared branch's draft PR to it.",
+        "A change that needs an unreleased change of a dependency raises that dependency's "
+        "floor to the next patch after the dependency's latest release (`>=0.5.4` while PyPI "
+        "has 0.5.3), in the same commit. `share` refuses to release while no PyPI release "
+        "satisfies a floor, so the floor is the record of the wait.",
+        "",
+        "A release reminder is an issue for a wait no floor can record: the change has no code "
+        "yet, or the project develops against PyPI core. It is a help, not a rule: open one "
+        "only when the owner agrees. Propose the issue to the owner: its title, the label, the "
+        f"steps, and for `after-core-release` a first line `{WAITS_FOR_PREFIX}<sha> (#<pr>)`. "
+        "Link a prepared branch's draft PR to it.",
         "",
         "| Label | Meaning | Read |",
         "|---|---|---|",

@@ -569,7 +569,8 @@ A published version is permanent.
 
 {render_playbook()}
 
-- If a dependency pin needs a version that is not released yet, stop and ask.
+- If a dependency pin needs a version that is not released yet, raise its floor as the
+  release reminders section says, and ask the owner before releasing.
 - Libraries named `hay-*` are local-only and `share` refuses them. Before any graph exists,
   the cheap fix is to create the project again with `haywire init <name> --distname
   haybale-<name>`; afterwards `haywire rename` rewrites every graph, and the owner chooses
