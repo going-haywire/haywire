@@ -64,26 +64,35 @@ URL `https://going-haywire.github.io/haywire/marketplace.toml` resolves.
 
 ```toml
 [tool.haywire.release]
+# Canonical machine-readable list of releasable packages.
+# Consumed by: scripts/bump_version.py (this repo),
+#              scripts/generate_marketstall.py,
+#              .github/workflows/publish.yml.
+# Order is significant for the publish workflow: dependencies first.
+
 # Packages published to PyPI on every release tag, in dependency order.
-# The order is significant: the CI publish job walks this list sequentially.
-publish_order = [
+pip_publish_order = [
     "haywire-core",
     "haywire-studio",
     "haybale-core",
     "haybale-studio",
     "haybale-marketplace",
+    "haybale-share",
     "haybale-graph-editor",
     "haybale-haystack",
-    "haybale-example",
+    "haybale-models",
+    "haybale-image",
+    "haybale-audio",
 ]
 
-# Packages versioned in lockstep with the release but NOT published.
-# The bump script keeps these on the same version as `pip_publish_order` so internal users
-# (dev installs, internal test fixtures) stay coherent.
-#  - haybale-visiongraph: Tier 2 git-only (binary deps, deferred from PyPI).
-#  - haybale-testing, haybale-TEST_A: Tier 3 internal test fixtures.
+# Packages published via git subdirectory URL (binary deps or deferred from PyPI).
+# Versioned in lockstep; installed as git+<source_url>#subdirectory=<pkg dir>.
+git_publish_order = []
+
+# Packages versioned in lockstep with the release but NOT published anywhere.
+# The bump script updates these too so internal users stay coherent.
 lockstep_unpublished = [
-    "haybale-visiongraph",
+    "haybale-example",
     "haybale-testing",
     "haybale-TEST_A",
 ]
@@ -103,7 +112,7 @@ documentation only; if it ever disagrees with this section, the section wins.
 # from haybale.toml / the git remote via the shared marketstall builder
 # (haywire.core.publishing.marketstall), not from these repo-level values.
 source_url = "https://github.com/going-haywire/haywire"
-docs_branch = "main"
+docs_branch = "master"
 ```
 
 ## Release procedure
@@ -111,7 +120,7 @@ docs_branch = "main"
 ### Local phase (author-driven)
 
 1. Run `/haywire-release` — the skill prompts for the new version (e.g. `0.0.2`).
-2. The skill runs the gate tests: `pytest -m "not integration"`. Failure stops here.
+2. The skill checks that CI passed on `master` for the commit being released; it does not run the gate tests locally. A failed or missing run stops here.
 3. The skill patches every `pyproject.toml` referenced by `pip_publish_order + lockstep_unpublished`:
    - `[project] version = "0.0.2"`
    - All `>=` inter-package constraints updated to the new floor (e.g. `haywire-core>=0.0.2`).
@@ -129,7 +138,7 @@ docs_branch = "main"
 To run the local phase manually (without the skill):
 
 ```sh
-uv run pytest -m "not integration" -q                 # gate
+gh run list --branch master --workflow CI --limit 1   # gate: CI passed on master
 uv run python scripts/bump_version.py 0.0.2 --yes     # bump every pyproject
 uv lock                                                # re-pin uv.lock
 uv run python scripts/bake_docs.py --version v0.0.2    # bake docs (AFTER the bump)
