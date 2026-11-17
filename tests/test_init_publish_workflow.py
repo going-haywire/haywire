@@ -27,13 +27,16 @@ def _project(root: Path, *, distribute: str | None, libs: dict[str, str], root_e
     return root
 
 
-def _plan(root: Path, *, ref_type: str = "tag", ref_name: str = "v0.1.0") -> tuple[int, dict[str, str], str]:
+def _plan(
+    root: Path, *, ref_type: str = "tag", ref_name: str = "v0.1.0", extra_env: dict[str, str] | None = None
+) -> tuple[int, dict[str, str], str]:
     output = root / "gh_output"
     env = {
         **os.environ,
         "GITHUB_OUTPUT": str(output),
         "GITHUB_REF_TYPE": ref_type,
         "GITHUB_REF_NAME": ref_name,
+        **(extra_env or {}),
     }
     run = subprocess.run(
         [sys.executable, "-I", ".github/publish_plan.py"], cwd=root, env=env, capture_output=True, text=True
@@ -60,7 +63,8 @@ def test_publish_job_uses_the_trusted_publishing_identity() -> None:
 
 def test_build_and_publish_wait_for_the_guard() -> None:
     text = render_publish_workflow()
-    assert text.count("if: needs.guard.outputs.enabled == 'true'") == 2
+    assert text.count("if: needs.guard.outputs.enabled == 'true'") == 2  # build, tag
+    assert "needs: [guard, build, tag]" in text
 
 
 def test_git_distribution_is_a_green_no_op(tmp_path: Path) -> None:
@@ -181,3 +185,84 @@ def test_init_writes_both_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     project = tmp_path / "my-project"
     assert (project / ".github" / "workflows" / "publish.yml").read_text() == render_publish_workflow()
     assert (project / ".github" / "publish_plan.py").read_text() == render_publish_plan()
+
+
+# ── a push to the default branch: the merge of a release PR ─────────────────
+
+
+def _git(root: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", *args], cwd=root, check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+
+def _merged(tmp_path: Path, *, bump: str | None = "0.2.0") -> tuple[Path, str]:
+    """A project at 0.1.0 whose next commit bumps the library; returns it and the commit before."""
+    root = _project(tmp_path, distribute="pypi", libs={"haybale-a": "0.1.0"})
+    for args in (("init", "-b", "main"), ("config", "user.email", "t@t.test"), ("config", "user.name", "T")):
+        _git(root, *args)
+    _git(root, "add", "-A")
+    _git(root, "commit", "-m", "seed")
+    before = _git(root, "rev-parse", "HEAD")
+    manifest = root / "barn" / "haybale-a" / "pyproject.toml"
+    manifest.write_text(f'[project]\nname = "haybale-a"\nversion = "{bump or "0.1.0"}"\n# edit\n')
+    _git(root, "commit", "-am", "release")
+    return root, before
+
+
+def _push_plan(root: Path, before: str, *, branch: str = "main") -> tuple[int, dict[str, str], str]:
+    return _plan(
+        root,
+        ref_type="branch",
+        ref_name=branch,
+        extra_env={"GITHUB_EVENT_NAME": "push", "DEFAULT_BRANCH": "main", "BEFORE_SHA": before},
+    )
+
+
+def test_a_push_that_changes_the_version_asks_for_its_tag(tmp_path: Path) -> None:
+    root, before = _merged(tmp_path)
+    code, out, _ = _push_plan(root, before)
+    assert (code, out["enabled"], out["tag"]) == (0, "true", "v0.2.0")
+    assert [item["dist"] for item in json.loads(out["matrix"])] == ["haybale-a"]
+
+
+def test_a_push_to_a_tagged_version_does_nothing(tmp_path: Path) -> None:
+    root, before = _merged(tmp_path)
+    _git(root, "tag", "v0.2.0")
+    code, out, _ = _push_plan(root, before)
+    assert (code, out["enabled"], out["tag"]) == (0, "false", "")
+
+
+def test_a_push_that_keeps_the_version_does_nothing(tmp_path: Path) -> None:
+    root, before = _merged(tmp_path, bump=None)
+    code, out, _ = _push_plan(root, before)
+    assert (code, out["enabled"]) == (0, "false")
+
+
+def test_a_push_to_another_branch_does_nothing(tmp_path: Path) -> None:
+    root, before = _merged(tmp_path)
+    code, out, _ = _push_plan(root, before, branch="feature")
+    assert (code, out["enabled"]) == (0, "false")
+
+
+def test_a_new_branch_push_has_no_before_commit_and_does_nothing(tmp_path: Path) -> None:
+    root, _ = _merged(tmp_path)
+    code, out, _ = _push_plan(root, "0" * 40)
+    assert (code, out["enabled"]) == (0, "false")
+
+
+def test_the_tag_job_runs_between_build_and_publish() -> None:
+    import yaml  # type: ignore[import-untyped]
+
+    jobs = yaml.safe_load(render_publish_workflow())["jobs"]
+    assert jobs["tag"]["needs"] == ["guard", "build"]
+    assert jobs["tag"]["permissions"] == {"contents": "write"}
+    assert jobs["publish"]["needs"] == ["guard", "build", "tag"]
+    assert "needs.tag.result != 'failure'" in jobs["publish"]["if"]
+
+
+def test_the_workflow_also_triggers_on_the_default_branches() -> None:
+    import yaml  # type: ignore[import-untyped]
+
+    triggers = yaml.safe_load(render_publish_workflow())[True]
+    assert triggers["push"]["branches"] == ["main", "master"]

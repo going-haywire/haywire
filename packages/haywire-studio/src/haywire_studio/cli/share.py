@@ -60,6 +60,13 @@ def register(subparsers: argparse._SubParsersAction) -> None:
         "on PyPI.",
     )
     parser.add_argument(
+        "--pr",
+        action="store_true",
+        help="Release through a pull request: commit on release/v<version>, push only that "
+        "branch (no tag, nothing to the current branch) and print the link that opens the PR. "
+        "For a repository whose default branch only accepts pull requests.",
+    )
+    parser.add_argument(
         "--status",
         action="store_true",
         help="Read-only: report whether this checkout is ready to release, already "
@@ -95,4 +102,5 @@ def _run(args: argparse.Namespace) -> int:
         resume=args.resume,
         json_output=args.json,
         first_release=args.first_release,
+        pr=args.pr,
     )

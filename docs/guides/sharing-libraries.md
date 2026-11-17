@@ -82,6 +82,7 @@ uv run haywire share --bump patch
 uv run haywire share --dry-run      # report only; writes nothing
 uv run haywire share --status       # one state and the next step; writes nothing
 uv run haywire share --resume       # finish a release that was committed but not pushed
+uv run haywire share --bump patch --pr   # release through a pull request (§7.2)
 ```
 
 One mode, non-interactive. Every answer comes from a flag or takes its inert
@@ -119,8 +120,12 @@ whose tag step failed); it is removed when the push succeeds.
 `--first-release` creates the PyPI project(s) when the project declares `distribute = "pypi"`; see [publish-to-pypi §6](./publish-to-pypi.md#6-the-first-release).
 
 `--status` prints the state and ends with a `STATE:` line: `READY`, `RELEASED`,
-`NOTHING_TO_RELEASE`, `UNPUSHED`, `STALE_MARKER`, `NEEDS_HUMAN` or `BLOCKED`. Every
-refusal ends with one `NEXT:`, `DONE:` or `STOP:` line.
+`NOTHING_TO_RELEASE`, `UNPUSHED`, `RELEASE_PR_OPEN`, `RELEASE_MERGED`, `STALE_MARKER`,
+`NEEDS_HUMAN` or `BLOCKED`. Every refusal ends with one `NEXT:`, `DONE:` or `STOP:` line.
+
+`RELEASE_PR_OPEN` and `RELEASE_MERGED` belong to the release-PR mode (§7.2): a
+`release/v<X>` branch waits on `origin`, or its PR was merged and the version has no tag.
+`share --resume` handles the second: it tags the merged commit and pushes the tag alone.
 
 ### 2.4 Exit codes and `--json`
 
@@ -210,7 +215,9 @@ which re-runs every check from the top.
    because nothing else could have been sitting there dirty when the run
    started. Commit or stash first. This applies to `haywire share` on the
    command line exactly as it does in the Share editor — both run the same
-   checks. (A step-1 failure itself never mutates anything and never
+   checks. One exception: a modified `uv.lock` does not count. The bump
+   relocks and commits it anyway, so a lockfile an earlier `uv` run touched
+   does not block a release when nothing else changed. (A step-1 failure itself never mutates anything and never
    triggers a revert — there's nothing yet to revert.)
 
 2. **An `origin` remote is configured.** `git remote add origin <url>` if it isn't. The Share editor's Preflight screen offers this as an **Add origin remote** fix (§8).
@@ -275,6 +282,33 @@ the framework packages to your haywire checkout by path in the root
 - Publish to PyPI instead: set `distribute = "pypi"` and upload the package
   yourself — see [publish-to-pypi](./publish-to-pypi.md). A PyPI package
   carries no `[tool.uv.sources]`, so a `--dev` project can keep its links.
+
+### 4.4 Dependency floors must exist on PyPI
+
+Before anything is written, `haywire share` asks PyPI whether a release satisfies each
+version requirement in every `barn/*/pyproject.toml`. A consumer resolves your
+dependencies from PyPI whether you distribute by `git` or by `pypi`, so a floor no release
+meets (for example `haywire-core>=0.5.4` while PyPI's latest is 0.5.3) would break their
+install. It refuses, before the commit and the tag:
+
+```text
+✗ No release on PyPI satisfies these requirements:
+  barn/haybale-foo/pyproject.toml: haywire-core>=0.5.4
+    waits for a release of `haywire-core` that satisfies `>=0.5.4`; PyPI's latest is 0.5.3
+```
+
+Wait for that release, or lower the floor to a version that exists. Yanked releases do not
+count; a pre-release counts only when the requirement names one.
+
+The check is a refusal only on a definite answer. When PyPI cannot be reached, or does not
+list a package (it may live on a private index), the run goes on with a warning naming the
+packages it could not confirm. It does not ask about your own libraries, requirements
+sourced from git, a URL or a path (`[tool.uv.sources]`), or requirements without a version
+specifier.
+
+The floor is also how a change records that it waits for a release: raise the dependency's
+floor to the next patch after its latest release (`>=0.5.4` while PyPI has 0.5.3) in the same
+commit as the change that needs it. `share` then refuses to release until that version exists.
 
 ## 5. Hosting your marketstall
 
@@ -424,10 +458,10 @@ staleness gate, is in
 
 ### 7.1 Release reminders
 
-Sometimes a change you make has a consequence for the next release: most often a
-dependency that has to be raised once a release contains a change you need. A
-**release reminder** is a GitHub issue that records that decision, so it is not
-forgotten by the time you release. It is a help, not a rule: `haywire share`
+Sometimes a change you make has a consequence for the next release that no
+dependency floor records (§4.4): the change has no code yet, or your project develops
+against PyPI's haywire-core. A **release reminder** is a GitHub issue that records that
+decision, so it is not forgotten by the time you release. It is a help, not a rule: `haywire share`
 never reads it, and you open one only when you want to be reminded. An agent
 working from the `CLAUDE.md` that `haywire init` writes proposes one and opens it
 only when you agree.
@@ -435,7 +469,7 @@ only when you agree.
 | Label | Meaning | Read |
 |---|---|---|
 | `todo-pre-release` | Something you decided to do before the next release of this project. | Before `haywire share`: an agent lists the open ones and asks whether to release anyway. |
-| `after-core-release` | A dependency to raise once a released haywire-core contains a named change. | At the start of a work session, and by the haywire team after each core release. |
+| `after-core-release` | A dependency to raise once a released haywire-core contains a named change, when no floor can record the wait yet. | At the start of a work session, and by the haywire team after each core release. |
 
 An `after-core-release` issue starts with one line naming the change it waits for,
 so whether a release contains it can be checked rather than remembered:
@@ -449,6 +483,35 @@ Once the latest haywire-core on PyPI contains the commit, raise your library's
 `haywire-core` floor to that version (§3), finish the pull request and close the
 issue. The exact commands, and the `gh label create` lines for a new repository,
 are in your project's `CLAUDE.md`.
+
+### 7.2 Releasing through a pull request (advanced)
+
+When the default branch only accepts pull requests, `share` cannot push the release commit
+to it. Pass `--pr`:
+
+```sh
+uv run haywire share --bump patch --pr
+```
+
+The run does everything the plain run does (bump, docs, marketstall), but commits on
+`release/v<version>`, pushes only that branch, makes no tag, and prints the host's link that
+opens the pull request. Your checkout returns to the default branch, untouched. The run ends
+with `STATE: RELEASE_PR_OPEN`; until the PR is merged, `--status` says so and a second
+`share` is refused.
+
+The merge is the release. Two things tag the merge commit and publish it:
+
+- **The generated `publish.yml`** (GitHub): a push to the default branch that changes the
+  libraries' versions tests, builds, tags the merge commit and publishes in one run. See
+  [publish-to-pypi §4](./publish-to-pypi.md#4-the-workflow). A project created before this
+  copies the two files from a fresh `haywire init`.
+- **`share --resume`** (any host, or a project without the workflow): after pulling the
+  merged default branch, `share --status` reports `RELEASE_MERGED`; `share --resume` tags that
+  commit and pushes the tag. It never writes a version.
+
+`--pr` is opt-in and leaves the plain path alone: a project that releases from its default
+branch never sees it. It cannot be combined with `--first-release` or `--resume`, and the
+Share editor does not offer it.
 
 ## 8. Common pitfalls
 

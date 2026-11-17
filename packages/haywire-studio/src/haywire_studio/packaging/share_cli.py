@@ -34,8 +34,8 @@ from haywire.core.publishing.pipeline import (
     SharePipeline,
     TagCollisionError,
 )
-from haywire.core.publishing.pipeline.steps import release_state
-from haywire.core.publishing.url import derive_share_url_only
+from haywire.core.publishing.pipeline.steps import release_pr, release_state
+from haywire.core.publishing.url import derive_pull_request_url, derive_share_url_only
 
 from haywire_studio.playbook import State
 
@@ -55,6 +55,8 @@ _STATES = {
     "nothing_to_release": State.NOTHING_TO_RELEASE.value,
     "unpushed_release": State.UNPUSHED.value,
     "stale_marker": State.STALE_MARKER.value,
+    "release_pr_open": State.RELEASE_PR_OPEN.value,
+    "release_merged_untagged": State.RELEASE_MERGED.value,
 }
 
 _STATUS_COMMAND = "uv run --frozen haywire share --status"
@@ -75,6 +77,7 @@ class Outcome:
     stop_reason: str | None = None
     checklist: list[str] | None = None
     failure: dict[str, str] | None = None
+    pr_url: str | None = None
 
     def as_json(self) -> dict[str, Any]:
         return {
@@ -93,6 +96,7 @@ class Outcome:
             if self.stop_reason
             else None,
             "failure": self.failure,
+            **({"pr_url": self.pr_url} if self.pr_url else {}),
         }
 
 
@@ -107,6 +111,7 @@ def run_share_cli(
     resume: bool = False,
     json_output: bool = False,
     first_release: bool = False,
+    pr: bool = False,
 ) -> int:
     """Publish *repo_root*, or report what publishing it would do; return the exit code.
 
@@ -115,11 +120,14 @@ def run_share_cli(
     """
     pipeline = SharePipeline(repo_root)
     pipeline.first_release = first_release
+    pipeline.pr_mode = pr
     out = Outcome()
 
     def dispatch() -> None:
         try:
-            if status:
+            if pr and (first_release or resume):
+                _refuse_pr_combination(out)
+            elif status:
                 _run_status(pipeline, out)
             elif resume:
                 _run_resume(pipeline, out)
@@ -139,6 +147,13 @@ def run_share_cli(
     else:
         dispatch()
     return out.exit_code
+
+
+def _refuse_pr_combination(out: Outcome) -> None:
+    print("--pr cannot be combined with --first-release or --resume: a release PR makes no tag.")
+    out.state, out.exit_code, out.next_command = State.USAGE.value, EXIT_USAGE, _STATUS_COMMAND
+    out.failure = {"code": "usage", "message": "--pr with --first-release or --resume"}
+    print("STATE: USAGE")
 
 
 def _classify(failure: PreconditionFailure) -> tuple[int, str]:
@@ -239,12 +254,18 @@ def _print_failure(failure: PreconditionFailure) -> None:
         print(f"    {failure.doc_label or 'Docs'}: {failure.doc_url}")
 
 
+def _print_warnings(warnings: list[str]) -> None:
+    for warning in warnings:
+        print(f"⚠ {warning}")
+
+
 def _run_status(pipeline: SharePipeline, out: Outcome) -> None:
     """Read-only. The last line is ``STATE: <name>``, stable for callers to match."""
     report = pipeline.check_preconditions()
     if not report.ok:
         _refuse(out, report.failures[0], pipeline.repo_root)
         return
+    _print_warnings(report.warnings)
     print("✓ Ready to release.")
     out.state, out.exit_code, out.next_command = (
         State.READY.value,
@@ -266,6 +287,7 @@ def _run_resume(pipeline: SharePipeline, out: Outcome) -> None:
 def _run_dry(pipeline: SharePipeline, out: Outcome) -> None:
     """Report; write nothing. Preconditions are REPORTED, not enforced."""
     report = pipeline.check_preconditions()
+    _print_warnings(report.warnings)
     if report.ok:
         print("✓ Preconditions OK")
     else:
@@ -301,6 +323,32 @@ def _run_dry(pipeline: SharePipeline, out: Outcome) -> None:
         }
 
 
+def _push_release_branch(pipeline: SharePipeline, out: Outcome, *, base: str) -> None:
+    """Push the release branch only, then print the host's link that opens the PR."""
+    branch = release_pr.branch_name(pipeline.version or "")
+    try:
+        push = asyncio.run(pipeline.apply_push(on_output=lambda line: print(f"  {line}")))
+    except ShareError as exc:
+        release_pr.leave(pipeline)
+        print(f"\n✗ {exc}")
+        out.state, out.exit_code = State.FAILED.value, EXIT_FAILED_PARTIAL
+        out.failure = {"code": type(exc).__name__, "message": str(exc).splitlines()[0]}
+        out.next_command = f"git push --set-upstream origin {branch}"
+        print(f"The release commit is on the local branch {branch}. NEXT: {out.next_command}")
+        print(f"STATE: {out.state}")
+        return
+    print(f"✓ Pushed {push.branch} to {push.remote}; nothing went to {base}")
+    out.state, out.exit_code, out.version = State.RELEASE_PR_OPEN.value, EXIT_OK, pipeline.version
+    url, warning = derive_pull_request_url(pipeline.repo_root, head=branch, base=base)
+    if url:
+        out.pr_url = url
+        print(f"PR: {url}")
+    elif warning:
+        print(f"⚠ {warning}")
+    print(f"Release PR open, not merged: open the PR, then merge it to release v{pipeline.version}.")
+    print("STATE: RELEASE_PR_OPEN")
+
+
 def _run_publish(
     pipeline: SharePipeline,
     out: Outcome,
@@ -319,7 +367,8 @@ def _run_publish(
         print("STATE: USAGE")
         return
 
-    pipeline.require_preconditions()
+    preconditions = pipeline.require_preconditions()
+    _print_warnings(preconditions.warnings if preconditions else [])
     print("✓ Preconditions OK")
 
     if pipeline.first_release and pipeline.pypi_existing:
@@ -416,7 +465,14 @@ def _run_publish(
 
     plan = pipeline.plan_commit(message=message)
     result = pipeline.apply_commit(plan)
-    print(f"✓ Committed {result.sha[:8]} and tagged {result.tag}")
+    if pipeline.pr_mode:
+        print(f"✓ Committed {result.sha[:8]} on {release_pr.branch_name(bump_result.version)}")
+    else:
+        print(f"✓ Committed {result.sha[:8]} and tagged {result.tag}")
+
+    if pipeline.pr_mode:
+        _push_release_branch(pipeline, out, base=pipeline.start_branch or "")
+        return
 
     push = asyncio.run(pipeline.apply_push(on_output=lambda line: print(f"  {line}")))
     print(f"✓ Pushed to {push.remote} ({push.branch}, {push.tag})")

@@ -68,21 +68,22 @@ The environment name must match the `environment:` block in the workflow. If the
 
 ## 4. The workflow
 
-`haywire init` writes `.github/workflows/publish.yml` and the small planner it calls, `.github/publish_plan.py`. You do not copy or edit anything. (A project created before this existed: copy both files from a fresh `haywire init`.) The workflow runs on every `v*.*.*` tag and has three jobs:
+`haywire init` writes `.github/workflows/publish.yml` and the small planner it calls, `.github/publish_plan.py`. You do not copy or edit anything. (A project created before this existed: copy both files from a fresh `haywire init`.) The workflow runs on every `v*.*.*` tag, and on a push to the default branch (`main` or `master`) that changes the libraries' versions, and has four jobs:
 
 1. **Plan** runs the planner. Unless the root `pyproject.toml` declares `distribute = "pypi"` (§5) it prints "nothing to publish" and the run ends green. With `pypi`, it lists every `barn/*` library and checks that the tag equals each library's committed version; a mismatch fails the run before anything is built or uploaded.
 2. **Build** runs once per library. If there is a `tests/` directory it runs your tests first (`uv sync --frozen`, then `pytest`), then builds the library with `uv build` inside its own `barn/<library>` directory. The tests need a root that resolves its own dependencies on a runner. A `--dev` project's root links to your haywire checkout by path (`[tool.uv.sources]`), which a runner does not have, so the planner detects that and the tests are skipped; the build does not depend on the root and still runs. Run the tests locally before you tag.
-3. **Publish** runs once per library with `environment: pypi` and the OIDC identity (`id-token: write`). It skips a version PyPI already has, so re-running it is safe.
+3. **Tag** runs only for a push to the default branch, the merge of a release PR (see [sharing-libraries §7.2](./sharing-libraries.md#72-releasing-through-a-pull-request-advanced)). The planner enables it when the libraries' versions differ from the push's previous commit and no tag names the new version; it then tags the merge commit. A release made by `haywire share` without `--pr` pushes its own tag and finds it, so the branch push does nothing. The job needs `contents: write`, and a repository ruleset on `v*` tags must let the workflow create them.
+4. **Publish** runs once per library with `environment: pypi` and the OIDC identity (`id-token: write`). It skips a version PyPI already has, so re-running it is safe.
 
 A project with several libraries has several PyPI projects. Each needs its **own** pending publisher (§3), with identical owner, repository, workflow name and environment. The workflow cannot tell them apart by anything but the project name, which is what makes a mistyped name fail without uploading (§6).
 
-The workflow publishes from a tag only. If a run fails, fix the cause and re-run it on the same tag:
+A version reaches PyPI only through a tag that names it: a tag you push, or the tag the workflow creates for a merged release PR. If a run fails, fix the cause and re-run it on the same tag:
 
 ```sh
 gh workflow run publish.yml --ref v0.0.2
 ```
 
-A run on a branch is refused, so a version can never reach PyPI without a tag that names it.
+A manual run on a branch is refused.
 
 ### Other CI providers
 

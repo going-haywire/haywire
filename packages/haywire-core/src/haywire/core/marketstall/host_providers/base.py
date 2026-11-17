@@ -68,6 +68,10 @@ class HostProvider(Protocol):
         """
         ...
 
+    def new_pull_request_url(self, owner: str, repo: str, base: str, head: str) -> str:
+        """Construct the browser URL that opens a pull (merge) request of *head* into *base*."""
+        ...
+
     def parse_origin(self, url: str) -> tuple[str, str] | None:
         """Split a bare repository URL into ``(owner, repo)``. None if not a match.
 
