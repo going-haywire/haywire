@@ -374,7 +374,8 @@ the user and does everything below that is the lead's. A second machine's lead i
 **Naming.** A task's name is its branch, and that is its herdr tab. Call another agent
 *space / tab* (`haywire-repo / fix/edge-drag`), the address only in brackets
 (`haywire-repo / fix/edge-drag (t1g)`). The `session-place.sh` hook gives each session its
-address; it renames a worktree session's tab to its branch and tells a main-folder session to name its tab by role.
+address. It renames a worktree session's tab to its branch, and tells a main-folder session
+to name its tab by role.
 
 **Messages.** Where `hc` is present, `hc send <address> "<text>"` arrives as the other
 agent's next input; `hc ls` lists the sessions with their space / tab. Without `hc`, the
