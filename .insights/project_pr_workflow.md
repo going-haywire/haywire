@@ -39,10 +39,20 @@ requests*); the procedures in the
 
 ## Identity and the hook
 
-- Claude pushes with the user's git credentials, so GitHub cannot tell the two apart: the
-  ruleset's admin bypass applies to both. The local hook
-  (`.claude/hooks/block-dangerous-git.sh`) is what keeps destructive commands with the
-  user.
+- Claude pushes with the user's git credentials, so GitHub cannot tell the two apart: an
+  admin bypass applies to both. Two rulesets split the protection by what a bypass may
+  do. *Permanent refs* (`master`, `gh-pages`, the `v*` tags) forbids deleting and
+  force-pushing with no bypass at all, so nothing running as the user can break it. *PR
+  gate* (required checks, the PR rule) lets an admin bypass only through a pull request.
+  The local hook (`.claude/hooks/block-dangerous-git.sh`) keeps the rest with the user:
+  force pushes, remote deletions, tag pushes, and `gh api` writes to rulesets or branch
+  protection (reads pass).
+- **`scripts/finish.py` is the only way agents delete a branch.** The hook blocks raw
+  `git branch -D` and `git push --delete`; `finish <branch>` deletes the local and remote
+  branch and the worktree only after finding the branch's PR merged (closed needs
+  `--abandon`, the user's word) and the local branch holding nothing the PR's head
+  lacks. The task finishes itself after the lead (or the user) merges. `finish --sweep`
+  lists leftovers and acts only with `--yes`.
 - **More hooks enforce the workflow.** `session-role.sh` (`SessionStart`) tells the agent
   its role from the login's permission on `going-haywire/haywire`: write access makes a
   maintainer, anything else, including a failed check (no `gh`, no network, 8 s limit), a

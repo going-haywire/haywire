@@ -185,8 +185,9 @@ them.
    comment to the user with its link, and answer with new commits on the same branch;
    reply or resolve on GitHub only on the user's word.
 3. Never merge, release or change labels: the maintainer does.
-4. After the merge, clean up the branch (*Finishing as the maintainer*, step 5) and bring
-   the fork current (*Keeping a branch current*).
+4. After the merge, run `finish` on the fork's branch (*Finishing as the maintainer*,
+   step 5; it reads the PR on `upstream` and deletes on `origin`), then bring the fork
+   current (*Keeping a branch current*).
 
 ## Finishing as the maintainer
 
@@ -238,18 +239,31 @@ them.
    A PR now `CONFLICTING` needs *Keeping a branch current*; tell the session or the user
    that owns it.
 
-5. Clean up. GitHub deletes the remote branch; delete the local one in a command of its
-   own (the hook reads the whole command line, so never next to a push). In a worktree,
-   remove the worktree first (*Parallel sessions*), then run this in the main folder:
+5. Tell the task that its PR merged, with the PR's URL. **The task finishes itself**, in
+   its own worktree, once its branch is merged:
 
    ```sh
-   git switch master
-   git pull --ff-only
-   git branch -d <branch>
+   uv run python scripts/finish.py <branch>
    ```
 
-   If `git branch -d` refuses because the squash merge is not an ancestor, the branch is
-   the user's to delete (`-D` is blocked).
+   `finish` is the only way to delete a branch: the hook blocks raw `git branch -D` and
+   `git push --delete`. It refuses unless the PR is merged and the local branch holds
+   nothing the PR's head lacks; it detaches the worktree at `origin/master`, then deletes
+   the local branch and the remote branch if GitHub has not already. Then it prints how
+   to remove the empty folder: the user closes the space and removes the worktree in
+   herdr, or `git worktree remove <path>` from the main folder.
+
+   - A PR closed without a merge needs `--abandon`, on the user's word only.
+   - From the main folder `finish <branch>` also removes the branch's worktree, if it is
+     clean.
+   - `finish --sweep` lists leftovers (merged or closed branches, remote branches of
+     finished PRs, detached clean worktrees); `--sweep --yes` cleans them. Run it only on
+     the user's word.
+
+   **Who does what.** With a lead session (one per machine), the lead merges, on the
+   user's word, then watches the merge's run on `master` (step 4) and warns the tasks
+   whose PRs now conflict. The task does the cleanup above. Without a lead, the user is
+   the lead and the task session does all of it.
 
 ## Keeping a branch current
 
@@ -320,13 +334,13 @@ only the main folder, so search with grep there.
   `.claude/skills/haywire-live-studio/scripts/studioctl start` from inside the worktree,
   on the port `worktree_setup.py` gave it; 8124 is the main folder's studio.
 
-**When the branch is merged**, the user right-clicks the worktree's space → *Remove
-worktree* in herdr (it deletes the folder and keeps the branch), or without herdr:
+**When the branch is merged**, the task runs `finish <branch>` in its worktree (*Finishing
+as the maintainer*, step 5). The worktree is left detached at `origin/master` and empty; the
+user right-clicks its space → *Remove worktree* in herdr (it deletes the folder), or without
+herdr, from the main folder:
 
 ```sh
 git worktree remove ~/.herdr/worktrees/haywire-repo/<kind>-<name>
 ```
-
-then *Finishing as the maintainer* step 5 deletes the branch from the main folder.
 
 **A second machine** works on its own clone: [second-machine.md](second-machine.md).

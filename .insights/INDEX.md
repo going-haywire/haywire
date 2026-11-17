@@ -66,6 +66,6 @@ and needs its reason.
 
 ### Workflow
 
-- [project_pr_workflow.md](project_pr_workflow.md) — which CI checks are required and why macOS is not, a cancelled job is not a failure, platforms differ in registration order, tag the squash-merge commit, Claude pushes as the user, the git hook reads the whole command line, a run using `GITHUB_TOKEN` cannot start another run (a run that tags must also publish).
+- [project_pr_workflow.md](project_pr_workflow.md) — which CI checks are required and why macOS is not, a cancelled job is not a failure, platforms differ in registration order, tag the squash-merge commit, Claude pushes as the user (two rulesets, `finish` is the only branch deletion), the git hook reads the whole command line, a run using `GITHUB_TOKEN` cannot start another run (a run that tags must also publish).
 - [project_uv_path_source_floor_leniency.md](project_uv_path_source_floor_leniency.md) — uv locks a requirement against a path source whatever its version, so a library may name an unreleased dependency floor; if uv enforces it, dev environments fail at `uv lock`.
 - [project_dev_library_lock_goes_stale.md](project_dev_library_lock_goes_stale.md) — a `--dev` library's `uv.lock` records its path sources' versions; each core release makes it stale and `share` meets a dirty tree (`git checkout uv.lock`, `uv run --frozen`).

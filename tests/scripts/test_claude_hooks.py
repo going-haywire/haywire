@@ -195,6 +195,59 @@ def test_other_commands_pass_the_guard(tmp_path):
     assert result.returncode == 0
 
 
+# ── block-dangerous-git.sh ──────────────────────────────────────────────────────────
+
+
+def _blocked(tmp_path: Path, command: str) -> subprocess.CompletedProcess:
+    payload = {"tool_input": {"command": command}}
+    return _run("block-dangerous-git.sh", payload, _fake_bin(tmp_path, None), tmp_path)
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "gh api -X PUT repos/going-haywire/haywire/branches/master/protection --input p.json",
+        "gh api --method DELETE repos/going-haywire/haywire/rulesets/12",
+        "gh api --method=PATCH repos/going-haywire/haywire/rulesets/12",
+        "gh api -XPOST repos/going-haywire/haywire/rulesets --input r.json",
+        "gh api -x post repos/going-haywire/haywire/rulesets -f name=x",
+        "gh api repos/going-haywire/haywire/rulesets -f name=x",
+        "gh api repos/going-haywire/haywire/rulesets -F enabled=true",
+        "gh api repos/going-haywire/haywire/branches/master/protection --input p.json",
+        "gh api repos/going-haywire/haywire/rulesets --raw-field name=x",
+        "gh api repos/going-haywire/haywire/rulesets -fname=x",
+    ],
+)
+def test_gh_api_writes_to_rulesets_and_protection_are_blocked(tmp_path, command):
+    result = _blocked(tmp_path, command)
+    assert result.returncode == 2
+    assert "rulesets or branch protection" in result.stderr
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "gh api repos/going-haywire/haywire/rulesets",
+        "gh api repos/going-haywire/haywire/rules/branches/master",
+        "gh api -X GET repos/going-haywire/haywire/rulesets -f per_page=5",
+        "gh api --method GET repos/going-haywire/haywire/branches/master/protection",
+        "gh api repos/going-haywire/haywire/pulls/5/comments --jq '.[].body'",
+        "gh api -X POST repos/going-haywire/haywire/issues -f title=x",
+        "gh api -X DELETE repos/going-haywire/haywire/git/refs/heads/old",
+    ],
+)
+def test_other_gh_api_calls_pass(tmp_path, command):
+    assert _blocked(tmp_path, command).returncode == 0
+
+
+@pytest.mark.parametrize(
+    "command",
+    ["git branch -D old", "git push --delete origin old", "git push origin :old", "git reset --hard"],
+)
+def test_the_existing_blocks_stay(tmp_path, command):
+    assert _blocked(tmp_path, command).returncode == 2
+
+
 # ── require-workflow-skill.sh and mark-workflow-skill.sh ────────────────────────────
 
 

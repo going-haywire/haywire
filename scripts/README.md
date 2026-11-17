@@ -10,6 +10,7 @@ Maintenance scripts run by humans or CI.
 | `generate_marketstall.py`   | CI marketstall generator for the published packages.                 |
 | `worktree_setup.py`         | Ready a new git worktree: branch, links, environment, studio port.   |
 | `release_sweep.py`          | Report what a release means for the organisation's libraries.        |
+| `finish.py`                 | Delete a merged branch's local and remote branch and its worktree.   |
 
 `worktree_setup.py` runs with the system Python (`python3 scripts/worktree_setup.py`),
 before the worktree has an environment; the `haywire-workflow` skill, *Parallel sessions*,
@@ -110,3 +111,23 @@ and writes nothing on GitHub. Needs `git` and a logged-in `gh`; exit code 2 mean
 command failed and the report could not be made. `/haywire-release` runs it in Steps 2.2
 and 10; the convention it reads is in
 [sharing-libraries §7.1](../docs/guides/sharing-libraries.md#71-release-reminders).
+
+## finish.py
+
+```bash
+# After the PR merged: delete the local and remote branch, and the worktree.
+uv run python scripts/finish.py fix/edge-drag
+uv run python scripts/finish.py fix/old-idea --abandon   # PR closed without a merge (the user's word)
+
+# Leftovers across the clone: list, then clean what is merged.
+uv run python scripts/finish.py --sweep
+uv run python scripts/finish.py --sweep --yes [--abandon]
+```
+
+The only way agents delete branches: the hook blocks the raw local and remote deletions.
+It refuses unless the branch's PR is merged (or closed, with `--abandon`) and the local
+branch holds nothing the PR's head lacks. Inside the branch's worktree it detaches the
+folder at `master`; from another folder it removes a clean worktree. A contributor's
+clone reads the PR on `upstream` and deletes on the fork (`origin`). Running it again is
+a no-op. Output is `key: value` lines (`--json` for one object); exit 1 means refused or
+failed. Needs `git` and a logged-in `gh`.
