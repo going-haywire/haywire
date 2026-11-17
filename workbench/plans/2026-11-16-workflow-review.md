@@ -617,7 +617,7 @@ Decision Q14. After S2–S5 exist.
 | Slice | State | Commit | Date | Deviations |
 |---|---|---|---|---|
 | S1 Language and records | done | 31223d8dd | 2026-11-17 | The glossary links the plan file; the `publish_releases.md` manual gate line now shows the CI check; `docs_branch` there corrected to `master` |
-| S2 Protection and cleanup | open | | | |
+| S2 Protection and cleanup | done | 0990dc26b | 2026-11-17 | The user applied the three rulesets (ids 27491634 Permanent refs, 27491647 Release tags, 26753369 MasterMerger); no `rules/tags` endpoint exists, so the tag ruleset is verified by reading it. `finish` also returns the main folder to `master` when it holds the branch, and skips a branch whose upstream is gone but has no PR (nothing proves a merge). The sweep cleaned `feat/finish-and-permanent-refs` and `refactor/states-folder`; `fix/context-menu-test-wait` (remote) waits for the user's `--abandon`. The first docs deploy under the new rules is still to be seen |
 | S3 Agents, neutral side | open | | | |
 | S4 `share` | open | | | |
 | S5 Core release | open | | | |

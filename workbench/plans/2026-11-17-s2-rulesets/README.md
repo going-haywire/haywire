@@ -26,15 +26,20 @@ Steps 1 and 2 go first, so `master` is never without a deletion rule.
 ```sh
 gh api repos/going-haywire/haywire/rules/branches/master --jq '.[].type'
 gh api repos/going-haywire/haywire/rules/branches/gh-pages --jq '.[].type'
-gh api repos/going-haywire/haywire/rules/tags/v0.5.3 --jq '.[].type'
 gh api repos/going-haywire/haywire/rulesets --jq '.[] | "\(.id) \(.name) \(.enforcement)"'
+gh api repos/going-haywire/haywire/rulesets/<release-tags id> \
+  --jq '{target, include: .conditions.ref_name.include, rules: [.rules[].type], bypass: .bypass_actors}'
 ```
+
+The rules API has no endpoint for tags, so the tag ruleset is read directly.
 
 Expected:
 
 - `master` lists `deletion`, `non_fast_forward` (Permanent refs) and
   `required_status_checks`, `pull_request` (MasterMerger).
-- `gh-pages` and `v0.5.3` list `deletion` and `non_fast_forward`.
+- `gh-pages` lists `deletion` and `non_fast_forward`.
+- The tag ruleset targets `tag`, includes `refs/tags/v*`, lists `deletion` and
+  `non_fast_forward`, and has no bypass actors.
 - Three rulesets, all `active`.
 - The next docs deploy to `gh-pages` succeeds. Both deploy steps
   ([docs.yml](../../../.github/workflows/docs.yml),
