@@ -71,6 +71,77 @@ def test_a_missing_gh_makes_a_contributor_and_warns(tmp_path):
     assert "GitHub CLI (gh) is not installed" in context
 
 
+# ── session-place.sh ────────────────────────────────────────────────────────────────
+
+_SELF = {"labels": {"where": "feat-x / 1", "herdr.tab": "tbABC"}}
+_HC = 'if [ "$1" = "get" ]; then echo "$FAKE_SELF"; else echo "$FAKE_LS"; fi'
+
+
+def _place(tmp_path: Path, *, hc: bool = True, terminal: str | None = "t3g", main=False, live=()) -> str:
+    """The hook's context in ``tmp_path/work`` (a main folder if ``main``), or "" when it says nothing."""
+    work = tmp_path / "work"
+    (work / ".git").mkdir(parents=True) if main else work.mkdir()
+    bin_dir = _fake_bin(tmp_path, None)
+    if hc:
+        stand_in = bin_dir / "hc"
+        stand_in.write_text("#!/bin/bash\n" + _HC)
+        stand_in.chmod(0o755)
+    env = {"CLAUDE_PROJECT_DIR": str(work.resolve()), "FAKE_SELF": json.dumps(_SELF)}
+    env["FAKE_LS"] = json.dumps({"terminals": list(live)})
+    if terminal:
+        env["HC_TERMINAL_ID"] = terminal
+    result = _run("session-place.sh", {}, bin_dir, tmp_path, **env)
+    assert result.returncode == 0
+    return json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"] if result.stdout else ""
+
+
+def _session(address: str, cwd: Path, agent="claude-code", where="lead / 1") -> dict:
+    return {"address": address, "agent": agent, "cwd": str(cwd.resolve()), "state": "live", "where": where}
+
+
+def test_outside_herdr_the_place_hook_says_nothing(tmp_path):
+    assert _place(tmp_path, terminal=None) == ""
+
+
+def test_without_hc_the_place_hook_says_nothing(tmp_path):
+    assert _place(tmp_path, hc=False) == ""
+
+
+def test_in_herdr_the_agent_learns_its_place_and_how_to_message(tmp_path):
+    context = _place(tmp_path)
+    assert "`feat-x / 1` (`t3g`)" in context
+    assert "hc send" in context
+    assert "hc --skill" in context
+    assert "herdr-app do tab.rename --id tbABC --name <name>" in context
+    assert "after your branch" in context
+
+
+def test_in_the_main_folder_the_tab_is_named_by_role(tmp_path):
+    context = _place(tmp_path, main=True)
+    assert "main folder" in context
+    assert "role" in context
+
+
+def test_other_live_sessions_in_the_main_folder_are_warned_about(tmp_path):
+    work = tmp_path / "work"
+    live = [
+        _session("t3g", work),
+        _session("t9", work, where="haywire-repo / 1"),
+        _session("t8", work, agent="zsh"),
+        _session("t7", tmp_path / "elsewhere"),
+    ]
+    context = _place(tmp_path, main=True, live=live)
+    assert "haywire-repo / 1 (t9)" in context
+    assert "t8" not in context
+    assert "t7" not in context
+    assert "(t3g)" not in context.split("Warning")[1]
+
+
+def test_a_worktree_gets_no_sharing_warning(tmp_path):
+    live = [_session("t9", tmp_path / "work")]
+    assert "Warning" not in _place(tmp_path, live=live)
+
+
 # ── guard-pr-merge.sh ───────────────────────────────────────────────────────────────
 
 _GREEN = [
