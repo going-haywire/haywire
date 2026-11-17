@@ -56,6 +56,11 @@ RENAME_GUIDE_URL = "https://going-haywire.github.io/haywire/docs/guides/rename-l
 _NESTED_PROJECT_SEARCH_DEPTH = 2
 
 
+def _is_modified_lockfile(status_line: str) -> bool:
+    """Whether a ``git status --porcelain`` line reports a tracked ``uv.lock`` as modified."""
+    return status_line[:2].strip() == "M" and status_line[3:].strip() == "uv.lock"
+
+
 def _has_haywire_dir_below(repo_root: Path) -> bool:
     """True when a `.haywire/` exists below the git root but not at it.
 
@@ -174,7 +179,15 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
     # unstaged, and untracked files.
     dirty = git(["status", "--porcelain"], cwd=pipeline.repo_root, timeout=10.0)
     if dirty.ok and dirty.stdout.strip():
-        dirty_files = [line[3:].strip() for line in dirty.stdout.splitlines() if line.strip()]
+        # A modified lockfile is not work to protect: the bump relocks and commits it anyway.
+        dirty_files = [
+            line[3:].strip()
+            for line in dirty.stdout.splitlines()
+            if line.strip() and not _is_modified_lockfile(line)
+        ]
+    else:
+        dirty_files = []
+    if dirty_files:
         listed = "\n".join(f"  {f}" for f in dirty_files)
         return PreconditionsReport(
             failures=[

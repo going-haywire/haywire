@@ -1342,3 +1342,38 @@ def test_sources_siblings_and_unbounded_requirements_are_not_asked(project: Path
 
     # Any PyPI question would KeyError.
     assert _check_with_pypi(project, {}).ok
+
+
+# ── a modified uv.lock does not make the tree dirty ─────────────────────────
+
+
+def test_modified_lockfile_alone_keeps_the_tree_clean(project: Path) -> None:
+    (project / "uv.lock").write_text("version = 1\n")
+    _commit(project, "lock")
+    (project / "uv.lock").write_text("version = 1\n# relocked\n")
+
+    report = SharePipeline(project).check_preconditions()
+
+    assert report.ok, report.failures
+
+
+def test_modified_lockfile_is_left_out_of_the_dirty_list(project: Path) -> None:
+    (project / "uv.lock").write_text("version = 1\n")
+    _commit(project, "lock")
+    (project / "uv.lock").write_text("version = 1\n# relocked\n")
+    (project / "notes.txt").write_text("scratch")
+
+    report = SharePipeline(project).check_preconditions()
+
+    assert report.failure is not None
+    assert "notes.txt" in report.failure.message
+    assert "uv.lock" not in report.failure.message
+
+
+def test_an_untracked_lockfile_still_counts(project: Path) -> None:
+    (project / "uv.lock").write_text("version = 1\n")
+
+    report = SharePipeline(project).check_preconditions()
+
+    assert report.failure is not None
+    assert "uv.lock" in report.failure.message
