@@ -31,8 +31,13 @@ def _plan(
     root: Path, *, ref_type: str = "tag", ref_name: str = "v0.1.0", extra_env: dict[str, str] | None = None
 ) -> tuple[int, dict[str, str], str]:
     output = root / "gh_output"
+    # The planner reads these from the runner; a test must not inherit the real CI run's.
     env = {
-        **os.environ,
+        **{
+            k: v
+            for k, v in os.environ.items()
+            if k not in ("GITHUB_EVENT_NAME", "DEFAULT_BRANCH", "BEFORE_SHA")
+        },
         "GITHUB_OUTPUT": str(output),
         "GITHUB_REF_TYPE": ref_type,
         "GITHUB_REF_NAME": ref_name,
