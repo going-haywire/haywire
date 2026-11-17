@@ -33,6 +33,9 @@ requests*); the procedures in the
 
 - **A squash merge makes a new commit** on `master`. A tag goes on that commit, never on
   the branch's.
+- **Anything pushed, tagged or opened with `GITHUB_TOKEN` starts no further workflow
+  run** (only `workflow_dispatch` and `repository_dispatch` are exempt). A run that
+  tags must also publish; a tag made by a run never starts `publish.yml`.
 
 ## Identity and the hook
 
