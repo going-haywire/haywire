@@ -135,6 +135,8 @@ async def resume(pipeline: "SharePipeline", on_output: Callable[[str], None] | N
     from haywire.core.publishing.git import git
 
     state = release_state.detect(pipeline.repo_root)
+    if state.kind is release_state.ReleaseKind.MERGED_UNTAGGED:
+        return await _tag_merged_release(pipeline, state.tag, on_output)
     if state.kind is not release_state.ReleaseKind.UNPUSHED:
         raise PipelineStateError(
             f"Nothing to resume (state: {state.kind.value}). Run `haywire share --status`."
@@ -145,3 +147,44 @@ async def resume(pipeline: "SharePipeline", on_output: Callable[[str], None] | N
             raise PipelineStateError(f"Could not create tag {state.tag}: {made.stderr.strip()}")
     pipeline.version = state.tag.removeprefix("v")
     return await apply(pipeline, on_output)
+
+
+async def _tag_merged_release(
+    pipeline: "SharePipeline", tag: str, on_output: Callable[[str], None] | None
+) -> PushResult:
+    """Tag ``HEAD`` with *tag* and push the tag alone, once ``HEAD`` is on ``origin``'s branch.
+
+    Pushes the tag only: the branch already holds the merged release, and nothing else may
+    go to it.
+    """
+    from haywire.core.publishing.git import git
+
+    branch = current_branch(pipeline)
+    if branch is None:
+        raise PipelineStateError(
+            "Tagging a merged release needs a checked-out branch, but HEAD is detached."
+        )
+    fetched = git_remote(["fetch", "origin", branch], cwd=pipeline.repo_root, timeout=120.0)
+    if not fetched.ok:
+        raise PushError(
+            stderr=(fetched.stderr or fetched.stdout).strip(),
+            manual_command=f"git fetch origin {branch}",
+        )
+    contained = git(["merge-base", "--is-ancestor", "HEAD", "FETCH_HEAD"], cwd=pipeline.repo_root)
+    if not contained.ok:
+        raise PipelineStateError(
+            f"HEAD is not on origin/{branch}. Pull the merged release first, then run this again."
+        )
+    made = git(["tag", tag], cwd=pipeline.repo_root)
+    if not made.ok:
+        raise PipelineStateError(f"Could not create tag {tag}: {made.stderr.strip()}")
+    pipeline.version = tag.removeprefix("v")
+    args = ["push", "origin", f"refs/tags/{tag}"]
+    result = await git_remote_streaming(
+        args, cwd=pipeline.repo_root, on_output=on_output or (lambda _line: None), timeout=600.0
+    )
+    if not result.ok:
+        raise PushError(
+            stderr=(result.stderr or result.stdout).strip(), manual_command="git " + " ".join(args)
+        )
+    return PushResult(remote="origin", branch=branch, tag=tag, output=result.stdout)

@@ -749,3 +749,70 @@ def test_pr_link_is_derived_from_origin(project: Path) -> None:
 
     assert warning is None
     assert url == "https://github.com/acme/libs/compare/master...release/v1.0.0?expand=1"
+
+
+# ── a merged release PR without its tag ─────────────────────────────────────
+
+
+def _merge_release_pr(project: Path) -> None:
+    """Run the PR mode, merge the branch (fast-forward) and publish the default branch, as a host would."""
+    _git_out(project, "tag", "v0.3.1")
+    _git_out(project, "push", "origin", "v0.3.1")
+    (project / "barn" / "haybale-alpha" / "change.txt").write_text("a change worth releasing")
+    _git_out(project, "add", "-A")
+    _git_out(project, "commit", "-m", "feat: a change")
+    _git_out(project, "push", "origin", "HEAD")
+    _pr_run(project)
+    _git_out(project, "merge", "--ff-only", "release/v0.3.2")
+    _git_out(project, "push", "origin", "HEAD")
+
+
+def test_status_reports_a_merged_release_without_its_tag(project: Path, capsys) -> None:
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    _merge_release_pr(project)
+    capsys.readouterr()
+
+    assert run_share_cli(repo_root=project, bump=None, message=None, status=True) == 20
+    out = capsys.readouterr().out
+    assert "STATE: RELEASE_MERGED" in out
+    assert "NEXT: uv run --frozen haywire share --resume" in out
+
+
+def test_resume_tags_the_merged_release_and_pushes_only_the_tag(project: Path, capsys) -> None:
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    _merge_release_pr(project)
+    tip = _git_out(project, "rev-parse", "HEAD")
+    capsys.readouterr()
+
+    assert run_share_cli(repo_root=project, bump=None, message=None, resume=True) == 0
+
+    assert _git_out(project, "rev-parse", "v0.3.2^{commit}") == tip
+    assert "refs/tags/v0.3.2" in _git_out(project, "ls-remote", "--tags", "origin")
+    assert "STATE: RELEASED" in capsys.readouterr().out
+
+
+def test_resume_refuses_when_head_is_not_on_origin(project: Path, capsys) -> None:
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    _merge_release_pr(project)
+    (project / "extra.txt").write_text("local only")
+    _git_out(project, "add", "-A")
+    _git_out(project, "commit", "-m", "local")
+    capsys.readouterr()
+
+    assert run_share_cli(repo_root=project, bump=None, message=None, resume=True) != 0
+
+    assert _tags(project) == ["v0.3.1"]
+
+
+def test_a_hand_edited_version_is_not_a_merged_release(project: Path) -> None:
+    from haywire.core.publishing.pipeline.steps import release_state
+
+    _git_out(project, "tag", "v0.3.1")
+    path = project / "barn" / "haybale-alpha" / "pyproject.toml"
+    path.write_text(path.read_text().replace("0.3.1", "0.4.0"))
+    _git_out(project, "commit", "-am", "bump by hand")
+
+    assert release_state.detect(project).kind is not release_state.ReleaseKind.MERGED_UNTAGGED

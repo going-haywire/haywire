@@ -56,6 +56,7 @@ _STATES = {
     "unpushed_release": State.UNPUSHED.value,
     "stale_marker": State.STALE_MARKER.value,
     "release_pr_open": State.RELEASE_PR_OPEN.value,
+    "release_merged_untagged": State.RELEASE_MERGED.value,
 }
 
 _STATUS_COMMAND = "uv run --frozen haywire share --status"

@@ -747,6 +747,16 @@ def _already_released_failure(state: "release_state.ReleaseState") -> Preconditi
             code="unpushed_release",
             next_command="uv run --frozen haywire share --resume",
         )
+    if state.kind is K.MERGED_UNTAGGED:
+        return PreconditionFailure(
+            message=f"{state.tag} is the declared version at HEAD ({short}) but has no tag.",
+            remedy=(
+                "A release PR was merged and nothing tagged it. Tagging the merge commit "
+                "publishes it; bumping again would cut a second version."
+            ),
+            code="release_merged_untagged",
+            next_command="uv run --frozen haywire share --resume",
+        )
     if state.kind is K.PR_OPEN:
         return PreconditionFailure(
             message=(

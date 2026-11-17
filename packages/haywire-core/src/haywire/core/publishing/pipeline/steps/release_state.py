@@ -6,9 +6,12 @@
    is on ``origin`` decides ``RELEASED`` or ``UNPUSHED``.
 2. The marker (``.git/haywire-share.json``) names ``HEAD`` as a commit that was
    made but never tagged: ``UNPUSHED`` with ``needs_tag``.
-3. A ``release/v<X>`` branch is on ``origin`` while no ``v<X>`` tag exists and the
+3. The declared version differs from the latest tag's, ``marketstall.toml`` is pinned to it
+   and no ``v<version>`` tag exists locally or on ``origin``: ``MERGED_UNTAGGED``, a
+   release that reached the branch (a merged release PR) without its tag.
+4. A ``release/v<X>`` branch is on ``origin`` while no ``v<X>`` tag exists and the
    declared version is not ``<X>``: ``PR_OPEN``, a release PR waiting for its merge.
-4. The latest ``v*`` tag is an ancestor of ``HEAD`` and nothing under ``barn/`` or
+5. The latest ``v*`` tag is an ancestor of ``HEAD`` and nothing under ``barn/`` or
    the root ``pyproject.toml`` changed since: ``NOTHING_NEW``.
 
 The marker lives inside ``.git`` so it never dirties the tree.
@@ -36,6 +39,7 @@ class ReleaseKind(str, Enum):
     UNPUSHED = "unpushed"  # HEAD is a release commit that never reached origin
     NOTHING_NEW = "nothing_new"  # nothing release-relevant changed since the last tag
     STALE_MARKER = "stale_marker"  # marker names a commit that is not HEAD
+    MERGED_UNTAGGED = "merged_untagged"  # the declared version is new and has no tag
     PR_OPEN = "pr_open"  # a release branch is on origin and its version is not released yet
 
 
@@ -95,6 +99,29 @@ def _remote_has_tag(repo_root: Path, tag: str) -> bool:
     return probe.ok and f"refs/tags/{tag}" in probe.stdout
 
 
+def _merged_untagged(repo_root: Path) -> str | None:
+    """Return the tag the declared version lacks, or ``None``.
+
+    Needs an earlier release tag to compare with, so a project that never released
+    is never reported (its first release has its own flow).
+    """
+    declared = plan_versions(repo_root).common_version
+    latest = git(["describe", "--tags", "--abbrev=0", "--match", "v*", "HEAD"], cwd=repo_root, timeout=10.0)
+    if not declared or not latest.ok or latest.stdout.strip() == f"v{declared}":
+        return None
+    tag = f"v{declared}"
+    # share pins every marketstall row to the version it releases; a hand-edited version leaves the old pins.
+    try:
+        stall = (repo_root / "marketstall.toml").read_text()
+    except OSError:
+        return None
+    if tag not in stall and f"=={declared}" not in stall:
+        return None
+    if git(["rev-parse", "--verify", "--quiet", f"refs/tags/{tag}"], cwd=repo_root).ok:
+        return None
+    return None if _remote_has_tag(repo_root, tag) else tag
+
+
 def _open_release_branch(repo_root: Path) -> tuple[str, str] | None:
     """Return ``(version, branch)`` of a release branch on origin that is still waiting, else ``None``.
 
@@ -134,6 +161,10 @@ def detect(repo_root: Path) -> ReleaseState:
         if marker.get("sha") == head and marker.get("tag"):
             return ReleaseState(ReleaseKind.UNPUSHED, tag=marker["tag"], sha=head, needs_tag=True)
         return ReleaseState(ReleaseKind.STALE_MARKER, tag=marker.get("tag", ""), sha=marker.get("sha", ""))
+
+    untagged = _merged_untagged(repo_root)
+    if untagged:
+        return ReleaseState(ReleaseKind.MERGED_UNTAGGED, tag=untagged, sha=head, needs_tag=True)
 
     waiting = _open_release_branch(repo_root)
     if waiting:

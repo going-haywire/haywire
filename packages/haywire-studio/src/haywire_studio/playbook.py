@@ -25,6 +25,7 @@ class State(str, Enum):
     NEEDS_HUMAN = "NEEDS_HUMAN"
     UNPUSHED = "UNPUSHED"
     RELEASE_PR_OPEN = "RELEASE_PR_OPEN"
+    RELEASE_MERGED = "RELEASE_MERGED"
     STALE_MARKER = "STALE_MARKER"
     FAILED = "FAILED"
     USAGE = "USAGE"
@@ -73,6 +74,12 @@ PLAYBOOK: tuple[Row, ...] = (
         State.RELEASE_PR_OPEN,
         "A release PR is open and not merged.",
         "Give the owner the PR link (the `PR:` line) and wait. Do not merge it, tag, or run `share` again.",
+    ),
+    Row(
+        State.RELEASE_MERGED,
+        "A release PR was merged and its version has no tag.",
+        "Pull the default branch, run `uv run --frozen haywire share --resume` once "
+        "(it tags the merge commit and pushes the tag). If it fails, stop and tell the owner.",
     ),
     Row(
         State.STALE_MARKER,
