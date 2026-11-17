@@ -149,3 +149,25 @@ def derive_share_url_only(repo_root: Path, *, tag: str | None = None) -> ShareSa
             ),
         )
     return _derive_url(repo_root, out_path, tag=tag)
+
+
+def derive_pull_request_url(repo_root: Path, *, head: str, base: str) -> tuple[str | None, str | None]:
+    """Return ``(url, warning)``: the host's link that opens a pull request of *head* into *base*.
+
+    ``url`` is ``None`` with a user-facing ``warning`` when the remote is missing,
+    the host is not recognised, or the origin URL has no ``owner/repo`` path.
+    """
+    remote_url = _get_remote_url(repo_root)
+    if remote_url is None:
+        return None, "No git remote found, so there is no pull request link."
+    https_url = ssh_to_https(remote_url).removesuffix(".git").rstrip("/")
+    parts = urlsplit(https_url)
+    hostname = (parts.hostname or "").lower()
+    provider = resolve_host(hostname)
+    if provider is None:
+        return None, _unknown_host_warning(hostname)
+    path = parts.path.strip("/")
+    if "/" not in path:
+        return None, f"Could not parse owner/repo from URL: {https_url}"
+    owner, _, repo = path.rpartition("/")
+    return provider.new_pull_request_url(owner, repo, base, head), None

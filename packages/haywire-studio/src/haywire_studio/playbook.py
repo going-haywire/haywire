@@ -24,6 +24,7 @@ class State(str, Enum):
     BLOCKED = "BLOCKED"
     NEEDS_HUMAN = "NEEDS_HUMAN"
     UNPUSHED = "UNPUSHED"
+    RELEASE_PR_OPEN = "RELEASE_PR_OPEN"
     STALE_MARKER = "STALE_MARKER"
     FAILED = "FAILED"
     USAGE = "USAGE"
@@ -67,6 +68,11 @@ PLAYBOOK: tuple[Row, ...] = (
         State.UNPUSHED,
         "A release commit exists that the remote does not have.",
         "Run `uv run --frozen haywire share --resume` once. If it fails, stop and tell the owner.",
+    ),
+    Row(
+        State.RELEASE_PR_OPEN,
+        "A release PR is open and not merged.",
+        "Give the owner the PR link (the `PR:` line) and wait. Do not merge it, tag, or run `share` again.",
     ),
     Row(
         State.STALE_MARKER,

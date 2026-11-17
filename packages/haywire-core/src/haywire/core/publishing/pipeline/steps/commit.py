@@ -10,7 +10,7 @@ from haywire.core.publishing.marketstall import MarketstallWriteResult, NoBarnEr
 from haywire.core.publishing.pipeline.errors import CommitError, MarketstallError, PipelineStateError
 from haywire.core.publishing.pipeline.fixes import _MANIFEST_FAILURE_TYPES
 from haywire.core.publishing.pipeline.results import CommitPlan, CommitResult
-from haywire.core.publishing.pipeline.steps import release_state
+from haywire.core.publishing.pipeline.steps import release_pr, release_state
 
 if TYPE_CHECKING:
     from haywire.core.publishing.pipeline.pipeline import SharePipeline
@@ -133,6 +133,17 @@ def apply(pipeline: "SharePipeline", commit_plan: CommitPlan) -> CommitResult:
     if not to_stage:
         raise CommitError("Nothing to commit — no files were written.")
 
+    if pipeline.pr_mode:
+        release_pr.start(pipeline)
+        try:
+            return _commit(pipeline, commit_plan, to_stage)
+        except CommitError:
+            release_pr.leave(pipeline)
+            raise
+    return _commit(pipeline, commit_plan, to_stage)
+
+
+def _commit(pipeline: "SharePipeline", commit_plan: CommitPlan, to_stage: list[Path]) -> CommitResult:
     rel = [
         str(p.relative_to(pipeline.repo_root)) if p.is_relative_to(pipeline.repo_root) else str(p)
         for p in to_stage
@@ -154,6 +165,9 @@ def apply(pipeline: "SharePipeline", commit_plan: CommitPlan) -> CommitResult:
         )
 
     sha = git(["rev-parse", "HEAD"], cwd=pipeline.repo_root).stdout.strip()
+    if pipeline.pr_mode:
+        # The merge of the release PR is what gets tagged, so there is no tag and no marker.
+        return CommitResult(sha=sha, tag="", files=to_stage)
     # From here until the push succeeds, a release commit exists that origin
     # does not know. The marker records it for the one case a tag cannot show:
     # a commit whose tag step failed.

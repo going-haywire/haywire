@@ -747,6 +747,18 @@ def _already_released_failure(state: "release_state.ReleaseState") -> Preconditi
             code="unpushed_release",
             next_command="uv run --frozen haywire share --resume",
         )
+    if state.kind is K.PR_OPEN:
+        return PreconditionFailure(
+            message=(
+                f"Release PR open, not merged: {state.branch} is on origin and {state.tag} is not released."
+            ),
+            remedy=(
+                "A second release now would collide with it. The owner merges the PR, or closes it "
+                f"and deletes {state.branch} on origin.\nSTOP: wait for the merge."
+            ),
+            code="release_pr_open",
+            human_only=True,
+        )
     if state.kind is K.NOTHING_NEW:
         return PreconditionFailure(
             message=f"Nothing to release since {state.tag}: no change under barn/ or pyproject.toml.",

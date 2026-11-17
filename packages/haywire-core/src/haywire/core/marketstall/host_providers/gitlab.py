@@ -87,6 +87,12 @@ class GitLabProvider:
     def tree_url(self, owner: str, repo: str, ref: str, path: str) -> str:
         return f"https://{self._hostname}/{owner}/{repo}/-/tree/{ref}/{path}"
 
+    def new_pull_request_url(self, owner: str, repo: str, base: str, head: str) -> str:
+        return (
+            f"https://{self._hostname}/{owner}/{repo}/-/merge_requests/new"
+            f"?merge_request[source_branch]={head}&merge_request[target_branch]={base}"
+        )
+
     def parse_origin(self, url: str) -> tuple[str, str] | None:
         m = self._origin_pattern.match(url.strip())
         return (m.group("owner"), m.group("repo")) if m else None

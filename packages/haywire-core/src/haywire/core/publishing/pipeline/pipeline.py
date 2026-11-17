@@ -76,6 +76,11 @@ class SharePipeline:
         #: True when the owner asserts this publish creates the PyPI project(s);
         #: preflight then requires every name to be absent from PyPI instead of present.
         self.first_release = False
+        #: True when the release goes to a ``release/v<X>`` branch for a PR, not to the
+        #: current branch: no tag is made and only the branch is pushed.
+        self.pr_mode = False
+        #: The branch a PR-mode run started on, set when it switches to the release branch.
+        self.start_branch: str | None = None
         #: Library names already on PyPI, set by preflight when it checked PyPI.
         self.pypi_existing: list[str] = []
         #: Library names PyPI answered 404 for, set by preflight when it checked PyPI.

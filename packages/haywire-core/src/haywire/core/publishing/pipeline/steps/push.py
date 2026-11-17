@@ -8,7 +8,7 @@ from haywire.core.publishing.barn import current_ref
 from haywire.core.publishing.git import git_remote, git_remote_streaming
 from haywire.core.publishing.pipeline.errors import PipelineStateError, PushError
 from haywire.core.publishing.pipeline.results import PushResult
-from haywire.core.publishing.pipeline.steps import release_state
+from haywire.core.publishing.pipeline.steps import release_pr, release_state
 
 if TYPE_CHECKING:
     from haywire.core.publishing.pipeline.pipeline import SharePipeline
@@ -37,6 +37,8 @@ def command(pipeline: "SharePipeline") -> list[str]:
             "push_command() needs a checked-out branch, but HEAD is detached. "
             "check_preconditions() should have rejected this already."
         )
+    if pipeline.pr_mode:
+        return ["push", "--set-upstream", "origin", f"HEAD:refs/heads/{branch}"]
     tag = f"v{pipeline.version}" if pipeline.version else ""
     args = ["push", "origin", f"HEAD:{branch}"]
     if tag:
@@ -61,8 +63,13 @@ def verify_allowed(pipeline: "SharePipeline") -> None:
             "verify_push_allowed() needs a checked-out branch, but HEAD is detached. "
             "check_preconditions() should have rejected this already."
         )
+    target = f"HEAD:{branch}"
+    if pipeline.pr_mode:
+        release_pr.verify_branch_free(pipeline)
+        assert pipeline.version is not None
+        target = f"HEAD:refs/heads/{release_pr.branch_name(pipeline.version)}"
     probe = git_remote(
-        ["push", "--dry-run", "origin", f"HEAD:{branch}"],
+        ["push", "--dry-run", "origin", target],
         cwd=pipeline.repo_root,
         timeout=120.0,
     )
@@ -105,6 +112,9 @@ async def apply(pipeline: "SharePipeline", on_output: Callable[[str], None] | No
             stderr=(result.stderr or result.stdout).strip(),
             manual_command="git " + " ".join(args),
         )
+    if pipeline.pr_mode:
+        release_pr.leave(pipeline)
+        return PushResult(remote="origin", branch=branch, tag="", output=result.stdout)
     release_state.clear_marker(pipeline.repo_root)
     return PushResult(
         remote="origin",

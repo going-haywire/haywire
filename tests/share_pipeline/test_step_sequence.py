@@ -42,6 +42,7 @@ _EXPECTED_PIPELINE_STEPS = (
     "push",
     "rollback",
     "release_state",
+    "release_pr",
 )
 
 # Flow screen → the pipeline step module that backs it. Screens that drive

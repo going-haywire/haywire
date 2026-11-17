@@ -102,6 +102,9 @@ class GitHubProvider:
     def tree_url(self, owner: str, repo: str, ref: str, path: str) -> str:
         return f"https://{self._hostname}/{owner}/{repo}/tree/{ref}/{path}"
 
+    def new_pull_request_url(self, owner: str, repo: str, base: str, head: str) -> str:
+        return f"https://{self._hostname}/{owner}/{repo}/compare/{base}...{head}?expand=1"
+
     def parse_origin(self, url: str) -> tuple[str, str] | None:
         m = self._origin_pattern.match(url.strip())
         return (m.group("owner"), m.group("repo")) if m else None

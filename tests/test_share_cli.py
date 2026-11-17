@@ -645,3 +645,107 @@ def test_the_owner_checklist_lists_only_the_missing_names_and_asks_for_a_bump(
     assert "haybale-alpha" not in out.split("Give this to the owner")[1].split("THEN")[0]
     assert "THEN, once the owner confirms: uv run --frozen haywire share --first-release --bump patch" in out
     assert _tags(mixed_project) == []
+
+
+# ── --pr: a release through a pull request ──────────────────────────────────
+
+
+def _pr_run(project: Path):
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift), _fake_docs():
+        return run_share_cli(repo_root=project, bump="patch", message=None, pr=True)
+
+
+def _git_out(repo: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", *args], cwd=repo, capture_output=True, text=True, check=True
+    ).stdout.strip()
+
+
+def test_pr_mode_pushes_only_the_release_branch(project: Path, capsys) -> None:
+    default = _git_out(project, "rev-parse", "--abbrev-ref", "HEAD")
+    before = _git_out(project, "rev-parse", "HEAD")
+
+    assert _pr_run(project) == 0
+
+    out = capsys.readouterr().out
+    assert "STATE: RELEASE_PR_OPEN" in out
+    assert _tags(project) == []
+    assert _git_out(project, "rev-parse", "--abbrev-ref", "HEAD") == default
+    assert _git_out(project, "rev-parse", "HEAD") == before
+    assert _git_out(project, "status", "--porcelain") == ""
+    heads = _git_out(project, "ls-remote", "--heads", "origin")
+    assert "refs/heads/release/v0.3.2" in heads
+    assert _git_out(project, "rev-parse", f"origin/{default}") == before
+    release = _git_out(project, "show", "release/v0.3.2:barn/haybale-alpha/pyproject.toml")
+    assert toml.loads(release)["project"]["version"] == "0.3.2"
+
+
+def test_status_reports_the_open_release_pr(project: Path, capsys) -> None:
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    _pr_run(project)
+    capsys.readouterr()
+
+    assert run_share_cli(repo_root=project, bump=None, message=None, status=True) == 30
+    out = capsys.readouterr().out
+    assert "Release PR open, not merged" in out
+    assert "STATE: RELEASE_PR_OPEN" in out
+
+
+def test_a_merged_release_pr_is_no_longer_open(project: Path, capsys) -> None:
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    _pr_run(project)
+    _git_out(project, "merge", "--ff-only", "release/v0.3.2")
+    _git_out(project, "push", "origin", "HEAD")
+    capsys.readouterr()
+
+    run_share_cli(repo_root=project, bump=None, message=None, status=True)
+
+    assert "RELEASE_PR_OPEN" not in capsys.readouterr().out
+
+
+def test_pr_mode_refuses_a_branch_that_already_exists_and_reverts(project: Path, capsys) -> None:
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    _git_out(project, "branch", "release/v0.3.2")
+
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift), _fake_docs():
+        code = run_share_cli(repo_root=project, bump="patch", message=None, pr=True)
+
+    assert code == 40
+    assert "already exists locally" in capsys.readouterr().out
+    assert _git_out(project, "status", "--porcelain") == ""
+
+
+@pytest.mark.parametrize("other", [{"resume": True}, {"first_release": True}])
+def test_pr_cannot_be_combined_with_resume_or_first_release(project: Path, other: dict) -> None:
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    assert run_share_cli(repo_root=project, bump="patch", message=None, pr=True, **other) == 64
+
+
+def test_the_host_provides_the_link_that_opens_the_pr() -> None:
+    from haywire.core.marketstall.host_providers.github import GitHubProvider
+    from haywire.core.marketstall.host_providers.gitlab import GitLabProvider
+
+    assert GitHubProvider().new_pull_request_url("o", "r", "master", "release/v1.0.0") == (
+        "https://github.com/o/r/compare/master...release/v1.0.0?expand=1"
+    )
+    assert GitLabProvider().new_pull_request_url("o", "r", "main", "release/v1.0.0") == (
+        "https://gitlab.com/o/r/-/merge_requests/new"
+        "?merge_request[source_branch]=release/v1.0.0&merge_request[target_branch]=main"
+    )
+
+
+def test_pr_link_is_derived_from_origin(project: Path) -> None:
+    from haywire.core.publishing.url import derive_pull_request_url
+
+    _git_out(project, "remote", "set-url", "origin", "git@github.com:acme/libs.git")
+
+    url, warning = derive_pull_request_url(project, head="release/v1.0.0", base="master")
+
+    assert warning is None
+    assert url == "https://github.com/acme/libs/compare/master...release/v1.0.0?expand=1"
