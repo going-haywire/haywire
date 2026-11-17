@@ -109,7 +109,7 @@ def _place(
         _git(origin, "commit", "-q", "--allow-empty", "-m", "x")
         _git(origin, "worktree", "add", "-q", "-b", "feat/x", str(work))
     bin_dir = _fake_bin(tmp_path, None)
-    (bin_dir / "git").symlink_to(shutil.which("git"))
+    (bin_dir / "git").symlink_to(shutil.which("git") or "git")
     for name, script, wanted in (("hc", _HC, hc), ("herdr-app", _HERDR_APP, herdr is not None)):
         if wanted:
             stand_in = bin_dir / name
