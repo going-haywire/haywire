@@ -3324,6 +3324,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#development-workflow-new-settled-unbuilt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development workflow (new — settled, unbuilt)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#relationships" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3406,6 +3417,17 @@
     <span class="md-ellipsis">
       
         Publishing a library cleanly (new)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#releasing-after-a-library-change-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Releasing after a library change (new)
       
     </span>
   </a>
@@ -4211,6 +4233,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#development-workflow-new-settled-unbuilt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development workflow (new — settled, unbuilt)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#relationships" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4293,6 +4326,17 @@
     <span class="md-ellipsis">
       
         Publishing a library cleanly (new)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#releasing-after-a-library-change-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Releasing after a library change (new)
       
     </span>
   </a>
@@ -5143,11 +5187,6 @@ Macro is registered and placed.</p>
 <td>deprecation (unqualified — say <code>[deprecated]</code> for the library-wide block)</td>
 </tr>
 <tr>
-<td><strong>Marketstall</strong></td>
-<td>A TOML file hosted by a library author that lists their published haybale packages (<code>[[haybales]]</code>) consumed as a remote feed by haywire projects. Produced by <code>haywire share</code>. Lives at <code>marketstall.toml</code> in the repo root. Any author can host their own; the haywire monorepo publishes its official one to GitHub Pages. See <a href="../files/marketstall-toml/">reference/files/marketstall.toml</a>.</td>
-<td>marketplace snippet, package feed</td>
-</tr>
-<tr>
 <td><strong>Marketplace</strong></td>
 <td>The aggregated catalog of haybales visible in the Library Manager's AVAILABLE section; built by merging the project's local <code>[[heaps]]</code> with all remote subscriptions (<code>[[markets]]</code> + <code>[[stalls]]</code>) resolved into <code>[[caches]]</code> by refresh. Multiple remote feeds are supported.</td>
 <td>package list, library catalog</td>
@@ -5512,7 +5551,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Marketstall</strong></td>
-<td>A TOML file hosted by a library author that lists their published haybale packages; consumed as a remote feed by haywire projects. Produced by <code>haywire share</code>. Lives at <code>marketstall.toml</code> in the repo root (single-author) or <code>stalls/&lt;dist-name&gt;.toml</code> (aggregator layout).</td>
+<td>A TOML file hosted by a library author that lists their published haybale packages (<code>[[haybales]]</code>); consumed as a remote feed by haywire projects. Produced by <code>haywire share</code>. Lives at <code>marketstall.toml</code> in the repo root (single-author) or <code>stalls/&lt;dist-name&gt;.toml</code> (aggregator layout). Any author can host their own; the haywire monorepo publishes its official one to GitHub Pages. See <a href="../files/marketstall-toml/">reference/files/marketstall.toml</a>.</td>
 <td>marketplace snippet, package feed</td>
 </tr>
 <tr>
@@ -5772,6 +5811,11 @@ Macro is registered and placed.</p>
 <td><strong>DiffSection</strong></td>
 <td>One labelled block inside a diff modal: title + additions (green <code>+</code>) + removals (red <code>−</code>) + unchanged (dim) + optional note.</td>
 <td>—</td>
+</tr>
+<tr>
+<td><strong>Dependency floor</strong></td>
+<td>The lowest version a requirement accepts, its <code>&gt;=</code> bound (<code>haywire-core&gt;=0.5.4</code>). A library records a <strong>Waiting library</strong>'s need for an unreleased core as a floor above the latest core release; <code>share</code>'s preflight refuses a floor no PyPI release satisfies, before tagging. Bare <strong>Floor</strong> means the port meaning (see <em>Undo</em>).</td>
+<td>floor (bare), minimum version</td>
 </tr>
 </tbody>
 </table>
@@ -7107,6 +7151,75 @@ Macro is registered and placed.</p>
 </tbody>
 </table>
 <hr />
+<h2 id="development-workflow-new-settled-unbuilt">Development workflow <em>(new — settled, unbuilt)</em><a class="headerlink" href="#development-workflow-new-settled-unbuilt" title="Permanent link">&para;</a></h2>
+<p>How work moves through branches, pull requests, releases and agent sessions. Decided in <a href="../../workbench/plans/2026-11-16-workflow-review.md">workbench/plans/2026-11-16-workflow-review.md</a>; the reasons are in ADRs <a href="../../adr/0086-the-simple-path-is-the-floor/">0086</a> to <a href="../../adr/0089-permanent-refs-have-no-bypass-and-agents-clean-up-only-through-finish/">0089</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Release</strong></td>
+<td>A published version of one repository's packages: a tag and what it publishes (PyPI, a marketstall).</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Share</strong></td>
+<td>Releasing a project's libraries with <code>haywire share</code> or the Share wizard; a share produces a <strong>Release</strong>.</td>
+<td>publish (for this act)</td>
+</tr>
+<tr>
+<td><strong>Release PR</strong></td>
+<td>A PR holding only a release's version bump and generated files; merging it publishes the release.</td>
+<td>release branch (that is its branch)</td>
+</tr>
+<tr>
+<td><strong>Waiting library</strong></td>
+<td>An org library whose master carries a <strong>Dependency floor</strong> above the latest core release.</td>
+<td>blocked library</td>
+</tr>
+<tr>
+<td><strong>Simple path</strong></td>
+<td><code>haywire init</code> → work → a repository on a host → the Share wizard, needing only git and a host account. Nothing added to the product may break it.</td>
+<td>beginner flow</td>
+</tr>
+<tr>
+<td><strong>Task</strong></td>
+<td>One piece of work on one branch, in its own worktree, with its own agent session; named by its branch.</td>
+<td>stream, work stream</td>
+</tr>
+<tr>
+<td><strong>Task view</strong></td>
+<td>The listing of tasks derived from git worktrees, branches, their PRs and, when present, herdr's agents.</td>
+<td>stream registry</td>
+</tr>
+<tr>
+<td><strong>Lead</strong></td>
+<td>The agent session the user talks to that starts tasks, receives their reports and orders merges, releases and cleanup; one per machine.</td>
+<td>coordinator, orchestrator</td>
+</tr>
+<tr>
+<td><strong>Main folder</strong></td>
+<td>A repository's original checkout, on an up-to-date default branch; hosts the lead and read-only sessions; worktrees branch from it.</td>
+<td>root checkout</td>
+</tr>
+<tr>
+<td><strong>Finish</strong></td>
+<td>Ending a merged task: its worktree lets go of the branch, then the local and remote branch are deleted.</td>
+<td>cleanup</td>
+</tr>
+<tr>
+<td><strong>Permanent refs</strong></td>
+<td><code>master</code>, <code>gh-pages</code> and the <code>v*</code> tags: no one may delete or rewrite them.</td>
+<td>protected branches</td>
+</tr>
+</tbody>
+</table>
+<hr />
 <h2 id="relationships">Relationships<a class="headerlink" href="#relationships" title="Permanent link">&para;</a></h2>
 <ul>
 <li>A <strong>Graph</strong> contains zero or more <strong>Nodes</strong> and <strong>Edges</strong>; it is serialized as a <code>.haywire</code> file.</li>
@@ -7215,6 +7328,16 @@ Macro is registered and placed.</p>
 <strong>Domain expert:</strong> "<code>library_linked</code> is registered haywire libraries only — what the authoritative <code>HaywireLibrarySource</code> (the registry, or <code>EntryPointLibrarySource</code> in CLI flows) confirms is a haywire library. <code>pyproject</code> is wider: framework (<code>haywire-core</code>, <code>haywire-studio</code>), registered libraries, AND third-party (numpy, requests, etc.). Naming convention <code>haybale-*</code> is a hint, not a contract."</p>
 </blockquote>
 <hr />
+<h3 id="releasing-after-a-library-change-new">Releasing after a library change <em>(new)</em><a class="headerlink" href="#releasing-after-a-library-change-new" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p><strong>Dev:</strong> "visiongraph's new node needs a core change that is merged but not released. Do I have to cut a core release first?"
+<strong>Domain expert:</strong> "No. Merge the library change now and raise its <strong>Dependency floor</strong> to the next core patch in the same commit. That library is now a <strong>Waiting library</strong>: <code>share</code> refuses to tag it until a core release satisfies the floor."
+<strong>Dev:</strong> "And when does core release?"
+<strong>Domain expert:</strong> "When the <strong>Lead</strong> is told to. The release starts with a view of what waits, including the waiting libraries. The core <strong>Release PR</strong> is merged on the user's word; CI tags and publishes in that run."
+<strong>Dev:</strong> "Then the task is done?"
+<strong>Domain expert:</strong> "Once the <strong>Lead</strong> says the PR is merged, the task agent runs <strong>Finish</strong> itself: its worktree lets go of the branch, then the branch is deleted."</p>
+</blockquote>
+<hr />
 <h2 id="flagged-ambiguities">Flagged ambiguities<a class="headerlink" href="#flagged-ambiguities" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>"anchor"</strong>: means the UI attach point of a flyout, popup or pin, never a <strong>Volume</strong>. A named root folder is a volume, and a location inside it a <strong>Volume path</strong>.</li>
@@ -7256,6 +7379,9 @@ Macro is registered and placed.</p>
 <li><strong>"backpressure" vs "drop" vs "queue mode"</strong> <em>(new)</em>: <strong>Queue mode</strong> is the umbrella (<code>QueueMode</code>: <code>BLOCK</code> or <code>DROP</code>). <strong>Backpressure</strong> is the BLOCK-specific mechanism (the producer waits when the queue is full); <strong>DROP</strong> is the <em>absence</em> of backpressure (the producer is never slowed — stale Triggers are discarded). Use <strong>Queue mode</strong> for the selectable knob, <strong>backpressure</strong> only when you specifically mean BLOCK's wait behavior, never "backpressure" to mean DROP.</li>
 <li><strong>"event node" vs "emit node"</strong> <em>(new)</em>: an <strong>EVENT node</strong> (<code>NodeType.EVENT</code>, e.g. <code>Frame Event</code>, <code>Tick</code>) is the <em>subscriber</em> — it owns an <code>EventSource</code>, becomes a Flow + FlowQueue at Assembly, and therefore owns the <strong>Queue mode</strong>. An <strong>EMIT node</strong> (<code>NodeType.CONTROL</code>, e.g. <code>Tick Emit</code>, a camera emit) is the <em>producer</em> — it calls <code>emit_callback</code> to enqueue Triggers and can fan out to many EVENT nodes. Queue mode lives on the EVENT node (its Flow owns the queue), NOT the EMIT node (ADR 0010). Do not say "the emit node drops frames."</li>
 <li><strong>"dialog" vs "modal" vs "popup"</strong> <em>(new)</em>: in the haywire codebase, <strong>Popup</strong> is the Vue component all canonical modals are built on. The helpers in <code>haywire.ui.modals</code> (info_modal, confirm_modal, pick_modal, rename_modal, save_as_modal, diff_modal) wrap Popup with task-specific bodies. "Dialog" is the legacy NiceGUI/Quasar surface (<code>ui.dialog()</code>) — being migrated to Popup; legacy dialogs sit at Quasar's default z-index 6000, Popup at 7000/7001 so haywire modals always stack on top.</li>
+<li><strong>"floor" — two meanings</strong> <em>(new)</em>: the <strong>Floor</strong> of a saved port (its always-saved fields, see <em>Undo</em>) versus a <strong>Dependency floor</strong> (the <code>&gt;=</code> bound of a requirement). Say <em>dependency floor</em> for the version bound.</li>
+<li><strong>"stream"</strong> <em>(new)</em>: already an alias to avoid for <strong>Pipe</strong>, and part of the name <code>haybale-stream</code>. The unit of parallel work is a <strong>Task</strong>, never a "stream".</li>
+<li><strong>"release" vs "share"</strong> <em>(new)</em>: a <strong>Release</strong> is the result, a published version with its tag. <strong>Share</strong> is the library tool's act (<code>haywire share</code>, the Share wizard) that produces one. A <strong>Release PR</strong> is the PR that carries a release's bump; its branch is the "release branch".</li>
 </ul>
 
 
