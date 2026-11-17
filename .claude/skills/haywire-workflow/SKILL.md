@@ -300,7 +300,7 @@ it is where worktrees branch from. The user creates the worktree in
 folder → *New worktree*, branch name such as `fix/edge-drag`. herdr checks it out at
 `~/.herdr/worktrees/haywire-repo/fix-edge-drag` and opens a space there, listed under the
 repo. The worktree items appear only on a space herdr sees inside the repo; *Open
-worktree* opens a space on an existing one. Without herdr:
+worktree* opens a space on an existing one (a lead can open it itself: *Lead and tasks*). Without herdr:
 
 ```sh
 git worktree add ~/.herdr/worktrees/haywire-repo/<kind>-<name> -b <kind>/<name> origin/master
@@ -319,17 +319,34 @@ port in `.haywire/settings.json`. Safe to run again. A
 session started in the worktree still reads the main folder's memory; CodeGraph indexes
 only the main folder, so search with grep there.
 
-**Rules while streams run side by side:**
+**Rules while tasks run side by side:**
 
 - Never `git stash`: the stash is shared by every worktree. Commit work in progress on
   the branch instead.
 - Run only the tests of the area changed; CI runs the whole suite. Browser tests in two
   worktrees at once are fine: each checkout has its own harness ports.
-- Only one stream at a time changes a library in another repository (spandrel,
-  visiongraph, …): every worktree and the umbrella environment use the same checkout of
-  it and its branch.
+- A library in another repository (spandrel, visiongraph, …) gets a worktree per task like
+  any other, placed **beside the repositories**, not under `~/.herdr/worktrees`: its
+  development project reaches core by relative `../haywire-repo/...` paths, which resolve
+  only there. From the library's main folder:
+
+  ```sh
+  git worktree add ../<repo>-<name> -b <kind>/<name> origin/master
+  ```
+
+  Run its code in the full studio with ADR 0081's overlay, from inside the worktree (the
+  studio's project is the folder it starts in), with a studio port of its own in the
+  worktree's `.haywire/settings.json`:
+
+  ```sh
+  cd ../<repo>-<name>
+  uv run --frozen --project .. --with-editable barn/<library> haywire --no-browser
+  ```
+
+  The studio loads the library from the worktree and hot reload follows its files. `--frozen`
+  keeps the umbrella's `uv.lock` as it is.
 - `~/.haywire` (global settings, security document, models, volumes) is shared too: a
-  library installed or a setting changed there is seen by every stream.
+  library installed or a setting changed there is seen by every task.
 - A worktree drives only its own studio, started with
   `.claude/skills/haywire-live-studio/scripts/studioctl start` from inside the worktree,
   on the port `worktree_setup.py` gave it; 8124 is the main folder's studio.
@@ -344,3 +361,58 @@ git worktree remove ~/.herdr/worktrees/haywire-repo/<kind>-<name>
 ```
 
 **A second machine** works on its own clone: [second-machine.md](second-machine.md).
+
+## Lead and tasks
+
+A **task** is one piece of work: a branch, its worktree, its own agent session. The
+**lead** is the one session per machine that the user talks to; it starts tasks, receives
+their reports, and orders merges, releases and cleanup. It lives in the main folder and
+never writes task code. Without a lead the user is the lead: the task session reports to
+the user and does everything below that is the lead's. A second machine's lead is a peer
+([second-machine.md](second-machine.md)).
+
+**Naming.** A task's name is its branch, and that is its herdr tab. Call another agent
+*space / tab* (`haywire-repo / fix/edge-drag`), the address only in brackets
+(`haywire-repo / fix/edge-drag (t1g)`). The `session-place.sh` hook gives each session its
+address. It renames a worktree session's tab to its branch, and tells a main-folder session
+to name its tab by role.
+
+**Messages.** Where `hc` is present, `hc send <address> "<text>"` arrives as the other
+agent's next input; `hc ls` lists the sessions with their space / tab. Without `hc`, the
+user relays.
+
+**The lead starts a task**, from the main folder on an up-to-date `master`:
+
+```sh
+git worktree add ~/.herdr/worktrees/haywire-repo/<kind>-<name> -b <kind>/<name> origin/master
+(cd ~/.herdr/worktrees/haywire-repo/<kind>-<name> && python3 scripts/worktree_setup.py)
+herdr-app do space.new --name <kind>-<name> \
+  --folder ~/.herdr/worktrees/haywire-repo/<kind>-<name> --argv '["claude"]' --task "<brief>"
+```
+
+The space opens under the repo in herdr and the agent starts with the brief as its first
+message; `hc ls` shows whether it did (`herdr-app` reports only that the terminal was
+created). If `herdr-app` is not there, the user opens the space (*Open worktree*) and
+gives the agent the brief.
+
+The brief holds the issue (URL), the branch, the acceptance points, and the report rule
+below. Tell the task to load this skill first.
+
+**A task reports to the lead** with `hc send`, one line each, with the PR's URL:
+
+- *PR opened* (draft).
+- *Live check waiting* (the Questionnaire is posted in its studio).
+- *Ready*, with the last live check's table, or why there was none.
+- *Blocked*, and on what.
+- *Needs a decision*, with the lettered options.
+- *Finished* (after `finish`).
+
+A task talks to the user directly only for a live check or a decision only the user can
+make.
+
+**The lead merges** only on the user's word, then watches `master`'s run (*Finishing as the
+maintainer*, step 4), warns the tasks whose PRs now conflict, and tells the task "merged".
+The task runs `finish` itself. The user closes the space.
+
+**The lead writes reports to the user by name**: space / tab, PR URL, state.
+`uv run python scripts/tasks.py` lists every task with its PR and session.

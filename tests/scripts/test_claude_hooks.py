@@ -71,6 +71,145 @@ def test_a_missing_gh_makes_a_contributor_and_warns(tmp_path):
     assert "GitHub CLI (gh) is not installed" in context
 
 
+# ── session-place.sh ────────────────────────────────────────────────────────────────
+
+_HC = 'if [ "$1" = "get" ]; then echo "$FAKE_SELF"; else echo "$FAKE_LS"; fi'
+_HERDR_APP = 'echo "$@" > "$TMPDIR/herdr-args"; exit "${HERDR_EXIT:-0}"'
+
+
+def _git(cwd: Path, *args: str) -> None:
+    subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@example.org", *args], cwd=cwd, check=True
+    )
+
+
+def _place(
+    tmp_path: Path,
+    *,
+    hc: bool = True,
+    herdr: str | None = "ok",
+    terminal: str | None = "t3g",
+    main=False,
+    live=(),
+    where: str | None = "feat-x / 1",
+) -> str:
+    """The hook's context in ``tmp_path/work``: a main folder if ``main``, else a worktree on ``feat/x``.
+
+    ``herdr`` is ``"ok"`` or ``"fail"`` for a stand-in herdr-app, ``None`` for none. Returns "" when the
+    hook says nothing.
+    """
+    work = tmp_path / "work"
+    if main:
+        work.mkdir()
+        _git(work, "init", "-q")
+    else:
+        origin = tmp_path / "origin"
+        origin.mkdir()
+        _git(origin, "init", "-q")
+        _git(origin, "commit", "-q", "--allow-empty", "-m", "x")
+        _git(origin, "worktree", "add", "-q", "-b", "feat/x", str(work))
+    bin_dir = _fake_bin(tmp_path, None)
+    (bin_dir / "git").symlink_to(shutil.which("git") or "git")
+    for name, script, wanted in (("hc", _HC, hc), ("herdr-app", _HERDR_APP, herdr is not None)):
+        if wanted:
+            stand_in = bin_dir / name
+            stand_in.write_text("#!/bin/bash\n" + script)
+            stand_in.chmod(0o755)
+    labels = {"herdr.tab": "tbABC", **({"where": where} if where else {})}
+    env = {
+        "CLAUDE_PROJECT_DIR": str(work.resolve()),
+        "FAKE_SELF": json.dumps({"labels": labels}),
+        "FAKE_LS": json.dumps({"terminals": list(live)}),
+        "HERDR_EXIT": "1" if herdr == "fail" else "0",
+    }
+    if terminal:
+        env["HC_TERMINAL_ID"] = terminal
+    result = _run("session-place.sh", {}, bin_dir, tmp_path, **env)
+    assert result.returncode == 0
+    return json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"] if result.stdout else ""
+
+
+def _renamed(tmp_path: Path) -> str | None:
+    """The arguments the stand-in herdr-app was called with, or ``None`` if it was not called."""
+    args = tmp_path / "herdr-args"
+    return args.read_text().strip() if args.exists() else None
+
+
+def _session(address: str, cwd: Path, agent="claude-code", where="lead / 1") -> dict:
+    return {"address": address, "agent": agent, "cwd": str(cwd.resolve()), "state": "live", "where": where}
+
+
+def test_outside_herdr_the_place_hook_says_nothing(tmp_path):
+    assert _place(tmp_path, terminal=None) == ""
+
+
+def test_without_hc_the_place_hook_says_nothing(tmp_path):
+    assert _place(tmp_path, hc=False) == ""
+
+
+def test_in_herdr_the_agent_learns_its_place_and_how_to_message(tmp_path):
+    context = _place(tmp_path)
+    assert "`feat-x / 1` (`t3g`)" in context
+    assert "hc send" in context
+    assert "hc --skill" in context
+
+
+def test_without_a_where_label_the_address_stands_alone(tmp_path):
+    assert "You run in herdr as `t3g`. Other agents" in _place(tmp_path, where=None)
+
+
+def test_an_unnamed_worktree_tab_is_renamed_to_the_branch(tmp_path):
+    context = _place(tmp_path)
+    assert _renamed(tmp_path) == "do tab.rename --id tbABC --name feat/x"
+    assert "Your tab is now named `feat/x`." in context
+
+
+@pytest.mark.parametrize("where", ["feat-x / my notes", "feat-x / feat/x"])
+def test_a_tab_with_a_name_is_left_alone(tmp_path, where):
+    context = _place(tmp_path, where=where)
+    assert _renamed(tmp_path) is None
+    assert "name your tab" not in context
+    assert "now named" not in context
+
+
+@pytest.mark.parametrize("herdr", ["fail", None])
+def test_when_the_rename_cannot_run_the_agent_is_told_to(tmp_path, herdr):
+    context = _place(tmp_path, herdr=herdr)
+    assert "Before anything else, name your tab after your branch" in context
+    assert "herdr-app do tab.rename --id tbABC --name feat/x" in context
+
+
+def test_in_the_main_folder_the_agent_names_its_tab_by_role(tmp_path):
+    context = _place(tmp_path, main=True)
+    assert _renamed(tmp_path) is None
+    assert "Before anything else, name your tab after your role" in context
+    assert "herdr-app do tab.rename --id tbABC --name <role>" in context
+
+
+def test_a_named_tab_in_the_main_folder_is_left_alone(tmp_path):
+    assert "name your tab" not in _place(tmp_path, main=True, where="lead / lead")
+
+
+def test_other_live_sessions_in_the_main_folder_are_warned_about(tmp_path):
+    work = tmp_path / "work"
+    live = [
+        _session("t3g", work),
+        _session("t9", work, where="haywire-repo / 1"),
+        _session("t8", work, agent="zsh"),
+        _session("t7", tmp_path / "elsewhere"),
+    ]
+    context = _place(tmp_path, main=True, live=live)
+    assert "haywire-repo / 1 (t9)" in context
+    assert "t8" not in context
+    assert "t7" not in context
+    assert "(t3g)" not in context.split("Warning")[1]
+
+
+def test_a_worktree_gets_no_sharing_warning(tmp_path):
+    live = [_session("t9", tmp_path / "work")]
+    assert "Warning" not in _place(tmp_path, live=live)
+
+
 # ── guard-pr-merge.sh ───────────────────────────────────────────────────────────────
 
 _GREEN = [
