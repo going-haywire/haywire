@@ -1703,6 +1703,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#44-dependency-floors-must-exist-on-pypi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Dependency floors must exist on PyPI
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1797,6 +1808,17 @@
     <span class="md-ellipsis">
       
         7.1 Release reminders
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-releasing-through-a-pull-request-advanced" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 Releasing through a pull request (advanced)
       
     </span>
   </a>
@@ -3923,6 +3945,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#44-dependency-floors-must-exist-on-pypi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Dependency floors must exist on PyPI
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4017,6 +4050,17 @@
     <span class="md-ellipsis">
       
         7.1 Release reminders
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-releasing-through-a-pull-request-advanced" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 Releasing through a pull request (advanced)
       
     </span>
   </a>
@@ -4128,6 +4172,7 @@ publishing status — the barn libraries, their lockstep version — and a
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--dry-run<span class="w">      </span><span class="c1"># report only; writes nothing</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--status<span class="w">       </span><span class="c1"># one state and the next step; writes nothing</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--resume<span class="w">       </span><span class="c1"># finish a release that was committed but not pushed</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span>patch<span class="w"> </span>--pr<span class="w">   </span><span class="c1"># release through a pull request (§7.2)</span>
 </span></code></pre></div>
 <p>One mode, non-interactive. Every answer comes from a flag or takes its inert
 default. Requires <code>--bump</code> (<code>patch|minor|major</code> or an explicit <code>X.Y.Z</code>).</p>
@@ -4155,8 +4200,11 @@ missing tag if needed and pushes. It never writes a new version. A marker file,
 whose tag step failed); it is removed when the push succeeds.</p>
 <p><code>--first-release</code> creates the PyPI project(s) when the project declares <code>distribute = "pypi"</code>; see <a href="../publish-to-pypi/#6-the-first-release">publish-to-pypi §6</a>.</p>
 <p><code>--status</code> prints the state and ends with a <code>STATE:</code> line: <code>READY</code>, <code>RELEASED</code>,
-<code>NOTHING_TO_RELEASE</code>, <code>UNPUSHED</code>, <code>STALE_MARKER</code>, <code>NEEDS_HUMAN</code> or <code>BLOCKED</code>. Every
-refusal ends with one <code>NEXT:</code>, <code>DONE:</code> or <code>STOP:</code> line.</p>
+<code>NOTHING_TO_RELEASE</code>, <code>UNPUSHED</code>, <code>RELEASE_PR_OPEN</code>, <code>RELEASE_MERGED</code>, <code>STALE_MARKER</code>,
+<code>NEEDS_HUMAN</code> or <code>BLOCKED</code>. Every refusal ends with one <code>NEXT:</code>, <code>DONE:</code> or <code>STOP:</code> line.</p>
+<p><code>RELEASE_PR_OPEN</code> and <code>RELEASE_MERGED</code> belong to the release-PR mode (§7.2): a
+<code>release/v&lt;X&gt;</code> branch waits on <code>origin</code>, or its PR was merged and the version has no tag.
+<code>share --resume</code> handles the second: it tags the merged commit and pushes the tag alone.</p>
 <h3 id="24-exit-codes-and-json">2.4 Exit codes and <code>--json</code><a class="headerlink" href="#24-exit-codes-and-json" title="Permanent link">&para;</a></h3>
 <p>Every mode exits with a stable code, so a script or an agent can branch on it:</p>
 <table>
@@ -4267,7 +4315,9 @@ which re-runs every check from the top.</p>
    because nothing else could have been sitting there dirty when the run
    started. Commit or stash first. This applies to <code>haywire share</code> on the
    command line exactly as it does in the Share editor — both run the same
-   checks. (A step-1 failure itself never mutates anything and never
+   checks. One exception: a modified <code>uv.lock</code> does not count. The bump
+   relocks and commits it anyway, so a lockfile an earlier <code>uv</code> run touched
+   does not block a release when nothing else changed. (A step-1 failure itself never mutates anything and never
    triggers a revert — there's nothing yet to revert.)</p>
 </li>
 <li>
@@ -4326,6 +4376,26 @@ the framework packages to your haywire checkout by path in the root
   yourself — see <a href="../publish-to-pypi/">publish-to-pypi</a>. A PyPI package
   carries no <code>[tool.uv.sources]</code>, so a <code>--dev</code> project can keep its links.</li>
 </ul>
+<h3 id="44-dependency-floors-must-exist-on-pypi">4.4 Dependency floors must exist on PyPI<a class="headerlink" href="#44-dependency-floors-must-exist-on-pypi" title="Permanent link">&para;</a></h3>
+<p>Before anything is written, <code>haywire share</code> asks PyPI whether a release satisfies each
+version requirement in every <code>barn/*/pyproject.toml</code>. A consumer resolves your
+dependencies from PyPI whether you distribute by <code>git</code> or by <code>pypi</code>, so a floor no release
+meets (for example <code>haywire-core&gt;=0.5.4</code> while PyPI's latest is 0.5.3) would break their
+install. It refuses, before the commit and the tag:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>✗ No release on PyPI satisfies these requirements:
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>  barn/haybale-foo/pyproject.toml: haywire-core&gt;=0.5.4
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    waits for a release of `haywire-core` that satisfies `&gt;=0.5.4`; PyPI&#39;s latest is 0.5.3
+</span></code></pre></div>
+<p>Wait for that release, or lower the floor to a version that exists. Yanked releases do not
+count; a pre-release counts only when the requirement names one.</p>
+<p>The check is a refusal only on a definite answer. When PyPI cannot be reached, or does not
+list a package (it may live on a private index), the run goes on with a warning naming the
+packages it could not confirm. It does not ask about your own libraries, requirements
+sourced from git, a URL or a path (<code>[tool.uv.sources]</code>), or requirements without a version
+specifier.</p>
+<p>The floor is also how a change records that it waits for a release: raise the dependency's
+floor to the next patch after its latest release (<code>&gt;=0.5.4</code> while PyPI has 0.5.3) in the same
+commit as the change that needs it. <code>share</code> then refuses to release until that version exists.</p>
 <h2 id="5-hosting-your-marketstall">5. Hosting your marketstall<a class="headerlink" href="#5-hosting-your-marketstall" title="Permanent link">&para;</a></h2>
 <p>A marketstall is just a TOML file. Wherever consumers can reach by URL, you can host one. Common patterns:</p>
 <table>
@@ -4376,11 +4446,11 @@ went wrong and the message mentions a manifest.</p>
 <p>The tooling in this guide makes all three easy.</p>
 <h3 id="62-the-shape-of-a-haybale-library">6.2 The shape of a haybale library<a class="headerlink" href="#62-the-shape-of-a-haybale-library" title="Permanent link">&para;</a></h3>
 <p>A haybale library is a Python package with a specific layout. <code>haywire init</code> produces this for you; if you're starting from scratch, see <a href="../../haybale/haybale-canon/">haybale-canon</a> for the full canon. The relevant parts for sharing:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>haybale-my-lib/
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>├── pyproject.toml          ← pip manifest (travels to PyPI / pip)
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>└── haybale_my_lib/
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    ├── haybale.toml        ← library metadata (ships INSIDE the wheel)
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    └── __init__.py         ← @library(...) declares the haywire runtime contract
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>haybale-my-lib/
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>├── pyproject.toml          ← pip manifest (travels to PyPI / pip)
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>└── haybale_my_lib/
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    ├── haybale.toml        ← library metadata (ships INSIDE the wheel)
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    └── __init__.py         ← @library(...) declares the haywire runtime contract
 </span></code></pre></div>
 <p>The two manifests answer different questions:</p>
 <table>
@@ -4464,34 +4534,34 @@ the publish has nothing left to report.</p>
 <p>Authors outside the official monorepo can use any versioning scheme they like — the marketstall format doesn't require lockstep. The <code>&gt;=</code> convention is a haywire-team practice.</p>
 <h2 id="7-the-full-author-cycle">7. The full author cycle<a class="headerlink" href="#7-the-full-author-cycle" title="Permanent link">&para;</a></h2>
 <p>End-to-end, the flow is:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>write code, build components
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>        │
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>        ▼
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>try it in the running studio    (uv run haywire)
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>        │
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>        ▼
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>document them — descriptions, tags, docstrings
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>        │
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>        ▼
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>git commit &amp;&amp; git push          (the tree must be clean — §4.1)
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>        │
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>        ▼
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>any release reminders?          (§7.1)
-</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>        │
-</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>        ▼
-</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>uv run haywire share --bump patch
-</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>  or: Share… in the Share editor
-</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>        │
-</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>        ├─▶ preflight: tree, remote, host, push, branch      §4
-</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>        ├─▶ dependency drift detected and reconciled         §6.3
-</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>        ├─▶ barn/* bumped in lockstep, docs regenerated      §6.4
-</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>        └─▶ marketstall.toml rebuilt, committed, tagged, pushed
-</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>        │
-</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>        ▼
-</span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>marketstall hosted at a URL      §5
-</span><span id="__span-6-26"><a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>        │
-</span><span id="__span-6-27"><a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a>        ▼
-</span><span id="__span-6-28"><a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a>consumer subscribes via Add Source
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>write code, build components
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>        │
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>        ▼
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>try it in the running studio    (uv run haywire)
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>        │
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>        ▼
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>document them — descriptions, tags, docstrings
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>        │
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>        ▼
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>git commit &amp;&amp; git push          (the tree must be clean — §4.1)
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>        │
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>        ▼
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>any release reminders?          (§7.1)
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>        │
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>        ▼
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>uv run haywire share --bump patch
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>  or: Share… in the Share editor
+</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>        │
+</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>        ├─▶ preflight: tree, remote, host, push, branch      §4
+</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>        ├─▶ dependency drift detected and reconciled         §6.3
+</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>        ├─▶ barn/* bumped in lockstep, docs regenerated      §6.4
+</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>        └─▶ marketstall.toml rebuilt, committed, tagged, pushed
+</span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>        │
+</span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>        ▼
+</span><span id="__span-7-25"><a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>marketstall hosted at a URL      §5
+</span><span id="__span-7-26"><a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a>        │
+</span><span id="__span-7-27"><a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a>        ▼
+</span><span id="__span-7-28"><a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a>consumer subscribes via Add Source
 </span></code></pre></div>
 <p>Everything in the indented block happens inside the one command. The only steps
 that are yours are writing the code, trying it, documenting it, and committing.</p>
@@ -4502,10 +4572,10 @@ committing whatever it produces. What each one exits with, and why neither is a
 staleness gate, is in
 <a href="../../architecture/sharing/share-pipeline-arch/#6-the-current-ci-story">share-pipeline-arch §6</a>.</p>
 <h3 id="71-release-reminders">7.1 Release reminders<a class="headerlink" href="#71-release-reminders" title="Permanent link">&para;</a></h3>
-<p>Sometimes a change you make has a consequence for the next release: most often a
-dependency that has to be raised once a release contains a change you need. A
-<strong>release reminder</strong> is a GitHub issue that records that decision, so it is not
-forgotten by the time you release. It is a help, not a rule: <code>haywire share</code>
+<p>Sometimes a change you make has a consequence for the next release that no
+dependency floor records (§4.4): the change has no code yet, or your project develops
+against PyPI's haywire-core. A <strong>release reminder</strong> is a GitHub issue that records that
+decision, so it is not forgotten by the time you release. It is a help, not a rule: <code>haywire share</code>
 never reads it, and you open one only when you want to be reminded. An agent
 working from the <code>CLAUDE.md</code> that <code>haywire init</code> writes proposes one and opens it
 only when you agree.</p>
@@ -4525,20 +4595,43 @@ only when you agree.</p>
 </tr>
 <tr>
 <td><code>after-core-release</code></td>
-<td>A dependency to raise once a released haywire-core contains a named change.</td>
+<td>A dependency to raise once a released haywire-core contains a named change, when no floor can record the wait yet.</td>
 <td>At the start of a work session, and by the haywire team after each core release.</td>
 </tr>
 </tbody>
 </table>
 <p>An <code>after-core-release</code> issue starts with one line naming the change it waits for,
 so whether a release contains it can be checked rather than remembered:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>Waits for: going-haywire/haywire@840d29a21 (#107)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>Waits for: going-haywire/haywire@840d29a21 (#107)
 </span></code></pre></div>
 <p>Prepare the work on a branch, open a draft pull request, and link it to the issue.
 Once the latest haywire-core on PyPI contains the commit, raise your library's
 <code>haywire-core</code> floor to that version (§3), finish the pull request and close the
 issue. The exact commands, and the <code>gh label create</code> lines for a new repository,
 are in your project's <code>CLAUDE.md</code>.</p>
+<h3 id="72-releasing-through-a-pull-request-advanced">7.2 Releasing through a pull request (advanced)<a class="headerlink" href="#72-releasing-through-a-pull-request-advanced" title="Permanent link">&para;</a></h3>
+<p>When the default branch only accepts pull requests, <code>share</code> cannot push the release commit
+to it. Pass <code>--pr</code>:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span>patch<span class="w"> </span>--pr
+</span></code></pre></div>
+<p>The run does everything the plain run does (bump, docs, marketstall), but commits on
+<code>release/v&lt;version&gt;</code>, pushes only that branch, makes no tag, and prints the host's link that
+opens the pull request. Your checkout returns to the default branch, untouched. The run ends
+with <code>STATE: RELEASE_PR_OPEN</code>; until the PR is merged, <code>--status</code> says so and a second
+<code>share</code> is refused.</p>
+<p>The merge is the release. Two things tag the merge commit and publish it:</p>
+<ul>
+<li><strong>The generated <code>publish.yml</code></strong> (GitHub): a push to the default branch that changes the
+  libraries' versions tests, builds, tags the merge commit and publishes in one run. See
+  <a href="../publish-to-pypi/#4-the-workflow">publish-to-pypi §4</a>. A project created before this
+  copies the two files from a fresh <code>haywire init</code>.</li>
+<li><strong><code>share --resume</code></strong> (any host, or a project without the workflow): after pulling the
+  merged default branch, <code>share --status</code> reports <code>RELEASE_MERGED</code>; <code>share --resume</code> tags that
+  commit and pushes the tag. It never writes a version.</li>
+</ul>
+<p><code>--pr</code> is opt-in and leaves the plain path alone: a project that releases from its default
+branch never sees it. It cannot be combined with <code>--first-release</code> or <code>--resume</code>, and the
+Share editor does not offer it.</p>
 <h2 id="8-common-pitfalls">8. Common pitfalls<a class="headerlink" href="#8-common-pitfalls" title="Permanent link">&para;</a></h2>
 <p><strong>You want to review dependency findings before publishing.</strong>
 The CLI does not stop for them — it declares undeclared imports and leaves the
