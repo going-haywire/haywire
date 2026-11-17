@@ -616,7 +616,7 @@ Decision Q14. After S2–S5 exist.
 
 | Slice | State | Commit | Date | Deviations |
 |---|---|---|---|---|
-| S1 Language and records | open | | | |
+| S1 Language and records | done | 31223d8dd | 2026-11-17 | The glossary links the plan file; the `publish_releases.md` manual gate line now shows the CI check; `docs_branch` there corrected to `master` |
 | S2 Protection and cleanup | open | | | |
 | S3 Agents, neutral side | open | | | |
 | S4 `share` | open | | | |
