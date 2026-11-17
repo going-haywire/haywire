@@ -239,12 +239,18 @@ def _print_failure(failure: PreconditionFailure) -> None:
         print(f"    {failure.doc_label or 'Docs'}: {failure.doc_url}")
 
 
+def _print_warnings(warnings: list[str]) -> None:
+    for warning in warnings:
+        print(f"⚠ {warning}")
+
+
 def _run_status(pipeline: SharePipeline, out: Outcome) -> None:
     """Read-only. The last line is ``STATE: <name>``, stable for callers to match."""
     report = pipeline.check_preconditions()
     if not report.ok:
         _refuse(out, report.failures[0], pipeline.repo_root)
         return
+    _print_warnings(report.warnings)
     print("✓ Ready to release.")
     out.state, out.exit_code, out.next_command = (
         State.READY.value,
@@ -266,6 +272,7 @@ def _run_resume(pipeline: SharePipeline, out: Outcome) -> None:
 def _run_dry(pipeline: SharePipeline, out: Outcome) -> None:
     """Report; write nothing. Preconditions are REPORTED, not enforced."""
     report = pipeline.check_preconditions()
+    _print_warnings(report.warnings)
     if report.ok:
         print("✓ Preconditions OK")
     else:
@@ -319,7 +326,8 @@ def _run_publish(
         print("STATE: USAGE")
         return
 
-    pipeline.require_preconditions()
+    preconditions = pipeline.require_preconditions()
+    _print_warnings(preconditions.warnings if preconditions else [])
     print("✓ Preconditions OK")
 
     if pipeline.first_release and pipeline.pypi_existing:

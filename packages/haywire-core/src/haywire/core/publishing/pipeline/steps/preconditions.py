@@ -8,6 +8,9 @@ from typing import TYPE_CHECKING, NamedTuple
 from urllib.parse import urlsplit
 
 import toml
+from packaging.requirements import InvalidRequirement, Requirement
+from packaging.utils import canonicalize_name
+from packaging.version import InvalidVersion, Version
 
 from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.library.haybale_toml import HAYBALE_TOML, read_raw
@@ -561,13 +564,153 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
                 default_branch=default_branch,
             )
 
+    unsatisfied, unanswered = _floor_check(pipeline.repo_root, barn_libraries)
+    if unsatisfied:
+        return PreconditionsReport(
+            failures=[_unsatisfied_floor_failure(unsatisfied)],
+            remote_url=remote_url,
+            barn_libraries=barn_libraries,
+            default_branch=default_branch,
+        )
+
     pipeline.remote_url = remote_url
     return PreconditionsReport(
         failures=[],
         remote_url=remote_url,
         barn_libraries=barn_libraries,
         default_branch=default_branch,
+        warnings=[_unanswered_floor_warning(unanswered)] if unanswered else [],
     )
+
+
+class _UnsatisfiedFloor(NamedTuple):
+    """A requirement no PyPI release satisfies."""
+
+    lib_file: str
+    requirement: str
+    specifier: str
+    name: str
+    latest: str
+
+
+def _non_pypi_sources(pyprojects: list[Path]) -> set[str]:
+    """Canonical names that a ``[tool.uv.sources]`` entry takes from git, a URL or a path."""
+    names: set[str] = set()
+    for pyproject in pyprojects:
+        try:
+            sources = toml.loads(pyproject.read_text()).get("tool", {}).get("uv", {}).get("sources", {})
+        except (OSError, toml.TomlDecodeError):
+            continue
+        if not isinstance(sources, dict):
+            continue
+        for package, entries in sources.items():
+            for entry in entries if isinstance(entries, list) else [entries]:
+                if isinstance(entry, dict) and entry.keys() & {"git", "url", "path", "workspace"}:
+                    names.add(canonicalize_name(package))
+    return names
+
+
+def _pypi_release_versions(name: str, *, timeout: float = 5.0) -> list[str] | None:
+    """Return the non-yanked release versions of *name* on PyPI, or ``None`` when unanswerable.
+
+    A 404, a network failure or an unreadable answer is ``None``: a package PyPI does
+    not list may live on a private index, so only a listed package can be refused.
+    """
+    import json
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(f"https://pypi.org/pypi/{name}/json", timeout=timeout) as response:
+            releases = json.load(response)["releases"]
+        return [
+            version
+            for version, files in releases.items()
+            if files and not all(f.get("yanked") for f in files)
+        ]
+    except Exception:
+        return None
+
+
+def _floor_check(repo_root: Path, barn_libraries: list[Path]) -> tuple[list[_UnsatisfiedFloor], list[str]]:
+    """Ask PyPI whether a release satisfies each dependency of each barn library.
+
+    Returns the requirements that no release satisfies and the names PyPI could not
+    answer for. Requirements on the project's own libraries, on a git, URL or path
+    source, and without a version specifier are not asked.
+    """
+    pyprojects = [repo_root / "pyproject.toml", *(lib / "pyproject.toml" for lib in barn_libraries)]
+    skipped = _non_pypi_sources(pyprojects) | {
+        canonicalize_name(n) for n in _library_names(repo_root, barn_libraries)
+    }
+
+    unsatisfied: list[_UnsatisfiedFloor] = []
+    unanswered: list[str] = []
+    answers: dict[str, list[str] | None] = {}
+    for lib in barn_libraries:
+        try:
+            dependencies = (
+                toml.loads((lib / "pyproject.toml").read_text()).get("project", {}).get("dependencies", [])
+            )
+        except (OSError, toml.TomlDecodeError):
+            continue
+        for text in dependencies:
+            try:
+                requirement = Requirement(text)
+            except InvalidRequirement:
+                continue
+            name = canonicalize_name(requirement.name)
+            if not requirement.specifier or name in skipped:
+                continue
+            if name not in answers:
+                answers[name] = _pypi_release_versions(name)
+            versions = answers[name]
+            if versions is None:
+                if name not in unanswered:
+                    unanswered.append(name)
+                continue
+            parsed = []
+            for version in versions:
+                try:
+                    parsed.append(Version(version))
+                except InvalidVersion:
+                    continue
+            # prereleases=None: a pre-release counts only when the specifier names one.
+            if any(requirement.specifier.contains(v, prereleases=None) for v in parsed):
+                continue
+            stable = [v for v in parsed if not v.is_prerelease]
+            latest = max(stable or parsed, default=None)
+            unsatisfied.append(
+                _UnsatisfiedFloor(
+                    lib_file=str((lib / "pyproject.toml").relative_to(repo_root)),
+                    requirement=str(requirement),
+                    specifier=str(requirement.specifier),
+                    name=name,
+                    latest=str(latest) if latest else "none",
+                )
+            )
+    return unsatisfied, unanswered
+
+
+def _unsatisfied_floor_failure(unsatisfied: list[_UnsatisfiedFloor]) -> PreconditionFailure:
+    """Refuse a release whose dependency floor no PyPI release meets, naming each wait."""
+    listed = "\n".join(f"  {u.lib_file}: {u.requirement}" for u in unsatisfied)
+    waits = "\n".join(
+        f"  waits for a release of `{u.name}` that satisfies `{u.specifier}`; PyPI's latest is {u.latest}"
+        for u in unsatisfied
+    )
+    return PreconditionFailure(
+        message=f"No release on PyPI satisfies these requirements:\n{listed}",
+        remedy=(
+            "A consumer resolves these from PyPI, so the install fails until the dependency is released.\n"
+            f"{waits}\n"
+            "Release the dependency first, or lower the floor to a version that exists."
+        ),
+        code="dependency_floor_unreleased",
+    )
+
+
+def _unanswered_floor_warning(names: list[str]) -> str:
+    return "Could not confirm on PyPI that a release satisfies the requirements on: " + ", ".join(names)
 
 
 def _already_released_failure(state: "release_state.ReleaseState") -> PreconditionFailure:

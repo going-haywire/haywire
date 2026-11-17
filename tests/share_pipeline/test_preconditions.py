@@ -1252,3 +1252,93 @@ def test_a_pypi_project_may_keep_its_path_sources(project: Path) -> None:
         report = SharePipeline(project).check_preconditions()
 
     assert report.ok, report.failures
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# The dependency floor: a requirement no PyPI release satisfies refuses the release.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _require(project: Path, *requirements: str, name: str = "haybale-alpha") -> None:
+    deps = ", ".join(f'"{r}"' for r in requirements)
+    (project / "barn" / name / "pyproject.toml").write_text(
+        f'[project]\nname = "{name}"\nversion = "0.1.0"\ndependencies = [{deps}]\n'
+    )
+    _commit(project, "requirements")
+
+
+def _check_with_pypi(project: Path, releases: dict[str, list[str] | None]):
+    from unittest.mock import patch
+
+    from haywire.core.publishing.pipeline.steps import preconditions as mod
+
+    with patch.object(mod, "_pypi_release_versions", side_effect=lambda name, **_: releases[name]):
+        return SharePipeline(project).check_preconditions()
+
+
+@pytest.mark.parametrize("distribute", ["git", "pypi"])
+def test_floor_above_every_release_is_refused(project: Path, distribute: str) -> None:
+    from unittest.mock import patch
+
+    from haywire.core.publishing.pipeline.steps import preconditions as mod
+
+    _write_root_pyproject(project, f'[tool.haywire.marketstall]\ndistribute = "{distribute}"\n')
+    _require(project, "haywire-core>=0.5.4")
+
+    with patch.object(mod, "_pypi_name_is_registered", return_value=True):
+        report = _check_with_pypi(project, {"haywire-core": ["0.5.2", "0.5.3"]})
+
+    assert not report.ok
+    assert report.failure.code == "dependency_floor_unreleased"
+    assert "waits for a release of `haywire-core` that satisfies `>=0.5.4`; PyPI's latest is 0.5.3" in (
+        report.failure.remedy
+    )
+
+
+def test_floor_a_release_satisfies_passes(project: Path) -> None:
+    _require(project, "haywire-core>=0.5.3")
+
+    report = _check_with_pypi(project, {"haywire-core": ["0.5.3"]})
+
+    assert report.ok, report.failures
+    assert report.warnings == []
+
+
+def test_unanswerable_floor_is_a_warning(project: Path) -> None:
+    _require(project, "haywire-core>=0.5.4")
+
+    report = _check_with_pypi(project, {"haywire-core": None})
+
+    assert report.ok, report.failures
+    assert len(report.warnings) == 1
+    assert "haywire-core" in report.warnings[0]
+
+
+def test_yanked_releases_do_not_count() -> None:
+    import io
+    import json
+    from unittest.mock import patch
+
+    from haywire.core.publishing.pipeline.steps import preconditions as mod
+
+    answer = {"releases": {"1.0": [{"yanked": True}], "1.1": [{"yanked": False}], "1.2": []}}
+    with patch("urllib.request.urlopen", return_value=io.BytesIO(json.dumps(answer).encode())):
+        assert mod._pypi_release_versions("x") == ["1.1"]
+
+
+def test_prerelease_counts_only_when_the_specifier_names_one(project: Path) -> None:
+    _require(project, "haywire-core>=0.6")
+    refused = _check_with_pypi(project, {"haywire-core": ["0.5.3", "0.6.0rc1"]})
+    assert refused.failure is not None
+    assert refused.failure.code == "dependency_floor_unreleased"
+
+    _require(project, "haywire-core>=0.6.0rc1")
+    assert _check_with_pypi(project, {"haywire-core": ["0.5.3", "0.6.0rc1"]}).ok
+
+
+def test_sources_siblings_and_unbounded_requirements_are_not_asked(project: Path) -> None:
+    _write_root_pyproject(project, '[tool.uv.sources]\nhaywire-core = { path = "." }\n')
+    _require(project, "haywire-core>=9", "haybale-alpha>=9", "requests")
+
+    # Any PyPI question would KeyError.
+    assert _check_with_pypi(project, {}).ok

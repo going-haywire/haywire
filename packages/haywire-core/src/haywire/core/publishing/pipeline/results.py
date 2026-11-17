@@ -81,6 +81,8 @@ class PreconditionsReport:
     remote_url: str | None
     barn_libraries: list[Path]
     default_branch: str | None = None
+    #: Findings that do not stop a release: a question that could not be answered.
+    warnings: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
