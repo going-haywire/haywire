@@ -325,9 +325,26 @@ only the main folder, so search with grep there.
   the branch instead.
 - Run only the tests of the area changed; CI runs the whole suite. Browser tests in two
   worktrees at once are fine: each checkout has its own harness ports.
-- Only one task at a time changes a library in another repository (spandrel,
-  visiongraph, …): every worktree and the umbrella environment use the same checkout of
-  it and its branch.
+- A library in another repository (spandrel, visiongraph, …) gets a worktree per task like
+  any other, placed **beside the repositories**, not under `~/.herdr/worktrees`: its
+  development project reaches core by relative `../haywire-repo/...` paths, which resolve
+  only there. From the library's main folder:
+
+  ```sh
+  git worktree add ../<repo>-<name> -b <kind>/<name> origin/master
+  ```
+
+  Run its code in the full studio with ADR 0081's overlay, from inside the worktree (the
+  studio's project is the folder it starts in), with a studio port of its own in the
+  worktree's `.haywire/settings.json`:
+
+  ```sh
+  cd ../<repo>-<name>
+  uv run --frozen --project .. --with-editable barn/<library> haywire --no-browser
+  ```
+
+  The studio loads the library from the worktree and hot reload follows its files. `--frozen`
+  keeps the umbrella's `uv.lock` as it is.
 - `~/.haywire` (global settings, security document, models, volumes) is shared too: a
   library installed or a setting changed there is seen by every task.
 - A worktree drives only its own studio, started with
