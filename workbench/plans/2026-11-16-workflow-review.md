@@ -522,6 +522,12 @@ Task `feat/release-on-merge`. Decisions Q2, Q4, Q5, Q8, Q10, Q11 (ordering).
 
 One task per repository, one repository at a time. Decisions Q7, Q9, Q10; L1–L6.
 
+Order (decided 2026-11-18): comfyui (pilot: smallest, light dependencies), protokol,
+spandrel, stream (default branch `main`), visiongraph (heaviest CI: depthai, opencv,
+openvino). A proposal to download `init`'s generic files from a template repository was
+dropped the same day: `publish.yml` is coupled to the installed `share`, and a fetch would
+help only new projects; existing projects' drift goes to a `haywire update-template` issue.
+
 1. **(user)** Create `going-haywire/.github`. Contents (a PR there):
    - Org defaults: `CONTRIBUTING.md` for libraries (the library specifics; the shared
      rules by link to core's [CONTRIBUTING.md](../../CONTRIBUTING.md)), `SECURITY.md`,
@@ -607,10 +613,10 @@ Decision Q14. After S2–S5 exist.
 | # | Point | Slice |
 |---|---|---|
 | D1 | Tagging after a merged `share` release PR: the generated workflow, `share --resume`, or both | S4 |
-| D2 | One source for the hooks and skill shared by core's `.claude/` and the dev plugin | S6 |
+| D2 | One source for the hooks and skill shared by core's `.claude/` and the dev plugin. **Settled (A), 2026-11-18:** the shared hooks, `finish.py`, `tasks.py` and the `haywire-workflow` skill live once in a plugin folder in core (`plugins/haywire-dev/`); core's `.claude/settings.json` calls the hook scripts there by path (core needs no install); core's `.claude/skills/haywire-workflow` is a symlink into it (a Windows clone needs `core.symlinks=true`); a marketplace in `going-haywire/.github` lists the plugin as a `git-subdir` of `going-haywire/haywire`; libraries install it once per clone. Rejected: core consuming the installed plugin (a project setting enables a plugin but does not install it, so a fresh clone would run without `block-dangerous-git`; and a hook in both settings and a plugin runs twice) | S6 |
 | D3 | Can the lead open a task's herdr space itself (`herdr-app do space.new --folder <wt> --argv '["claude"]' --task "<brief>"`)? If not, the user opens it | S3 |
 | D4 | Proposing patch vs minor at release step 0 | S5 |
-| D5 | The library CI's core checkout: master always, or the latest release when the library's floors are all satisfied on PyPI | S6 |
+| D5 | The library CI's core checkout: master always, or the latest release when the library's floors are all satisfied on PyPI. **Settled (A), 2026-11-18:** core master always, on push, PR and nightly (Q10's wording); a second nightly job against the latest release only if a real break shows the two cases need telling apart. haybale-protokol has no path sources to core (it resolves core from PyPI), so the core checkout applies to `--dev` libraries only | S6 |
 
 ## Status
 
