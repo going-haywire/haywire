@@ -79,7 +79,7 @@ Optional:
      published documentation. Permanent files (code, docs, skills) never link to a plan.
    - **Never change a version number** (`pyproject.toml`, `haybale.toml`, `>=` pins).
      Releases are lockstep across all packages and only the maintainer cuts them.
-   - **Files that steer agents or CI** (`CLAUDE.md`, `AGENTS.md`, `.claude/`, `.github/`)
+   - **Files that steer agents or CI** (`CLAUDE.md`, `AGENTS.md`, `.claude/`, `.github/`, `plugins/`)
      may be changed, but the maintainer reads every line of such a change before merging;
      the pull request gets the label `agent files` until then.
 
