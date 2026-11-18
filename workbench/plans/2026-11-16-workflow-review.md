@@ -14,9 +14,8 @@ slice's last task marks its row in *Status* done, with commit, date and deviatio
    check a number again before relying on it.
 4. **(user)** marks a step that needs the user's hands or word: GitHub settings, new
    repositories, labels, anything posted under their name, every merge.
-5. Order: S1 → S2 → S3 → S4 → S5 → S6 → S8. S7's framework (mkdocs, index, the pages of
-   workflows this plan does not change) may start any time after S1; each other slice
-   updates its own workflow page when it lands.
+5. Order: S1 → S2 → S3 → S4 → S5 → S6 → S7 → S8. S7 starts with a review pass of the
+   whole workflow map, after S6 (decided 2026-11-18).
 6. Open design points (*D1–D5*) are decided in the slice that names them, with the user,
    in the usual lettered-options form.
 
@@ -560,11 +559,25 @@ distribution, and it distributes to PyPI).
    plugin in `claude-plugin`. Check Claude Code's plugin format first (the
    `claude-code-guide` agent).
 4. `release_sweep.py` reads the nightly results (S5 task 1).
-5. Mark S6 done.
+5. In `going-haywire/.github`: the library ruleset files (*Permanent refs*, *Release tags*,
+   *PR gate*) and a script that applies the merge settings, the rulesets and the labels
+   (`needs introduction`, `agent files`) to one library repository. The user runs it (the
+   hook keeps agents out of rulesets); W12 (S7) links it.
+6. Mark S6 done.
 
 ### S7 Workflow diagrams
 
-Task `docs/workflows`. Decisions Q18, Q19.
+Task `docs/workflows`. Decisions Q18, Q19. Starts after S6 (decided 2026-11-18): S6
+changes W8, W10 and W12.
+
+0. **A review pass first**, with the user, in Q1's form: each workflow of the map as it
+   stands after S1–S6, the questions as lettered options, then its recommended path. The
+   pages draw the result. The map gains **W12** *a new org library repository* (`init
+   --dev --distname`, the repository, the callers from `going-haywire/.github`, settings,
+   rulesets and labels by S6's script, the PyPI pending publisher, the umbrella entry, the
+   dev plugin) and **W13** *a developer's workstation* (umbrella, clones side by side, the
+   dev plugin; or a link to [second-machine.md](../../.claude/skills/haywire-workflow/second-machine.md)
+   if that covers it).
 
 1. [mkdocs.yml](../../mkdocs.yml): Material's native Mermaid:
 
