@@ -7,12 +7,14 @@ prerequisites, configuration locations, release procedure, and recovery procedur
 ## TL;DR
 
 ```sh
-/haywire-release           # interactive: enter version, runs tests, tags, pushes
-                           # → CI takes over from here
+/haywire-release           # shows what would ship, bumps, opens the release PR;
+                           # "yes" merges it → the merge run tags and publishes
 ```
 
-That's the whole flow. The rest of this page is reference: prerequisites, configuration
-locations, recovery procedures, and per-step detail.
+That's the whole flow. **A release is the merge of a release PR**
+([ADR 0088](../adr/0088-a-release-is-the-merge-of-a-release-pr-and-ci-tags-it.md)): nobody
+pushes a tag. The rest of this page is reference: prerequisites, configuration locations,
+recovery procedures, and per-step detail.
 
 ## Prerequisites (one-time)
 
@@ -119,7 +121,9 @@ docs_branch = "master"
 
 ### Local phase (author-driven)
 
-1. Run `/haywire-release` — the skill prompts for the new version (e.g. `0.0.2`).
+1. Run `/haywire-release`. It starts with *What this release would ship* (the commits since
+   the last tag by type, the libraries whose dependency floor waits for a release, the open
+   reminders, a proposed version) and then asks for the new version (e.g. `0.0.2`).
 2. The skill checks that CI passed on `master` for the commit being released; it does not run the gate tests locally. A failed or missing run stops here.
 3. The skill patches every `pyproject.toml` referenced by `pip_publish_order + lockstep_unpublished`:
    - `[project] version = "0.0.2"`
@@ -130,23 +134,30 @@ docs_branch = "master"
    ships as `haywire/docs/` (see [Baked docs](#baked-docs) below). The bake runs
    *after* the bump because it embeds the new tag in source-file GitHub URLs.
 5. The skill shows a unified diff of every changed file and asks for confirmation.
-6. On confirm: commit (`chore: release v0.0.2`), then a local
+6. On confirm: commit (`chore: release v0.0.2`) on `release/v0.0.2`, then a local
    `uv build --package haywire-core` smoke to prove the wheel builds from the
-   baked docs before tagging, then tag (`v0.0.2`) and hand the push to the author.
-7. CI takes over.
+   baked docs, then it opens the release PR.
+7. Once the PR's checks are green, the skill merges it: the "yes" in step 5 is the word to
+   merge, and so to publish. The merge starts the CI phase.
+
+The PR's title must start `chore: release v`: `scripts/check_version_changes.py` fails any
+other PR that changes a package version.
 
 To run the local phase manually (without the skill):
 
 ```sh
 gh run list --branch master --workflow CI --limit 1   # gate: CI passed on master
+git switch -c release/v0.0.2
 uv run python scripts/bump_version.py 0.0.2 --yes     # bump every pyproject
 uv lock                                                # re-pin uv.lock
 uv run python scripts/bake_docs.py --version v0.0.2    # bake docs (AFTER the bump)
 git add -u                                             # baked dir is gitignored
 git commit -m "chore: release v0.0.2"
 uv build --package haywire-core                        # smoke: wheel builds from baked docs
-git tag v0.0.2
-git push origin HEAD v0.0.2
+git push -u origin release/v0.0.2
+gh pr create --base master --title "chore: release v0.0.2" --body "Version bump to 0.0.2."
+gh pr checks --watch
+gh pr merge --squash                                   # the merge publishes
 ```
 
 ### Baked docs
@@ -167,50 +178,77 @@ hand-authored `lib:kind:id` registry key in the docs resolves, failing CI on
 drift. In a dev checkout, running the bake once makes a from-source studio serve
 the baked docs too; otherwise it falls back to the raw `docs/` tree.
 
-### CI phase (on tag push `v*.*.*`)
+### CI phase (on a push to `master`, or a pushed tag)
 
-#### Job 1 — gate
+`.github/workflows/publish.yml` runs on every push to `master`, on a pushed `v*.*.*` tag
+and on a manual dispatch. Its first job, `plan`, runs `scripts/release_plan.py`:
+
+| Trigger | Result |
+| --- | --- |
+| Push to `master`, lockstep version differs from the latest `v*` tag | A release: every job below runs, and `tag` creates `v<version>` on the pushed commit |
+| Push to `master`, version equals the latest tag | No release: `plan` ends green, every other job is skipped |
+| Push to `master`, version names an older tag | Fails: the tree's version is tagged but not the latest |
+| A `v*.*.*` tag pushed by hand | A release of that tag; `tag` is skipped (recovery, see below) |
+| Manual dispatch on `master` | A release of the tree's version; the tag is created only if it is missing |
+| Anything else | No release |
+
+The lockstep version is the one in `packages/haywire-core/pyproject.toml`. Runs of the
+workflow queue (`concurrency: publish-release`), so a push waits for the run before it and
+its `plan` sees the tag that run made.
+
+The jobs run in this order: `plan` → `gate` → `build` → `tag` → `publish` →
+`deploy-marketstall` → `release-notes`. A failed gate or build therefore leaves no tag.
+
+#### Job gate
 
 ```sh
-pytest -m "not integration"
+pytest -m "not integration and not browser and not perf"
 ```
 
-Failure stops the pipeline. Nothing publishes.
+Failure stops the pipeline. Nothing is tagged or published.
 
-#### Job 2 — build all wheels
+#### Job build — all wheels
 
-First, `scripts/check_release_versions.py --expect <tag minus its leading v>` asserts that the
-tag being built matches what is actually committed: every package in `[tool.haywire.release]` at
+First, `scripts/check_release_versions.py --expect <version>` asserts that the version being
+released matches what is actually committed: every package in `[tool.haywire.release]` at
 that one version, and every `haybale.toml` in sync with its own `pyproject.toml`. Since the
-bump is a local step, this is the only thing standing between a forgotten
-`scripts/bump_version.py` run and a green release that publishes nothing — Job 3 reads its
-versions from `pyproject.toml`, would find the previous release already on PyPI, and skip
-every package as "already published". Failure stops the pipeline before any wheel is built.
+bump is a step of the release PR, this is the only thing standing between a forgotten
+`scripts/bump_version.py` run (a tag pushed by hand without a bump) and a green release that
+publishes nothing — `publish` reads its versions from `pyproject.toml`, would find the
+previous release already on PyPI, and skip every package as "already published". Failure
+stops the pipeline before any wheel is built.
 
 Then, for every package in `pip_publish_order`, run `uv build` and collect the resulting wheel and sdist
-into the workflow's artifact storage. All builds happen before any publish — a build failure
-in any package stops the pipeline before anything reaches PyPI. This catches build errors
-(missing files, invalid metadata, dependency resolution failures) without leaving partial
-state on PyPI.
+into the workflow's artifact storage. All builds happen before anything is tagged or
+published — a build failure in any package stops the pipeline before anything reaches PyPI.
+This catches build errors (missing files, invalid metadata, dependency resolution failures)
+without leaving partial state on PyPI.
 
-If Job 2 fails, nothing publishes. Fix the build error, push a new tag (or re-run the
-workflow), and try again.
+#### Job tag
 
-#### Job 3 — publish wheels (sequential, dependency order, idempotent, fail-fast)
+Creates `v<version>` on the pushed commit (`contents: write`, a `GITHUB_TOKEN` push). It runs
+only when `plan` found a tag to create, and only after `build` passed. The `Release tags`
+ruleset forbids deleting or moving a `v*` tag but allows creating one, so the job can do
+this and nobody can undo it. A tag pushed with `GITHUB_TOKEN` starts no further workflow run,
+so the new tag does not start a second publish.
+
+If this job fails, `publish` does not run.
+
+#### Job publish — wheels (sequential, dependency order, idempotent, fail-fast)
 
 For each package in `pip_publish_order`:
 
 1. Check whether `name == version` already exists on PyPI
    (`GET https://pypi.org/pypi/<name>/<version>/json` → 200 means already published).
 2. If it exists, skip — already done in a previous run.
-3. Otherwise: `uv publish` the wheel and sdist from Job 2's artifacts via PyPI Trusted
+3. Otherwise: `uv publish` the wheel and sdist from the build job's artifacts via PyPI Trusted
    Publisher (OIDC, no stored token).
 
-Any failure stops remaining packages. The idempotent skip makes the workflow safe to re-run.
+Any failure stops remaining packages. The idempotent skip makes a re-run of the failed job safe.
 
-#### Job 4 — deploy marketplace
+#### Job deploy-marketstall
 
-Runs only if Job 3 succeeded.
+Runs only if `publish` succeeded.
 
 ```sh
 uv run python scripts/generate_marketstall.py --out-dir gh-pages-content
@@ -225,6 +263,12 @@ and the workflow deploys the entire directory to GitHub Pages at:
 https://going-haywire.github.io/haywire/marketplace.toml
 ```
 
+#### Job release-notes
+
+Runs only if the marketstall deployed. Creates the GitHub Release for the tag with
+`gh release create v<version> --generate-notes` (the merged PRs since the previous release);
+it skips if the release exists.
+
 ### Release reminders
 
 A library outside the monorepo may record, with the owner's agreement, a dependency to
@@ -232,23 +276,29 @@ raise once a core release contains a change: an `after-core-release` issue with 
 `Waits for: going-haywire/haywire@<sha>` line
 ([sharing-libraries §7.1](../guides/sharing-libraries.md#71-release-reminders)).
 After a publish, `/haywire-release` (Step 10) lists those reminders across the
-organisation and which of them the new tag contains; before the bump (Step 0.4) it
-reports the Author API names the release removes and the libraries that import them.
-Both come from [`scripts/release_sweep.py`](../../scripts/release_sweep.py). Open `todo-pre-release` reminders
-in this repository are listed before the bump (Step 2), and the user decides whether to
-release anyway.
+organisation and which of them the new tag contains, plus the libraries whose dependency
+floor the new tag now satisfies (`floors --ref`); before the bump (Step 0) it shows the
+libraries still waiting for a core release (`floors`) and the Author API names the release
+removes with the libraries that import them (`names`). All come from
+`scripts/release_sweep.py`. Open `todo-pre-release` reminders in this repository are
+listed in Step 0.3, and the user decides whether to release anyway.
 
 ## Recovery procedures
 
-### Build failure (Job 2)
+A tag is permanent: the `Release tags` ruleset forbids deleting or moving a `v*` tag, so no
+recovery below involves removing one. Recovery is a re-run, or a fix through a PR.
 
-A package failed to build. Nothing has been published — Job 3 only runs after Job 2 succeeds
-for every package. Fix the build error, push the fix, re-run the workflow on the same tag (or
-push a new tag if the fix is on a different commit).
+### Gate or build failure
 
-### Partial publish failure (Job 3)
+The `gate` or `build` job failed. Nothing is tagged and nothing is published. Fix the cause
+through a PR. While `master` carries a version without a tag, any push to `master` is a
+release of that version, so the fix's own merge tags and publishes it: hold other merges
+until the fix is in. To release a different version instead, open a new release PR with it.
 
-If Job 3 fails partway (e.g. `haybale-haystack` publishes, `haybale-example` fails):
+### Partial publish failure
+
+If `publish` fails partway (e.g. `haybale-haystack` publishes, `haybale-example` fails), the
+tag exists:
 
 1. Identify the cause from CI logs:
    - **First-time setup**: Trusted Publisher not configured for the failing package, or the
@@ -257,49 +307,53 @@ If Job 3 fails partway (e.g. `haybale-haystack` publishes, `haybale-example` fai
    - **Transient**: PyPI hiccup, network timeout, OIDC blip — retry usually works.
    - **Permanent**: PyPI rejected metadata (rare; signals a real package issue).
 2. Fix the cause.
-3. Re-run the workflow on the same tag:
+3. Re-run only the failed jobs of that run:
 
     ```sh
-    gh workflow run publish.yml --ref v0.0.2
+    gh run rerun <run-id> --failed
     ```
 
-4. Job 2 re-builds all wheels (idempotent; same inputs produce same outputs). Job 3's
-   idempotent skip ensures already-published packages are not re-published. The workflow
-   resumes at the failed package.
-5. Once all packages publish, Job 4 deploys the updated marketplace.
+4. The `publish` job's idempotent skip ensures already-published packages are not
+   re-published. The workflow resumes at the failed package, then deploys the marketstall and
+   writes the release notes.
+
+A full re-run of the same run finds the tag and ends green without publishing: use
+`--failed`. Alternatively dispatch the workflow on `master`
+(`gh workflow run publish.yml --ref master`), which releases the tree's version again and
+creates the tag only if it is missing.
 
 **Do not bump the version** for transient or configuration failures. PyPI keeps versions
-monotonic; orphaned versions never arise because the same tag drives all publishes.
+monotonic; orphaned versions never arise because one run drives all publishes.
 
 The only case where bumping is correct: a package was rejected for irrecoverable metadata
 reasons that require a code fix. That's rare and signals a problem with the package, not the
 release flow.
 
-### Gate test failure
+### The tag job failed
 
-Job 1 failed — nothing has been published. Fix the test, commit on `main`, retag with the
-same version, force-push the tag (only the tag, never the branch):
+`publish` does not run without the tag. The usual cause is the `Release tags` ruleset
+refusing the creation (it must allow creating `v*` tags and forbid deleting or moving them),
+or `contents: write` missing. Fix the ruleset or the permission, then re-run the failed
+jobs. The ruleset is the maintainer's to change.
 
-```sh
-git tag -d v0.0.2
-git push origin :refs/tags/v0.0.2
-git tag v0.0.2
-git push origin v0.0.2
-```
+### Marketplace deploy or release-notes failure
 
-This triggers Job 1 again. The version number stays the same.
-
-### Marketplace deploy failure (Job 4)
-
-Job 3 succeeded but the marketplace deploy failed (GitHub Pages misconfiguration, transient
-deploy issue). Fix the cause and re-run the workflow on the same tag:
+`publish` succeeded but the marketplace deploy (GitHub Pages misconfiguration, transient
+deploy issue) or the release notes failed. Fix the cause and re-run the failed jobs:
 
 ```sh
-gh workflow run publish.yml --ref v0.0.2
+gh run rerun <run-id> --failed
 ```
 
-Job 3's idempotent skip means already-published packages are not re-published; the workflow
-walks through to Job 4 and re-attempts the deploy.
+`publish` is not repeated; the workflow walks on to the failed job.
+
+### Publishing a tag by hand (last resort)
+
+If the merge run cannot be recovered by a re-run, the user may push a `v*.*.*` tag on the
+commit to release. The workflow then publishes that tag with `tag` skipped. The agent hook
+`block-dangerous-git.sh` blocks a tag push from an agent session, so this step is always the
+user's, in their own terminal. The tag must name the committed version
+(`scripts/check_release_versions.py` refuses it otherwise).
 
 ## Adding a new package to the release set
 

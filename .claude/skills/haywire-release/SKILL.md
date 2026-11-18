@@ -184,7 +184,7 @@ report "Nothing to do" and the release would be a no-op.
   wild exclude `0.1.0` by construction: any third-party haybale carrying a
   compatible-release requirement will stop being installable on the new
   framework unless its author republishes with a widened specifier. Announce it
-  before tagging.
+  before merging the release PR.
 
 ### Step 2 — check that CI passed on master
 
@@ -391,7 +391,7 @@ baked docs are gitignored, so they are correctly absent from this set.
 Build the haywire-core wheel locally to prove it builds from the baked docs
 *before* the release PR is merged. `uv build` builds the wheel from an extracted sdist; a broken
 docs force-include (the v0.0.26 failure) or a missing bake surfaces here as a
-build error instead of blowing up in CI after the merge, when the release is already tagged:
+build error instead of blowing up in the merge run, where it would block the release:
 
 ```bash
 uv build --package haywire-core
