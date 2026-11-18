@@ -43,7 +43,9 @@ accepted. Why it works this way: [ADR 0079](docs/adr/0079-a-first-contribution-s
 ## Tools
 
 Required: [uv](https://docs.astral.sh/uv/), git, the [GitHub CLI](https://cli.github.com/)
-(`gh auth login`), and `jq` (the agent hooks use it).
+(`gh auth login`), and `jq` (the agent hooks use it). On Windows, let git create symbolic
+links before you clone (Developer Mode on, `git config --global core.symlinks true`): the
+agents' workflow skill and two scripts are links into `plugins/haywire-dev/`.
 
 Optional:
 
@@ -77,7 +79,7 @@ Optional:
      published documentation. Permanent files (code, docs, skills) never link to a plan.
    - **Never change a version number** (`pyproject.toml`, `haybale.toml`, `>=` pins).
      Releases are lockstep across all packages and only the maintainer cuts them.
-   - **Files that steer agents or CI** (`CLAUDE.md`, `AGENTS.md`, `.claude/`, `.github/`)
+   - **Files that steer agents or CI** (`CLAUDE.md`, `AGENTS.md`, `.claude/`, `.github/`, `plugins/`)
      may be changed, but the maintainer reads every line of such a change before merging;
      the pull request gets the label `agent files` until then.
 

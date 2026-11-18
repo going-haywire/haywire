@@ -68,8 +68,8 @@ def test_publish_job_uses_the_trusted_publishing_identity() -> None:
 
 def test_build_and_publish_wait_for_the_guard() -> None:
     text = render_publish_workflow()
-    assert text.count("if: needs.guard.outputs.enabled == 'true'") == 2  # build, tag
-    assert "needs: [guard, build, tag]" in text
+    assert text.count("if: needs.guard.outputs.enabled == 'true'") == 3  # build, smoke, tag
+    assert "needs: [guard, build, smoke, tag]" in text
 
 
 def test_git_distribution_is_a_green_no_op(tmp_path: Path) -> None:
@@ -260,10 +260,51 @@ def test_the_tag_job_runs_between_build_and_publish() -> None:
     import yaml  # type: ignore[import-untyped]
 
     jobs = yaml.safe_load(render_publish_workflow())["jobs"]
-    assert jobs["tag"]["needs"] == ["guard", "build"]
+    assert jobs["tag"]["needs"] == ["guard", "build", "smoke"]
     assert jobs["tag"]["permissions"] == {"contents": "write"}
-    assert jobs["publish"]["needs"] == ["guard", "build", "tag"]
+    assert jobs["publish"]["needs"] == ["guard", "build", "smoke", "tag"]
     assert "needs.tag.result != 'failure'" in jobs["publish"]["if"]
+    assert "needs.smoke.result == 'success'" in jobs["publish"]["if"]
+
+
+def test_the_smoke_job_installs_every_wheel_in_one_clean_environment() -> None:
+    import yaml  # type: ignore[import-untyped]
+
+    smoke = yaml.safe_load(render_publish_workflow())["jobs"]["smoke"]
+    assert smoke["needs"] == ["guard", "build"]
+    download = smoke["steps"][0]
+    assert download["with"] == {"pattern": "dist-*", "path": "dist/", "merge-multiple": True}
+    install = next(step for step in smoke["steps"] if step.get("name") == "Install the wheels")
+    assert "uv venv" in install["run"]
+    assert "uv pip install dist/*.whl" in install["run"]
+    assert "uv sync" not in install["run"]
+
+
+def _load_script() -> str:
+    import yaml  # type: ignore[import-untyped]
+
+    steps = yaml.safe_load(render_publish_workflow())["jobs"]["smoke"]["steps"]
+    run = next(step for step in steps if step.get("name") == "Load every library as the studio does")["run"]
+    return run.split("<<'PY'\n", 1)[1].rsplit("PY\n", 1)[0]
+
+
+def _run_load_script(dists: list[str]) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "MATRIX": json.dumps([{"dist": dist} for dist in dists])}
+    return subprocess.run(
+        [sys.executable, "-c", _load_script()], env=env, capture_output=True, text=True, timeout=120
+    )
+
+
+def test_the_smoke_job_loads_a_library_entry_point() -> None:
+    result = _run_load_script(["haybale-core"])
+    assert result.returncode == 0, result.stderr
+    assert "haybale-core: loaded" in result.stdout
+
+
+def test_the_smoke_job_fails_for_a_wheel_without_a_library_entry_point() -> None:
+    result = _run_load_script(["pytest"])
+    assert result.returncode != 0
+    assert "pytest declares no haywire.libraries entry point" in result.stderr
 
 
 def test_the_workflow_also_triggers_on_the_default_branches() -> None:

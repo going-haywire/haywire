@@ -11,6 +11,11 @@ Maintenance scripts run by humans or CI.
 | `worktree_setup.py`         | Ready a new git worktree: branch, links, environment, studio port.   |
 | `release_sweep.py`          | Report what a release means for the organisation's libraries.        |
 | `finish.py`                 | Delete a merged branch's local and remote branch and its worktree.   |
+| `tasks.py`                  | List the tasks in flight: worktrees, their PRs and agent sessions.   |
+
+`finish.py` and `tasks.py` are links to the copies in the `haywire-dev` plugin
+(`plugins/haywire-dev/skills/haywire-workflow/scripts/`), which the org's library
+repositories use; edit them there.
 
 `worktree_setup.py` runs with the system Python (`python3 scripts/worktree_setup.py`),
 before the worktree has an environment; the `haywire-workflow` skill, *Parallel sessions*,

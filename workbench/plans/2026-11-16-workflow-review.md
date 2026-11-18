@@ -14,9 +14,8 @@ slice's last task marks its row in *Status* done, with commit, date and deviatio
    check a number again before relying on it.
 4. **(user)** marks a step that needs the user's hands or word: GitHub settings, new
    repositories, labels, anything posted under their name, every merge.
-5. Order: S1 → S2 → S3 → S4 → S5 → S6 → S8. S7's framework (mkdocs, index, the pages of
-   workflows this plan does not change) may start any time after S1; each other slice
-   updates its own workflow page when it lands.
+5. Order: S1 → S2 → S3 → S4 → S5 → S6 → S7 → S8. S7 starts with a review pass of the
+   whole workflow map, after S6 (decided 2026-11-18).
 6. Open design points (*D1–D5*) are decided in the slice that names them, with the user,
    in the usual lettered-options form.
 
@@ -522,6 +521,17 @@ Task `feat/release-on-merge`. Decisions Q2, Q4, Q5, Q8, Q10, Q11 (ordering).
 
 One task per repository, one repository at a time. Decisions Q7, Q9, Q10; L1–L6.
 
+Order (decided 2026-11-18): comfyui (pilot: smallest, light dependencies), protokol,
+spandrel, stream (default branch `main`), visiongraph (heaviest CI: depthai, opencv,
+openvino). A proposal to download `init`'s generic files from a template repository was
+dropped the same day: `publish.yml` is coupled to the installed `share`, and a fetch would
+help only new projects; existing projects' drift goes to a `haywire update-template` issue.
+Every org library keeps (protokol: regains, in its PR) the `--dev` path sources to
+`../haywire-repo`: the umbrella runs the studio, each repository's own environment runs its
+tests against core master, and the dependency-floor rule needs path sources (decided
+2026-11-18; protokol dropped them only because `share` refused them for `git`
+distribution, and it distributes to PyPI).
+
 1. **(user)** Create `going-haywire/.github`. Contents (a PR there):
    - Org defaults: `CONTRIBUTING.md` for libraries (the library specifics; the shared
      rules by link to core's [CONTRIBUTING.md](../../CONTRIBUTING.md)), `SECURITY.md`,
@@ -549,11 +559,25 @@ One task per repository, one repository at a time. Decisions Q7, Q9, Q10; L1–L
    plugin in `claude-plugin`. Check Claude Code's plugin format first (the
    `claude-code-guide` agent).
 4. `release_sweep.py` reads the nightly results (S5 task 1).
-5. Mark S6 done.
+5. In `going-haywire/.github`: the library ruleset files (*Permanent refs*, *Release tags*,
+   *PR gate*) and a script that applies the merge settings, the rulesets and the labels
+   (`needs introduction`, `agent files`) to one library repository. The user runs it (the
+   hook keeps agents out of rulesets); W12 (S7) links it.
+6. Mark S6 done.
 
 ### S7 Workflow diagrams
 
-Task `docs/workflows`. Decisions Q18, Q19.
+Task `docs/workflows`. Decisions Q18, Q19. Starts after S6 (decided 2026-11-18): S6
+changes W8, W10 and W12.
+
+0. **A review pass first**, with the user, in Q1's form: each workflow of the map as it
+   stands after S1–S6, the questions as lettered options, then its recommended path. The
+   pages draw the result. The map gains **W12** *a new org library repository* (`init
+   --dev --distname`, the repository, the callers from `going-haywire/.github`, settings,
+   rulesets and labels by S6's script, the PyPI pending publisher, the umbrella entry, the
+   dev plugin) and **W13** *a developer's workstation* (umbrella, clones side by side, the
+   dev plugin; or a link to [second-machine.md](../../.claude/skills/haywire-workflow/second-machine.md)
+   if that covers it).
 
 1. [mkdocs.yml](../../mkdocs.yml): Material's native Mermaid:
 
@@ -607,10 +631,10 @@ Decision Q14. After S2–S5 exist.
 | # | Point | Slice |
 |---|---|---|
 | D1 | Tagging after a merged `share` release PR: the generated workflow, `share --resume`, or both | S4 |
-| D2 | One source for the hooks and skill shared by core's `.claude/` and the dev plugin | S6 |
+| D2 | One source for the hooks and skill shared by core's `.claude/` and the dev plugin. **Settled (A), 2026-11-18:** the shared hooks, `finish.py`, `tasks.py` and the `haywire-workflow` skill live once in a plugin folder in core (`plugins/haywire-dev/`); core's `.claude/settings.json` calls the hook scripts there by path (core needs no install); core's `.claude/skills/haywire-workflow` is a symlink into it (a Windows clone needs `core.symlinks=true`); a marketplace in `going-haywire/.github` lists the plugin as a `git-subdir` of `going-haywire/haywire`; libraries install it once per clone. Rejected: core consuming the installed plugin (a project setting enables a plugin but does not install it, so a fresh clone would run without `block-dangerous-git`; and a hook in both settings and a plugin runs twice) | S6 |
 | D3 | Can the lead open a task's herdr space itself (`herdr-app do space.new --folder <wt> --argv '["claude"]' --task "<brief>"`)? If not, the user opens it | S3 |
 | D4 | Proposing patch vs minor at release step 0 | S5 |
-| D5 | The library CI's core checkout: master always, or the latest release when the library's floors are all satisfied on PyPI | S6 |
+| D5 | The library CI's core checkout: master always, or the latest release when the library's floors are all satisfied on PyPI. **Settled (A), 2026-11-18:** core master always, on push, PR and nightly (Q10's wording); a second nightly job against the latest release only if a real break shows the two cases need telling apart. haybale-protokol has no path sources to core (it resolves core from PyPI), so the core checkout applies to `--dev` libraries only | S6 |
 
 ## Status
 

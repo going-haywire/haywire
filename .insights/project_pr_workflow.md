@@ -44,7 +44,7 @@ requests*); the procedures in the
   do. *Permanent refs* (`master`, `gh-pages`, the `v*` tags) forbids deleting and
   force-pushing with no bypass at all, so nothing running as the user can break it. *PR
   gate* (required checks, the PR rule) lets an admin bypass only through a pull request.
-  The local hook (`.claude/hooks/block-dangerous-git.sh`) keeps the rest with the user:
+  The local hook (`plugins/haywire-dev/hooks/block-dangerous-git.sh`) keeps the rest with the user:
   force pushes, remote deletions, tag pushes, and `gh api` writes to rulesets or branch
   protection (reads pass).
 - **`scripts/finish.py` is the only way agents delete a branch.** The hook blocks raw

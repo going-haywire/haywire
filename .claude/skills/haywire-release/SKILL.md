@@ -150,10 +150,19 @@ block the release: `deptry` has known false positives (deliberate version pins l
 decides. The `KNOWN_OK` map in the script already suppresses the documented ones; add a
 new false positive there rather than removing a needed dependency.
 
-**0.6 Library nightly results.** Once a library has a `nightly` workflow, show its latest
-run against core's `master`: `gh run list --repo going-haywire/<library> --workflow
-nightly --limit 1`. A red one is a break this release would ship. Until the libraries
-have the workflow, say that none exists; do not report it as green.
+**0.6 Library nightly results.** Each library's latest `nightly` run, its tests against
+core's `master`:
+
+```bash
+uv run python scripts/release_sweep.py nightly
+```
+
+Show every row with its date and run URL. `failed` is a break this release would ship:
+link the run and ask the user whether to fix it first or release anyway. Report
+`inconclusive` (a cancelled run), `running`, `no run`, `no workflow` and `disabled`
+(GitHub turns a schedule off after 60 days without activity in the repository) as they
+are, never as green. A run older than the commits since the last tag did not see them:
+say so. Exit code 2 means a command failed: say the results could not be read.
 
 **0.7 A proposed version.** Propose, never impose; the user answers in Step 1. While core
 is below 1.0:

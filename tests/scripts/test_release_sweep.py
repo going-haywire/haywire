@@ -206,3 +206,76 @@ def test_floors_with_a_ref_name_the_tag_before_it(monkeypatch, tmp_path, capsys)
         ("0.5.4", "unblocked"),
         ("0.6.0", "waiting"),
     ]
+
+
+NIGHTLY = [{"path": ".github/workflows/nightly.yml", "state": "active"}]
+
+
+def _run(status="completed", conclusion="success"):
+    return {
+        "status": status,
+        "conclusion": conclusion,
+        "createdAt": "2026-11-18T03:17:00Z",
+        "url": "https://github.com/going-haywire/haybale-lib/actions/runs/1",
+    }
+
+
+@pytest.mark.parametrize(
+    ("workflows", "runs", "expected"),
+    [
+        ([{"path": ".github/workflows/ci.yml", "state": "active"}], [], ("no workflow", "")),
+        (NIGHTLY, [], ("no run", "")),
+        (NIGHTLY, [_run()], ("passed", "success")),
+        (NIGHTLY, [_run(conclusion="failure")], ("failed", "failure")),
+        (NIGHTLY, [_run(conclusion="timed_out")], ("failed", "timed_out")),
+        (NIGHTLY, [_run(conclusion="cancelled")], ("inconclusive", "cancelled")),
+        (NIGHTLY, [_run(status="in_progress", conclusion="")], ("running", "in_progress")),
+        (
+            [{"path": ".github/workflows/nightly.yml", "state": "disabled_inactivity"}],
+            [_run()],
+            ("disabled", "disabled_inactivity"),
+        ),
+    ],
+)
+def test_nightly_of(workflows, runs, expected):
+    result = sweep.nightly_of("going-haywire/haybale-lib", workflows, runs)
+    assert (result.status, result.detail) == expected
+    assert (result.url is not None) == bool(runs)
+
+
+def test_nightly_report_asks_for_runs_only_where_the_workflow_exists(monkeypatch, capsys):
+    calls = []
+
+    def fake_run(*cmd, cwd=None):
+        calls.append(cmd)
+        repo = cmd[cmd.index("--repo") + 1]
+        if cmd[1] == "workflow":
+            return json.dumps(NIGHTLY if repo.endswith("-a") else [])
+        return json.dumps([_run(conclusion="failure")])
+
+    monkeypatch.setattr(
+        sweep, "library_repos", lambda: ["going-haywire/haybale-a", "going-haywire/haybale-b"]
+    )
+    monkeypatch.setattr(sweep, "run", fake_run)
+
+    assert sweep.main(["nightly", "--json"]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert [(r["library"], r["status"]) for r in report["nightly"]] == [
+        ("going-haywire/haybale-a", "failed"),
+        ("going-haywire/haybale-b", "no workflow"),
+    ]
+    assert [cmd[1] for cmd in calls] == ["workflow", "run", "workflow"]
+    assert "nightly.yml" in calls[1]
+
+
+def test_nightly_report_prints_a_failed_run_with_its_url(monkeypatch, capsys):
+    monkeypatch.setattr(
+        sweep,
+        "nightly_results",
+        lambda: [sweep.nightly_of("going-haywire/haybale-a", NIGHTLY, [_run("completed", "failure")])],
+    )
+    assert sweep.main(["nightly"]) == 0
+    out = capsys.readouterr().out
+    assert "failed (failure)" in out
+    assert "2026-11-18" in out
+    assert "actions/runs/1" in out

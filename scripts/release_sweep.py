@@ -19,6 +19,11 @@ Three reports, all read-only (nothing is written on GitHub):
     latest release (the library waits) and, with ``--ref``, the ones that release
     newly satisfies (unblocked). Run before the release to see what waits, and
     after it to see what it frees.
+``nightly``
+    Each library's latest ``nightly`` run (its tests against core's ``master``):
+    passed, failed, running, or why there is none (no workflow yet, the workflow
+    disabled, no run yet). Run before the release: a failed run is a break the
+    release would ship.
 
 Usage::
 
@@ -28,6 +33,7 @@ Usage::
     uv run python scripts/release_sweep.py reminders --json         # one object on stdout
     uv run python scripts/release_sweep.py floors                   # against the latest v* tag
     uv run python scripts/release_sweep.py floors --ref v0.5.4      # what v0.5.4 unblocks
+    uv run python scripts/release_sweep.py nightly
 
 Needs ``git`` and a logged-in ``gh``. Exit codes: 0 report printed, 2 a command
 failed (the report could not be made; never read that as "nothing found").
@@ -55,6 +61,7 @@ RELEASE_TAG = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
 REQUIREMENT = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*(?:\[[^\]]*\])?\s*([^;@]*)")
 LOWER_BOUND = re.compile(r"^(>=|~=|==|>)\s*(\d+(?:\.\d+)*)")
 WAITS_FOR = re.compile(rf"^Waits for: {re.escape(CORE_REPO)}@([0-9a-f]{{7,40}})", re.MULTILINE)
+NIGHTLY_PATH = ".github/workflows/nightly.yml"
 
 
 class CommandFailed(Exception):
@@ -92,6 +99,19 @@ class Floor:
     """The lower bound of the requirement, ``0.5.4``."""
     status: str
     """``waiting`` (above the release) or ``unblocked`` (the release newly satisfies it)."""
+
+
+@dataclass(frozen=True)
+class Nightly:
+    library: str
+    """``owner/repo``."""
+    status: str
+    """``passed``, ``failed``, ``inconclusive``, ``running``, ``no workflow``, ``disabled`` or ``no run``."""
+    detail: str
+    """The run's conclusion or the workflow's state, as GitHub gives it; empty without either."""
+    created: str | None
+    """When the run started (ISO 8601), or ``None`` without a run."""
+    url: str | None
 
 
 # --- pure parts -------------------------------------------------------------
@@ -230,6 +250,34 @@ def floors_of(
             continue
         found.append(Floor(library, name, requirement.strip(), bound, status))
     return found
+
+
+def nightly_of(library: str, workflows: list[dict], runs: list[dict]) -> Nightly:
+    """Return *library*'s nightly result from ``gh workflow list`` and ``gh run list`` output.
+
+    *runs* holds the latest run first. A ``failure``, ``timed_out`` or ``startup_failure``
+    run failed; another unsuccessful conclusion (``cancelled``, ``skipped``) is
+    ``inconclusive``. A disabled workflow reports ``disabled`` with its last run, if any.
+    """
+    workflow = next((w for w in workflows if w.get("path") == NIGHTLY_PATH), None)
+    if workflow is None:
+        return Nightly(library, "no workflow", "", None, None)
+    run_ = runs[0] if runs else None
+    created, url = (run_["createdAt"], run_["url"]) if run_ else (None, None)
+    if workflow["state"] != "active":
+        return Nightly(library, "disabled", workflow["state"], created, url)
+    if run_ is None:
+        return Nightly(library, "no run", "", None, None)
+    if run_["status"] != "completed":
+        return Nightly(library, "running", run_["status"], created, url)
+    conclusion = run_["conclusion"]
+    if conclusion == "success":
+        status = "passed"
+    elif conclusion in ("failure", "timed_out", "startup_failure"):
+        status = "failed"
+    else:
+        status = "inconclusive"
+    return Nightly(library, status, conclusion, created, url)
 
 
 def waits_for(body: str) -> str | None:
@@ -380,6 +428,34 @@ def floors_report(ref: str | None) -> dict:
     return {"release": release, "previous": previous, "floors": [asdict(f) for f in floors]}
 
 
+def nightly_results() -> list[Nightly]:
+    """Return the latest nightly result of every organisation library."""
+    results = []
+    for repo in library_repos():
+        workflows = json.loads(
+            run("gh", "workflow", "list", "--repo", repo, "--all", "--json", "path,state")
+        )
+        runs = []
+        if any(w.get("path") == NIGHTLY_PATH for w in workflows):
+            runs = json.loads(
+                run(
+                    "gh",
+                    "run",
+                    "list",
+                    "--repo",
+                    repo,
+                    "--workflow",
+                    Path(NIGHTLY_PATH).name,
+                    "--limit",
+                    "1",
+                    "--json",
+                    "status,conclusion,createdAt,url",
+                )  # fmt: skip
+            )
+        results.append(nightly_of(repo, workflows, runs))
+    return results
+
+
 def print_floors(report: dict) -> None:
     release = report["release"]
     floors = report["floors"]
@@ -393,6 +469,16 @@ def print_floors(report: dict) -> None:
             print("  none")
         for f in rows:
             print(f"  {f['library']:<34} {f['requirement']}")
+
+
+def print_nightly(results: list[Nightly]) -> None:
+    print("Latest nightly run of each library (its tests against core's master):")
+    if not results:
+        print("  no library found")
+    for r in results:
+        status = f"{r.status} ({r.detail})" if r.detail and r.status != "passed" else r.status
+        when = r.created[:10] if r.created else ""
+        print(f"  {r.library:<34} {status:<28} {when:<10} {r.url or ''}".rstrip())
 
 
 def print_names(report: dict) -> None:
@@ -446,6 +532,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     floors.add_argument("--ref", help="the release tag (default: the latest v* tag, nothing freed)")
     floors.add_argument("--json", action="store_true")
+    nightly = sub.add_parser("nightly", help="each library's latest nightly run against core's master")
+    nightly.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
 
     try:
@@ -461,6 +549,12 @@ def main(argv: list[str] | None = None) -> int:
                 print(json.dumps(report, indent=2))
             else:
                 print_floors(report)
+        elif args.report == "nightly":
+            results = nightly_results()
+            if args.json:
+                print(json.dumps({"nightly": [asdict(r) for r in results]}, indent=2))
+            else:
+                print_nightly(results)
         else:
             found = open_reminders(args.ref)
             if args.json:

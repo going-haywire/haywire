@@ -1,4 +1,4 @@
-"""The Claude Code hooks in .claude/hooks/, run as Claude Code runs them, with a stand-in gh."""
+"""The Claude Code hooks of the haywire-dev plugin, run as Claude Code runs them, with a stand-in gh."""
 
 import json
 import os
@@ -8,7 +8,8 @@ from pathlib import Path
 
 import pytest
 
-HOOKS = Path(__file__).resolve().parents[2] / ".claude" / "hooks"
+ROOT = Path(__file__).resolve().parents[2]
+HOOKS = ROOT / "plugins" / "haywire-dev" / "hooks"
 
 pytestmark = pytest.mark.skipif(shutil.which("jq") is None, reason="the hooks need jq")
 
@@ -51,6 +52,47 @@ def _role(tmp_path: Path, gh_script: str | None) -> str:
 @pytest.mark.parametrize("permission", ["ADMIN", "MAINTAIN", "WRITE"])
 def test_write_access_makes_a_maintainer(tmp_path, permission):
     assert _role(tmp_path, f"echo {permission}").startswith("Role: maintainer")
+
+
+def _role_in_clone(tmp_path: Path, remotes: dict[str, str]) -> tuple[str, str]:
+    """Return the role text and the repository gh was asked about, in a clone with *remotes*."""
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    for name, url in remotes.items():
+        subprocess.run(["git", "-C", str(tmp_path), "remote", "add", name, url], check=True)
+    bin_dir = _fake_bin(tmp_path / "b", 'echo "$3" > "$TMPDIR/gh-repo"; echo WRITE')
+    git = shutil.which("git")
+    assert git is not None
+    (bin_dir / "git").symlink_to(git)
+    result = _run("session-role.sh", {}, bin_dir, tmp_path)
+    context = json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+    return context, (tmp_path / "gh-repo").read_text().strip()
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "git@github.com:going-haywire/haybale-stream.git",
+        "https://github.com/going-haywire/haybale-stream.git",
+        "https://github.com/going-haywire/haybale-stream",
+    ],
+)
+def test_a_library_clone_checks_its_own_repository(tmp_path, url):
+    context, asked = _role_in_clone(tmp_path, {"origin": url})
+    assert asked == "going-haywire/haybale-stream"
+    assert "write access to going-haywire/haybale-stream" in context
+
+
+def test_a_fork_checks_its_upstream(tmp_path):
+    remotes = {
+        "origin": "git@github.com:someone/haybale-stream.git",
+        "upstream": "https://github.com/going-haywire/haybale-stream.git",
+    }
+    assert _role_in_clone(tmp_path, remotes)[1] == "going-haywire/haybale-stream"
+
+
+def test_outside_a_clone_the_upstream_is_core(tmp_path):
+    _role(tmp_path, 'echo "$3" > "$TMPDIR/gh-repo"; echo WRITE')
+    assert (tmp_path / "gh-repo").read_text().strip() == "going-haywire/haywire"
 
 
 @pytest.mark.parametrize("permission", ["READ", "TRIAGE"])
@@ -315,8 +357,18 @@ def test_flag_values_are_never_read_as_the_pr(tmp_path, command):
     assert "going-haywire/haybale-protokol" in args
 
 
-def test_a_library_without_ci_merges_without_checks(tmp_path):
-    assert _merge(tmp_path, url=_LIBRARY_URL, checks=[]).returncode == 0
+def test_an_org_library_without_checks_blocks_the_merge(tmp_path):
+    assert "no checks reported" in _merge(tmp_path, url=_LIBRARY_URL, checks=[]).stderr
+
+
+def test_an_org_library_needs_a_passed_macos_check(tmp_path):
+    linux = [dict(_GREEN[0], name="ci / tests (ubuntu-24.04)")]
+    assert "macOS" in _merge(tmp_path, url=_LIBRARY_URL, checks=linux).stderr
+
+
+def test_a_repository_outside_the_rule_merges_without_checks(tmp_path):
+    url = "https://github.com/going-haywire/.github/pull/2"
+    assert _merge(tmp_path, url=url, checks=[]).returncode == 0
 
 
 def test_a_library_still_needs_its_reported_checks_to_pass(tmp_path):
@@ -403,6 +455,24 @@ def test_a_commit_waits_for_the_workflow_skill(tmp_path):
     assert _commit(tmp_path, "S2") == 2, "the mark is per session"
 
 
+@pytest.mark.parametrize(
+    "mark",
+    [
+        {"tool_input": {"skill": "haywire-dev:haywire-workflow"}},
+        {"prompt": "/haywire-dev:haywire-workflow"},
+    ],
+)
+def test_the_plugin_skill_name_counts_as_loading_it(tmp_path, mark):
+    _run("mark-workflow-skill.sh", {"session_id": "P1", **mark}, _fake_bin(tmp_path / "m", None), tmp_path)
+    assert _commit(tmp_path, "P1") == 0
+
+
+def test_another_skill_does_not_count(tmp_path):
+    mark = {"session_id": "P2", "tool_input": {"skill": "other:haywire-workflow-x"}}
+    _run("mark-workflow-skill.sh", mark, _fake_bin(tmp_path / "m", None), tmp_path)
+    assert _commit(tmp_path, "P2") == 2
+
+
 def test_typing_the_skill_command_counts_as_loading_it(tmp_path):
     mark = {"session_id": "S3", "prompt": "/haywire-workflow"}
     _run("mark-workflow-skill.sh", mark, _fake_bin(tmp_path / "m", None), tmp_path)
@@ -417,3 +487,35 @@ def test_read_only_commands_need_no_skill(tmp_path):
 def test_hooks_are_executable():
     for hook in HOOKS.glob("*.sh"):
         assert os.access(hook, os.X_OK), hook.name
+
+
+# ── the plugin's wiring and core's ──────────────────────────────────────────────────
+
+
+def _wiring(hooks: dict) -> set[tuple[str, str, str]]:
+    """Return (event, matcher, script name) for every command hook."""
+    return {
+        (event, group.get("matcher", ""), hook["command"].rsplit("/", 1)[1])
+        for event, groups in hooks.items()
+        for group in groups
+        for hook in group["hooks"]
+        if "/hooks/" in hook["command"]
+    }
+
+
+def test_core_runs_the_same_plugin_hooks_as_a_library_session():
+    plugin = json.loads((HOOKS / "hooks.json").read_text())["hooks"]
+    core = json.loads((ROOT / ".claude" / "settings.json").read_text())["hooks"]
+    assert _wiring(core) == _wiring(plugin)
+    assert {name for _, _, name in _wiring(plugin)} == {hook.name for hook in HOOKS.glob("*.sh")}
+    for groups in core.values():
+        for group in groups:
+            for hook in group["hooks"]:
+                if "/hooks/" in hook["command"]:
+                    assert '"$CLAUDE_PROJECT_DIR"/plugins/haywire-dev/hooks/' in hook["command"]
+
+
+def test_core_reads_the_workflow_skill_from_the_plugin():
+    link = ROOT / ".claude" / "skills" / "haywire-workflow"
+    assert link.is_symlink()
+    assert link.resolve() == (ROOT / "plugins" / "haywire-dev" / "skills" / "haywire-workflow").resolve()

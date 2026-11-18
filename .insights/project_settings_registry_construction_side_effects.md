@@ -77,5 +77,14 @@ the full run and only when the session library system was built first. The
 `_ambient_settings_registry` autouse fixture restores each class's back-reference too
 (found 2026-11-05).
 
+The autouse fixture covers one test only. A module- or session-scoped fixture that builds a
+library system is set up before it, so the fixture snapshots the second system's state and
+restores that. `farmhand_bare_server` (module scope, [tests/farmhand/conftest.py](../tests/farmhand/conftest.py))
+left every library settings class on its dead registry after its module: same symptom, on
+whichever xdist worker ran `test_bare_studio.py` before the image tests (2026-11-18).
+`_snapshot_ambient_di()`/`_restore_ambient_di()` in [tests/conftest.py](../tests/conftest.py)
+now carry the back-references with the other DI globals: a fixture that builds a library
+system at any scope snapshots with them.
+
 Related: [project_di_context.md](project_di_context.md) (ambient DI uses module-level
 globals, not ContextVar — same "global state persists across tests" family).
