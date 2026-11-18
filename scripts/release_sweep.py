@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Report what a haywire release means for the libraries of the going-haywire organisation.
 
-Two reports, both read-only (nothing is written on GitHub):
+Three reports, all read-only (nothing is written on GitHub):
 
 ``names``
     The Author API names (``tests/api/names.py``) a release removes or newly
@@ -13,6 +13,12 @@ Two reports, both read-only (nothing is written on GitHub):
     The open ``after-core-release`` issues of the organisation, and whether
     ``--ref`` contains the commit on each one's ``Waits for:`` line. Run after
     the publish.
+``floors``
+    The dependency floors the organisation's libraries put on core's releasable
+    packages (``[tool.haywire.release] pip_publish_order``): the ones above the
+    latest release (the library waits) and, with ``--ref``, the ones that release
+    newly satisfies (unblocked). Run before the release to see what waits, and
+    after it to see what it frees.
 
 Usage::
 
@@ -20,6 +26,8 @@ Usage::
     uv run python scripts/release_sweep.py names --ref v0.5.0 --previous v0.4.2
     uv run python scripts/release_sweep.py reminders --ref v0.5.0
     uv run python scripts/release_sweep.py reminders --json         # one object on stdout
+    uv run python scripts/release_sweep.py floors                   # against the latest v* tag
+    uv run python scripts/release_sweep.py floors --ref v0.5.4      # what v0.5.4 unblocks
 
 Needs ``git`` and a logged-in ``gh``. Exit codes: 0 report printed, 2 a command
 failed (the report could not be made; never read that as "nothing found").
@@ -34,6 +42,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import tomllib
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -42,6 +51,9 @@ CORE_REPO = f"{OWNER}/haywire"
 NAMES_PATH = "tests/api/names.py"
 MODULES = {"COMPONENT": "haywire.api", "WORKBENCH": "haywire.api.workbench"}
 INTERNAL_PREFIXES = ("haywire.core", "haywire.ui", "haywire.barn")
+RELEASE_TAG = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
+REQUIREMENT = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*(?:\[[^\]]*\])?\s*([^;@]*)")
+LOWER_BOUND = re.compile(r"^(>=|~=|==|>)\s*(\d+(?:\.\d+)*)")
 WAITS_FOR = re.compile(rf"^Waits for: {re.escape(CORE_REPO)}@([0-9a-f]{{7,40}})", re.MULTILINE)
 
 
@@ -66,6 +78,20 @@ class Reminder:
     commit: str | None
     status: str
     """``released``, ``waiting``, ``unknown commit`` or ``no Waits for line``."""
+
+
+@dataclass(frozen=True)
+class Floor:
+    library: str
+    """``owner/repo``."""
+    package: str
+    """Distribution name of the core package."""
+    requirement: str
+    """The requirement as the library writes it."""
+    bound: str
+    """The lower bound of the requirement, ``0.5.4``."""
+    status: str
+    """``waiting`` (above the release) or ``unblocked`` (the release newly satisfies it)."""
 
 
 # --- pure parts -------------------------------------------------------------
@@ -142,6 +168,70 @@ def imports_of(source: str) -> tuple[set[tuple[str, str]], int]:
     return found, internal
 
 
+def version_key(version: str) -> tuple[int, ...]:
+    """Return *version*'s numeric parts, ``"0.5.10"`` -> ``(0, 5, 10)``."""
+    return tuple(int(part) for part in version.split("."))
+
+
+def latest_release(tags: list[str]) -> str | None:
+    """Return the highest ``vX.Y.Z`` tag of *tags*, or ``None``; other tags are ignored."""
+    releases = [tag for tag in tags if RELEASE_TAG.match(tag)]
+    return max(releases, key=lambda tag: version_key(tag[1:])) if releases else None
+
+
+def lower_bound(requirement: str) -> tuple[str, str] | None:
+    """Return ``(normalised name, lower bound)`` of a requirement string, or ``None`` without one.
+
+    The bound is the highest of the ``>=``, ``>``, ``~=`` and ``==`` versions of its specifier;
+    an extra, an environment marker or a URL does not count.
+    """
+    match = REQUIREMENT.match(requirement)
+    if not match:
+        return None
+    bounds = [
+        found.group(2) for part in match.group(2).split(",") if (found := LOWER_BOUND.match(part.strip()))
+    ]
+    if not bounds:
+        return None
+    return re.sub(r"[-_.]+", "-", match.group(1)).lower(), max(bounds, key=version_key)
+
+
+def requirements_of(pyproject: str) -> list[str]:
+    """Return every requirement string of a ``pyproject.toml`` source: dependencies and extras."""
+    project = tomllib.loads(pyproject).get("project", {})
+    found = list(project.get("dependencies", []))
+    for extra in project.get("optional-dependencies", {}).values():
+        found += extra
+    return found
+
+
+def floors_of(
+    library: str, pyproject: str, packages: list[str], release: str, previous: str | None
+) -> list[Floor]:
+    """Return the floors of *pyproject* on *packages* that wait for, or are freed by, *release*.
+
+    A floor above *release* waits. With *previous*, a floor above *previous* that *release* reaches
+    is unblocked; without it, floors already satisfied are not reported.
+    """
+    wanted = {re.sub(r"[-_.]+", "-", name).lower() for name in packages}
+    latest = version_key(release.removeprefix("v"))
+    before = version_key(previous.removeprefix("v")) if previous else None
+    found = []
+    for requirement in requirements_of(pyproject):
+        parsed = lower_bound(requirement)
+        if not parsed or parsed[0] not in wanted:
+            continue
+        name, bound = parsed
+        if version_key(bound) > latest:
+            status = "waiting"
+        elif before is not None and version_key(bound) > before:
+            status = "unblocked"
+        else:
+            continue
+        found.append(Floor(library, name, requirement.strip(), bound, status))
+    return found
+
+
 def waits_for(body: str) -> str | None:
     """Return the commit on an issue body's ``Waits for:`` line, or ``None``."""
     match = WAITS_FOR.search(body or "")
@@ -191,10 +281,16 @@ def library_repos() -> list[str]:
     )
 
 
-def scan_repo(repo: str, workdir: Path) -> tuple[set[tuple[str, str]], int]:
-    """Shallow-clone *repo* into *workdir* and return ``imports_of`` summed over its Python files."""
+def clone_repo(repo: str, workdir: Path) -> Path:
+    """Shallow-clone *repo* into *workdir* and return the checkout."""
     dest = workdir / repo.replace("/", "__")
     run("git", "clone", "--quiet", "--depth", "1", f"https://github.com/{repo}.git", str(dest))
+    return dest
+
+
+def scan_repo(repo: str, workdir: Path) -> tuple[set[tuple[str, str]], int]:
+    """Clone *repo* and return ``imports_of`` summed over its Python files."""
+    dest = clone_repo(repo, workdir)
     found: set[tuple[str, str]] = set()
     internal = 0
     for path in dest.rglob("*.py"):
@@ -204,6 +300,16 @@ def scan_repo(repo: str, workdir: Path) -> tuple[set[tuple[str, str]], int]:
         found |= names
         internal += count
     return found, internal
+
+
+def release_tags() -> list[str]:
+    return run("git", "tag", "--list", "v*").split()
+
+
+def publish_order() -> list[str]:
+    """Return core's ``pip_publish_order`` from the ``pyproject.toml`` beside this script's repository."""
+    root = tomllib.loads((Path(__file__).resolve().parent.parent / "pyproject.toml").read_text())
+    return root["tool"]["haywire"]["release"]["pip_publish_order"]
 
 
 def open_reminders(ref: str) -> list[Reminder]:
@@ -248,6 +354,45 @@ def names_report(ref: str, previous: str | None) -> dict:
             if hits:
                 report["importers"][repo] = hits
     return report
+
+
+def floors_report(ref: str | None) -> dict:
+    """Return the floors of every organisation library on core's packages against *ref*.
+
+    *ref* defaults to the latest ``v*`` tag; with an explicit one, the report also lists the floors
+    it freed relative to the tag before it.
+    """
+    tags = release_tags()
+    release = ref or latest_release(tags)
+    if release is None:
+        raise CommandFailed("no v* release tag found (git fetch --tags)")
+    previous = None
+    if ref:
+        earlier = [t for t in tags if RELEASE_TAG.match(t) and version_key(t[1:]) < version_key(release[1:])]
+        previous = latest_release(earlier)
+    packages = publish_order()
+    floors: list[Floor] = []
+    with tempfile.TemporaryDirectory(prefix="release-sweep-") as tmp:
+        for repo in library_repos():
+            checkout = clone_repo(repo, Path(tmp))
+            for pyproject in sorted(checkout.glob("barn/*/pyproject.toml")):
+                floors += floors_of(repo, pyproject.read_text(), packages, release, previous)
+    return {"release": release, "previous": previous, "floors": [asdict(f) for f in floors]}
+
+
+def print_floors(report: dict) -> None:
+    release = report["release"]
+    floors = report["floors"]
+    print(f"Dependency floors on core against {release}:")
+    for status, title in (("waiting", "Waiting for a release above"), ("unblocked", "Unblocked by")):
+        rows = [f for f in floors if f["status"] == status]
+        if status == "unblocked" and not report["previous"]:
+            continue
+        print(f"\n{title} {release}:")
+        if not rows:
+            print("  none")
+        for f in rows:
+            print(f"  {f['library']:<34} {f['requirement']}")
 
 
 def print_names(report: dict) -> None:
@@ -296,6 +441,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     reminders.add_argument("--ref", default="HEAD", help="the release tag (default: HEAD)")
     reminders.add_argument("--json", action="store_true")
+    floors = sub.add_parser(
+        "floors", help="dependency floors of the libraries above (waiting) or freed by a release"
+    )
+    floors.add_argument("--ref", help="the release tag (default: the latest v* tag, nothing freed)")
+    floors.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
 
     try:
@@ -305,6 +455,12 @@ def main(argv: list[str] | None = None) -> int:
                 print(json.dumps(report, indent=2))
             else:
                 print_names(report)
+        elif args.report == "floors":
+            report = floors_report(args.ref)
+            if args.json:
+                print(json.dumps(report, indent=2))
+            else:
+                print_floors(report)
         else:
             found = open_reminders(args.ref)
             if args.json:

@@ -1,4 +1,4 @@
-"""scripts/release_sweep.py: name lists, import scan, the Waits for line, the reminders report."""
+"""scripts/release_sweep.py: name lists, import scan, Waits for line, reminders and floors reports."""
 
 import json
 
@@ -121,3 +121,88 @@ def test_a_failed_command_exits_2_and_says_so(monkeypatch, capsys):
     monkeypatch.setattr(sweep, "run", fail)
     assert sweep.main(["reminders"]) == 2
     assert "could not be made" in capsys.readouterr().err
+
+
+PACKAGES = ["haywire-core", "haybale-image"]
+
+LIBRARY = """
+[project]
+dependencies = [
+    "haywire-core>=0.5.4",
+    "haybale_image>=0.5.3",
+    "nicegui>=9.0",
+    "haybale-models>=0.9.0",
+]
+
+[project.optional-dependencies]
+extra = ["haywire-core[x]>=0.6.0; python_version >= '3.12'"]
+"""
+
+
+@pytest.mark.parametrize(
+    ("requirement", "expected"),
+    [
+        ("haywire-core>=0.5.4", ("haywire-core", "0.5.4")),
+        ("Haybale_Image >= 0.5.3, <1", ("haybale-image", "0.5.3")),
+        ("haywire-core[x]>=0.6.0; python_version >= '3.12'", ("haywire-core", "0.6.0")),
+        ("haywire-core~=0.5.2", ("haywire-core", "0.5.2")),
+        ("haywire-core>0.5.2,>=0.5.1", ("haywire-core", "0.5.2")),
+        ("haywire-core<1", None),
+        ("haywire-core", None),
+        ("haywire-core @ git+https://example.org/x.git", None),
+    ],
+)
+def test_lower_bound(requirement, expected):
+    assert sweep.lower_bound(requirement) == expected
+
+
+def test_latest_release_compares_numbers_and_skips_other_tags():
+    tags = ["v0.5.9", "v0.5.10", "v0.4.20", "v0.6.0rc1", "marketstall-latest"]
+    assert sweep.latest_release(tags) == "v0.5.10"
+    assert sweep.latest_release(["nightly"]) is None
+
+
+def test_floors_above_the_release_wait():
+    found = sweep.floors_of("o/lib", LIBRARY, PACKAGES, "v0.5.3", None)
+    assert [(f.package, f.bound, f.status) for f in found] == [
+        ("haywire-core", "0.5.4", "waiting"),
+        ("haywire-core", "0.6.0", "waiting"),
+    ]
+
+
+def test_a_release_unblocks_the_floors_it_reaches_and_the_rest_keep_waiting():
+    found = sweep.floors_of("o/lib", LIBRARY, PACKAGES, "v0.5.4", "v0.5.3")
+    assert [(f.bound, f.status) for f in found] == [("0.5.4", "unblocked"), ("0.6.0", "waiting")]
+
+
+def test_floors_report_scans_each_library_checkout(monkeypatch, tmp_path, capsys):
+    checkout = tmp_path / "lib"
+    (checkout / "barn" / "haybale-lib").mkdir(parents=True)
+    (checkout / "barn" / "haybale-lib" / "pyproject.toml").write_text(LIBRARY)
+    monkeypatch.setattr(sweep, "release_tags", lambda: ["v0.5.2", "v0.5.3"])
+    monkeypatch.setattr(sweep, "publish_order", lambda: PACKAGES)
+    monkeypatch.setattr(sweep, "library_repos", lambda: ["going-haywire/haybale-lib"])
+    monkeypatch.setattr(sweep, "clone_repo", lambda repo, workdir: checkout)
+
+    assert sweep.main(["floors", "--json"]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["release"] == "v0.5.3"
+    assert [f["status"] for f in report["floors"]] == ["waiting", "waiting"]
+
+
+def test_floors_with_a_ref_name_the_tag_before_it(monkeypatch, tmp_path, capsys):
+    checkout = tmp_path / "lib"
+    (checkout / "barn" / "haybale-lib").mkdir(parents=True)
+    (checkout / "barn" / "haybale-lib" / "pyproject.toml").write_text(LIBRARY)
+    monkeypatch.setattr(sweep, "release_tags", lambda: ["v0.5.3", "v0.5.4"])
+    monkeypatch.setattr(sweep, "publish_order", lambda: PACKAGES)
+    monkeypatch.setattr(sweep, "library_repos", lambda: ["going-haywire/haybale-lib"])
+    monkeypatch.setattr(sweep, "clone_repo", lambda repo, workdir: checkout)
+
+    assert sweep.main(["floors", "--ref", "v0.5.4", "--json"]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["previous"] == "v0.5.3"
+    assert [(f["bound"], f["status"]) for f in report["floors"]] == [
+        ("0.5.4", "unblocked"),
+        ("0.6.0", "waiting"),
+    ]
