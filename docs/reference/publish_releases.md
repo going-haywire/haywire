@@ -232,7 +232,7 @@ raise once a core release contains a change: an `after-core-release` issue with 
 `Waits for: going-haywire/haywire@<sha>` line
 ([sharing-libraries §7.1](../guides/sharing-libraries.md#71-release-reminders)).
 After a publish, `/haywire-release` (Step 10) lists those reminders across the
-organisation and which of them the new tag contains; before the bump (Step 2.2) it
+organisation and which of them the new tag contains; before the bump (Step 0.4) it
 reports the Author API names the release removes and the libraries that import them.
 Both come from [`scripts/release_sweep.py`](../../scripts/release_sweep.py). Open `todo-pre-release` reminders
 in this repository are listed before the bump (Step 2), and the user decides whether to

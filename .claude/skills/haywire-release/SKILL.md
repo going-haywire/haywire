@@ -43,37 +43,134 @@ or commit them first.
 
 ## Procedure
 
-The procedure runs in the steps below, with a non-blocking dependency audit at Step
-2.5. `master` only receives changes through PRs whose checks passed (CLAUDE.md, *Git
+The procedure runs in the steps below, starting with a read-only view of what the release
+would ship (Step 0). `master` only receives changes through PRs whose checks passed (CLAUDE.md, *Git
 and pull requests*), so the release does not run the test suite locally: it checks CI's
 result for the commit it releases, and the version bump goes through a PR like any
 change. Each step includes the exact command to
 run, what to expect, and what to do on failure.
 
-### Step 0 — show the current release version
+### Step 0 — what this release would ship
 
-Read the version from `packages/haywire-core/pyproject.toml` (foundation package; always
-at the lockstep version):
+A read-only view that changes nothing. Show it all in one message, then go on to Step 1.
+
+Bring `master` up to date and read the current version:
 
 ```bash
+git switch master
+git pull --ff-only
+git fetch --tags
 grep -E '^version = ' packages/haywire-core/pyproject.toml | head -1
+git tag --list 'v*' --sort=-v:refname | head -1
 ```
 
-Expected output line: `version = "X.Y.Z"`.
+The version line is `version = "X.Y.Z"` (the lockstep version, from the foundation
+package); the tag is the last release. If the file is missing or the line is not found,
+the workspace layout has changed: stop and ask the user. Tell the user:
 
-Tell the user:
+> Current release version: **X.Y.Z**; last tag: **vX.Y.Z**
 
-> Current release version: **X.Y.Z**
+**0.1 What changed since the last tag.** Group the commits by type, each with its PR link
+(a subject ending `(#N)` links to `https://github.com/going-haywire/haywire/pull/N`):
 
-If the file is missing or the line isn't found, the workspace layout has changed.
-Stop and ask the user.
+```bash
+git log v<LAST>..HEAD --format='%h %s'
+```
+
+Types: `feat`, `fix`, `perf`, `refactor`, then `docs`/`test`/`chore`/`ci`/`build` as one
+line with a count. A `!` after the type (`refactor!:`) marks a breaking commit: list those
+first. No commit since the tag means nothing to release: say so and stop.
+
+**0.2 Waiting libraries.** The organisation's libraries whose master asks for a core
+version that is not released yet:
+
+```bash
+uv run python scripts/release_sweep.py floors
+```
+
+It reads the dependency floors (the `>=` bounds) of every `barn/*/pyproject.toml` on core's
+`pip_publish_order` packages. Each one above the last tag is a library that waits for this
+release: show it, with the floor, so the user can see whom a release frees. A library whose
+wait no floor records is held by a reminder (0.3). Exit code 2 means a command failed: say
+the report could not be made, never that no library waits.
+
+**0.3 Reminders.** Decisions recorded for this release:
+
+```bash
+gh issue list --repo going-haywire/haywire --label todo-pre-release --state open \
+  --json number,title,url
+```
+
+Usually `[]`. Otherwise list each issue with its URL and ask the user whether to deal
+with it first or release anyway; a reminder is a help, not a gate. Also list the open
+`after-core-release` reminders (`uv run python scripts/release_sweep.py reminders`,
+against `HEAD`): they show what a library waits for that no floor records. If `gh`
+cannot answer (not logged in, no network), say the reminders could not be read; never
+report that none are open. The convention:
+[sharing-libraries §7.1](../../../docs/guides/sharing-libraries.md#71-release-reminders).
+
+**0.4 What this release breaks in the libraries.**
+
+```bash
+uv run python scripts/release_sweep.py names
+```
+
+It compares the Author API name lists (`tests/api/names.py`) at `HEAD` with the last
+release tag, and scans every `haybale-*` repository of the organisation (shallow clones,
+deleted afterwards) for imports of each removed or newly deprecated name. It also counts
+each library's imports of internal modules (`haywire.core`, `haywire.ui`,
+`haywire.barn`), which may change in any release.
+
+For a removed name a library imports, ask the user whether to keep it a while longer as
+deprecated (ADR 0085) or release and draft an `after-core-release` reminder for that
+library (opened only on their word). Exit code 2 means a command failed: say the report
+could not be made, never that nothing breaks.
+
+**0.5 Dependency audit (a report, not a gate).** Surfaces any package whose declared
+dependencies have drifted from what it imports:
+
+```bash
+uv run python scripts/check_deps.py
+```
+
+The script wraps `deptry` per package (using a module-name map so inter-package deps
+are not mis-flagged) and prints `clean` or a per-package list, and always exits 0:
+
+- **MISSING (DEP003)**: imported but not declared. The most important class: a package
+  that imports e.g. `nicegui` without declaring it works in the dev workspace
+  (transitively present) but can break when installed standalone from PyPI.
+- **UNUSED (DEP002)**: declared but never imported. Cosmetic; bloats install size.
+- **NOT INSTALLED (DEP001)**: imported but not available at all. A real bug.
+
+If there are findings, summarise them and ask whether to fix now (edit the relevant
+`pyproject.toml`s, re-sync, re-run) or release as-is. Do not auto-edit dependencies or
+block the release: `deptry` has known false positives (deliberate version pins like
+`attrs`, a transitive of `cattrs`; extras like `visiongraph[all]`), so the operator
+decides. The `KNOWN_OK` map in the script already suppresses the documented ones; add a
+new false positive there rather than removing a needed dependency.
+
+**0.6 Library nightly results.** Once a library has a `nightly` workflow, show its latest
+run against core's `master`: `gh run list --repo going-haywire/<library> --workflow
+nightly --limit 1`. A red one is a break this release would ship. Until the libraries
+have the workflow, say that none exists; do not report it as green.
+
+**0.7 A proposed version.** Propose, never impose; the user answers in Step 1. While core
+is below 1.0:
+
+- **minor** (`0.X.0`) when any commit since the last tag is breaking (`!`), or the `names`
+  report lists a removed API name, or there are 10 or more `feat` commits;
+- **patch** (`0.X.Y`) otherwise.
+
+Give the numbers behind it (feat count, breaking commits, removed names). The rule follows
+the releases from v0.3.0 to v0.5.3: minors carried a breaking commit or a large batch of
+features, patches the rest (the 10 is a threshold read off that history, not a law).
 
 ### Step 1 — get the new release version
 
 If the user supplied a version on the invocation line (e.g. `/haywire-release 0.0.2`),
 use it. Otherwise ask via `AskUserQuestion`:
 
-> "New release version? Current is X.Y.Z. Use semver (patch / minor / major)."
+> "New release version? Current is X.Y.Z; Step 0.7 proposes <PROPOSAL>. Use semver (patch / minor / major)."
 
 Validate the input against the regex `^\d+\.\d+\.\d+(?:[a-z0-9.+!*-]*)?$` (PEP 440-ish:
 `X.Y.Z` with optional pre/post/dev suffix). Reject and re-prompt on malformed input.
@@ -119,65 +216,6 @@ Expected: `headSha` equals `HEAD`, `status` is `completed` and `conclusion` is
   not ship on a red `master`. The fix goes through a PR first.
 - **No run for `HEAD`:** the commit reached `master` without CI (an admin bypass).
   Start one with `gh workflow run CI --ref master`, wait for it, then continue.
-
-Then read the release reminders, decisions recorded for this release:
-
-```bash
-gh issue list --repo going-haywire/haywire --label todo-pre-release --state open \
-  --json number,title,url
-```
-
-Usually `[]`. Otherwise list each issue with its URL and ask the user whether to deal
-with it first or release anyway; a reminder is a help, not a gate. If `gh` cannot answer
-(not logged in, no network), say the reminders could not be read; never report that none
-are open. The convention:
-[sharing-libraries §7.1](../../../docs/guides/sharing-libraries.md#71-release-reminders).
-
-### Step 2.2 — what this release breaks in the libraries (non-blocking report)
-
-```bash
-uv run python scripts/release_sweep.py names
-```
-
-It compares the Author API name lists (`tests/api/names.py`) at `HEAD` with the last
-release tag, and scans every `haybale-*` repository of the organisation (shallow clones,
-deleted afterwards) for imports of each removed or newly deprecated name. It also counts
-each library's imports of internal modules (`haywire.core`, `haywire.ui`,
-`haywire.barn`), which may change in any release.
-
-Show the report. For a removed name a library imports, ask the user whether to keep it a
-while longer as deprecated (ADR 0085) or release and draft an `after-core-release`
-reminder for that library (opened only on their word). Exit code 2 means a command
-failed: say the report could not be made, never that nothing breaks.
-
-### Step 2.5 — dependency audit (non-blocking report)
-
-Run the dependency checker to surface any package whose declared dependencies have
-drifted from what it actually imports (unused cruft, or imported-but-undeclared
-third-party deps that would break a fresh install from PyPI):
-
-```bash
-uv run python scripts/check_deps.py
-```
-
-This wraps `deptry` per package (using a module-name map so inter-package deps
-aren't mis-flagged) and prints `clean` or a per-package list of findings:
-
-- **MISSING (DEP003)** — imported but not declared. The most important class: a
-  package that imports e.g. `nicegui` without declaring it works in the dev
-  workspace (transitively present) but can break when installed standalone from
-  PyPI.
-- **UNUSED (DEP002)** — declared but never imported. Cosmetic; bloats install size.
-- **NOT INSTALLED (DEP001)** — imported but not available at all. A real bug.
-
-**This is a REPORT, not a gate.** The script always exits 0. Show the output to the
-user. If there are findings, summarize them and ask whether to fix now (edit the
-relevant `pyproject.toml`s, re-sync, re-run) or proceed with the release as-is.
-Do NOT auto-edit dependencies or block the release — `deptry` has known false
-positives (e.g. deliberate version pins like `attrs` that are transitive of
-`cattrs`, or extras like `visiongraph[all]`), so the operator decides. The
-`KNOWN_OK` map in the script already suppresses the documented ones; if a new
-false positive appears, add it there rather than removing a needed dep.
 
 ### Step 3 — create the release branch
 
@@ -528,7 +566,7 @@ a real release — without any persistent or shared-state action. Rollback is a 
   read-back for the bump, run at Step 6 and again by CI against the tag. Unlike
   `check_deps.py`, it is a gate: it exits non-zero on any disagreement.
 - [`scripts/check_deps.py`](../../../scripts/check_deps.py) — the dependency auditor
-  this skill runs at Step 2.5. Wraps `deptry` per package; reports unused/missing
+  this skill runs at Step 0.5. Wraps `deptry` per package; reports unused/missing
   deps without blocking or editing.
 - [`scripts/generate_marketstall.py`](../../../scripts/generate_marketstall.py) — the
   marketplace generator that CI's deploy job runs. Not invoked by this skill (CI
