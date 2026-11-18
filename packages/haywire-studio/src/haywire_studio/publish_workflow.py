@@ -219,9 +219,47 @@ jobs:
           path: dist/
           if-no-files-found: error
 
+  # A clean environment resolves every dependency from PyPI, as a consumer's install does;
+  # the project's path sources and lock play no part. The wheels go in together, so
+  # libraries released side by side find each other.
+  smoke:
+    name: Install and load the wheels
+    needs: [guard, build]
+    if: needs.guard.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          path: dist/
+          merge-multiple: true
+      - uses: astral-sh/setup-uv@v3
+      - name: Install the wheels
+        run: |
+          uv venv --python "$PYTHON_VERSION" "$RUNNER_TEMP/smoke"
+          VIRTUAL_ENV="$RUNNER_TEMP/smoke" uv pip install dist/*.whl
+      - name: Load every library as the studio does
+        env:
+          MATRIX: ${{ needs.guard.outputs.matrix }}
+        run: |
+          "$RUNNER_TEMP/smoke/bin/python" - <<'PY'
+          import importlib.metadata
+          import json
+          import os
+
+          for lib in json.loads(os.environ["MATRIX"]):
+              dist = importlib.metadata.distribution(lib["dist"])
+              points = [ep for ep in dist.entry_points if ep.group == "haywire.libraries"]
+              if not points:
+                  raise SystemExit(f"{lib['dist']} declares no haywire.libraries entry point")
+              for point in points:
+                  point.load()
+                  print(f"{lib['dist']}: loaded {point.name} = {point.value}")
+          PY
+
   tag:
     name: Tag ${{ needs.guard.outputs.tag }}
-    needs: [guard, build]
+    needs: [guard, build, smoke]
     if: needs.guard.outputs.enabled == 'true' && needs.guard.outputs.tag != ''
     runs-on: ubuntu-latest
     permissions:
@@ -237,11 +275,12 @@ jobs:
 
   publish:
     name: Publish ${{ matrix.lib.dist }}
-    needs: [guard, build, tag]
+    needs: [guard, build, smoke, tag]
     if: >-
       ${{ !cancelled()
       && needs.guard.outputs.enabled == 'true'
       && needs.build.result == 'success'
+      && needs.smoke.result == 'success'
       && needs.tag.result != 'failure' }}
     runs-on: ubuntu-latest
     strategy:
