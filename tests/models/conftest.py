@@ -134,14 +134,15 @@ class FakeServer:
             h.send_header("Content-Type", "text/html" if route.get("html") else "application/octet-stream")
             h.send_header("Content-Length", str(len(body)))
             h.end_headers()
+            # Counted before the body goes out: the client can finish before this thread resumes.
+            with self._lock:
+                self.sent[h.path] = self.sent.get(h.path, 0) + len(body)
             half = len(body) // 2 if route.get("hold") or route.get("die") else len(body)
             h.wfile.write(body[:half])
             h.wfile.flush()
             if half < len(body) and not route.get("die"):
                 self.release.wait(5)
                 h.wfile.write(body[half:])
-            with self._lock:
-                self.sent[h.path] = self.sent.get(h.path, 0) + len(body)
         except (BrokenPipeError, ConnectionResetError):
             pass
         finally:
