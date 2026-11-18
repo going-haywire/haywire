@@ -192,6 +192,19 @@ def _library_settings_classes() -> list[type]:
     return found
 
 
+def _snapshot_library_registries() -> dict:
+    """Return each LibrarySettings class's registry back-reference (a library system repoints them)."""
+    return {cls: cls.__dict__.get("_registry", _UNSET) for cls in _library_settings_classes()}
+
+
+def _restore_library_registries(snap: dict) -> None:
+    for cls, registry in snap.items():
+        if registry is not _UNSET:
+            cls._registry = registry
+        elif "_registry" in cls.__dict__:
+            delattr(cls, "_registry")
+
+
 @pytest.fixture(autouse=True)
 def _ambient_settings_registry():
     from haywire.core.di import context as di_context
@@ -203,7 +216,7 @@ def _ambient_settings_registry():
     prev_pending = list(fw._pending_global)
     # A second library system's initialize() re-registers every library settings class,
     # repointing its registry back-reference (cls._registry) at a registry that dies with it.
-    prev_library = {cls: cls.__dict__.get("_registry", _UNSET) for cls in _library_settings_classes()}
+    prev_library = _snapshot_library_registries()
 
     if prev_ambient is None:
         # Constructing this drains _pending_global and repoints
@@ -216,11 +229,7 @@ def _ambient_settings_registry():
         di_context._settings_registry = prev_ambient
         fw.FrameworkSettings._registry = prev_fw_registry
         fw._pending_global[:] = prev_pending
-        for cls, registry in prev_library.items():
-            if registry is not _UNSET:
-                cls._registry = registry  # type: ignore[attr-defined]
-            elif "_registry" in cls.__dict__:
-                delattr(cls, "_registry")
+        _restore_library_registries(prev_library)
 
 
 # ==============================================================================
@@ -288,6 +297,9 @@ def _snapshot_ambient_di() -> dict:
 
     snap = {("context", n): getattr(di_context, n) for n in _DI_CONTEXT_GLOBALS}
     snap.update({("config", n): getattr(di_config, n) for n in _DI_CONFIG_GLOBALS})
+    # The ambient settings registry and the classes' back-references move together:
+    # a node reads the first, ``SomeLibrarySettings()`` writes through the second.
+    snap[("library", "registries")] = _snapshot_library_registries()
     return snap
 
 
@@ -297,7 +309,10 @@ def _restore_ambient_di(snap: dict) -> None:
 
     modules = {"context": di_context, "config": di_config}
     for (mod, name), value in snap.items():
-        setattr(modules[mod], name, value)
+        if mod == "library":
+            _restore_library_registries(value)
+        else:
+            setattr(modules[mod], name, value)
 
 
 @pytest.fixture
