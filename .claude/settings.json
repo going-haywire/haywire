@@ -5,11 +5,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-role.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/plugins/haywire-dev/hooks/session-role.sh"
           },
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-place.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/plugins/haywire-dev/hooks/session-place.sh"
           }
         ]
       }
@@ -20,15 +20,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-dangerous-git.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/plugins/haywire-dev/hooks/block-dangerous-git.sh"
           },
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/require-workflow-skill.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/plugins/haywire-dev/hooks/require-workflow-skill.sh"
           },
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-pr-merge.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/plugins/haywire-dev/hooks/guard-pr-merge.sh"
           }
         ]
       }
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/mark-workflow-skill.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/plugins/haywire-dev/hooks/mark-workflow-skill.sh"
           }
         ]
       }
@@ -49,7 +49,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/mark-workflow-skill.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/plugins/haywire-dev/hooks/mark-workflow-skill.sh"
           }
         ]
       },

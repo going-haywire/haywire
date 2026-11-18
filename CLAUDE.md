@@ -38,7 +38,7 @@ UI/UX visual rules, tokens, and anti-patterns are canonical in `docs/reference/d
 
 Before the first branch, commit, push or `gh pr` command of any task, however small, load the `haywire-workflow` skill and follow it; releases: `/haywire-release`. The non-obvious parts: [.insights/project_pr_workflow.md](.insights/project_pr_workflow.md).
 
-- Destructive git commands stay with the user: `.claude/hooks/block-dangerous-git.sh` lists and blocks them.
+- Destructive git commands stay with the user: `plugins/haywire-dev/hooks/block-dangerous-git.sh` lists and blocks them.
 - Before a commit, run the [checks](docs/guides/development.md#checks) on what changed. The full suite is CI's job on every push; run it locally (`/verify`, about 5 minutes) only when asked.
 - Whenever the user has to decide or review something, give them what they need in one look: the URL of every PR, issue or CI run involved, markdown links to the local files and lines that matter, the options lettered with a recommendation, and the evidence. They should never have to go and find it.
 

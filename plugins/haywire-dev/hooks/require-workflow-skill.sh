@@ -11,7 +11,7 @@ if echo "$COMMAND" | grep -qE "${START}(git[[:space:]]+(commit|push)|gh[[:space:
   if [ -n "$SESSION" ] && [ -f "${TMPDIR:-/tmp}/claude-haywire-workflow/$SESSION" ]; then
     exit 0
   fi
-  echo "BLOCKED: load the haywire-workflow skill (Skill tool, skill \"haywire-workflow\") before committing, pushing or changing a PR in this session, follow it, then run the command again." >&2
+  echo "BLOCKED: load the haywire-workflow skill (Skill tool, skill \"haywire-workflow\"; from the plugin, \"haywire-dev:haywire-workflow\") before committing, pushing or changing a PR in this session, follow it, then run the command again." >&2
   exit 2
 fi
 exit 0

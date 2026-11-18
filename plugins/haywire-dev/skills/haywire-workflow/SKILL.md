@@ -5,9 +5,9 @@ description: Step-by-step procedures for working in this repository through bran
 
 # Working through branches and pull requests
 
-The rules are in [CONTRIBUTING.md](../../../CONTRIBUTING.md) (the agent-only ones in CLAUDE.md,
+The rules are in [CONTRIBUTING.md](https://github.com/going-haywire/haywire/blob/master/CONTRIBUTING.md) (the agent-only ones in CLAUDE.md,
 *Git and pull requests*); the reasons and traps in
-[.insights/project_pr_workflow.md](../../../.insights/project_pr_workflow.md). This skill
+[.insights/project_pr_workflow.md](https://github.com/going-haywire/haywire/blob/master/.insights/project_pr_workflow.md). This skill
 is the how.
 
 **Your role** is in the session's opening context, from the `SessionStart` hook: *maintainer*
@@ -16,6 +16,11 @@ that could not be checked. Shared steps apply to both; where the steps differ, f
 role's. Without that line (the hook did not run), check it yourself:
 `gh repo view going-haywire/haywire --json viewerPermission` (ADMIN, MAINTAIN or WRITE make a
 maintainer).
+
+**In a library repository** (`going-haywire/haybale-*`, the skill comes from the
+`haywire-dev` plugin): read `going-haywire/haywire` below as the library's own repository and
+`master` as its default branch, except for introductions, which live in core. What differs
+is in *In a library repository* at the end.
 
 ## Asking the user for a decision
 
@@ -86,7 +91,7 @@ before the change. After the edit, run the same commands: anything new is yours.
 ## Choosing and running tests
 
 Run the smallest set that covers the change, with the commands in
-[docs/guides/development.md](../../../docs/guides/development.md#tests). The full suite is
+[docs/guides/development.md](https://github.com/going-haywire/haywire/blob/master/docs/guides/development.md#tests). The full suite is
 CI's job on every push. A run that hangs to the 120 s timeout is a lock cycle, not
 flakiness. Redirect long runs to a file and read the tail; the exit code is the signal.
 Tiers, parallelism and test traps: `tests/README.md`.
@@ -111,7 +116,7 @@ finds instead is a wasted round.
    `expect` what they should see.
 2. **Run it** as a Questionnaire in this worktree's studio: the loop is in the
    `haywire-live-studio` skill (*Live check with a Questionnaire*), the format in
-   [docs/reference/questionnaire.md](../../../docs/reference/questionnaire.md).
+   [docs/reference/questionnaire.md](https://github.com/going-haywire/haywire/blob/master/docs/reference/questionnaire.md).
 3. **A failed Check** means your confidence was wrong: fix it and verify the fix yourself
    as above. Ask the user before posting another round, with only the Checks that
    failed.
@@ -136,7 +141,7 @@ finds instead is a wasted round.
 ## Committing
 
 Commit on the branch whenever a step is done; no need to ask. Before each commit, run the
-[checks](../../../docs/guides/development.md#checks) on what changed.
+[checks](https://github.com/going-haywire/haywire/blob/master/docs/guides/development.md#checks) on what changed.
 
 Commit messages follow the repository's style
 (`feat(area): …`, `fix(area): …`) and end with the attribution line the session gives.
@@ -243,12 +248,12 @@ them.
    its own worktree, once its branch is merged:
 
    ```sh
-   uv run python scripts/finish.py <branch>
+   python3 "${CLAUDE_SKILL_DIR}/scripts/finish.py" <branch>   # in core also: uv run python scripts/finish.py <branch>
    ```
 
    `finish` is the only way to delete a branch: the hook blocks raw `git branch -D` and
    `git push --delete`. It refuses unless the PR is merged and the local branch holds
-   nothing the PR's head lacks; it detaches the worktree at `origin/master`, then deletes
+   nothing the PR's head lacks; it detaches the worktree at the default branch, then deletes
    the local branch and the remote branch if GitHub has not already. Then it prints how
    to remove the empty folder: the user closes the space and removes the worktree in
    herdr, or `git worktree remove <path>` from the main folder.
@@ -352,7 +357,7 @@ only the main folder, so search with grep there.
   on the port `worktree_setup.py` gave it; 8124 is the main folder's studio.
 
 **When the branch is merged**, the task runs `finish <branch>` in its worktree (*Finishing
-as the maintainer*, step 5). The worktree is left detached at `origin/master` and empty; the
+as the maintainer*, step 5). The worktree is left detached at the default branch and empty; the
 user right-clicks its space → *Remove worktree* in herdr (it deletes the folder), or without
 herdr, from the main folder:
 
@@ -415,4 +420,30 @@ maintainer*, step 4), warns the tasks whose PRs now conflict, and tells the task
 The task runs `finish` itself. The user closes the space.
 
 **The lead writes reports to the user by name**: space / tab, PR URL, state.
-`uv run python scripts/tasks.py` lists every task with its PR and session.
+`python3 "${CLAUDE_SKILL_DIR}/scripts/tasks.py"` (in core also `uv run python
+scripts/tasks.py`) lists every task with its PR and session.
+
+## In a library repository
+
+The org's libraries (`going-haywire/haybale-*`) follow the same steps. Their process files
+come from [going-haywire/.github](https://github.com/going-haywire/.github) (the library
+`CONTRIBUTING.md`, the reusable CI); this skill and the hooks come from the `haywire-dev`
+plugin, installed once per clone (the library's `CLAUDE.md` says how). What differs:
+
+- **Layout.** The library is cloned beside core (`../haywire-repo`), which its development
+  project reaches by relative paths. A task's worktree goes beside the repositories, never
+  under `~/.herdr/worktrees` (*Parallel sessions*). There is no `worktree_setup.py`: after
+  `git worktree add ../<repo>-<name> -b <kind>/<name> origin/<default branch>`, run
+  `uv sync` in the worktree and give its studio a port of its own.
+- **Checks** are the library's own, in its `CLAUDE.md`: `ruff check`, `ruff format
+  --check`, `pytest`, each with `uv run --frozen`.
+- **CI** is `ci.yml`, calling the org's `library-ci.yml`: the library's tests against core's
+  `master`, Linux on a draft, macOS added once the PR is ready; `nightly.yml` runs the same
+  every night. The merge guard wants every check passed, a macOS check among them.
+- **A change that needs unreleased core** raises the library's dependency floor in the same
+  commit; CI passes because it runs against core's `master`, and the library is released
+  once core is.
+- **Releases** go through a release PR: `uv run --frozen haywire share --bump patch --pr`.
+  Merging it is the user's word; the merge run tags and publishes. Never tag by hand.
+- **`finish` and the task view** run from this skill's folder, as above; they read the
+  default branch from the clone (`main` in haybale-stream).

@@ -35,10 +35,11 @@ def commit(cwd: Path, name: str) -> str:
 
 
 class Repo:
-    """A maintainer's clone: ``main`` (on master), ``origin`` (bare), a fake gh serving ``prs``."""
+    """A maintainer's clone: ``main`` (on *default*), ``origin`` (bare), a fake gh serving ``prs``."""
 
-    def __init__(self, tmp: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def __init__(self, tmp: Path, monkeypatch: pytest.MonkeyPatch, default: str = "master") -> None:
         self.tmp = tmp
+        self.default = default
         self.origin = tmp / "origin.git"
         self.main = tmp / "main"
         self.prs_file = tmp / "prs.json"
@@ -61,12 +62,12 @@ class Repo:
         gh.write_text(GH.format(python=sys.executable))
         gh.chmod(0o755)
         monkeypatch.setenv("PATH", f"{bin_dir}:{os.environ['PATH']}")
-        subprocess.run(["git", "init", "-q", "--bare", "-b", "master", str(self.origin)], check=True)
-        subprocess.run(["git", "init", "-q", "-b", "master", str(self.main)], check=True)
+        subprocess.run(["git", "init", "-q", "--bare", "-b", default, str(self.origin)], check=True)
+        subprocess.run(["git", "init", "-q", "-b", default, str(self.main)], check=True)
         git(self.main, "remote", "add", "origin", SLUG_URL)
         git(self.main, "config", f"url.{self.origin}.insteadOf", SLUG_URL)
         commit(self.main, "base")
-        git(self.main, "push", "-q", "origin", "master")
+        git(self.main, "push", "-q", "origin", default)
         monkeypatch.chdir(self.main)
 
     def branch(self, name: str, push: bool = True) -> str:
@@ -75,7 +76,7 @@ class Repo:
         sha = commit(self.main, name.replace("/", "_"))
         if push:
             git(self.main, "push", "-q", "-u", "origin", name)
-        git(self.main, "switch", "-q", "master")
+        git(self.main, "switch", "-q", self.default)
         return sha
 
     def worktree(self, branch: str) -> Path:
@@ -237,6 +238,34 @@ def test_the_main_folder_returns_to_master(repo, monkeypatch):
     assert finish.main(["fix/edge"]) == 0
     assert git(repo.main, "branch", "--show-current") == "master"
     assert repo.local() == {"master"}
+
+
+def test_a_repository_on_main_detaches_its_worktree_at_main(tmp_path, capsys, monkeypatch):
+    repo = Repo(tmp_path, monkeypatch, default="main")
+    sha = repo.branch("fix/edge")
+    repo.pr("fix/edge", sha)
+    tree = repo.worktree("fix/edge")
+    monkeypatch.chdir(tree)
+    assert finish.main(["fix/edge"]) == 0
+    assert "at origin/main" in capsys.readouterr().out
+    assert git(tree, "rev-parse", "HEAD") == git(repo.main, "rev-parse", "origin/main")
+    assert repo.local() == {"main"}
+    assert repo.remote() == {"main"}
+
+
+def test_a_repository_on_main_returns_its_main_folder_to_main(tmp_path, monkeypatch):
+    repo = Repo(tmp_path, monkeypatch, default="main")
+    sha = repo.branch("fix/edge")
+    repo.pr("fix/edge", sha)
+    git(repo.main, "switch", "-q", "fix/edge")
+    assert finish.main(["fix/edge"]) == 0
+    assert git(repo.main, "branch", "--show-current") == "main"
+    assert repo.local() == {"main"}
+
+
+def test_the_default_branch_is_read_from_the_clone_record_first(repo):
+    git(repo.main, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/master")
+    assert finish.default_branch("origin") == "master"
 
 
 def test_a_contributor_clone_reads_the_pr_upstream_and_deletes_on_the_fork(tmp_path, monkeypatch):

@@ -1,0 +1,9 @@
+{
+  "name": "haywire-dev",
+  "description": "The going-haywire development workflow for library repositories: the haywire-workflow skill (branches, pull requests, CI, merge, finish) and the hooks that guard it (no destructive git, the skill before a commit, a merge only when the PR is ready and green).",
+  "author": {
+    "name": "going-haywire"
+  },
+  "homepage": "https://github.com/going-haywire/haywire/tree/master/plugins/haywire-dev",
+  "license": "MIT"
+}

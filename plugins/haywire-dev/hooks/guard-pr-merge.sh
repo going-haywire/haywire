@@ -1,9 +1,9 @@
 #!/bin/bash
 # Refuses `gh pr merge` unless the PR is out of draft, carries neither `needs introduction`
 # nor `agent files`, has no unresolved review thread, and the newest run of every check
-# passed. In going-haywire/haywire there must be checks, with at least one passed macOS
-# check among them (macOS runs only once a PR is ready); a repository without CI (the
-# libraries) may report none. `--repo` / `-R` is honoured.
+# passed. In going-haywire/haywire and the org's libraries (going-haywire/haybale-*) there
+# must be checks, with at least one passed macOS check among them (macOS runs only once a
+# PR is ready); any other repository may report none. `--repo` / `-R` is honoured.
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
@@ -47,8 +47,8 @@ HELD=$(echo "$VIEW" | jq -r '[.labels[].name | select(. == "needs introduction" 
 
 # The PR url is https://github.com/<owner>/<repo>/pull/<number>.
 IFS=/ read -r _ _ _ OWNER REPO _ NUMBER <<< "$(echo "$VIEW" | jq -r '.url')"
-CORE=false
-[ "$OWNER/$REPO" = "going-haywire/haywire" ] && CORE=true
+STRICT=false
+case "$OWNER/$REPO" in going-haywire/haywire | going-haywire/haybale-*) STRICT=true ;; esac
 OPEN_THREADS=$(gh api graphql -F owner="$OWNER" -F repo="$REPO" -F number="$NUMBER" -f query='
   query($owner: String!, $repo: String!, $number: Int!) {
     repository(owner: $owner, name: $repo) {
@@ -59,7 +59,7 @@ OPEN_THREADS=$(gh api graphql -F owner="$OWNER" -F repo="$REPO" -F number="$NUMB
 [ "$OPEN_THREADS" = "0" ] || block "$OPEN_THREADS review thread(s) unresolved; read them, address them, resolve them"
 
 # One entry per check and run: keep the newest run of each check.
-VERDICT=$(echo "$VIEW" | jq -r --argjson core "$CORE" '
+VERDICT=$(echo "$VIEW" | jq -r --argjson strict "$STRICT" '
   [.statusCheckRollup[]
    | if .__typename == "StatusContext"
      then {key: .context, at: (.startedAt // ""), ok: (.state == "SUCCESS"), done: (.state != "PENDING")}
@@ -68,12 +68,12 @@ VERDICT=$(echo "$VIEW" | jq -r --argjson core "$CORE" '
            done: (.status == "COMPLETED"), macos: ((.name | test("macos"; "i")) and .conclusion == "SUCCESS")}
      end]
   | group_by(.key) | map(max_by(.at)) as $latest
-  | if ($latest | length) == 0 then (if $core then "no checks reported" else "ok" end)
+  | if ($latest | length) == 0 then (if $strict then "no checks reported" else "ok" end)
     elif ($latest | map(select(.done | not)) | length) > 0
       then "checks still running: " + ($latest | map(select(.done | not) | .key) | join(", "))
     elif ($latest | map(select(.ok | not)) | length) > 0
       then "checks not passed: " + ($latest | map(select(.ok | not) | .key) | join(", "))
-    elif $core and ($latest | map(select(.macos == true)) | length) == 0
+    elif $strict and ($latest | map(select(.macos == true)) | length) == 0
       then "no passed macOS check yet"
     else "ok" end')
 
