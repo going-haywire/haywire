@@ -238,10 +238,10 @@ uv run python scripts/bump_version.py <NEW_VERSION> --dry-run
 
 Expected: the script either prints `Nothing to do: all packages already at version
 X.Y.Z.` (shouldn't happen — step 1 already rejected no-op bumps) or prints a unified
-diff covering 21 files (`packages/*/pyproject.toml` ×2, `barn/*/pyproject.toml` ×8,
-plus each of those 8 barn packages' `haybale.toml` and the framework-owned
-`builtin` library's `haybale.toml` nested inside `haywire-core`) followed by
-`21 file(s) will change. Target version: X.Y.Z.`. `haybale.toml` is the
+diff covering the `pyproject.toml` of every release package (`packages/*` and `barn/*`),
+the `haybale.toml` of each barn package and the framework-owned `builtin` library's
+`haybale.toml` nested inside `haywire-core` (27 files for v0.5.4), followed by
+`N file(s) will change. Target version: X.Y.Z.`. `haybale.toml` is the
 runtime-read copy of `version` (`pyproject.toml` stays canon); it's synced
 here so `LibraryIdentity` never lags behind a release.
 
@@ -259,7 +259,7 @@ uv run python scripts/bump_version.py <NEW_VERSION> --yes
 
 Tell the user:
 
-> **Dry-run: stopping here.** Bump applied; working tree now has 21 modified files.
+> **Dry-run: stopping here.** Bump applied; working tree now has the bumped files modified.
 > Run `git diff` to inspect, then `git checkout packages barn uv.lock` to roll back.
 > To actually cut the release, re-invoke `/haywire-release <NEW_VERSION>` without
 > `--dry-run`.
@@ -383,8 +383,9 @@ following the convention keeps `git log --oneline` searchable for past releases.
 
 After `uv lock`, `uv.lock` will always have changed (the version lines moved), so it's
 part of the staged set — confirm it's in the commit with `git diff --cached --name-only`
-(expect exactly 20 paths: 10 `pyproject.toml` + 9 `haybale.toml` + `uv.lock`). The
-baked docs are gitignored, so they are correctly absent from this set.
+(expect the bumped `pyproject.toml` and `haybale.toml` files, `uv.lock`, and the
+regenerated `QUICKREF.md` files: 41 paths for v0.5.4). The baked docs are gitignored, so
+they are correctly absent from this set.
 
 ### Step 6.5 — wheel-build smoke (before the PR)
 
@@ -423,6 +424,10 @@ git push -u origin release/v<NEW_VERSION>
 gh pr create --base master --title "chore: release v<NEW_VERSION>" \
   --body "Version bump to <NEW_VERSION>, lockfile and regenerated library docs."
 ```
+
+Run the push and `gh pr create` as two separate commands: the push hook reads a whole
+chained command and blocks it as a tag push when the PR title (`release v0.5.4`) follows
+a `git push`.
 
 The title must start `chore: release v`: `scripts/check_version_changes.py` fails any PR
 that changes a version unless it does, and the merge commit carries that title.
@@ -522,7 +527,7 @@ If the user invoked `/haywire-release --dry-run <VERSION>`:
   tree contains the actual changes that would ship, then STOPS without asking for
   confirmation. The user sees:
 
-  > **Dry-run: stopping here.** Bump applied; working tree now has 21 modified files.
+  > **Dry-run: stopping here.** Bump applied; working tree now has the bumped files modified.
   > Run `git diff` to inspect, then `git checkout packages barn uv.lock` to roll back.
   > To actually cut the release, re-invoke `/haywire-release <VERSION>` without
   > `--dry-run`.
