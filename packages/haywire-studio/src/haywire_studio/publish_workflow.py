@@ -155,6 +155,7 @@ name: Publish
 # A push to the default branch that changes the versions (the merge of a release PR)
 # tests, builds, tags the merge commit and publishes in this one run.
 # To retry a failed run: gh workflow run publish.yml --ref vX.Y.Z
+# Every action is pinned to a commit, its version in the comment.
 
 on:
   push:
@@ -178,7 +179,7 @@ jobs:
       standalone: ${{ steps.plan.outputs.standalone }}
       tag: ${{ steps.plan.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Decide what to publish
@@ -198,8 +199,8 @@ jobs:
       matrix:
         lib: ${{ fromJSON(needs.guard.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           enable-cache: true
       - run: uv python install ${{ env.PYTHON_VERSION }}
@@ -213,7 +214,7 @@ jobs:
       - name: Build wheel and sdist
         working-directory: ${{ matrix.lib.path }}
         run: uv build --out-dir "${GITHUB_WORKSPACE}/dist"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dist-${{ matrix.lib.dist }}
           path: dist/
@@ -228,12 +229,12 @@ jobs:
     if: needs.guard.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: dist-*
           path: dist/
           merge-multiple: true
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - name: Install the wheels
         run: |
           uv venv --python "$PYTHON_VERSION" "$RUNNER_TEMP/smoke"
@@ -265,7 +266,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Tag the merge commit
         env:
           TAG: ${{ needs.guard.outputs.tag }}
@@ -294,12 +295,12 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist-${{ matrix.lib.dist }}
           path: dist/
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           skip-existing: true
 """

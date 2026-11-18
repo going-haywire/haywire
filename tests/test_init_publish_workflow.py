@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -179,6 +180,14 @@ def test_the_root_is_only_synced_for_the_tests_of_a_standalone_project() -> None
 
 def test_the_guard_passes_the_flag_on() -> None:
     assert "standalone: ${{ steps.plan.outputs.standalone }}" in render_publish_workflow()
+
+
+def test_every_action_is_pinned_to_a_commit() -> None:
+    uses = re.findall(r"uses: (\S+)(.*)", render_publish_workflow())
+    assert len(uses) == 9
+    for ref, comment in uses:
+        assert re.fullmatch(r"[\w.-]+/[\w.-]+@[0-9a-f]{40}", ref), ref
+        assert re.fullmatch(r" # v\d+\.\d+\.\d+", comment), ref
 
 
 def test_init_writes_both_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
