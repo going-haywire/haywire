@@ -4,11 +4,12 @@ description: >
   Walk the author through cutting a release of the haywire monorepo. Checks that
   CI passed on master, bumps every Tier 1+2 package to a new lockstep version (via
   scripts/bump_version.py), shows a unified diff of every change, then on
-  confirmation commits `chore: release vX.Y.Z` on a release branch, merges it
-  through a PR once its checks pass, tags the merged commit, and hands the user the
-  tag push (a local hook blocks tag pushes) so the publish CI workflow takes over.
-  Lists open `todo-pre-release` reminders first, and after the publish reports which
-  libraries' `after-core-release` reminders the release unblocks. Supports `--dry-run` to
+  confirmation commits `chore: release vX.Y.Z` on a release branch and opens a PR;
+  the user's "yes" is the word to merge it once its checks pass, and the merge is the
+  publish: CI tags the merge commit, publishes, and writes the release notes.
+  Starts with a view of what the release would ship (commits, waiting libraries,
+  reminders, a proposed version) and ends by reporting the release notes and the
+  libraries the release unblocks. Supports `--dry-run` to
   preview the flow without committing. Use this skill whenever the user wants
   to cut, ship, publish, release, or version-bump the monorepo. Trigger
   phrases: "/haywire-release", "cut a release", "ship a release", "release
@@ -37,7 +38,7 @@ or commit them first.
 
 - **Target version** (required, e.g. `0.0.2`) — the new lockstep version. Asked
   interactively if not supplied on the invocation line.
-- **`--dry-run`** (optional) — perform every step *except* commit/tag/push. The bump
+- **`--dry-run`** (optional) — perform every step *except* commit/push. The bump
   is applied to the working tree so the user can `git diff` to inspect, then roll
   back with `git checkout .` if abandoning.
 
@@ -250,7 +251,7 @@ before the next step.
 ### Step 5 — confirm
 
 **On `--dry-run`**: apply the bump (so the user can `git diff` the real files), then
-STOP. Do NOT ask for confirmation, do NOT commit, do NOT tag, do NOT push:
+STOP. Do NOT ask for confirmation, do NOT commit, do NOT push:
 
 ```bash
 uv run python scripts/bump_version.py <NEW_VERSION> --yes
@@ -266,16 +267,17 @@ Tell the user:
 **Otherwise (normal invocation)**: ask via `AskUserQuestion`:
 
 > "Apply the bump, commit `chore: release v<NEW_VERSION>` on `release/v<NEW_VERSION>`,
-> merge it into `master` through a PR once its checks pass, and tag the merged commit
-> `v<NEW_VERSION>`? (You'll push the tag yourself — I'll give you the exact command.)"
+> and open the release PR? Answering yes also means I merge it once its checks are green,
+> and the merge publishes v<NEW_VERSION>: CI tags the merge commit, publishes to PyPI and
+> deploys the marketstall. You run no command."
 
 Offer three options:
 
 - **Yes, do it.** Proceeds to steps 6–10 (including the Step 6.5 wheel smoke). This
-  answer is the user's word to merge the release PR in Step 7.
+  answer is the user's word to merge the release PR in Step 7, and so to publish.
 - **No, abort.** Switch back with `git switch master` and delete the empty branch
   with `git branch -d release/v<NEW_VERSION>`; just stop.
-- **Apply the bump but don't commit/tag/push yet.** Runs
+- **Apply the bump but don't commit/push yet.** Runs
   `scripts/bump_version.py <NEW_VERSION> --yes`, then stops. The user can inspect
   the files, then re-invoke `/haywire-release <NEW_VERSION>` to finish (Step 6 is
   idempotent), or `git checkout packages barn uv.lock` to roll back.
@@ -309,7 +311,7 @@ uv run python scripts/check_release_versions.py --expect <NEW_VERSION>
 ```
 
 Expected: `Release version check passed`. This is the same gate both publish
-workflows run against the tag, so a failure here is a failure that would
+workflows run against the release version, so a failure here is a failure that would
 otherwise surface only after tagging and pushing. Stop and fix if it fails.
 
 Then regenerate the per-library docs. This is a **different** thing from the bake
@@ -384,12 +386,12 @@ part of the staged set — confirm it's in the commit with `git diff --cached --
 (expect exactly 20 paths: 10 `pyproject.toml` + 9 `haybale.toml` + `uv.lock`). The
 baked docs are gitignored, so they are correctly absent from this set.
 
-### Step 6.5 — wheel-build smoke (before tag)
+### Step 6.5 — wheel-build smoke (before the PR)
 
 Build the haywire-core wheel locally to prove it builds from the baked docs
-*before* tagging. `uv build` builds the wheel from an extracted sdist; a broken
+*before* the release PR is merged. `uv build` builds the wheel from an extracted sdist; a broken
 docs force-include (the v0.0.26 failure) or a missing bake surfaces here as a
-build error instead of blowing up in CI after the tag is already public:
+build error instead of blowing up in CI after the merge, when the release is already tagged:
 
 ```bash
 uv build --package haywire-core
@@ -404,7 +406,7 @@ unzip -l dist/haywire_core-<NEW_VERSION>-py3-none-any.whl | grep -c 'haywire/doc
 
 Expected: a non-zero count (currently 70 — one per `docs/*.md`). If the build
 fails or the count is 0, STOP: the bake didn't run or the force-include is
-misconfigured. Do NOT tag. Clean up the smoke artifacts afterward:
+misconfigured. Do NOT open the PR. Clean up the smoke artifacts afterward:
 
 ```bash
 rm -f dist/haywire_core-<NEW_VERSION>-py3-none-any.whl dist/haywire_core-<NEW_VERSION>.tar.gz
@@ -412,7 +414,7 @@ rm -f dist/haywire_core-<NEW_VERSION>-py3-none-any.whl dist/haywire_core-<NEW_VE
 
 (These are gitignored under `dist/`, but removing them keeps the tree tidy.)
 
-### Step 7 — merge the release PR
+### Step 7 — open the release PR and merge it
 
 Push the branch and open the PR:
 
@@ -422,107 +424,100 @@ gh pr create --base master --title "chore: release v<NEW_VERSION>" \
   --body "Version bump to <NEW_VERSION>, lockfile and regenerated library docs."
 ```
 
-Wait for its checks (about 6 minutes), then merge:
+The title must start `chore: release v`: `scripts/check_version_changes.py` fails any PR
+that changes a version unless it does, and the merge commit carries that title.
+
+Wait for its checks (about 6 minutes, macOS included once the PR is ready, not draft):
 
 ```bash
 gh pr checks --watch
-gh pr merge --squash
 ```
 
 If a check fails, STOP and show the failure: the bump broke something CI catches and
 the local steps did not. Fix it on the release branch and push again.
 
-### Step 8 — tag the merged commit, and hand the tag push to the user
+Once every check is green, merge. The user's "yes" in Step 5 is the word; do not ask
+again. Read the PR's comments first, as in the `haywire-workflow` skill (*Finishing as the
+maintainer*, step 3); a comment from a person is answered before the merge.
 
-A squash merge makes a new commit on `master`; that one is the release, not the
-branch's commit. Update `master` and tag it:
+```bash
+gh pr merge --squash
+```
+
+The merge is the publish. Say so in the message that follows, with the PR's URL.
+
+### Step 8 — watch the merge run
+
+A squash merge makes a new commit on `master`; that one is the release. The push starts
+the `Publish Release` workflow, which tags it. Watch the run:
+
+```bash
+gh run list --workflow "Publish Release" --branch master --limit 1
+gh run watch <id> --exit-status
+```
+
+Expected jobs, in order: `plan` (finds the version differs from the latest tag), `gate`,
+`build`, `tag` (creates `v<NEW_VERSION>` on the merge commit), `publish`,
+`deploy-marketstall`, `release-notes`. A failed gate or build leaves no tag. The
+`CI` workflow runs on the same commit; check it too (`haywire-workflow`, step 4).
+
+Do not tag and do not push a tag: CI does, and the local `block-dangerous-git.sh` hook
+blocks a tag push from here. Then bring the working copy up to date and let go of the
+release branch:
 
 ```bash
 git switch master
 git pull --ff-only
-git log --oneline -1          # expect: chore: release v<NEW_VERSION> (#N)
-git tag v<NEW_VERSION>
-git branch -d release/v<NEW_VERSION>
+git fetch --tags
+git tag --list v<NEW_VERSION>        # expect the tag, made by CI
+uv run python scripts/finish.py release/v<NEW_VERSION>
 ```
 
-This creates a *lightweight* tag. For a release that deserves a release-notes page,
-use `git tag -a v<NEW_VERSION> -m "Release v<NEW_VERSION>"` instead; ask via
-`AskUserQuestion` only if the user explicitly asked for release notes.
+### Step 9 — if the merge run fails
 
-**Do NOT push the tag yourself.** A tag push publishes the release, and the local
-`block-dangerous-git.sh` hook blocks it. Print the exact command for the user to run
-in their own terminal:
+[`publish_releases.md`](../../../docs/reference/publish_releases.md) (*Recovery*) has the
+procedures. In short:
 
-> **Final step — run this in your terminal to ship the release:**
->
-> ```bash
-> git push origin v<NEW_VERSION>
-> ```
->
-> The tag triggers the publish workflow (`.github/workflows/publish.yml`). Watch it
-> with `gh run watch`.
+- **Gate or build failed** (no tag exists): fix the cause through a PR. While `master`
+  carries a version without a tag, the next push to `master` releases it, so the fix's
+  own merge publishes it (hold other merges until then). To release a different version
+  instead, open a new release PR with it.
+- **Publish failed after the tag was made:** re-run only the failed jobs
+  (`gh run rerun <id> --failed`); publishing skips packages already on PyPI. A full
+  re-run finds the tag and ends green without publishing.
+- **The tag job failed** (for example a ruleset refused the tag): publish is held back too.
+  Tell the user what the job's log says; the fix is theirs to decide. Then re-run the
+  failed jobs.
+- **A tag pushed by the user** publishes that tag without the tag job; that recovery stays
+  theirs.
 
-Frame Step 9 as what happens *once the user pushes*, not as something that already
-occurred.
+### Step 10 — report the release, and what it unblocks
 
-### Step 9 — CI handoff
-
-Tell the user (note: the push is theirs to run from Step 8 — phrase this as what
-happens *once they push*, not as something that already occurred):
-
-> Once you push tag `v<NEW_VERSION>` (Step 8), CI will:
->
-> 1. Run the fast test suite (Job 1 — gate).
-> 2. Build all 7 wheels (Job 2 — build).
-> 3. Publish each wheel to PyPI in dependency order, with idempotent skip if a version
->    already exists (Job 3 — publish, OIDC via Trusted Publisher).
-> 4. Generate the marketplace and deploy to GitHub Pages (Job 4 — deploy-marketstall).
->
-> Watch progress: `gh run watch` (or visit the Actions tab on GitHub).
->
-> If a job fails, see
-> [`docs/reference/publish_releases.md`](../../../docs/reference/publish_releases.md)
-> for recovery procedures. The most common cases:
->
-> - **Gate failure**: fix the tests through a PR, then delete and recreate the tag
->   yourself (`git tag -d v<NEW_VERSION> && git push origin :refs/tags/v<NEW_VERSION>`,
->   then tag the new `master` commit and push it again).
-> - **Build/publish failure**: re-run the workflow on the same tag with
->   `gh workflow run publish.yml --ref v<NEW_VERSION>`. The idempotent skip means
->   already-published packages won't be re-published.
-
-If `gh` is available, offer to open the workflow run live:
+Once the run succeeded and PyPI serves `haywire-core <NEW_VERSION>`, report to the user:
 
 ```bash
-gh run watch
-```
-
-(This blocks until the workflow finishes. Useful for quick releases; skip for
-fire-and-forget.)
-
-### Step 10 — report the reminders this release unblocks
-
-Once the publish run has succeeded and PyPI serves `haywire-core <NEW_VERSION>`, read the
-`after-core-release` reminders across the organisation:
-
-```bash
+gh release view v<NEW_VERSION> --json url --jq .url      # the release notes
+uv run python scripts/release_sweep.py floors --ref v<NEW_VERSION>
 uv run python scripts/release_sweep.py reminders --ref v<NEW_VERSION>
 ```
 
-It lists each open reminder with the commit on its `Waits for:` line and `released`
-(the tag contains it), `waiting`, `unknown commit` (not in this clone: `git fetch`) or
-`no Waits for line` (read the issue's body and say what it waits for). Report it to the
-user as a table with the URLs. Then offer, per released issue, one comment: "Unblocked:
-haywire-core <NEW_VERSION> contains <sha>." Post them only on the user's word: they
-appear under the user's name. The work itself happens in each library's own session.
-Never open a reminder issue without the user's word either.
+The release URL first. Then the libraries `floors` lists as `unblocked`: each now has a
+core release that satisfies its dependency floor, so the library's own release can go
+ahead (the work is in that library's session). Then the reminders: each open one with
+the commit on its `Waits for:` line and `released` (the tag contains it), `waiting`,
+`unknown commit` (not in this clone: `git fetch`) or `no Waits for line` (read the
+issue's body and say what it waits for). Show them as a table with the URLs. Offer, per
+released issue, one comment: "Unblocked: haywire-core <NEW_VERSION> contains <sha>."
+Post them only on the user's word: they appear under the user's name. Never open a
+reminder issue without the user's word either. A library that still shows as `waiting`
+needs a later core release.
 
 ## Dry-run mode
 
 If the user invoked `/haywire-release --dry-run <VERSION>`:
 
-- Steps 0–4 run identically (show current, get target, CI check, release branch,
-  preview diff).
+- Steps 0–4 run identically (what the release would ship, get target, CI check,
+  release branch, preview diff).
 - Step 5 applies the bump (`scripts/bump_version.py <VERSION> --yes`) so the working
   tree contains the actual changes that would ship, then STOPS without asking for
   confirmation. The user sees:
@@ -532,7 +527,7 @@ If the user invoked `/haywire-release --dry-run <VERSION>`:
   > To actually cut the release, re-invoke `/haywire-release <VERSION>` without
   > `--dry-run`.
 
-- Steps 6–10 (commit, PR, tag, CI handoff, sweep) are skipped entirely. To abandon, roll
+- Steps 6–10 (commit, PR, merge, merge run, report) are skipped entirely. To abandon, roll
   back the files, then `git switch master` and `git branch -d release/v<VERSION>`.
 
 This gives the operator a realistic preview — the same files modified the same way as
@@ -547,14 +542,15 @@ a real release — without any persistent or shared-state action. Rollback is a 
 - Edit any file other than via the bump script.
 - Post on other repositories' issues without the user's word (Step 10 drafts, the
   user decides).
-- Push the tag. A tag push publishes the release; the local `block-dangerous-git.sh`
-  hook blocks it, so Step 8 hands the user the command. Pushing the release branch is
-  allowed.
+- Tag or push a tag. CI tags the merge commit (Step 8); a tag push from here is
+  blocked by the local `block-dangerous-git.sh` hook, and a tag pushed by hand is the
+  user's recovery. Pushing the release branch is allowed.
+- Merge without the user's "yes" (Step 5) and a green PR.
 - Run the test suite. `master` only holds commits whose CI passed, and Step 2 checks
   that result; the release PR's checks cover the bump.
-- Force-push tags or branches. If a tag exists at the target version, the push fails
-  loudly — the user must delete the old tag deliberately (per the recovery procedure
-  above).
+- Force-push or delete tags or branches. If a tag exists at the target version the
+  merge run refuses to release; the user deletes nothing: a tag is permanent
+  (`Release tags` ruleset).
 - Authenticate to PyPI. That's CI's job via OIDC Trusted Publisher.
 - Watch the workflow run by default. The user can opt in via `gh run watch`.
 
@@ -572,7 +568,8 @@ a real release — without any persistent or shared-state action. Rollback is a 
   marketplace generator that CI's deploy job runs. Not invoked by this skill (CI
   runs it after publish succeeds).
 - [`.github/workflows/publish.yml`](../../../.github/workflows/publish.yml) — the CI
-  publish workflow this skill triggers via the tag push.
+  publish workflow the merge of the release PR starts; [`scripts/release_plan.py`](../../../scripts/release_plan.py)
+  decides whether a run releases.
 - [`docs/reference/publish_releases.md`](../../../docs/reference/publish_releases.md) —
   operational guide with prerequisites (Trusted Publisher setup, GitHub Pages config),
   recovery procedures, and tier-transition recipes.
