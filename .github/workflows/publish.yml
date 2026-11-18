@@ -2,21 +2,58 @@ name: Publish Release
 
 on:
   push:
+    branches:
+      - master
     tags:
       - 'v*.*.*'
   workflow_dispatch:
 
+# A release is the merge of a release PR (ADR 0088). A push to master whose lockstep
+# version differs from the latest v* tag runs gate -> build -> tag -> publish ->
+# marketstall -> release notes; any other push to master ends green at the plan job.
+# A v* tag pushed by hand (recovery) publishes without the tag job. scripts/release_plan.py
+# decides which. Tags and pushes made with GITHUB_TOKEN start no further run, so the
+# tag job's tag does not start a second publish.
+#
 # Permissions: id-token for PyPI OIDC (added in the publish job below).
 # Default GITHUB_TOKEN permissions are restricted; jobs that need more
 # raise them explicitly.
+
+# One release at a time: a later push waits, so its plan sees the tag the earlier run made.
+concurrency:
+  group: publish-release
+  cancel-in-progress: false
 
 env:
   PYTHON_VERSION: '3.12'
 
 jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      release: ${{ steps.plan.outputs.release }}
+      version: ${{ steps.plan.outputs.version }}
+      tag: ${{ steps.plan.outputs.tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Decide whether this run releases
+        id: plan
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: python3 scripts/release_plan.py
+
   gate:
     name: Test gate
     runs-on: ubuntu-latest
+    needs: plan
+    if: needs.plan.outputs.release == 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -43,7 +80,7 @@ jobs:
   build:
     name: Build wheels
     runs-on: ubuntu-latest
-    needs: gate
+    needs: [plan, gate]
     outputs:
       packages: ${{ steps.read-config.outputs.packages }}
     steps:
@@ -61,16 +98,17 @@ jobs:
       - name: Install workspace
         run: uv sync --dev
 
-      # The bump is a LOCAL step (`/haywire-release` → scripts/bump_version.py),
-      # so nothing downstream verifies that the tag being built actually matches
-      # the versions committed in the tree. Tagging without having run the bump
+      # The bump is a release-PR step (`/haywire-release` → scripts/bump_version.py),
+      # so nothing downstream verifies that the version being released actually matches
+      # the versions committed in the tree. A tag pushed by hand without the bump
       # would otherwise sail through: the publish job reads its version from
       # pyproject.toml, finds the PREVIOUS release already on PyPI, and skips
       # every package as "already published" — a green run that shipped nothing.
       # Fail here instead, before any wheel is built.
-      - name: Verify tag matches committed package versions
-        if: github.ref_type == 'tag'
-        run: uv run python scripts/check_release_versions.py --expect "${GITHUB_REF_NAME#v}"
+      - name: Verify the release version matches committed package versions
+        run: uv run python scripts/check_release_versions.py --expect "$VERSION"
+        env:
+          VERSION: ${{ needs.plan.outputs.version }}
 
       # The haywire-core wheel force-includes packages/haywire-core/src/haywire/
       # _baked_docs/ as haywire/docs/. A committed .gitkeep keeps the directory
@@ -79,7 +117,9 @@ jobs:
       # tagged source, before the wheel build. Uses the tag's version for the
       # source-file GitHub URLs baked into the docs.
       - name: Bake docs for the haywire-core wheel
-        run: uv run python scripts/bake_docs.py --version "${GITHUB_REF_NAME}"
+        run: uv run python scripts/bake_docs.py --version "v${VERSION}"
+        env:
+          VERSION: ${{ needs.plan.outputs.version }}
 
       - name: Read pip_publish_order from [tool.haywire.release]
         id: read-config
@@ -117,10 +157,35 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
+  # Tags the pushed commit once the gate and the build passed, so a failed gate leaves no
+  # tag. The runner checks out the pushed commit, not a master that moved on.
+  tag:
+    name: Tag v${{ needs.plan.outputs.version }}
+    runs-on: ubuntu-latest
+    needs: [plan, build]
+    if: needs.plan.outputs.tag != ''
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Tag the pushed commit
+        env:
+          TAG: ${{ needs.plan.outputs.tag }}
+        run: |
+          git tag "$TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG"
+
   publish:
     name: Publish to PyPI
     runs-on: ubuntu-latest
-    needs: build
+    needs: [plan, build, tag]
+    if: >-
+      ${{ !cancelled()
+      && needs.plan.outputs.release == 'true'
+      && needs.build.result == 'success'
+      && needs.tag.result != 'failure' }}
     environment:
       name: pypi
       url: https://pypi.org/project/haywire-core/
@@ -207,7 +272,7 @@ jobs:
   deploy-marketstall:
     name: Deploy marketstall to GitHub Pages
     runs-on: ubuntu-latest
-    needs: publish
+    needs: [plan, publish]
     permissions:
       contents: write   # required to push the gh-pages branch
     steps:
@@ -238,4 +303,22 @@ jobs:
           publish_branch: gh-pages
           force_orphan: false
           keep_files: true
-          commit_message: "Deploy marketplace for ${{ github.ref_name }}"
+          commit_message: "Deploy marketplace for v${{ needs.plan.outputs.version }}"
+
+  release-notes:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    needs: [plan, deploy-marketstall]
+    permissions:
+      contents: write   # required to create the release
+    steps:
+      - name: Create the release with generated notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v${{ needs.plan.outputs.version }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "::notice::Release $TAG already exists — skipping."
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes --title "$TAG"
+          fi
