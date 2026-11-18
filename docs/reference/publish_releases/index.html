@@ -3579,22 +3579,22 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ci-phase-on-tag-push-v" class="md-nav__link">
+  <a href="#ci-phase-on-a-push-to-master-or-a-pushed-tag" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CI phase (on tag push v*.*.*)
+        CI phase (on a push to master, or a pushed tag)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="CI phase (on tag push v*.*.*)">
+    <nav class="md-nav" aria-label="CI phase (on a push to master, or a pushed tag)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#job-1-gate" class="md-nav__link">
+  <a href="#job-gate" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Job 1 — gate
+        Job gate
       
     </span>
   </a>
@@ -3602,10 +3602,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#job-2-build-all-wheels" class="md-nav__link">
+  <a href="#job-build-all-wheels" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Job 2 — build all wheels
+        Job build — all wheels
       
     </span>
   </a>
@@ -3613,10 +3613,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#job-3-publish-wheels-sequential-dependency-order-idempotent-fail-fast" class="md-nav__link">
+  <a href="#job-tag" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Job 3 — publish wheels (sequential, dependency order, idempotent, fail-fast)
+        Job tag
       
     </span>
   </a>
@@ -3624,10 +3624,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#job-4-deploy-marketplace" class="md-nav__link">
+  <a href="#job-publish-wheels-sequential-dependency-order-idempotent-fail-fast" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Job 4 — deploy marketplace
+        Job publish — wheels (sequential, dependency order, idempotent, fail-fast)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-deploy-marketstall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job deploy-marketstall
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-release-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job release-notes
       
     </span>
   </a>
@@ -3668,10 +3690,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#build-failure-job-2" class="md-nav__link">
+  <a href="#gate-or-build-failure" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Build failure (Job 2)
+        Gate or build failure
       
     </span>
   </a>
@@ -3679,10 +3701,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#partial-publish-failure-job-3" class="md-nav__link">
+  <a href="#partial-publish-failure" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Partial publish failure (Job 3)
+        Partial publish failure
       
     </span>
   </a>
@@ -3690,10 +3712,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#gate-test-failure" class="md-nav__link">
+  <a href="#the-tag-job-failed" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Gate test failure
+        The tag job failed
       
     </span>
   </a>
@@ -3701,10 +3723,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#marketplace-deploy-failure-job-4" class="md-nav__link">
+  <a href="#marketplace-deploy-or-release-notes-failure" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Marketplace deploy failure (Job 4)
+        Marketplace deploy or release-notes failure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#publishing-a-tag-by-hand-last-resort" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Publishing a tag by hand (last resort)
       
     </span>
   </a>
@@ -3799,11 +3832,13 @@
 Tier 1+2 packages and deploying the marketplace. It defines both the <em>why</em> and the <em>how</em> —
 prerequisites, configuration locations, release procedure, and recovery procedures.</p>
 <h2 id="tldr">TL;DR<a class="headerlink" href="#tldr" title="Permanent link">&para;</a></h2>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>/haywire-release<span class="w">           </span><span class="c1"># interactive: enter version, runs tests, tags, pushes</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">                           </span><span class="c1"># → CI takes over from here</span>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>/haywire-release<span class="w">           </span><span class="c1"># shows what would ship, bumps, opens the release PR;</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">                           </span><span class="c1"># &quot;yes&quot; merges it → the merge run tags and publishes</span>
 </span></code></pre></div>
-<p>That's the whole flow. The rest of this page is reference: prerequisites, configuration
-locations, recovery procedures, and per-step detail.</p>
+<p>That's the whole flow. <strong>A release is the merge of a release PR</strong>
+(<a href="../../adr/0088-a-release-is-the-merge-of-a-release-pr-and-ci-tags-it/">ADR 0088</a>): nobody
+pushes a tag. The rest of this page is reference: prerequisites, configuration locations,
+recovery procedures, and per-step detail.</p>
 <h2 id="prerequisites-one-time">Prerequisites (one-time)<a class="headerlink" href="#prerequisites-one-time" title="Permanent link">&para;</a></h2>
 <h3 id="pypi-trusted-publisher">PyPI Trusted Publisher<a class="headerlink" href="#pypi-trusted-publisher" title="Permanent link">&para;</a></h3>
 <p>Each package in <code>[tool.haywire.release].pip_publish_order</code> must be registered as a Trusted
@@ -3926,7 +3961,9 @@ documentation only; if it ever disagrees with this section, the section wins.</p
 <h2 id="release-procedure">Release procedure<a class="headerlink" href="#release-procedure" title="Permanent link">&para;</a></h2>
 <h3 id="local-phase-author-driven">Local phase (author-driven)<a class="headerlink" href="#local-phase-author-driven" title="Permanent link">&para;</a></h3>
 <ol>
-<li>Run <code>/haywire-release</code> — the skill prompts for the new version (e.g. <code>0.0.2</code>).</li>
+<li>Run <code>/haywire-release</code>. It starts with <em>What this release would ship</em> (the commits since
+   the last tag by type, the libraries whose dependency floor waits for a release, the open
+   reminders, a proposed version) and then asks for the new version (e.g. <code>0.0.2</code>).</li>
 <li>The skill checks that CI passed on <code>master</code> for the commit being released; it does not run the gate tests locally. A failed or missing run stops here.</li>
 <li>The skill patches every <code>pyproject.toml</code> referenced by <code>pip_publish_order + lockstep_unpublished</code>:</li>
 <li><code>[project] version = "0.0.2"</code></li>
@@ -3937,21 +3974,27 @@ documentation only; if it ever disagrees with this section, the section wins.</p
    ships as <code>haywire/docs/</code> (see <a href="#baked-docs">Baked docs</a> below). The bake runs
    <em>after</em> the bump because it embeds the new tag in source-file GitHub URLs.</li>
 <li>The skill shows a unified diff of every changed file and asks for confirmation.</li>
-<li>On confirm: commit (<code>chore: release v0.0.2</code>), then a local
+<li>On confirm: commit (<code>chore: release v0.0.2</code>) on <code>release/v0.0.2</code>, then a local
    <code>uv build --package haywire-core</code> smoke to prove the wheel builds from the
-   baked docs before tagging, then tag (<code>v0.0.2</code>) and hand the push to the author.</li>
-<li>CI takes over.</li>
+   baked docs, then it opens the release PR.</li>
+<li>Once the PR's checks are green, the skill merges it: the "yes" in step 5 is the word to
+   merge, and so to publish. The merge starts the CI phase.</li>
 </ol>
+<p>The PR's title must start <code>chore: release v</code>: <code>scripts/check_version_changes.py</code> fails any
+other PR that changes a package version.</p>
 <p>To run the local phase manually (without the skill):</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>gh<span class="w"> </span>run<span class="w"> </span>list<span class="w"> </span>--branch<span class="w"> </span>master<span class="w"> </span>--workflow<span class="w"> </span>CI<span class="w"> </span>--limit<span class="w"> </span><span class="m">1</span><span class="w">   </span><span class="c1"># gate: CI passed on master</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>scripts/bump_version.py<span class="w"> </span><span class="m">0</span>.0.2<span class="w"> </span>--yes<span class="w">     </span><span class="c1"># bump every pyproject</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>uv<span class="w"> </span>lock<span class="w">                                                </span><span class="c1"># re-pin uv.lock</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>scripts/bake_docs.py<span class="w"> </span>--version<span class="w"> </span>v0.0.2<span class="w">    </span><span class="c1"># bake docs (AFTER the bump)</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>git<span class="w"> </span>add<span class="w"> </span>-u<span class="w">                                             </span><span class="c1"># baked dir is gitignored</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;chore: release v0.0.2&quot;</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>uv<span class="w"> </span>build<span class="w"> </span>--package<span class="w"> </span>haywire-core<span class="w">                        </span><span class="c1"># smoke: wheel builds from baked docs</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>git<span class="w"> </span>tag<span class="w"> </span>v0.0.2
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>HEAD<span class="w"> </span>v0.0.2
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>git<span class="w"> </span>switch<span class="w"> </span>-c<span class="w"> </span>release/v0.0.2
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>scripts/bump_version.py<span class="w"> </span><span class="m">0</span>.0.2<span class="w"> </span>--yes<span class="w">     </span><span class="c1"># bump every pyproject</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>uv<span class="w"> </span>lock<span class="w">                                                </span><span class="c1"># re-pin uv.lock</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>scripts/bake_docs.py<span class="w"> </span>--version<span class="w"> </span>v0.0.2<span class="w">    </span><span class="c1"># bake docs (AFTER the bump)</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>git<span class="w"> </span>add<span class="w"> </span>-u<span class="w">                                             </span><span class="c1"># baked dir is gitignored</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;chore: release v0.0.2&quot;</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>uv<span class="w"> </span>build<span class="w"> </span>--package<span class="w"> </span>haywire-core<span class="w">                        </span><span class="c1"># smoke: wheel builds from baked docs</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>git<span class="w"> </span>push<span class="w"> </span>-u<span class="w"> </span>origin<span class="w"> </span>release/v0.0.2
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>gh<span class="w"> </span>pr<span class="w"> </span>create<span class="w"> </span>--base<span class="w"> </span>master<span class="w"> </span>--title<span class="w"> </span><span class="s2">&quot;chore: release v0.0.2&quot;</span><span class="w"> </span>--body<span class="w"> </span><span class="s2">&quot;Version bump to 0.0.2.&quot;</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>gh<span class="w"> </span>pr<span class="w"> </span>checks<span class="w"> </span>--watch
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>gh<span class="w"> </span>pr<span class="w"> </span>merge<span class="w"> </span>--squash<span class="w">                                   </span><span class="c1"># the merge publishes</span>
 </span></code></pre></div>
 <h3 id="baked-docs">Baked docs<a class="headerlink" href="#baked-docs" title="Permanent link">&para;</a></h3>
 <p>Farmhand serves the full <code>docs/</code> tree to an attached agent as MCP resources. Raw
@@ -3968,38 +4011,85 @@ tag. A <code>pytest</code> gate (<code>tests/farmhand/test_doc_keys_resolve.py</
 hand-authored <code>lib:kind:id</code> registry key in the docs resolves, failing CI on
 drift. In a dev checkout, running the bake once makes a from-source studio serve
 the baked docs too; otherwise it falls back to the raw <code>docs/</code> tree.</p>
-<h3 id="ci-phase-on-tag-push-v">CI phase (on tag push <code>v*.*.*</code>)<a class="headerlink" href="#ci-phase-on-tag-push-v" title="Permanent link">&para;</a></h3>
-<h4 id="job-1-gate">Job 1 — gate<a class="headerlink" href="#job-1-gate" title="Permanent link">&para;</a></h4>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not integration&quot;</span>
+<h3 id="ci-phase-on-a-push-to-master-or-a-pushed-tag">CI phase (on a push to <code>master</code>, or a pushed tag)<a class="headerlink" href="#ci-phase-on-a-push-to-master-or-a-pushed-tag" title="Permanent link">&para;</a></h3>
+<p><code>.github/workflows/publish.yml</code> runs on every push to <code>master</code>, on a pushed <code>v*.*.*</code> tag
+and on a manual dispatch. Its first job, <code>plan</code>, runs <code>scripts/release_plan.py</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Trigger</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Push to <code>master</code>, lockstep version differs from the latest <code>v*</code> tag</td>
+<td>A release: every job below runs, and <code>tag</code> creates <code>v&lt;version&gt;</code> on the pushed commit</td>
+</tr>
+<tr>
+<td>Push to <code>master</code>, version equals the latest tag</td>
+<td>No release: <code>plan</code> ends green, every other job is skipped</td>
+</tr>
+<tr>
+<td>Push to <code>master</code>, version names an older tag</td>
+<td>Fails: the tree's version is tagged but not the latest</td>
+</tr>
+<tr>
+<td>A <code>v*.*.*</code> tag pushed by hand</td>
+<td>A release of that tag; <code>tag</code> is skipped (recovery, see below)</td>
+</tr>
+<tr>
+<td>Manual dispatch on <code>master</code></td>
+<td>A release of the tree's version; the tag is created only if it is missing</td>
+</tr>
+<tr>
+<td>Anything else</td>
+<td>No release</td>
+</tr>
+</tbody>
+</table>
+<p>The lockstep version is the one in <code>packages/haywire-core/pyproject.toml</code>. Runs of the
+workflow queue (<code>concurrency: publish-release</code>), so a push waits for the run before it and
+its <code>plan</code> sees the tag that run made.</p>
+<p>The jobs run in this order: <code>plan</code> → <code>gate</code> → <code>build</code> → <code>tag</code> → <code>publish</code> →
+<code>deploy-marketstall</code> → <code>release-notes</code>. A failed gate or build therefore leaves no tag.</p>
+<h4 id="job-gate">Job gate<a class="headerlink" href="#job-gate" title="Permanent link">&para;</a></h4>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not integration and not browser and not perf&quot;</span>
 </span></code></pre></div>
-<p>Failure stops the pipeline. Nothing publishes.</p>
-<h4 id="job-2-build-all-wheels">Job 2 — build all wheels<a class="headerlink" href="#job-2-build-all-wheels" title="Permanent link">&para;</a></h4>
-<p>First, <code>scripts/check_release_versions.py --expect &lt;tag minus its leading v&gt;</code> asserts that the
-tag being built matches what is actually committed: every package in <code>[tool.haywire.release]</code> at
+<p>Failure stops the pipeline. Nothing is tagged or published.</p>
+<h4 id="job-build-all-wheels">Job build — all wheels<a class="headerlink" href="#job-build-all-wheels" title="Permanent link">&para;</a></h4>
+<p>First, <code>scripts/check_release_versions.py --expect &lt;version&gt;</code> asserts that the version being
+released matches what is actually committed: every package in <code>[tool.haywire.release]</code> at
 that one version, and every <code>haybale.toml</code> in sync with its own <code>pyproject.toml</code>. Since the
-bump is a local step, this is the only thing standing between a forgotten
-<code>scripts/bump_version.py</code> run and a green release that publishes nothing — Job 3 reads its
-versions from <code>pyproject.toml</code>, would find the previous release already on PyPI, and skip
-every package as "already published". Failure stops the pipeline before any wheel is built.</p>
+bump is a step of the release PR, this is the only thing standing between a forgotten
+<code>scripts/bump_version.py</code> run (a tag pushed by hand without a bump) and a green release that
+publishes nothing — <code>publish</code> reads its versions from <code>pyproject.toml</code>, would find the
+previous release already on PyPI, and skip every package as "already published". Failure
+stops the pipeline before any wheel is built.</p>
 <p>Then, for every package in <code>pip_publish_order</code>, run <code>uv build</code> and collect the resulting wheel and sdist
-into the workflow's artifact storage. All builds happen before any publish — a build failure
-in any package stops the pipeline before anything reaches PyPI. This catches build errors
-(missing files, invalid metadata, dependency resolution failures) without leaving partial
-state on PyPI.</p>
-<p>If Job 2 fails, nothing publishes. Fix the build error, push a new tag (or re-run the
-workflow), and try again.</p>
-<h4 id="job-3-publish-wheels-sequential-dependency-order-idempotent-fail-fast">Job 3 — publish wheels (sequential, dependency order, idempotent, fail-fast)<a class="headerlink" href="#job-3-publish-wheels-sequential-dependency-order-idempotent-fail-fast" title="Permanent link">&para;</a></h4>
+into the workflow's artifact storage. All builds happen before anything is tagged or
+published — a build failure in any package stops the pipeline before anything reaches PyPI.
+This catches build errors (missing files, invalid metadata, dependency resolution failures)
+without leaving partial state on PyPI.</p>
+<h4 id="job-tag">Job tag<a class="headerlink" href="#job-tag" title="Permanent link">&para;</a></h4>
+<p>Creates <code>v&lt;version&gt;</code> on the pushed commit (<code>contents: write</code>, a <code>GITHUB_TOKEN</code> push). It runs
+only when <code>plan</code> found a tag to create, and only after <code>build</code> passed. The <code>Release tags</code>
+ruleset forbids deleting or moving a <code>v*</code> tag but allows creating one, so the job can do
+this and nobody can undo it. A tag pushed with <code>GITHUB_TOKEN</code> starts no further workflow run,
+so the new tag does not start a second publish.</p>
+<p>If this job fails, <code>publish</code> does not run.</p>
+<h4 id="job-publish-wheels-sequential-dependency-order-idempotent-fail-fast">Job publish — wheels (sequential, dependency order, idempotent, fail-fast)<a class="headerlink" href="#job-publish-wheels-sequential-dependency-order-idempotent-fail-fast" title="Permanent link">&para;</a></h4>
 <p>For each package in <code>pip_publish_order</code>:</p>
 <ol>
 <li>Check whether <code>name == version</code> already exists on PyPI
    (<code>GET https://pypi.org/pypi/&lt;name&gt;/&lt;version&gt;/json</code> → 200 means already published).</li>
 <li>If it exists, skip — already done in a previous run.</li>
-<li>Otherwise: <code>uv publish</code> the wheel and sdist from Job 2's artifacts via PyPI Trusted
+<li>Otherwise: <code>uv publish</code> the wheel and sdist from the build job's artifacts via PyPI Trusted
    Publisher (OIDC, no stored token).</li>
 </ol>
-<p>Any failure stops remaining packages. The idempotent skip makes the workflow safe to re-run.</p>
-<h4 id="job-4-deploy-marketplace">Job 4 — deploy marketplace<a class="headerlink" href="#job-4-deploy-marketplace" title="Permanent link">&para;</a></h4>
-<p>Runs only if Job 3 succeeded.</p>
+<p>Any failure stops remaining packages. The idempotent skip makes a re-run of the failed job safe.</p>
+<h4 id="job-deploy-marketstall">Job deploy-marketstall<a class="headerlink" href="#job-deploy-marketstall" title="Permanent link">&para;</a></h4>
+<p>Runs only if <code>publish</code> succeeded.</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>scripts/generate_marketstall.py<span class="w"> </span>--out-dir<span class="w"> </span>gh-pages-content
 </span></code></pre></div>
 <p>The generator reads each package's <code>pyproject.toml</code> and <code>__init__.py</code>, emits <code>source = "pypi"</code>
@@ -4008,24 +4098,33 @@ entries with bare <code>haybale-*</code> sibling dependency names, writes the tw
 and the workflow deploys the entire directory to GitHub Pages at:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>https://going-haywire.github.io/haywire/marketplace.toml
 </span></code></pre></div>
+<h4 id="job-release-notes">Job release-notes<a class="headerlink" href="#job-release-notes" title="Permanent link">&para;</a></h4>
+<p>Runs only if the marketstall deployed. Creates the GitHub Release for the tag with
+<code>gh release create v&lt;version&gt; --generate-notes</code> (the merged PRs since the previous release);
+it skips if the release exists.</p>
 <h3 id="release-reminders">Release reminders<a class="headerlink" href="#release-reminders" title="Permanent link">&para;</a></h3>
 <p>A library outside the monorepo may record, with the owner's agreement, a dependency to
 raise once a core release contains a change: an <code>after-core-release</code> issue with a
 <code>Waits for: going-haywire/haywire@&lt;sha&gt;</code> line
 (<a href="../../guides/sharing-libraries/#71-release-reminders">sharing-libraries §7.1</a>).
 After a publish, <code>/haywire-release</code> (Step 10) lists those reminders across the
-organisation and which of them the new tag contains; before the bump (Step 2.2) it
-reports the Author API names the release removes and the libraries that import them.
-Both come from <a href="../../scripts/release_sweep.py"><code>scripts/release_sweep.py</code></a>. Open <code>todo-pre-release</code> reminders
-in this repository are listed before the bump (Step 2), and the user decides whether to
-release anyway.</p>
+organisation and which of them the new tag contains, plus the libraries whose dependency
+floor the new tag now satisfies (<code>floors --ref</code>); before the bump (Step 0) it shows the
+libraries still waiting for a core release (<code>floors</code>) and the Author API names the release
+removes with the libraries that import them (<code>names</code>). All come from
+<code>scripts/release_sweep.py</code>. Open <code>todo-pre-release</code> reminders in this repository are
+listed in Step 0.3, and the user decides whether to release anyway.</p>
 <h2 id="recovery-procedures">Recovery procedures<a class="headerlink" href="#recovery-procedures" title="Permanent link">&para;</a></h2>
-<h3 id="build-failure-job-2">Build failure (Job 2)<a class="headerlink" href="#build-failure-job-2" title="Permanent link">&para;</a></h3>
-<p>A package failed to build. Nothing has been published — Job 3 only runs after Job 2 succeeds
-for every package. Fix the build error, push the fix, re-run the workflow on the same tag (or
-push a new tag if the fix is on a different commit).</p>
-<h3 id="partial-publish-failure-job-3">Partial publish failure (Job 3)<a class="headerlink" href="#partial-publish-failure-job-3" title="Permanent link">&para;</a></h3>
-<p>If Job 3 fails partway (e.g. <code>haybale-haystack</code> publishes, <code>haybale-example</code> fails):</p>
+<p>A tag is permanent: the <code>Release tags</code> ruleset forbids deleting or moving a <code>v*</code> tag, so no
+recovery below involves removing one. Recovery is a re-run, or a fix through a PR.</p>
+<h3 id="gate-or-build-failure">Gate or build failure<a class="headerlink" href="#gate-or-build-failure" title="Permanent link">&para;</a></h3>
+<p>The <code>gate</code> or <code>build</code> job failed. Nothing is tagged and nothing is published. Fix the cause
+through a PR. While <code>master</code> carries a version without a tag, any push to <code>master</code> is a
+release of that version, so the fix's own merge tags and publishes it: hold other merges
+until the fix is in. To release a different version instead, open a new release PR with it.</p>
+<h3 id="partial-publish-failure">Partial publish failure<a class="headerlink" href="#partial-publish-failure" title="Permanent link">&para;</a></h3>
+<p>If <code>publish</code> fails partway (e.g. <code>haybale-haystack</code> publishes, <code>haybale-example</code> fails), the
+tag exists:</p>
 <ol>
 <li>Identify the cause from CI logs:</li>
 <li><strong>First-time setup</strong>: Trusted Publisher not configured for the failing package, or the
@@ -4035,38 +4134,42 @@ push a new tag if the fix is on a different commit).</p>
 <li><strong>Permanent</strong>: PyPI rejected metadata (rare; signals a real package issue).</li>
 <li>Fix the cause.</li>
 <li>
-<p>Re-run the workflow on the same tag:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>gh<span class="w"> </span>workflow<span class="w"> </span>run<span class="w"> </span>publish.yml<span class="w"> </span>--ref<span class="w"> </span>v0.0.2
+<p>Re-run only the failed jobs of that run:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>gh<span class="w"> </span>run<span class="w"> </span>rerun<span class="w"> </span>&lt;run-id&gt;<span class="w"> </span>--failed
 </span></code></pre></div>
 </li>
 <li>
-<p>Job 2 re-builds all wheels (idempotent; same inputs produce same outputs). Job 3's
-   idempotent skip ensures already-published packages are not re-published. The workflow
-   resumes at the failed package.</p>
+<p>The <code>publish</code> job's idempotent skip ensures already-published packages are not
+   re-published. The workflow resumes at the failed package, then deploys the marketstall and
+   writes the release notes.</p>
 </li>
-<li>Once all packages publish, Job 4 deploys the updated marketplace.</li>
 </ol>
+<p>A full re-run of the same run finds the tag and ends green without publishing: use
+<code>--failed</code>. Alternatively dispatch the workflow on <code>master</code>
+(<code>gh workflow run publish.yml --ref master</code>), which releases the tree's version again and
+creates the tag only if it is missing.</p>
 <p><strong>Do not bump the version</strong> for transient or configuration failures. PyPI keeps versions
-monotonic; orphaned versions never arise because the same tag drives all publishes.</p>
+monotonic; orphaned versions never arise because one run drives all publishes.</p>
 <p>The only case where bumping is correct: a package was rejected for irrecoverable metadata
 reasons that require a code fix. That's rare and signals a problem with the package, not the
 release flow.</p>
-<h3 id="gate-test-failure">Gate test failure<a class="headerlink" href="#gate-test-failure" title="Permanent link">&para;</a></h3>
-<p>Job 1 failed — nothing has been published. Fix the test, commit on <code>main</code>, retag with the
-same version, force-push the tag (only the tag, never the branch):</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>git<span class="w"> </span>tag<span class="w"> </span>-d<span class="w"> </span>v0.0.2
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>:refs/tags/v0.0.2
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>git<span class="w"> </span>tag<span class="w"> </span>v0.0.2
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>v0.0.2
+<h3 id="the-tag-job-failed">The tag job failed<a class="headerlink" href="#the-tag-job-failed" title="Permanent link">&para;</a></h3>
+<p><code>publish</code> does not run without the tag. The usual cause is the <code>Release tags</code> ruleset
+refusing the creation (it must allow creating <code>v*</code> tags and forbid deleting or moving them),
+or <code>contents: write</code> missing. Fix the ruleset or the permission, then re-run the failed
+jobs. The ruleset is the maintainer's to change.</p>
+<h3 id="marketplace-deploy-or-release-notes-failure">Marketplace deploy or release-notes failure<a class="headerlink" href="#marketplace-deploy-or-release-notes-failure" title="Permanent link">&para;</a></h3>
+<p><code>publish</code> succeeded but the marketplace deploy (GitHub Pages misconfiguration, transient
+deploy issue) or the release notes failed. Fix the cause and re-run the failed jobs:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>gh<span class="w"> </span>run<span class="w"> </span>rerun<span class="w"> </span>&lt;run-id&gt;<span class="w"> </span>--failed
 </span></code></pre></div>
-<p>This triggers Job 1 again. The version number stays the same.</p>
-<h3 id="marketplace-deploy-failure-job-4">Marketplace deploy failure (Job 4)<a class="headerlink" href="#marketplace-deploy-failure-job-4" title="Permanent link">&para;</a></h3>
-<p>Job 3 succeeded but the marketplace deploy failed (GitHub Pages misconfiguration, transient
-deploy issue). Fix the cause and re-run the workflow on the same tag:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>gh<span class="w"> </span>workflow<span class="w"> </span>run<span class="w"> </span>publish.yml<span class="w"> </span>--ref<span class="w"> </span>v0.0.2
-</span></code></pre></div>
-<p>Job 3's idempotent skip means already-published packages are not re-published; the workflow
-walks through to Job 4 and re-attempts the deploy.</p>
+<p><code>publish</code> is not repeated; the workflow walks on to the failed job.</p>
+<h3 id="publishing-a-tag-by-hand-last-resort">Publishing a tag by hand (last resort)<a class="headerlink" href="#publishing-a-tag-by-hand-last-resort" title="Permanent link">&para;</a></h3>
+<p>If the merge run cannot be recovered by a re-run, the user may push a <code>v*.*.*</code> tag on the
+commit to release. The workflow then publishes that tag with <code>tag</code> skipped. The agent hook
+<code>block-dangerous-git.sh</code> blocks a tag push from an agent session, so this step is always the
+user's, in their own terminal. The tag must name the committed version
+(<code>scripts/check_release_versions.py</code> refuses it otherwise).</p>
 <h2 id="adding-a-new-package-to-the-release-set">Adding a new package to the release set<a class="headerlink" href="#adding-a-new-package-to-the-release-set" title="Permanent link">&para;</a></h2>
 <ol>
 <li>Add the pip distribution name to <code>[tool.haywire.release].pip_publish_order</code> in the workspace
