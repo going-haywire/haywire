@@ -527,6 +527,11 @@ spandrel, stream (default branch `main`), visiongraph (heaviest CI: depthai, ope
 openvino). A proposal to download `init`'s generic files from a template repository was
 dropped the same day: `publish.yml` is coupled to the installed `share`, and a fetch would
 help only new projects; existing projects' drift goes to a `haywire update-template` issue.
+Every org library keeps (protokol: regains, in its PR) the `--dev` path sources to
+`../haywire-repo`: the umbrella runs the studio, each repository's own environment runs its
+tests against core master, and the dependency-floor rule needs path sources (decided
+2026-11-18; protokol dropped them only because `share` refused them for `git`
+distribution, and it distributes to PyPI).
 
 1. **(user)** Create `going-haywire/.github`. Contents (a PR there):
    - Org defaults: `CONTRIBUTING.md` for libraries (the library specifics; the shared
