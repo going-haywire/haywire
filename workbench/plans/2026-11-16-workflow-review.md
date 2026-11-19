@@ -595,6 +595,25 @@ changes W8, W10 and W12.
      each repository's `CLAUDE.md`, the workflow skill, ADRs, `.insights/`, the plans), and
      what each is the one home for, so the pages restate no rule.
 
+   **Review record, 2026-11-19.** Nightly: the four libraries merged in S6 had no
+   scheduled run yet (cron `17 3 * * *`); dispatched by hand, all five passed. No
+   Dependabot PR moves a library's `library-ci.yml` pin (all on `df1b6ec`, `.github` at
+   `8bfcef9`): `going-haywire/.github` has no tags, and Dependabot's `github-actions`
+   updater finds new versions by tag; the four libraries that added `dependabot.yml` on
+   19 Nov got no PR although `.github` was two commits ahead. The user reviewed the journey
+   on a primer page (claude.ai artifact, not in the repository) and decided:
+
+   | # | Question | Decision |
+   |---|---|---|
+   | R1 | Moving the libraries' pins to newer `.github` commits | **(c)** the user reads Dependabot's job log on a library's *network/updates* page first; then (a) tag every `.github` merge so Dependabot proposes tagged commits, or (b) a `library-pins.sh` script opening one PR per library |
+   | R2 | Keeping `init`'s generated files current in an existing project | **(b)** `share --status`/preflight warns (never refuses) when `publish.yml` or `publish_plan.py` differ from what the installed haywire generates; `haywire update-template` rewrites those two and prints the diff for `CLAUDE.md` only |
+   | R3 | A home for the org-only library files (callers, `dependabot.yml`, `.claude/settings.json`, the library sections of `CLAUDE.md`) | **(b)** `going-haywire/.github` `templates/library/` plus `scripts/library-files.sh <repo> [--apply]`, which opens a PR in the library |
+   | R4 | Moving an existing project's repository into the org | **(a)** GitHub transfer; the PyPI trusted publisher is re-added for the new owner (an owner step) |
+   | R5 | Where the journey lives | **(a)** it is the backbone of `docs/workflows/index.md`: the stages, each linking its W pages, with the role column |
+
+   Gaps the journey found, for the pages to name: no command adds `--dev` path sources to an
+   existing project; a partial workstation edits the umbrella's library list locally.
+
 1. [mkdocs.yml](../../mkdocs.yml): Material's native Mermaid:
 
    ```yaml
