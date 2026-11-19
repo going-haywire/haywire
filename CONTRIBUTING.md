@@ -2,7 +2,8 @@
 
 Thanks for helping. We assume good intentions and welcome changes and suggestions of every
 size. This page is the process: who does what, how a change gets from your fork into
-`master`, and what to expect on the way. Commands are in
+`master`, and what to expect on the way. The [Workflows](docs/workflows/index.md) pages draw
+it, and every other workflow, as diagrams. Commands are in
 [docs/guides/development.md](docs/guides/development.md); the rules agents follow on top
 of this are in [CLAUDE.md](CLAUDE.md) (read through [AGENTS.md](AGENTS.md)).
 

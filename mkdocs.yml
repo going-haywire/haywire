@@ -64,7 +64,11 @@ markdown_extensions:
         - .
       check_paths: true
       dedent_subsections: true
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.tasklist:
@@ -119,6 +123,27 @@ nav:
       - Graph notices: guides/graph-notices.md
       - Flow meters: guides/flow-meters.md
       - Developing Haywire: guides/development.md
+
+  - Workflows:
+      - workflows/index.md
+      - Basics: workflows/basics.md
+      - Library authors:
+          - Create and first share: workflows/create-and-share.md
+          - Share an update: workflows/share-an-update.md
+          - Rename, then share: workflows/rename-then-share.md
+      - Users:
+          - Subscribe and install: workflows/subscribe-and-install.md
+      - Contributors:
+          - A first contribution: workflows/first-contribution.md
+      - Maintainers:
+          - A task with its live check: workflows/task-with-live-check.md
+          - A fork's pull request: workflows/fork-pull-request.md
+          - A change across core and a library: workflows/core-and-library-change.md
+          - A core release: workflows/core-release.md
+          - A library release: workflows/library-release.md
+          - Lead and tasks: workflows/lead-and-tasks.md
+          - A new org library: workflows/new-org-library.md
+          - A developer's workstation: workflows/workstation.md
 
   - Architecture:
       - Overview: architecture/overview/overview-arch.md

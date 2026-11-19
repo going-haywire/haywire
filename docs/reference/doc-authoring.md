@@ -51,6 +51,7 @@ see-also:
   | `canonical-example` | extension-point authoring guide: what it solves → how it fits → worked example → pitfalls | `components/nodes/node-canon.md`      |
   | `system-reference`  | framework-internals deep dive: overview → lifecycle → key types → extension points        | `architecture/design/design-arch.md`  |
   | `guide`             | cross-cutting how-to, not tied to one extension point                                     | `guides/panels.md`                    |
+  | `workflow`          | one workflow: who it is for → a sequence diagram (a lane per actor, the user's decisions ①②③) → a step table linking each step to the one home of its rule or command; restates no rule | `workflows/task-with-live-check.md`   |
   | `impl-spec`         | implementation-level spec (data flow, file formats, internal contracts)                   | `haybale/metadata-flow.md`            |
   | `reference`         | lookup table / field-by-field spec                                                        | `reference/files/marketstall-toml.md` |
   | `perspective-index` | landing page for one of the three welcome perspectives                                    | `welcome/advanced/index.md`           |
