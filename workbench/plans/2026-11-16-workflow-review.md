@@ -613,6 +613,15 @@ changes W8, W10 and W12.
 
    | R6 | `haywire-dev` for other agent harnesses | **(a)** later: the layers are recorded here; guard logic stays generic; the hooks split into a neutral checker plus a per-harness adapter (they read Claude Code's JSON on stdin and block with exit 2) only when a second harness is used. The server side (rulesets, PR gate, read-only CI) already binds every tool |
 
+   | R7 | R1 after the log | **(a)** every merge in `going-haywire/.github` gets the next `v1.x.y` tag by a workflow there, under a *Release tags* ruleset; callers pin `@<sha> # v1.x.y`; Dependabot's weekly PR moves the libraries |
+   | R8 | The release word | **"publish"** replaces the second "merge": "merge" never merges a release PR; on "publish" the agent prepares the release PR and merges it once green (core's `/haywire-release` "yes" becomes "publish"). **(a)** In a library the agent asks after each merged change ("publish now, or wait for more?", listing what waits); in core only when the user starts a release. Changes: the workflow skill, the release skill, ADR 0088, the glossary's *Release PR*, the library `CLAUDE.md` template (R3), the memory note |
+   | R9 | A library's checks in two places | **(a)** the library `CONTRIBUTING.md` in `.github` is their one home; the R3 `CLAUDE.md` template links it with the `--frozen` note; the skill's *In a library repository* points there |
+   | R10 | A home for the basics | **(a)** `docs/workflows/basics.md` opens the section: the industry terms in plain words (the primer's Part 1), haywire's own terms linking to the glossary |
+
+   Information channels (3b): the readers are users, library authors, outside
+   contributors, the maintainer and the agents on haywire; the Workflows pages restate no
+   rule and link each step to its home (the primer's Part 4b holds the table).
+
    R1's check, 2026-11-19: comfyui's Dependabot job log shows `Latest version is` (empty)
    and `No update needed` for both `.github` workflows; the cause is confirmed.
 
