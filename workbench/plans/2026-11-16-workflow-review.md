@@ -618,6 +618,14 @@ changes W8, W10 and W12.
    | R9 | A library's checks in two places | **(a)** the library `CONTRIBUTING.md` in `.github` is their one home; the R3 `CLAUDE.md` template links it with the `--frozen` note; the skill's *In a library repository* points there |
    | R10 | A home for the basics | **(a)** `docs/workflows/basics.md` opens the section: the industry terms in plain words (the primer's Part 1), haywire's own terms linking to the glossary |
 
+   | R11 | Who publishes the libraries a core release unblocks (W8) | **(a)** `/haywire-release` ends with one question from the lead, naming the libraries `release_sweep.py floors --ref vX.Y.Z` reports unblocked: "publish them now?"; on "publish" the lead starts one short release task per library (release PR, merge once green, `finish`) |
+   | R12 | A workstation with only some libraries (W13) | **(a)** the W13 page says how to drop the missing libraries from the umbrella's `pyproject.toml` locally before `uv sync`; a generating command only once outside developers use the umbrella |
+
+   The W1–W13 review (3c) is in the primer's Part 6. Also found: `mkdocs build --strict`
+   fails on the glossary's link to this plan; S7 points it at `docs/workflows/index.md`.
+   W12's order: the first push of the default branch comes before `library-settings.sh`,
+   whose PR gate refuses a direct push.
+
    Information channels (3b): the readers are users, library authors, outside
    contributors, the maintainer and the agents on haywire; the Workflows pages restate no
    rule and link each step to its home (the primer's Part 4b holds the table).
