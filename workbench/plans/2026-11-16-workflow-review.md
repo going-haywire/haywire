@@ -611,6 +611,11 @@ changes W8, W10 and W12.
    | R4 | Moving an existing project's repository into the org | **(a)** GitHub transfer; the PyPI trusted publisher is re-added for the new owner (an owner step) |
    | R5 | Where the journey lives | **(a)** it is the backbone of `docs/workflows/index.md`: the stages, each linking its W pages, with the role column |
 
+   | R6 | `haywire-dev` for other agent harnesses | **(a)** later: the layers are recorded here; guard logic stays generic; the hooks split into a neutral checker plus a per-harness adapter (they read Claude Code's JSON on stdin and block with exit 2) only when a second harness is used. The server side (rulesets, PR gate, read-only CI) already binds every tool |
+
+   R1's check, 2026-11-19: comfyui's Dependabot job log shows `Latest version is` (empty)
+   and `No update needed` for both `.github` workflows; the cause is confirmed.
+
    Gaps the journey found, for the pages to name: no command adds `--dev` path sources to an
    existing project; a partial workstation edits the umbrella's library list locally.
 
