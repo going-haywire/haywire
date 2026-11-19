@@ -3,7 +3,8 @@
 # nor `agent files`, has no unresolved review thread, and the newest run of every check
 # passed. In going-haywire/haywire and the org's libraries (going-haywire/haybale-*) there
 # must be checks, with at least one passed macOS check among them (macOS runs only once a
-# PR is ready); any other repository may report none. `--repo` / `-R` is honoured.
+# PR is ready); any other repository may report none. `--repo` / `-R` is honoured; without
+# it the PR is read in the folder the command runs in.
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
@@ -35,7 +36,17 @@ while [ "$i" -lt "${#WORDS[@]}" ]; do
   i=$((i + 1))
 done
 
-cd "${CLAUDE_PROJECT_DIR:-.}" || block "cannot enter the project folder"
+# Without --repo, gh reads a number or a branch in the repository of the folder the command
+# runs in: the session's current folder, or the last `cd <dir>` before the merge in the
+# same command. Reading it in the project folder would check another repository's PR.
+DIR=$(echo "$INPUT" | jq -r '.cwd // empty')
+cd "${DIR:-${CLAUDE_PROJECT_DIR:-.}}" || block "cannot enter the session's folder"
+CD=$(printf '%s' "$COMMAND" | perl -0pe 's/gh\s+pr\s+merge.*//s' \
+  | grep -oE '(^|[;&|(])[[:space:]]*cd[[:space:]]+[^;&|)[:space:]]+' | sed -n '$p' \
+  | sed -E "s/.*cd[[:space:]]+//; s/[\"']//g")
+if [ -n "$CD" ]; then
+  cd "${CD/#\~/$HOME}" || block "cannot enter $CD to read the PR; name it with --repo"
+fi
 # shellcheck disable=SC2086
 VIEW=$(gh pr view $PR "${REPO_ARG[@]}" --json isDraft,statusCheckRollup,url,labels 2>&1) \
   || block "cannot read the PR ($VIEW)"
