@@ -64,7 +64,11 @@ requests*); the procedures in the
   PR is a draft, carries `needs introduction` or `agent files`, has an unresolved review
   thread, or the newest run of any check has not passed, and, in going-haywire/haywire,
   until a macOS check has passed. It reads the PR in the repository `--repo` / `-R`
-  names; a library repository without CI may report no checks. The hook parses the
+  names, otherwise where the command runs: the session's current folder (the hook
+  payload's `cwd`) or the last `cd <dir>` before the merge in the same command. Before
+  2026-11-19 it read a bare number in the project folder, so a merge in another
+  repository checked core's PR of that number. A repository outside the org's rule may
+  report no checks. The hook parses the
   literal command line, so a loop over `$n` gives it nothing to read: one merge per
   command, with the number written out. The user merges by hand when they want to override it. `tests/scripts/test_claude_hooks.py`
   runs them all against a stand-in `gh`.

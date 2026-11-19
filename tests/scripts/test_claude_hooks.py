@@ -266,7 +266,7 @@ _GREEN = [
 ]
 _GH_FOR_GUARD = (
     'if [ "$1" = "api" ]; then echo "$FAKE_THREADS"; '
-    'else echo "$*" > "$TMPDIR/gh-view-args"; echo "$FAKE_VIEW"; fi'
+    'else echo "$*" > "$TMPDIR/gh-view-args"; pwd -P > "$TMPDIR/gh-view-dir"; echo "$FAKE_VIEW"; fi'
 )
 _CORE_URL = "https://github.com/going-haywire/haywire/pull/5"
 
@@ -280,6 +280,7 @@ def _merge(
     checks=_GREEN,
     url=_CORE_URL,
     command="gh pr merge 5 --squash",
+    cwd: Path | None = None,
 ) -> subprocess.CompletedProcess:
     view = {
         "isDraft": draft,
@@ -287,7 +288,9 @@ def _merge(
         "labels": [{"name": name} for name in labels],
         "statusCheckRollup": list(checks),
     }
-    payload = {"tool_input": {"command": command}}
+    payload: dict = {"tool_input": {"command": command}}
+    if cwd is not None:
+        payload["cwd"] = str(cwd)
     bin_dir = _fake_bin(tmp_path, _GH_FOR_GUARD)
     return _run(
         "guard-pr-merge.sh",
@@ -355,6 +358,39 @@ def test_flag_values_are_never_read_as_the_pr(tmp_path, command):
     args = (tmp_path / "gh-view-args").read_text().split()
     assert args[:3] == ["pr", "view", "4"]
     assert "going-haywire/haybale-protokol" in args
+
+
+def _gh_ran_in(tmp_path: Path) -> Path:
+    return Path((tmp_path / "gh-view-dir").read_text().strip())
+
+
+def test_the_guard_reads_the_pr_where_the_session_is(tmp_path):
+    library = tmp_path / "haybale-protokol"
+    library.mkdir()
+    _merge(tmp_path, url=_LIBRARY_URL, command="gh pr merge 4 --squash", cwd=library)
+    assert _gh_ran_in(tmp_path) == library.resolve()
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "cd haybale-protokol && gh pr merge 4 --squash",
+        "cd elsewhere; cd 'haybale-protokol' && gh pr merge 4",
+        "git fetch && cd {library} && gh pr merge 4 && cd ..",
+    ],
+)
+def test_the_guard_follows_a_cd_before_the_merge(tmp_path, command):
+    library = tmp_path / "haybale-protokol"
+    library.mkdir()
+    (tmp_path / "elsewhere").mkdir()
+    _merge(tmp_path, url=_LIBRARY_URL, command=command.format(library=library), cwd=tmp_path)
+    assert _gh_ran_in(tmp_path) == library.resolve()
+
+
+def test_a_cd_the_guard_cannot_follow_blocks_the_merge(tmp_path):
+    result = _merge(tmp_path, command="cd missing && gh pr merge 4", cwd=tmp_path)
+    assert result.returncode == 2
+    assert "--repo" in result.stderr
 
 
 def test_an_org_library_without_checks_blocks_the_merge(tmp_path):
