@@ -626,6 +626,10 @@ changes W8, W10 and W12.
    W12's order: the first push of the default branch comes before `library-settings.sh`,
    whose PR gate refuses a direct push.
 
+   Carried as issues (decided 2026-11-19): R2 [#152](https://github.com/going-haywire/haywire/issues/152),
+   R3 with R9's template text [#153](https://github.com/going-haywire/haywire/issues/153), R7
+   [#154](https://github.com/going-haywire/haywire/issues/154).
+
    Information channels (3b): the readers are users, library authors, outside
    contributors, the maintainer and the agents on haywire; the Workflows pages restate no
    rule and link each step to its home (the primer's Part 4b holds the table).
