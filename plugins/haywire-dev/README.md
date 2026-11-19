@@ -19,9 +19,11 @@ guard it.
 - **The org's library repositories** install the plugin from the marketplace in
   [going-haywire/.github](https://github.com/going-haywire/.github), which takes this folder
   from core's `master`. A library's `.claude/settings.json` names the marketplace and
-  enables the plugin; each clone installs it once:
+  enables the plugin, but Claude Code does not add a marketplace that only a project's
+  settings declare: each machine adds it once, each clone installs the plugin once:
 
   ```sh
+  claude plugin marketplace add going-haywire/.github   # once per machine
   claude plugin install haywire-dev@going-haywire --scope project
   ```
 
