@@ -27,7 +27,7 @@ sequenceDiagram
     alt a floor waits for core
         Agent->>You: "waiting for core 0.5.5"
     else ready
-        Agent->>You: "unreleased: #21, #22. publish v0.3.8, or wait?"
+        Agent->>You: "unreleased: PRs 21 and 22. publish v0.3.8, or wait?"
         You->>Agent: ① "publish"
         Agent->>GH: share --bump patch --pr → release PR
         GH->>GH: checks (Linux and macOS)

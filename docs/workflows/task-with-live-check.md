@@ -22,7 +22,7 @@ sequenceDiagram
     participant Studio as The worktree's studio
     participant GH as GitHub (PR + CI)
 
-    You->>Lead: ① "fix the edge drag, #140"
+    You->>Lead: ① "fix the edge drag, issue 140"
     Lead->>Task: worktree, branch, brief
     loop each step
         Task->>Task: code, tests of the area, commit

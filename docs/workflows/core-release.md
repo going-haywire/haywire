@@ -33,7 +33,7 @@ sequenceDiagram
     CI->>CI: plan → gate → build → tag vX.Y.Z
     CI->>PyPI: every core package
     CI->>GH: GitHub release with notes
-    Lead->>You: the notes; the libraries it unblocks: "publish them?"
+    Lead->>You: the notes, then the libraries it unblocks: "publish them?"
     You->>Lead: ③ "publish" → a release task per library
 ```
 

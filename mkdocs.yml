@@ -78,6 +78,12 @@ markdown_extensions:
 plugins:
   - search
 
+# Mermaid pinned: Material loads the newest mermaid@11 otherwise. mermaid-theme.js adds
+# the colours Material's diagram CSS misses for this version.
+extra_javascript:
+  - https://unpkg.com/mermaid@11.17.2/dist/mermaid.min.js
+  - javascripts/mermaid-theme.js
+
 # Perspectives are navigational entry points; components/ holds extension-point
 # stories; haybale/ holds the library/package/marketplace story (authoring,
 # packaging, distribution, and the marketplace plugin + its architecture);

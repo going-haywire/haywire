@@ -25,7 +25,7 @@ sequenceDiagram
 
     Core->>CI: core PR (task as in W6)
     You->>Core: ① "merge": in master, not released
-    Lib->>Lib: library PR; the same commit raises its floor<br/>to the next core patch (>=0.5.5 while PyPI has 0.5.4)
+    Lib->>Lib: library PR: the same commit raises its floor<br/>to the next core patch (>=0.5.5 while PyPI has 0.5.4)
     Lib->>CI: tests against core's master: pass
     You->>Lib: ② "merge"
     Note over Lib: waiting: share refuses a floor PyPI cannot satisfy

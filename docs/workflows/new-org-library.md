@@ -30,10 +30,10 @@ sequenceDiagram
     You->>Org: ② library-settings.sh --apply (after the first push)
     Agent->>Repo: PR: the callers, dependabot.yml, .claude/settings.json, CLAUDE.md lines
     You->>Repo: ③ "merge"
-    You->>PyPI: ④ pending publisher; GitHub environment pypi
+    You->>PyPI: ④ pending publisher, GitHub environment pypi
     Agent->>Repo: share --first-release
     Repo->>PyPI: publish.yml uploads
-    Agent->>Cat: PR in the umbrella; request in the curated catalogue
+    Agent->>Cat: PR in the umbrella, request in the curated catalogue
     You->>Agent: ⑤ install the dev plugin in the clone
 ```
 
