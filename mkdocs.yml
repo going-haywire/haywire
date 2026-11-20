@@ -198,6 +198,7 @@ nav:
       - Design principles: reference/design-principles.md
       - Questionnaire: reference/questionnaire.md
       - Writing a doc page: reference/doc-authoring.md
+      - Publishing releases: reference/publish_releases.md
       - File formats:
           - haybale.toml: reference/files/haybale-toml.md
           - pyproject.toml: reference/files/pyproject-toml.md
