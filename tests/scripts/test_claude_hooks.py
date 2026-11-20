@@ -277,7 +277,10 @@ def test_the_keep_setting_may_be_left_at_its_default(tmp_path):
 def test_a_worktree_without_its_setup_asks_for_the_import(tmp_path, missing):
     context = _t3_setup(tmp_path, settings=_T3_COMPLETE, **missing)
     assert "T3 setup is incomplete; pass this list to the user" in context
-    assert "Import from t3.json" in context
+    assert "Project settings → Actions → Import scripts → Import from t3.json" in context
+    assert "all three" in context
+    assert "t3_project_update" in context
+    assert "only on your yes" in context
     assert "python3 scripts/worktree_setup.py" in context
 
 
