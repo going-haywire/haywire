@@ -200,6 +200,97 @@ def test_in_t3_the_agent_learns_its_thread_and_how_to_message(tmp_path, env):
     assert "orchestrators/t3.md" in context
 
 
+_T3_COMPLETE = {
+    "storageCleanup": {"worktreeOnMerge": True, "worktreeKeepWhen": "uncommitted-changes"},
+    "branchNamingMode": "semantic",
+}
+
+
+def _t3_setup(
+    tmp_path: Path, *, settings: str | dict | None = None, venv=True, port=True, **env: str
+) -> str:
+    """The T3 slot's context in a worktree; T3's settings file holds ``settings`` (absent if ``None``)."""
+    home = tmp_path / "t3home"
+    if settings is not None:
+        (home / "userdata").mkdir(parents=True)
+        text = settings if isinstance(settings, str) else json.dumps(settings)
+        (home / "userdata" / "settings.json").write_text(text)
+    work = tmp_path / "work"
+    origin = tmp_path / "origin"
+    origin.mkdir()
+    _git(origin, "init", "-q")
+    _git(origin, "commit", "-q", "--allow-empty", "-m", "x")
+    _git(origin, "worktree", "add", "-q", "-b", "feat/x", str(work))
+    if venv:
+        (work / ".venv").mkdir()
+    if port:
+        (work / ".haywire").mkdir()
+        (work / ".haywire" / "settings.json").write_text(json.dumps({"network": {"port": {"value": 8125}}}))
+    bin_dir = _fake_bin(tmp_path, None)
+    (bin_dir / "git").symlink_to(shutil.which("git") or "git")
+    result = _run(
+        "session-place.sh",
+        {},
+        bin_dir,
+        tmp_path,
+        CLAUDE_PROJECT_DIR=str(work.resolve()),
+        T3CODE_HOME=str(home),
+        T3CODE_THREAD_ID="th-1",
+        **env,
+    )
+    assert result.returncode == 0
+    return json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+
+
+def test_a_complete_t3_setup_adds_nothing(tmp_path):
+    assert "T3 setup is incomplete" not in _t3_setup(tmp_path, settings=_T3_COMPLETE)
+
+
+def test_the_keep_setting_may_be_left_at_its_default(tmp_path):
+    settings = {"storageCleanup": {"worktreeOnMerge": True}, "branchNamingMode": "semantic"}
+    assert "T3 setup is incomplete" not in _t3_setup(tmp_path, settings=settings)
+
+
+@pytest.mark.parametrize("missing", [{"venv": False}, {"port": False}])
+def test_a_worktree_without_its_setup_asks_for_the_import(tmp_path, missing):
+    context = _t3_setup(tmp_path, settings=_T3_COMPLETE, **missing)
+    assert "T3 setup is incomplete; pass this list to the user" in context
+    assert "Import from t3.json" in context
+    assert "python3 scripts/worktree_setup.py" in context
+
+
+@pytest.mark.parametrize(
+    ("change", "named"),
+    [
+        ({"storageCleanup": {"worktreeOnMerge": False}}, "Delete merged worktrees"),
+        ({"storageCleanup": {"worktreeOnMerge": True, "worktreeKeepWhen": "never"}}, "Uncommitted changes"),
+        ({"branchNamingMode": "static"}, "Branch naming → semantic"),
+    ],
+)
+def test_each_wrong_t3_setting_is_named(tmp_path, change, named):
+    context = _t3_setup(tmp_path, settings={**_T3_COMPLETE, **change})
+    assert "T3 setup is incomplete" in context
+    assert named in context
+    assert "Import from t3.json" not in context
+
+
+def test_t3_defaults_name_the_cleanup_and_naming(tmp_path):
+    context = _t3_setup(tmp_path, settings={})
+    assert "Delete merged worktrees" in context
+    assert "Branch naming → semantic" in context
+    assert "Uncommitted changes" not in context
+
+
+@pytest.mark.parametrize("settings", [None, "{not json", "[]"])
+def test_a_missing_or_broken_t3_settings_file_is_skipped(tmp_path, settings):
+    assert "T3 setup is incomplete" not in _t3_setup(tmp_path, settings=settings)
+
+
+def test_the_main_folder_needs_no_worktree_setup(tmp_path):
+    context = _place(tmp_path, main=True, terminal=None, T3CODE_THREAD_ID="th-1", T3CODE_HOME=str(tmp_path))
+    assert "T3 setup is incomplete" not in context
+
+
 def test_another_claude_code_entrypoint_is_not_t3(tmp_path):
     assert _place(tmp_path, terminal=None, CLAUDE_CODE_ENTRYPOINT="cli") == ""
 
