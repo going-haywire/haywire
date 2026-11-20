@@ -13,6 +13,10 @@
         <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/reference/publish_releases/">
       
       
+        <link rel="prev" href="../doc-authoring/">
+      
+      
+        <link rel="next" href="../files/haybale-toml/">
       
       
         
@@ -23,7 +27,7 @@
     
     
       
-        <title>Publishing Releases - Haywire Documentation</title>
+        <title>Publishing releases - Haywire Documentation</title>
       
     
     
@@ -110,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Publishing Releases
+              Publishing releases
             
           </span>
         </div>
@@ -318,10 +322,12 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href="../" class="md-tabs__link">
           
   
@@ -4272,6 +4278,8 @@
       
   
   
+    
+  
   
   
     
@@ -4293,22 +4301,25 @@
       
         
       
+        
+      
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
           <div class="md-nav__link md-nav__container">
@@ -4330,13 +4341,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -4528,6 +4539,436 @@
                 
   
   
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publishing releases
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publishing releases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#tldr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TL;DR
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites-one-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites (one-time)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Prerequisites (one-time)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pypi-trusted-publisher" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PyPI Trusted Publisher
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#github-pages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitHub Pages
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-locations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration locations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration locations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#toolhaywirerelease-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [tool.haywire.release] schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#toolhaywiremarketstall-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [tool.haywire.marketstall] schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#release-procedure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release procedure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Release procedure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#local-phase-author-driven" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local phase (author-driven)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#baked-docs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Baked docs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ci-phase-on-a-push-to-master-or-a-pushed-tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI phase (on a push to master, or a pushed tag)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CI phase (on a push to master, or a pushed tag)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#job-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-build-all-wheels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job build — all wheels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job tag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-publish-wheels-sequential-dependency-order-idempotent-fail-fast" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job publish — wheels (sequential, dependency order, idempotent, fail-fast)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-deploy-marketstall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job deploy-marketstall
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-release-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job release-notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#release-reminders" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release reminders
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recovery-procedures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recovery procedures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Recovery procedures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gate-or-build-failure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gate or build failure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#partial-publish-failure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Partial publish failure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-tag-job-failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The tag job failed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#marketplace-deploy-or-release-notes-failure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Marketplace deploy or release-notes failure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#publishing-a-tag-by-hand-last-resort" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Publishing a tag by hand (last resort)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-a-new-package-to-the-release-set" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a new package to the release set
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#moving-a-package-between-tiers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Moving a package between tiers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Moving a package between tiers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lockstep_unpublished-pip_publish_order-start-publishing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lockstep_unpublished → pip_publish_order (start publishing)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pip_publish_order-lockstep_unpublished-stop-publishing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pip_publish_order → lockstep_unpublished (stop publishing)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lockstep_unpublished-removed-entirely-deprecate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lockstep_unpublished → removed entirely (deprecate)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
   
   
     
@@ -4547,19 +4988,22 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_7" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_8" >
         
           
-          <label class="md-nav__link" for="__nav_5_7" id="__nav_5_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5_8" id="__nav_5_8_label" tabindex="">
             
   
   
@@ -4577,8 +5021,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_7">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_8">
             <span class="md-nav__icon md-icon"></span>
             
   
