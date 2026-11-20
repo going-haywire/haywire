@@ -1,14 +1,14 @@
 #!/bin/bash
 # T3 Code's slot (ADR 0090), run by hooks/session-place.sh at session start: prints that the
 # agent runs in a T3 thread and where the T3 how-to is, then what the T3 setup still lacks,
-# if anything. Prints nothing outside T3.
+# if anything, for the agent and (as `user: ` lines) for the developer. Prints nothing outside T3.
 
 [ "$CLAUDE_CODE_ENTRYPOINT" = "t3-code" ] || [ -n "$T3CODE_THREAD_ID" ] || exit 0
 
-echo -n "You run in T3 Code${T3CODE_THREAD_ID:+ as thread \`$T3CODE_THREAD_ID\`}. Message another thread with \`t3_thread_send\` (it arrives as its next input); refer to a thread by its title, the branch for a task. Lead and tasks in T3: \`orchestrators/t3.md\` in the haywire-workflow skill."
+echo "You run in T3 Code${T3CODE_THREAD_ID:+ as thread \`$T3CODE_THREAD_ID\`}. Message another thread with \`t3_thread_send\` (it arrives as its next input); refer to a thread by its title, the branch for a task. Lead and tasks in T3: \`orchestrators/t3.md\` in the haywire-workflow skill."
 
-command -v jq >/dev/null 2>&1 || { echo; exit 0; }
-dir=$(cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null && pwd -P) || { echo; exit 0; }
+command -v jq >/dev/null 2>&1 || exit 0
+dir=$(cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null && pwd -P) || exit 0
 missing=()
 
 # In a worktree, the imported setup script has built the environment and given the studio a port.
@@ -32,7 +32,8 @@ fi
 if [ ${#missing[@]} -gt 0 ]; then
   list=""
   for item in "${missing[@]}"; do list+="${list:+; }$item"; done
-  echo -n " T3 setup is incomplete; pass this list to the user: $list."
+  echo "T3 setup is incomplete; pass this list to the user in your first reply, before other work: $list."
+  echo "user: T3 setup is incomplete:"
+  for item in "${missing[@]}"; do echo "user: - $item"; done
 fi
-echo
 exit 0

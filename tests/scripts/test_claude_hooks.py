@@ -134,12 +134,13 @@ def _place(
     main=False,
     live=(),
     where: str | None = "feat-x / 1",
+    output: list[dict] | None = None,
     **extra_env: str,
 ) -> str:
     """The hook's context in ``tmp_path/work``: a main folder if ``main``, else a worktree on ``feat/x``.
 
     ``herdr`` is ``"ok"`` or ``"fail"`` for a stand-in herdr-app, ``None`` for none. Returns "" when the
-    hook says nothing.
+    hook says nothing; ``output``, if given, receives the hook's whole output.
     """
     work = tmp_path / "work"
     if main:
@@ -169,6 +170,8 @@ def _place(
         env["HC_TERMINAL_ID"] = terminal
     result = _run("session-place.sh", {}, bin_dir, tmp_path, **env, **extra_env)
     assert result.returncode == 0
+    if output is not None and result.stdout:
+        output.append(json.loads(result.stdout))
     return json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"] if result.stdout else ""
 
 
@@ -206,10 +209,10 @@ _T3_COMPLETE = {
 }
 
 
-def _t3_setup(
+def _t3_output(
     tmp_path: Path, *, settings: str | dict | None = None, venv=True, port=True, **env: str
-) -> str:
-    """The T3 slot's context in a worktree; T3's settings file holds ``settings`` (absent if ``None``)."""
+) -> dict:
+    """The hook's output in a T3 worktree; T3's settings file holds ``settings`` (absent if ``None``)."""
     home = tmp_path / "t3home"
     if settings is not None:
         (home / "userdata").mkdir(parents=True)
@@ -239,11 +242,30 @@ def _t3_setup(
         **env,
     )
     assert result.returncode == 0
-    return json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+    return json.loads(result.stdout)
+
+
+def _t3_setup(tmp_path: Path, **kwargs) -> str:
+    """The T3 slot's context for the agent, as :func:`_t3_output` sets it up."""
+    return _t3_output(tmp_path, **kwargs)["hookSpecificOutput"]["additionalContext"]
 
 
 def test_a_complete_t3_setup_adds_nothing(tmp_path):
-    assert "T3 setup is incomplete" not in _t3_setup(tmp_path, settings=_T3_COMPLETE)
+    output = _t3_output(tmp_path, settings=_T3_COMPLETE)
+    assert "T3 setup is incomplete" not in output["hookSpecificOutput"]["additionalContext"]
+    assert "systemMessage" not in output
+
+
+def test_the_developer_sees_what_the_t3_setup_lacks(tmp_path):
+    output = _t3_output(tmp_path, settings={**_T3_COMPLETE, "branchNamingMode": "static"}, venv=False)
+    message = output["systemMessage"]
+    assert message.startswith("T3 setup is incomplete:")
+    assert "Import from t3.json" in message
+    assert "Branch naming → semantic" in message
+    assert "Delete merged worktrees" not in message
+    context = output["hookSpecificOutput"]["additionalContext"]
+    assert "in your first reply, before other work" in context
+    assert "user: " not in context
 
 
 def test_the_keep_setting_may_be_left_at_its_default(tmp_path):
@@ -299,6 +321,12 @@ def test_every_slot_that_speaks_is_heard(tmp_path):
     context = _place(tmp_path, CLAUDE_CODE_ENTRYPOINT="t3-code")
     assert "You run in herdr" in context
     assert "You run in T3 Code." in context
+
+
+def test_the_herdr_slot_says_nothing_to_the_developer(tmp_path):
+    output: list[dict] = []
+    assert "You run in herdr" in _place(tmp_path, output=output)
+    assert "systemMessage" not in output[0]
 
 
 def test_in_herdr_the_agent_learns_its_place_and_how_to_message(tmp_path):
