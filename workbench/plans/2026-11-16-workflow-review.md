@@ -686,8 +686,140 @@ Decision Q14. After S2–S5 exist.
    4. Does a merge still pass through the user's "merge" and the guard hook?
    5. Does its teardown work with `finish`?
    6. Does it work across the two machines (secondmates; refused under `hc`)?
-3. **(user)** Decide the lead layer: firstmate, or a minimal own lead (14C) built on S3.
-   Then W11's page.
+
+   **Spike record, 2026-11-20.** Decided with the user (1a 2a 3a): two steps instead of
+   two runs. First the answers firstmate's own docs give, at commit
+   [`427056c41`][fm] (2026-11-12, MIT) and Treehouse [v3.1.8][th]; then **one** real issue
+   with the `hc` backend only (herdr), in `direct-PR` mode, to confirm questions 1, 2 and 4.
+   No tmux run and no secondmates: questions 3, 5 and 6 are answered from the docs. The
+   clone is `~/firstmate-spike`, outside the umbrella folder. The project is registered with
+   `yolo` off, firstmate never merges: the user merges the crewmate's PR through a normal
+   haywire session ("merge"), so the guard hook runs. The issue is
+   [#156](https://github.com/going-haywire/haywire/issues/156), limited to two menu entries
+   under *Writing libraries* in `mkdocs.yml` (`farmhand-canon.md` to Components,
+   `panels.md` to Guides); its PR says "Part of #156".
+
+   What firstmate is: an "agent distro", a folder of instructions, skills and `bin/` scripts,
+   no app ([README:37–40][fm-distro]). Claude launched inside the clone is the *first mate*;
+   the user is the *captain*. It clones each project into its own `projects/` folder and
+   never edits it itself; *crewmates* (worker sessions) change projects
+   ([AGENTS.md:29][fm-boundary], [:63][fm-dirs]). A project's mode (`no-mistakes`,
+   `direct-PR`, `local-only`), `+yolo` and `branch=<prefix>` live in the private registry
+   `data/projects.md` ([README:48][fm-modes]).
+
+   | # | Question | From the docs | To confirm in the run |
+   |---|---|---|---|
+   | 1 | Our `CLAUDE.md` and hooks in a crewmate | **Probably yes.** A crewmate is a Claude Code session started in a worktree of firstmate's clone of our repository, so the project's `CLAUDE.md` and `.claude/settings.json` apply; firstmate adds its own settings with `--settings`, which add to the project's ([fm-spawn.sh:539][fm-settings]). Two differences: Claude crewmates start with `--dangerously-skip-permissions` unless `config/claude-permission-mode` says `auto` ([configuration.md:1556–1569][fm-perm]) (hooks still run under it); and the user's auto memory is kept per folder path, so a crewmate in `~/.treehouse/...` starts without it | The SessionStart hooks (`session-role.sh`, `session-place.sh`) speak, `block-dangerous-git.sh` blocks, the `haywire-workflow` skill loads |
+   | 2 | `worktree_setup.py`, or Treehouse replaced | **Treehouse stays, but it can call our setup.** Treehouse provides the worktrees for every backend except `backend=orca`, `hc` included ([hc-backend.md:4][fm-hc], [architecture.md:342][fm-th]). Its pool is under `~/.treehouse/` by default, not under `~/.herdr/worktrees` ([Treehouse README, How it works][th-root]), so a *library* worktree there cannot reach core by its relative `../haywire-repo` paths (`worktree_path` can place slots elsewhere). A `post_create` hook in the user-level `~/.config/treehouse/config.toml` runs in every new or reset slot; hooks in a repository's own `treehouse.toml` are ignored ([Hooks][th-hooks]). So the hook, or the brief, can run `python3 scripts/worktree_setup.py`; it would copy settings from firstmate's clone, not our main folder, and count claimed ports only among that clone's worktrees | Whether the brief makes the crewmate run `worktree_setup.py` first (`uv sync`, its own studio port) |
+   | 3 | `kind/name` branches | **Partly.** One ship-branch prefix per project (`branch=<prefix>` in the registry, default `fm/`), not a kind per task ([architecture.md:436][fm-prefix]) | — |
+   | 4 | Merges through the user's "merge" and our guard hook | **The word yes, the guard no.** With `yolo` off the captain approves every merge ([AGENTS.md:240–241][fm-yolo]). But firstmate merges with its own `bin/fm-pr-merge.sh` from its own home ([AGENTS.md:246][fm-merge], [architecture.md:442][fm-merge-arch]), where haywire's project hooks do not run: the `agent files` and `needs introduction` labels and unresolved line-comment threads would not stop it; only the server rulesets bind | By reading only, never by letting it merge |
+   | 5 | Teardown with `finish` | **No.** `bin/fm-teardown.sh` returns the Treehouse slot after its own landed-work proof ([architecture.md:478][fm-teardown], [AGENTS.md:36][fm-landed]); fleet sync prunes branches in firstmate's clone ([README:53][fm-prune]). Neither knows `finish` | — |
+   | 6 | Two machines | **Through secondmates** (a whole firstmate home on an SSH-reachable host, [README:50][fm-second]); **refused under `hc`** ([hc-backend.md:116][fm-hc-limits]) | — |
+
+   Also to check in the run: `bin/fm-ensure-agents-md.sh`, a manual project-initialization
+   step, inserts a `CLAUDE.md` pointer and "self-governance" sections into a project
+   ([architecture.md:528][fm-ensure], [AGENTS.md:161][fm-ensure-rule]). Nothing of
+   firstmate's may land in a haywire PR.
+
+   [fm]: https://github.com/kunchenguid/firstmate/tree/427056c4181c41074ad24f051f79919330df0fa5
+   [fm-distro]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/README.md#L37-L40
+   [fm-boundary]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/AGENTS.md#L29
+   [fm-dirs]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/AGENTS.md#L63
+   [fm-modes]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/README.md#L48
+   [fm-settings]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/bin/fm-spawn.sh#L539-L541
+   [fm-perm]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/docs/configuration.md#L1556-L1569
+   [fm-hc]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/docs/hc-backend.md#L4
+   [fm-th]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/docs/architecture.md#L342
+   [fm-prefix]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/docs/architecture.md#L436
+   [fm-yolo]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/AGENTS.md#L240-L241
+   [fm-merge]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/AGENTS.md#L246
+   [fm-merge-arch]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/docs/architecture.md#L442
+   [fm-teardown]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/docs/architecture.md#L478
+   [fm-landed]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/AGENTS.md#L36
+   [fm-prune]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/README.md#L53
+   [fm-second]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/README.md#L50
+   [fm-hc-limits]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/docs/hc-backend.md#L116
+   [fm-ensure]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/docs/architecture.md#L528
+   [fm-ensure-rule]: https://github.com/kunchenguid/firstmate/blob/427056c4181c41074ad24f051f79919330df0fa5/AGENTS.md#L161
+   [th]: https://github.com/kunchenguid/treehouse/tree/v3.1.8
+   [th-root]: https://github.com/kunchenguid/treehouse/blob/v3.1.8/README.md#how-it-works
+   [th-hooks]: https://github.com/kunchenguid/treehouse/blob/v3.1.8/README.md#hooks
+
+   **Retargeted to T3 Code, 2026-11-20 (user, A).** The firstmate run is dropped: its own
+   docs already fail questions 4 and 5 (it merges with its own script, where our hooks do
+   not run, and tears down without `finish`). The spike runs on
+   T3 Code instead, the app the user is moving to. T3 runs Claude Code
+   sessions as *threads*; a thread works in the project root or in a worktree of its own;
+   threads read and message each other (`t3_thread_read`, `t3_thread_send`,
+   `t3_thread_wait`), link and watch PRs (`link_pull_request`, `watch_pull_request`),
+   delegate child tasks (`delegate_task`, optionally in a worktree), and reach a linked
+   second machine (*linked environments*). A settled thread is archived. T3 never merges
+   by itself. A T3 session carries `CLAUDE_CODE_ENTRYPOINT=t3-code` and `T3CODE_THREAD_ID`.
+
+   How the S3 design maps, as read before the run:
+
+   | S3 design (herdr) | In T3 |
+   |---|---|
+   | The lead in the main folder | A thread in the project root |
+   | `git worktree add` + `herdr-app do space.new --task` | `t3_thread_launch` with a worktree, from `origin` |
+   | A task named by its branch, the tab | The thread's title is the branch |
+   | Reports by `hc send` | `t3_thread_send` to the lead's thread |
+   | `tasks.py`'s agent column | `t3_thread_list`, `t3_worktree_list`, the PRs linked to threads; the `t3 thread` CLI |
+   | The lead watches CI | `watch_pull_request` |
+   | "The user closes the space" | Settling the thread, which does **not** remove a worktree: this branch's own herdr worktree stayed after its thread was settled |
+   | A second machine's lead as a peer | A linked environment |
+
+   One real issue, [#156](https://github.com/going-haywire/haywire/issues/156) (scope as
+   above, its PR says "Part of #156"), runs as a T3 task thread started by a lead thread in
+   the main folder. The user merges through the lead ("merge"). Answer here:
+
+   | # | Question | Result |
+   |---|---|---|
+   | T1 | Do our `CLAUDE.md`, hooks and the `haywire-workflow` skill apply in a task thread's worktree? | **Yes.** Both `CLAUDE.md` files, the skill and `session-role.sh` apply; `session-place.sh` stays silent (no `HC_TERMINAL_ID`), as designed |
+   | T2 | Where does T3 put a worktree, and can it be placed beside the repositories (a library worktree needs `../haywire-repo`)? | **Core yes, libraries by hand.** T3 puts worktrees in `~/.t3/worktrees/<repo>/<branch-slug>-<hash>`; **Settings → Worktrees → Worktree location** moves that root (one absolute path per machine), but no sibling layout or template exists ([t3code#1926][t3-1926] closed as not planned). T2b, not yet run: T3 lists worktrees it did not create (it showed this branch's herdr worktree), and `t3_thread_launch` binds a thread to one (`existing_worktree`). So the lead creates a library worktree beside the repositories with `git worktree add` and starts the thread in it; to confirm on the next real library task |
+   | T3 | Does `worktree_setup.py` run from the brief, or can T3 run it on creation? | **Yes, either way.** It ran from the brief (uv sync, port 8125). T3 project scripts with `runOnWorktreeCreate` run it on creation; set on haywire-repo 2026-11-20. A worktree T3 did not create (T2b) gets no create script |
+   | T4 | Do the task's reports reach the lead with `t3_thread_send`, and does the lead read them without polling? | **Yes.** The task's `t3_thread_send` arrives as the lead's next input; no polling |
+   | T5 | Does the merge pass through the user's "merge" and `guard-pr-merge.sh`? | **Yes.** The lead merged #158 on the user's "merge" (`06eec2546`) with `guard-pr-merge.sh` in its hooks; T3 never merges by itself |
+   | T6 | After `finish`, how is the worktree removed: does settling a T3-made thread remove it, or `git worktree remove`? | **A settle script, with one catch.** Settling removes nothing by itself. A project script with `runOnSettle` (set on haywire-repo) runs `finish <branch>` from the main folder, which removes the worktree and both branches; `finish` refuses before the merge, so a manual settle is safe. T3 auto-settles a thread when its PR merges ([thread-sidebar.md][t3-settle]), but #158's thread settled when its last turn ended, before the merge (not explained by the docs), so the merge settled nothing and the cleanup ran only on a manual unsettle + settle. T3's own **Storage cleanup** (off by default; inactive days, after settle, after merge) removes only T3-made worktrees and keeps branches ([project-settings.md][t3-cleanup]) |
+   | T7 | Does the task session read the user's auto memory from its worktree path? | **Yes.** The task read the main folder's `MEMORY.md` |
+   | T8 | Two machines through a linked environment (from T3's docs, no run) | **From the docs:** `t3_thread_launch` with `environmentId` starts a thread, worktree included, on a linked machine; `delegate_task` there runs in its checkout without worktree isolation ([orchestrator-mcp-server.md][t3-mcp]) |
+
+   Run 2026-11-20: lead = this plan's T3 thread in the main folder; task thread
+   `docs/menu-farmhand-panels`, PR [#158](https://github.com/going-haywire/haywire/pull/158),
+   merged `06eec2546`, master CI green. Worktrees cost about 840 MB each, 765 MB of it `.venv`.
+
+   [t3-1926]: https://github.com/pingdotgg/t3code/pull/1926
+   [t3-settle]: https://github.com/pingdotgg/t3code/blob/main/docs/user/thread-sidebar.md#settle-finished-work
+   [t3-cleanup]: https://github.com/pingdotgg/t3code/blob/main/docs/user/project-settings.md#storage-cleanup
+   [t3-mcp]: https://github.com/pingdotgg/t3code/blob/main/docs/orchestration-v2/orchestrator-mcp-server.md
+
+3. **(user)** Decide the lead layer. **Decided 2026-11-20: T3 Code**, the user's own lead
+   layer from now on; other developers may bring other tools, so the repository stays
+   orchestrator-neutral through a slot per tool (decision A):
+   - **The contract.** A task has four events, each with one neutral part that every tool
+     only translates to: *created* → `worktree_setup.py`; *view* → `tasks.py`; *message the
+     lead* → the skill's report rule; *merged* → `finish.py`.
+   - **The folders.** `plugins/haywire-dev/orchestrators/<tool>/session.sh` (optional
+     session-start context); `hooks/session-place.sh` only dispatches to the running tool's
+     `session.sh`; `skills/haywire-workflow/SKILL.md` holds the neutral lead and task
+     contract and `skills/haywire-workflow/orchestrators/<tool>.md` the agent's how-to;
+     `docs/collaboration/orchestrators/index.md` (the contract, the tools) and `<tool>.md`
+     (a person's setup); a file a tool requires at the repository root (`t3.json`) stays
+     thin.
+   - **The rules.** Every tool is optional and contributors need none; a tool's files
+     only translate events to the neutral scripts, logic goes into those; adding a tool
+     touches no neutral part; the plugin carries all but root files, so libraries get it
+     (a library's `t3.json` comes from the template, #153).
+   - **T3, the first entry.** `t3.json`: setup on worktree creation with `async: false`,
+     the settle script (`finish` from the main folder). The lead re-settles a task thread
+     after its merge (decided 2-A: a thread can settle before its PR merges). Library
+     tasks: the lead creates the worktree beside the repositories and binds the thread
+     (`existing_worktree`). The user's T3 settings: *Delete merged worktrees* on, *Keep
+     worktrees with local changes* on *Uncommitted changes*, branch naming by the model's
+     semantic prefix.
+   - **herdr, the second entry.** Today's herdr text, `session-place.sh` and `tasks.py`'s
+     agent column move into its slot.
+   - An ADR records the slot, then W11 and the skill follow.
 4. Mark S8 done.
 
 ## Open design points
@@ -711,4 +843,4 @@ Decision Q14. After S2–S5 exist.
 | S5 Core release | done ([PR #143](https://github.com/going-haywire/haywire/pull/143)); no live check (no UI); the first release under the new flow, [v0.5.4](https://github.com/going-haywire/haywire/releases/tag/v0.5.4) ([release PR #144](https://github.com/going-haywire/haywire/pull/144), [merge run](https://github.com/going-haywire/haywire/actions/runs/44254004793)), was the check and ran green, with the user watching | `49cf16cf4` | 2026-11-18 | `floors` reads each requirement's lower bound (`>=`, `~=`, `==`, `>`) from `barn/*/pyproject.toml` with standard-library code (no `packaging`), against the latest local `v*` tag; `--ref` also reports the floors the tag freed. The nightly result is not read yet: no library has a nightly workflow (S6 task 4 adds it), and step 0.6 says so. D4 settled as B with the user: minor on a breaking `!` commit, a removed API name or 10 or more `feat` commits, otherwise patch (a proposal the user overrides). The old steps 2.2 and 2.5 and the reminders read moved into step 0. The `publish.yml` decision lives in a new, tested `scripts/release_plan.py` (the plan job), as in a generated project; `workflow_dispatch` on master re-releases the tree's version and creates the tag only if missing; runs queue (`concurrency`), so a pending run can be replaced by a newer push, which then releases the same version. Recovery differs from the plan: a failed gate leaves no tag and the fix's own merge releases the untagged version, no new release PR is needed. The `Release tags` ruleset (27491647) has only `deletion` and `non_fast_forward`, no `creation` rule; the workflow's tag job created `v0.5.4` under it, so the ruleset needed no change (S4's open question is answered the same way). `block-dangerous-git.sh` blocks a chained command whose text holds ` v<digits>.<digits>` after `git push` (a PR title "release v0.5.4"): run the push and `gh pr create` as separate commands. The skill's file counts no longer name a number that drifts. The first push to master under the new `publish.yml` (the merge of PR #143) ended green at the plan job, as designed. `mkdocs build --strict` still fails on the glossary's link to this plan (S1's); the `publish_releases.md` link is fixed |
 | S6 Org libraries | done; no live check (CI and agent files); verified on the libraries' own runs | the squash commit of this PR | 2026-11-19 | Core: [#146](https://github.com/going-haywire/haywire/pull/146) (the `haywire-dev` plugin, the generated `publish.yml`'s smoke job, `release_sweep.py nightly`, the plan), [#147](https://github.com/going-haywire/haywire/pull/147) (the generated `publish.yml` pins every action to a commit: Dependabot's first library PR proposed untested major bumps of tag references), [#148](https://github.com/going-haywire/haywire/pull/148) (a test race that turned master red, reported on #139). [going-haywire/.github](https://github.com/going-haywire/.github) #1 (org defaults, `library-ci.yml`, `pr-intake.yml`, the rulesets and `scripts/library-settings.sh`, the marketplace), #2 (the intake lets an author with write access through: a private org member arrives as `CONTRIBUTOR`), #3 (README: why core keeps its own community files). Libraries: comfyui [#4](https://github.com/going-haywire/haybale-comfyui/pull/4) and [#6](https://github.com/going-haywire/haybale-comfyui/pull/6), protokol [#11](https://github.com/going-haywire/haybale-protokol/pull/11), spandrel [#4](https://github.com/going-haywire/haybale-spandrel/pull/4), stream [#14](https://github.com/going-haywire/haybale-stream/pull/14), visiongraph [#5](https://github.com/going-haywire/haybale-visiongraph/pull/5); each default branch ran CI and Publish green after its merge. Deviations: D2 settled as one plugin folder in core that core's `.claude/` links into (no build script); the marketplace takes it from core's `master` by `git-subdir`, and Claude Code adds a marketplace only on `claude plugin marketplace add going-haywire/.github` (once per machine), which each library's `CLAUDE.md` and the plugin README say. `publish.yml` is regenerated in every library (the generator gained the smoke job for it); D5: library CI runs against core's `master`. Per library: protokol regained its `--dev` sources; stream's callers name `main`, its ruff is pinned like the siblings, CI deselects its `network` tests (`-m not(network)`, no spaces: `library-ci.yml` splits `pytest-args` on whitespace); visiongraph gained a dev group; every old `CLAUDE.md` describing the `barn/` symlinks gave way to the generated one plus the library's own lines. Found on the way: a module-scoped second library system repointed every `LibrarySettings` class's registry (fixed in `tests/conftest.py` with #146, `.insights/project_settings_registry_construction_side_effects.md`). S7's step 0 gained the journey and the information channels. Left, as decided with the user 2026-11-19: the settings script on protokol, spandrel, stream and visiongraph (applied by the user the same day); the first nightly of each library (S7 step 0; comfyui's first ran green); the intake on a person's PR after .github#2 (checked on the first real one); `pytest-args` that can hold a space ([.github#4](https://github.com/going-haywire/.github/pull/4)); comfyui's `nightly.yml` comment named `release_sweep.py floors` ([haybale-comfyui#7](https://github.com/going-haywire/haybale-comfyui/pull/7)), with stream's dev group gaining `pytest>=8` like the siblings ([haybale-stream#15](https://github.com/going-haywire/haybale-stream/pull/15)); `guard-pr-merge.sh` read a bare PR number in the project folder, so a merge in another repository checked core's PR of that number (fixed with the branch `fix/guard-pr-merge-repo`: it reads the PR where the command runs); the `haywire update-template` issue became part of S7's journey |
 | S7 Workflow diagrams | done ([PR #151](https://github.com/going-haywire/haywire/pull/151)); no live check (docs and agent files): the user reviewed the rendered pages | the squash commit of PR #151 | 2026-11-20 | Step 0: the five nightlies were green; Dependabot never moves the `.github` pin because `.github` has no tags (R1, confirmed from comfyui's job log). The review record holds R1–R13; a beginner primer artifact explained the mechanisms on the way. Deviations: the section is *Collaboration*, `docs/collaboration/`, under a *Developing Haywire* tab, and the whole menu is grouped by reader (R13), not *Workflows* after *Guides*; a *Basics* page opens it (R10); the journey is the index (R5). A release is merged on the user's word "publish", never "merge" (R8), written into the workflow and release skills, ADR 0088 and the glossary; after a core release the lead offers to publish the unblocked libraries (R11). Mermaid is pinned to 11.17.2 with `docs/javascripts/mermaid-theme.js`, because Material's diagram CSS misses this version's arrowheads and else titles in dark mode; in a sequence diagram's message `;` ends the statement and `#` starts a comment, so neither may appear. `mkdocs build --strict` passes (the glossary links the section, not this plan). Left as issues: R2 [#152](https://github.com/going-haywire/haywire/issues/152), R3 [#153](https://github.com/going-haywire/haywire/issues/153), R7 [#154](https://github.com/going-haywire/haywire/issues/154), a studio user guide [#155](https://github.com/going-haywire/haywire/issues/155), pages missing from the menu [#156](https://github.com/going-haywire/haywire/issues/156) |
-| S8 firstmate spike | open | | | |
+| S8 firstmate spike | in progress: firstmate answered from its docs and dropped; retargeted to T3 Code (2026-11-20), run done ([#158](https://github.com/going-haywire/haywire/pull/158)); the lead-layer decision is next | | | |
