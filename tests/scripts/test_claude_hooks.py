@@ -134,6 +134,7 @@ def _place(
     main=False,
     live=(),
     where: str | None = "feat-x / 1",
+    **extra_env: str,
 ) -> str:
     """The hook's context in ``tmp_path/work``: a main folder if ``main``, else a worktree on ``feat/x``.
 
@@ -166,7 +167,7 @@ def _place(
     }
     if terminal:
         env["HC_TERMINAL_ID"] = terminal
-    result = _run("session-place.sh", {}, bin_dir, tmp_path, **env)
+    result = _run("session-place.sh", {}, bin_dir, tmp_path, **env, **extra_env)
     assert result.returncode == 0
     return json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"] if result.stdout else ""
 
@@ -187,6 +188,26 @@ def test_outside_herdr_the_place_hook_says_nothing(tmp_path):
 
 def test_without_hc_the_place_hook_says_nothing(tmp_path):
     assert _place(tmp_path, hc=False) == ""
+
+
+@pytest.mark.parametrize(
+    "env", [{"CLAUDE_CODE_ENTRYPOINT": "t3-code", "T3CODE_THREAD_ID": "th-1"}, {"T3CODE_THREAD_ID": "th-1"}]
+)
+def test_in_t3_the_agent_learns_its_thread_and_how_to_message(tmp_path, env):
+    context = _place(tmp_path, terminal=None, **env)
+    assert context.startswith("You run in T3 Code as thread `th-1`.")
+    assert "t3_thread_send" in context
+    assert "orchestrators/t3.md" in context
+
+
+def test_another_claude_code_entrypoint_is_not_t3(tmp_path):
+    assert _place(tmp_path, terminal=None, CLAUDE_CODE_ENTRYPOINT="cli") == ""
+
+
+def test_every_slot_that_speaks_is_heard(tmp_path):
+    context = _place(tmp_path, CLAUDE_CODE_ENTRYPOINT="t3-code")
+    assert "You run in herdr" in context
+    assert "You run in T3 Code." in context
 
 
 def test_in_herdr_the_agent_learns_its_place_and_how_to_message(tmp_path):

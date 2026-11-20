@@ -738,8 +738,9 @@ How work moves through branches, pull requests, releases and agent sessions. Dra
 | **Waiting library** | An org library whose master carries a **Dependency floor** above the latest core release. | blocked library |
 | **Simple path** | `haywire init` → work → a repository on a host → the Share wizard, needing only git and a host account. Nothing added to the product may break it. | beginner flow |
 | **Task** | One piece of work on one branch, in its own worktree, with its own agent session; named by its branch. | stream, work stream |
-| **Task view** | The listing of tasks derived from git worktrees, branches, their PRs and, when present, herdr's agents. | stream registry |
-| **Lead** | The agent session the user talks to that starts tasks, receives their reports and orders merges, releases and cleanup; one per machine. | coordinator, orchestrator |
+| **Task view** | The listing of tasks derived from git worktrees, branches, their PRs and, when an orchestrator's slot can list them, the agent sessions. | stream registry |
+| **Orchestrator** | An optional app that runs the lead and the tasks as agent sessions and carries their messages; it plugs in through a slot that translates four task events to neutral scripts (ADR 0090). | lead layer |
+| **Lead** | The agent session the user talks to that starts tasks, receives their reports and orders merges, releases and cleanup; one per machine. | coordinator |
 | **Main folder** | A repository's original checkout, on an up-to-date default branch; hosts the lead and read-only sessions; worktrees branch from it. | root checkout |
 | **Finish** | Ending a merged task: its worktree lets go of the branch, then the local and remote branch are deleted. | cleanup |
 | **Permanent refs** | `master`, `gh-pages` and the `v*` tags: no one may delete or rewrite them. | protected branches |

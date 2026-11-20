@@ -44,7 +44,7 @@ sequenceDiagram
     Lead->>GH: squash merge, then watch master's CI
     Lead->>Task: "merged"
     Task->>Task: finish
-    You->>You: close the herdr space
+    You->>You: close the task's session
 ```
 
 In a library the task then asks whether to publish: [A library release](library-release.md).

@@ -51,7 +51,8 @@ agents' workflow skill and two scripts are links into `plugins/haywire-dev/`.
 Optional:
 
 - **Claude Code or another coding agent**: welcome; see *Working with AI agents* below.
-- **[herdr](https://herdr.dev/guide/)**: runs agent sessions side by side in worktrees.
+- **An orchestrator**: an app that runs agent sessions side by side in worktrees; any or none
+  ([orchestrators](docs/collaboration/orchestrators/index.md)).
 - **The umbrella environment**: one environment with the libraries of several haywire
   repositories cloned side by side, to run the full studio with all of them.
 - **Farmhand** (`.mcp.json`): lets an agent drive a running studio.

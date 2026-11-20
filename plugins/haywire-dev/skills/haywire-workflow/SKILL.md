@@ -256,8 +256,8 @@ them.
    `git push --delete`. It refuses unless the PR is merged and the local branch holds
    nothing the PR's head lacks; it detaches the worktree at the default branch, then deletes
    the local branch and the remote branch if GitHub has not already. Then it prints how
-   to remove the empty folder: the user closes the space and removes the worktree in
-   herdr, or `git worktree remove <path>` from the main folder.
+   to remove the empty folder: the orchestrator's way (*Lead and tasks*), or
+   `git worktree remove <path>` from the main folder.
 
    - A PR closed without a merge needs `--abandon`, on the user's word only.
    - From the main folder `finish <branch>` also removes the branch's worktree, if it is
@@ -314,19 +314,15 @@ uncommitted work and branch switches. The setup below is the maintainer's;
 uses plain `git worktree add <folder> -b <branch> upstream/master` and `uv sync` there.
 
 **Starting one.** The main folder stays on an up-to-date `master` and holds no task work:
-it is where worktrees branch from. The user creates the worktree in
-[herdr](https://herdr.dev/guide/): right-click a space whose terminal is in the main
-folder → *New worktree*, branch name such as `fix/edge-drag`. herdr checks it out at
-`~/.herdr/worktrees/haywire-repo/fix-edge-drag` and opens a space there, listed under the
-repo. The worktree items appear only on a space herdr sees inside the repo; *Open
-worktree* opens a space on an existing one (a lead can open it itself: *Lead and tasks*). Without herdr:
+it is where worktrees branch from. An orchestrator creates the worktree its own way
+(*Lead and tasks*); without one, any folder outside the main folder will do:
 
 ```sh
-git worktree add ~/.herdr/worktrees/haywire-repo/<kind>-<name> -b <kind>/<name> origin/master
+git worktree add <folder> -b <kind>/<name> origin/master
 ```
 
 **First thing in a new worktree**, with the system Python since there is no environment
-yet:
+yet (an orchestrator may run it on creation; it is safe to run again):
 
 ```sh
 python3 scripts/worktree_setup.py
@@ -334,7 +330,7 @@ python3 scripts/worktree_setup.py
 
 It starts the branch from the latest `origin/master` (if the branch has no commits yet;
 otherwise it reports how far behind it is), runs `uv sync`, and gives the studio its own
-port in `.haywire/settings.json`. Safe to run again. A
+port in `.haywire/settings.json`. A
 session started in the worktree still reads the main folder's memory; CodeGraph indexes
 only the main folder, so search with grep there.
 
@@ -345,9 +341,9 @@ only the main folder, so search with grep there.
 - Run only the tests of the area changed; CI runs the whole suite. Browser tests in two
   worktrees at once are fine: each checkout has its own harness ports.
 - A library in another repository (spandrel, visiongraph, …) gets a worktree per task like
-  any other, placed **beside the repositories**, not under `~/.herdr/worktrees`: its
-  development project reaches core by relative `../haywire-repo/...` paths, which resolve
-  only there. From the library's main folder:
+  any other, placed **beside the repositories**, not in an orchestrator's own worktree
+  folder: its development project reaches core by relative `../haywire-repo/...` paths,
+  which resolve only there. From the library's main folder:
 
   ```sh
   git worktree add ../<repo>-<name> -b <kind>/<name> origin/master
@@ -371,12 +367,11 @@ only the main folder, so search with grep there.
   on the port `worktree_setup.py` gave it; 8124 is the main folder's studio.
 
 **When the branch is merged**, the task runs `finish <branch>` in its worktree (*Finishing
-as the maintainer*, step 5). The worktree is left detached at the default branch and empty; the
-user right-clicks its space → *Remove worktree* in herdr (it deletes the folder), or without
-herdr, from the main folder:
+as the maintainer*, step 5). The worktree is left detached at the default branch and empty;
+the orchestrator removes the folder its own way, or, from the main folder:
 
 ```sh
-git worktree remove ~/.herdr/worktrees/haywire-repo/<kind>-<name>
+git worktree remove <folder>
 ```
 
 **A second machine** works on its own clone: [second-machine.md](second-machine.md).
@@ -390,34 +385,35 @@ never writes task code. Without a lead the user is the lead: the task session re
 the user and does everything below that is the lead's. A second machine's lead is a peer
 ([second-machine.md](second-machine.md)).
 
-**Naming.** A task's name is its branch, and that is its herdr tab. Call another agent
-*space / tab* (`haywire-repo / fix/edge-drag`), the address only in brackets
-(`haywire-repo / fix/edge-drag (t1g)`). The `session-place.sh` hook gives each session its
-address. It renames a worktree session's tab to its branch, and tells a main-folder session
-to name its tab by role.
+**The orchestrator.** An app that runs the lead and the tasks as agent sessions and carries
+their messages is an *orchestrator*. Every one is optional and a contributor needs none.
+Each has a slot (ADR 0090): this skill's `orchestrators/<tool>.md` says how its events run
+there, and the session-start hook names the tool you run in and its file. Read that file
+before you start or report on a task. Without an orchestrator the user opens the sessions
+and relays the messages. A task has four events; each has one neutral part, which every
+orchestrator only translates to:
 
-**Messages.** Where `hc` is present, `hc send <address> "<text>"` arrives as the other
-agent's next input; `hc ls` lists the sessions with their space / tab. Without `hc`, the
-user relays.
+| Event | The neutral part |
+|---|---|
+| Created | `python3 scripts/worktree_setup.py` in the new worktree (core; a library: *In a library repository*) |
+| Viewed | `tasks.py`, below |
+| Message the lead | The report rule, below |
+| Merged | `finish.py <branch>` (*Finishing as the maintainer*, step 5) |
 
-**The lead starts a task**, from the main folder on an up-to-date `master`:
+**Naming.** A task's name is its branch, and that is the name its session carries in the
+orchestrator. Call another agent by that name; a tool's own address only in brackets.
 
-```sh
-git worktree add ~/.herdr/worktrees/haywire-repo/<kind>-<name> -b <kind>/<name> origin/master
-(cd ~/.herdr/worktrees/haywire-repo/<kind>-<name> && python3 scripts/worktree_setup.py)
-herdr-app do space.new --name <kind>-<name> \
-  --folder ~/.herdr/worktrees/haywire-repo/<kind>-<name> --argv '["claude"]' --task "<brief>"
-```
+**The lead starts a task**, from the main folder on an up-to-date `master`: it creates the
+worktree on a new `<kind>/<name>` branch from `origin/master`, makes sure
+`worktree_setup.py` ran there, and starts the task's session in it with the brief, each the
+orchestrator's way. A library task's worktree goes beside the repositories (*Parallel
+sessions*).
 
-The space opens under the repo in herdr and the agent starts with the brief as its first
-message; `hc ls` shows whether it did (`herdr-app` reports only that the terminal was
-created). If `herdr-app` is not there, the user opens the space (*Open worktree*) and
-gives the agent the brief.
+The brief holds the issue (URL), the branch, the acceptance points, the report rule below
+and where to report (the lead's name or address). Tell the task to load this skill first.
 
-The brief holds the issue (URL), the branch, the acceptance points, and the report rule
-below. Tell the task to load this skill first.
-
-**A task reports to the lead** with `hc send`, one line each, with the PR's URL:
+**A task reports to the lead** through the orchestrator's messages, one line each, with
+the PR's URL:
 
 - *PR opened* (draft).
 - *Live check waiting* (the Questionnaire is posted in its studio).
@@ -431,11 +427,12 @@ make.
 
 **The lead merges** only on the user's word, then watches `master`'s run (*Finishing as the
 maintainer*, step 4), warns the tasks whose PRs now conflict, and tells the task "merged".
-The task runs `finish` itself. The user closes the space.
+The task runs `finish` itself; the worktree's folder then goes the orchestrator's way.
 
-**The lead writes reports to the user by name**: space / tab, PR URL, state.
+**The lead writes reports to the user by name**: task name, PR URL, state.
 `python3 "${CLAUDE_SKILL_DIR}/scripts/tasks.py"` (in core also `uv run python
-scripts/tasks.py`) lists every task with its PR and session.
+scripts/tasks.py`) lists every task with its PR and, when an orchestrator's slot can list
+them, its session.
 
 ## In a library repository
 
@@ -446,7 +443,7 @@ plugin, installed once per clone (the library's `CLAUDE.md` says how). What diff
 
 - **Layout.** The library is cloned beside core (`../haywire-repo`), which its development
   project reaches by relative paths. A task's worktree goes beside the repositories, never
-  under `~/.herdr/worktrees` (*Parallel sessions*). There is no `worktree_setup.py`: after
+  in an orchestrator's own worktree folder (*Parallel sessions*). There is no `worktree_setup.py`: after
   `git worktree add ../<repo>-<name> -b <kind>/<name> origin/<default branch>`, run
   `uv sync` in the worktree and give its studio a port of its own.
 - **Checks** are the library's own, in the library
