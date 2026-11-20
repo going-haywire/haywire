@@ -13,6 +13,12 @@
       "command": "main=$(cd \"$(git rev-parse --path-format=absolute --git-common-dir)/..\" && pwd -P); here=$(pwd -P); [ \"$here\" = \"$main\" ] && exit 0; b=$(git branch --show-current); cd \"$main\" || exit 1; if [ -n \"$b\" ]; then python3 scripts/finish.py \"$b\"; else git worktree remove \"$here\"; fi",
       "icon": "configure",
       "runOnSettle": true
+    },
+    {
+      "name": "Haywire studio",
+      "command": "if command -v haywire-studio >/dev/null; then haywire-studio; else uv run haywire; fi",
+      "icon": "play",
+      "runOnWorktreeCreate": false
     }
   ]
 }

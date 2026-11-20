@@ -30,3 +30,26 @@ the agents use it is in the workflow skill's
    tab still called by its number is renamed to the branch.
 4. After a merge and `finish`, right-click the task's space → *Remove worktree*.
 5. A second machine: herdr there too, added under *Settings → Machines* on the first.
+
+## Starting the studio
+
+The [umbrella](https://github.com/going-haywire/umbrella#readme) provides
+`bin/haywire-studio`, which runs the full studio, every library included, from the checkout
+or worktree it starts in, a worktree on its own studio port. Link it onto your `PATH` once
+(the umbrella's README says how). With these two settings it starts from any space:
+
+`~/.config/herdr-app/keys.json`, under `"global"` (`cmd-shift-s` opens a `studio` tab):
+
+```json
+"cmd-shift-s": {"command": "tab.new", "args": {"name": "studio", "argv": ["haywire-studio"]}}
+```
+
+`~/.config/herdr-app/programs.json` (*Haywire studio* in the agent menu):
+
+```json
+{ "programs": { "haywire-studio": { "name": "Haywire studio", "run": ["haywire-studio"], "match": ["haywire"] } } }
+```
+
+The command runs on the space's machine, so a remote Linux space needs the umbrella there
+too (as the parent folder of its repositories) and `haywire-studio` on its login `PATH`.
+Its studio listens on 127.0.0.1: `ssh -L <port>:localhost:<port> <machine>`.
