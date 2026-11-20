@@ -341,6 +341,10 @@
          <lastmod>2026-11-20</lastmod>
     </url>
     <url>
+         <loc>https://going-haywire.github.io/haywire/docs/adr/0090-orchestrators-plug-into-four-task-events-through-one-slot-per-tool/</loc>
+         <lastmod>2026-11-20</lastmod>
+    </url>
+    <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/design/design-arch/</loc>
          <lastmod>2026-11-20</lastmod>
     </url>
@@ -502,6 +506,18 @@
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/collaboration/workstation/</loc>
+         <lastmod>2026-11-20</lastmod>
+    </url>
+    <url>
+         <loc>https://going-haywire.github.io/haywire/docs/collaboration/orchestrators/</loc>
+         <lastmod>2026-11-20</lastmod>
+    </url>
+    <url>
+         <loc>https://going-haywire.github.io/haywire/docs/collaboration/orchestrators/herdr/</loc>
+         <lastmod>2026-11-20</lastmod>
+    </url>
+    <url>
+         <loc>https://going-haywire.github.io/haywire/docs/collaboration/orchestrators/t3/</loc>
          <lastmod>2026-11-20</lastmod>
     </url>
     <url>

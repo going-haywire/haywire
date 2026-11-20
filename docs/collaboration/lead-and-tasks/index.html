@@ -16,7 +16,7 @@
         <link rel="prev" href="../library-release/">
       
       
-        <link rel="next" href="../new-org-library/">
+        <link rel="next" href="../orchestrators/">
       
       
         
@@ -2677,6 +2677,8 @@
       
         
       
+        
+      
     
     
     
@@ -2936,6 +2938,164 @@
   
 
       </a>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2_6_7" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../orchestrators/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orchestrators
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4_2_6_7" id="__nav_4_2_6_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_4_2_6_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2_6_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Orchestrators
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../orchestrators/t3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    T3 Code
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../orchestrators/herdr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    herdr
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
       
     </li>
   
@@ -4742,33 +4902,30 @@
 
 
 <h1 id="lead-and-tasks">Lead and tasks<a class="headerlink" href="#lead-and-tasks" title="Permanent link">&para;</a></h1>
-<div class="admonition note">
-<p class="admonition-title">Provisional</p>
-<p>This page draws the lead layer as it runs today, on herdr with <code>hc</code>. A trial of
-firstmate as the lead layer may change it.</p>
-</div>
 <p><strong>For:</strong> the maintainer running several tasks at once. Without a lead, the maintainer is
-the lead and each task session does the lead's part itself.</p>
+the lead and each task session does the lead's part itself. An
+<a href="../orchestrators/">orchestrator</a> runs the sessions and carries their messages; any
+will do, or none (then you open the sessions and pass the messages on). Each orchestrator
+only translates the four task events below to the same neutral scripts and rules.</p>
 <pre class="mermaid"><code>sequenceDiagram
     autonumber
     actor You
     participant Lead as Lead (main folder)
-    participant herdr
-    participant Task as Task (worktree, tab = branch)
+    participant Orch as Orchestrator
+    participant Task as Task (worktree, named by its branch)
     participant GH as GitHub
 
     You-&gt;&gt;Lead: ① what to do
-    Lead-&gt;&gt;Lead: worktree + branch from master, worktree_setup.py
-    Lead-&gt;&gt;herdr: a space with the brief
-    herdr-&gt;&gt;Task: the session starts
+    Lead-&gt;&gt;Orch: worktree + branch from master, the brief
+    Orch-&gt;&gt;Task: worktree_setup.py, the session starts
     Task-&gt;&gt;Lead: PR opened / live check waiting / ready / blocked / needs a decision
-    Lead-&gt;&gt;You: ② decisions by name: space / tab, PR URL
+    Lead-&gt;&gt;You: ② decisions by name: task, PR URL
     You-&gt;&gt;Lead: "merge" / "publish" / an option
     Lead-&gt;&gt;GH: merge, watch master, warn tasks that now conflict
     Lead-&gt;&gt;Task: "merged"
     Task-&gt;&gt;Task: finish
     Task-&gt;&gt;Lead: finished
-    You-&gt;&gt;herdr: close the space</code></pre>
+    Orch-&gt;&gt;Orch: the worktree's folder goes</code></pre>
 <table>
 <thead>
 <tr>
@@ -4779,9 +4936,9 @@ the lead and each task session does the lead's part itself.</p>
 </thead>
 <tbody>
 <tr>
-<td>① Start a task</td>
+<td>① Start a task (event <em>created</em>)</td>
 <td>lead</td>
-<td><a href="https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/SKILL.md#lead-and-tasks">The workflow skill: lead and tasks</a></td>
+<td><a href="https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/SKILL.md#lead-and-tasks">The workflow skill: lead and tasks</a>, <code>worktree_setup.py</code>, the <a href="../orchestrators/">orchestrator's page</a></td>
 </tr>
 <tr>
 <td>Worktrees and their rules</td>
@@ -4789,7 +4946,7 @@ the lead and each task session does the lead's part itself.</p>
 <td><a href="https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/SKILL.md#parallel-sessions">The workflow skill: parallel sessions</a></td>
 </tr>
 <tr>
-<td>Reports, names, <code>hc send</code></td>
+<td>Reports and names (event <em>message the lead</em>)</td>
 <td>task, lead</td>
 <td><a href="https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/SKILL.md#lead-and-tasks">The workflow skill: lead and tasks</a></td>
 </tr>
@@ -4799,14 +4956,19 @@ the lead and each task session does the lead's part itself.</p>
 <td><a href="https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/SKILL.md#asking-the-user-for-a-decision">The workflow skill: asking the user for a decision</a></td>
 </tr>
 <tr>
-<td>Merge, watch master, finish</td>
+<td>Merge, watch master, finish (event <em>merged</em>)</td>
 <td>lead, task</td>
 <td><a href="https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/SKILL.md#finishing-as-the-maintainer">The workflow skill: finishing as the maintainer</a></td>
 </tr>
 <tr>
-<td>The task view</td>
+<td>The task view (event <em>viewed</em>)</td>
 <td>lead</td>
 <td><code>tasks.py</code> in the workflow skill's folder</td>
+</tr>
+<tr>
+<td>The tool itself</td>
+<td>you</td>
+<td><a href="../orchestrators/">Orchestrators</a></td>
 </tr>
 </tbody>
 </table>
