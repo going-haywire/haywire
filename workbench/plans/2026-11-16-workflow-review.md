@@ -629,7 +629,9 @@ changes W8, W10 and W12.
 
    Carried as issues (decided 2026-11-19): R2 [#152](https://github.com/going-haywire/haywire/issues/152),
    R3 with R9's template text [#153](https://github.com/going-haywire/haywire/issues/153), R7
-   [#154](https://github.com/going-haywire/haywire/issues/154).
+   [#154](https://github.com/going-haywire/haywire/issues/154). R13's regrouping found two more (decided 2026-11-20): a guide for
+   studio users [#155](https://github.com/going-haywire/haywire/issues/155), four pages missing from the
+   menu [#156](https://github.com/going-haywire/haywire/issues/156).
 
    Information channels (3b): the readers are users, library authors, outside
    contributors, the maintainer and the agents on haywire; the Workflows pages restate no
