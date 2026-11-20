@@ -116,6 +116,7 @@ nav:
           - Editors: components/editors/editor-canon.md
           - Panels: components/panels/panel-canon.md
           - States: components/states/state-canon.md
+          - Farmhands: components/farmhands/farmhand-canon.md
       - Haybale:
           - Authoring a haybale: haybale/haybale-canon.md
           - Metadata flow: haybale/metadata-flow.md
@@ -126,6 +127,7 @@ nav:
           - Node roles: guides/node-roles.md
           - Ports: guides/ports.md
           - Signals: guides/signals.md
+          - Panels: guides/panels.md
           - Model catalogs: guides/model-catalogs.md
           - Graph notices: guides/graph-notices.md
           - Renaming a library: guides/rename-library.md
