@@ -3106,6 +3106,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#starting-the-studio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Starting the studio
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#things-to-know" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5000,6 +5011,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#starting-the-studio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Starting the studio
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#things-to-know" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5062,14 +5084,16 @@ use it is in the workflow skill's
 <ol>
 <li>Add the repository's main folder as a T3 project. T3 reads
    <a href="https://github.com/going-haywire/haywire/blob/master/t3.json"><code>t3.json</code></a> at its root
-   and applies its settings, but runs no script from it until it is imported. Import both
-   once, in <em>Project settings → Import scripts → Import from t3.json</em>; the scripts menu then
-   lists them as <em>From t3.json</em>:</li>
+   and applies its settings, but runs no script from it until it is imported. Import all
+   three once, in <em>Project settings → Import scripts → Import from t3.json</em>; the scripts menu
+   then lists them as <em>From t3.json</em>:</li>
 <li><strong>Worktree setup</strong> runs <code>python3 scripts/worktree_setup.py</code> when T3 creates a
      worktree, before the agent starts.</li>
 <li><strong>Finish merged task</strong> runs each time a worktree thread settles: from the main folder
      it runs <code>finish</code> on the thread's branch, which removes the worktree and both branches
      once the PR is merged, and refuses before.</li>
+<li><strong>Haywire studio</strong> you run from the scripts menu: it starts this worktree's studio on
+     the port <code>worktree_setup.py</code> gave it (see <em>Starting the studio</em>).</li>
 <li><em>Settings → Worktrees → Cleanup</em>: turn on <em>Delete merged worktrees</em>, and <em>Keep worktrees
    with local changes</em> with <em>Uncommitted changes</em>.</li>
 <li>Branch naming: the model's semantic prefix, so branches read <code>feat/…</code>, <code>fix/…</code>, <code>docs/…</code>.</li>
@@ -5079,6 +5103,14 @@ the agent passes the list on in its first reply. That reply is what reaches you:
 display the message a hook shows at session start (<code>systemMessage</code>), which other hosts, such
 as the Claude Code CLI, do show. The check reads T3's internal settings file, which T3 does not document, so a T3 update can
 break that part of it.</p>
+<h2 id="starting-the-studio">Starting the studio<a class="headerlink" href="#starting-the-studio" title="Permanent link">&para;</a></h2>
+<p>The script <em>Haywire studio</em> runs in the thread's folder. It calls <code>haywire-studio</code> from the
+<a href="https://github.com/going-haywire/umbrella#readme">umbrella</a> (<code>bin/haywire-studio</code>, linked
+onto your <code>PATH</code> once, as its README says), which starts the full studio with every library,
+the worktree's own <code>packages/*</code> and <code>barn/*</code> included. Without it on the <code>PATH</code> the script
+falls back to <code>uv run haywire</code>: the studio with this checkout's environment only. Either way
+a worktree's studio uses the port <code>worktree_setup.py</code> wrote to its <code>.haywire/settings.json</code>,
+so several run side by side; the main folder's is 8124.</p>
 <h2 id="things-to-know">Things to know<a class="headerlink" href="#things-to-know" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>A thread can settle before its PR merges</strong>, when its last turn ends. Its settle script

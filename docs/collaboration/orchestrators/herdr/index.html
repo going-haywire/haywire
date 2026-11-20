@@ -3140,6 +3140,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#starting-the-studio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Starting the studio
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -4988,6 +4999,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#starting-the-studio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Starting the studio
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -5046,6 +5068,20 @@ the agents use it is in the workflow skill's
 <li>After a merge and <code>finish</code>, right-click the task's space → <em>Remove worktree</em>.</li>
 <li>A second machine: herdr there too, added under <em>Settings → Machines</em> on the first.</li>
 </ol>
+<h2 id="starting-the-studio">Starting the studio<a class="headerlink" href="#starting-the-studio" title="Permanent link">&para;</a></h2>
+<p>The <a href="https://github.com/going-haywire/umbrella#readme">umbrella</a> provides
+<code>bin/haywire-studio</code>, which runs the full studio, every library included, from the checkout
+or worktree it starts in, a worktree on its own studio port. Link it onto your <code>PATH</code> once
+(the umbrella's README says how). With these two settings it starts from any space:</p>
+<p><code>~/.config/herdr-app/keys.json</code>, under <code>"global"</code> (<code>cmd-shift-s</code> opens a <code>studio</code> tab):</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">&quot;cmd-shift-s&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tab.new&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;studio&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;argv&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;haywire-studio&quot;</span><span class="p">]}}</span>
+</span></code></pre></div>
+<p><code>~/.config/herdr-app/programs.json</code> (<em>Haywire studio</em> in the agent menu):</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">&quot;programs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;haywire-studio&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Haywire studio&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;run&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;haywire-studio&quot;</span><span class="p">],</span><span class="w"> </span><span class="nt">&quot;match&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;haywire&quot;</span><span class="p">]</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<p>The command runs on the space's machine, so a remote Linux space needs the umbrella there
+too (as the parent folder of its repositories) and <code>haywire-studio</code> on its login <code>PATH</code>.
+Its studio listens on 127.0.0.1: <code>ssh -L &lt;port&gt;:localhost:&lt;port&gt; &lt;machine&gt;</code>.</p>
 
 
 
