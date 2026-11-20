@@ -41,7 +41,7 @@ Every file of a slot is optional:
 | `plugins/haywire-dev/orchestrators/<tool>/session.sh` | At session start, prints a paragraph for the agent when its tool runs the session (where it runs, how to message the lead), nothing otherwise; lines starting with `user: ` are for you, the developer |
 | `plugins/haywire-dev/orchestrators/<tool>/agents.py` | Prints the tool's live sessions, `{"agents": [{"cwd", "address", "status"}]}`, for the task view |
 | `plugins/haywire-dev/skills/haywire-workflow/orchestrators/<tool>.md` | The agent's how-to: the four events in this tool |
-| `docs/collaboration/orchestrators/<tool>.md` | Your setup: what to install and which settings to choose |
+| `docs/collaboration/orchestrators/<tool>.md` | Your setup: what to install, which settings to choose, and how to start the studio from it |
 | A file the tool reads at the repository root | Only calls the neutral scripts; [`t3.json`](https://github.com/going-haywire/haywire/blob/master/t3.json) is one |
 
 The hook `session-place.sh` runs every slot's `session.sh`, and `tasks.py` every slot's
