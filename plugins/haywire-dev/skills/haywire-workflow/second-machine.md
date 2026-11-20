@@ -9,9 +9,8 @@ work moves between them only through pushed branches.
 - git, [uv](https://docs.astral.sh/uv/), the [GitHub CLI](https://cli.github.com/),
   Claude Code (logged in), and Node.js (`npx` starts the Farmhand proxy from `.mcp.json`).
 - `gh auth login`, then `gh auth setup-git`: git pushes over HTTPS with the same login.
-- [herdr](https://herdr.dev/guide/) on the machine, added to the first machine's herdr
-  under *Settings → Machines* (its host from `~/.ssh/config`), to run its sessions from
-  one place.
+- Optionally, the orchestrator you use on the first machine, set up to reach this one, to
+  run its sessions from one place: its file in [orchestrators/](orchestrators/) says how.
 
 ## The main checkout
 

@@ -156,6 +156,10 @@ nav:
               - A core release: collaboration/core-release.md
               - A library release: collaboration/library-release.md
               - Lead and tasks: collaboration/lead-and-tasks.md
+              - Orchestrators:
+                  - collaboration/orchestrators/index.md
+                  - T3 Code: collaboration/orchestrators/t3.md
+                  - herdr: collaboration/orchestrators/herdr.md
               - A new org library: collaboration/new-org-library.md
               - A developer's workstation: collaboration/workstation.md
       - Architecture:

@@ -9,6 +9,7 @@ guard it.
 | `skills/haywire-workflow/` | The skill, with `scripts/finish.py` and `scripts/tasks.py` (standard library only) |
 | `hooks/*.sh` | `block-dangerous-git`, `require-workflow-skill` + `mark-workflow-skill`, `guard-pr-merge`, `session-role`, `session-place` |
 | `hooks/hooks.json` | The plugin's wiring of those hooks |
+| `orchestrators/<tool>/` | One slot per orchestrator (`t3`, `herdr`): `session.sh` for `session-place`, optionally `agents.py` for `tasks.py`; the agent's how-to is `skills/haywire-workflow/orchestrators/<tool>.md` (ADR 0090, [docs](https://going-haywire.github.io/haywire/docs/collaboration/orchestrators/)) |
 
 ## One copy, two users
 

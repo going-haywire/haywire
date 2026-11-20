@@ -218,6 +218,17 @@ def test_hc_failing_leaves_the_agent_out(folder, capsys, monkeypatch):
     assert "(t1)" not in folder.lines(capsys)[1]
 
 
+def test_a_slot_that_fails_or_prints_no_json_adds_nothing(tmp_path):
+    for name, body in {
+        "broken": "import sys; sys.exit(1)",
+        "chatty": "print('hello')",
+        "good": "import json; print(json.dumps({'agents': [{'cwd': '/w', 'address': 'a1', 'status': ''}]}))",
+    }.items():
+        (tmp_path / name).mkdir()
+        (tmp_path / name / "agents.py").write_text(body)
+    assert tasks.agents(tmp_path) == {Path("/w").resolve(): {"cwd": "/w", "address": "a1", "status": ""}}
+
+
 def test_plain_shells_and_other_folders_are_not_the_agent(folder, capsys):
     path = folder.task("fix/shell")
     folder.sessions(terminal(path, "t8", agent="zsh"), terminal(folder.main, "t9"))

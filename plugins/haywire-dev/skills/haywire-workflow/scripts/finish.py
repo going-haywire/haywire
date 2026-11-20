@@ -268,8 +268,8 @@ def finish_branch(ctx: Context, branch: str, abandon: bool, pr: dict | None = No
             run("git", "switch", "--quiet", "--detach", f"{ctx.pr_remote}/{default}")
             result["actions"].append(f"detached {here} at {ctx.pr_remote}/{default}")
             result["help"] = (
-                "this folder is now an empty detached checkout; remove it with herdr "
-                f"'Remove worktree' or `git worktree remove {here}` from the main folder"
+                "this folder is now an empty detached checkout; remove it through your orchestrator "
+                f"or with `git worktree remove {here}` from the main folder"
             )
         else:
             run("git", "worktree", "remove", str(holder.path))

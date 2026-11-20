@@ -153,7 +153,8 @@ hooks) for people *developing* haywire's repositories.
 **25 · Worktree.** An extra working folder of the same repository on its own branch,
 sharing one logbook, so several tasks run at once without overwriting each other.
 
-**26 · herdr, the lead and tasks.** herdr runs several agent sessions side by side. The
+**26 · Orchestrator, the lead and tasks.** An [orchestrator](orchestrators/index.md) is an
+app that runs several agent sessions side by side; any will do, or none. The
 **lead** talks with you, starts tasks and merges on your word; each **task** works in its
 own worktree and reports to the lead.
 

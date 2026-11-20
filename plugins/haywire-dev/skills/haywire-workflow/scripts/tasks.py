@@ -3,9 +3,10 @@
 
 A task is a branch in its own worktree. Nothing is stored: the view is derived from
 ``git worktree list`` in each repository folder beside the main folder, ``gh pr list`` for
-the branch's pull request, and, when ``hc`` is present, the agent session whose working
-folder is the worktree. A repository's main folder on its default branch is not a task; a
-worktree left detached (after ``finish``) is listed so the leftover shows.
+the branch's pull request, and the agent session whose working folder is the worktree, as
+listed by an orchestrator slot's ``agents.py`` (ADR 0090). A repository's main folder on
+its default branch is not a task; a worktree left detached (after ``finish``) is listed so
+the leftover shows.
 
 Usage (standard library only; core also has it at ``scripts/tasks.py``)::
 
@@ -15,8 +16,8 @@ Usage (standard library only; core also has it at ``scripts/tasks.py``)::
 
 Each line reads ``<repo> / <branch> (<address>) · #<pr> <state> · checks <✓|✗|…> · <agent status>``,
 followed by ``dirty``, ``ahead N`` or ``behind N`` against the branch's upstream when they apply.
-Without ``gh`` or without network the pull request reads ``pr unknown``; without ``hc`` the
-agent part is left out.
+Without ``gh`` or without network the pull request reads ``pr unknown``; when no slot lists
+an agent for the worktree, the agent part is left out.
 
 Output is ``key: value`` lines on stdout, errors included (``error:`` then ``help:``).
 Exit codes: 0 listed, 1 a command failed, 2 usage.
@@ -33,7 +34,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 DEFAULT_BRANCHES = frozenset({"master", "main"})
-SHELLS = frozenset({"zsh", "bash", "fish", "sh"})
+ORCHESTRATORS = Path(__file__).resolve().parents[3] / "orchestrators"
 PR_FIELDS = "number,state,isDraft,url,mergeable,statusCheckRollup"
 PASSING = frozenset({"SUCCESS", "SKIPPED", "NEUTRAL"})
 
@@ -168,18 +169,21 @@ def pull_request(slug: str | None, branch: str) -> dict | None:
     }
 
 
-def agents() -> dict[Path, dict]:
-    """Return ``{working folder: agent}`` of the live ``hc`` terminals, empty without ``hc``."""
-    try:
-        terminals = json.loads(run("hc", "ls", "--json")).get("terminals", [])
-    except (CommandFailed, json.JSONDecodeError, AttributeError):
-        return {}
+def agents(slots: Path = ORCHESTRATORS) -> dict[Path, dict]:
+    """Return ``{working folder: agent}`` from every ``<slot>/agents.py`` under *slots*.
+
+    Each script prints ``{"agents": [{"cwd", "address", "status"}]}``; a script that fails
+    or prints something else adds nothing. Empty when no slot lists an agent.
+    """
     found: dict[Path, dict] = {}
-    for terminal in terminals:
-        if terminal.get("state") != "live" or terminal.get("agent") in SHELLS:
+    for script in sorted(slots.glob("*/agents.py")):
+        try:
+            listed = json.loads(run(sys.executable, str(script))).get("agents", [])
+        except (CommandFailed, json.JSONDecodeError, AttributeError):
             continue
-        folder = Path(terminal.get("cwd", "")).resolve()
-        found.setdefault(folder, terminal)
+        for agent in listed:
+            if agent.get("cwd"):
+                found.setdefault(Path(agent["cwd"]).resolve(), agent)
     return found
 
 

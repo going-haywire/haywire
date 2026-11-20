@@ -11,8 +11,8 @@ see-also:
 
 **For:** contributors outside the maintainer team, to core or to any `haybale-*` library of
 the organisation. A contributor sets up nothing from `going-haywire/.github`, no rulesets
-and no robots: those stay with the organisation's repository. Agents, herdr and the dev
-plugin are optional.
+and no robots: those stay with the organisation's repository. Agents, an
+[orchestrator](orchestrators/index.md) and the dev plugin are optional.
 
 ```mermaid
 sequenceDiagram
