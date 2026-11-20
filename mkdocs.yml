@@ -84,101 +84,106 @@ extra_javascript:
   - https://unpkg.com/mermaid@11.17.2/dist/mermaid.min.js
   - javascripts/mermaid-theme.js
 
-# Perspectives are navigational entry points; components/ holds extension-point
-# stories; haybale/ holds the library/package/marketplace story (authoring,
-# packaging, distribution, and the marketplace plugin + its architecture);
-# guides/ holds cross-component patterns and worked examples; architecture/
-# holds system internals; reference/ holds shared truth (glossary, design guide).
+# The tabs are the readers: Using Haywire (the studio), Writing libraries (nodes and the
+# other extension points, haybale packaging and sharing), Developing Haywire (the
+# repository, how people work together, system internals); Reference and Archive serve
+# all three. Regrouping here changes no page address: that comes from the file path.
+# components/ holds extension-point stories; haybale/ the library/package/marketplace
+# story; guides/ cross-component patterns and worked examples; collaboration/ who does
+# what across authors, users, contributors and maintainers; architecture/ system
+# internals; reference/ shared truth (glossary, design guide).
 nav:
   - Home: index.md
 
-  - Perspectives:
-      - User (node author): welcome/user/index.md
-      - Advanced (workbench extender): welcome/advanced/index.md
-      - Core (system architect): welcome/core/index.md
+  - Using Haywire:
+      - Guides:
+          - Subscribing to marketplaces: guides/subscribing-to-marketplaces.md
+          - Security: guides/security.md
+          - Flow meters: guides/flow-meters.md
 
-  - Components:
-      - Nodes: components/nodes/node-canon.md
-      - Datatypes: components/datatypes/datatype-canon.md
-      - Adapters: components/adapters/adapter-canon.md
-      - Settings: components/settings/setting-canon.md
-      - Widgets: components/widgets/widget-canon.md
-      - Skins: components/skins/skin-canon.md
-      - Themes: components/themes/theme-canon.md
-      - Editors: components/editors/editor-canon.md
-      - Panels: components/panels/panel-canon.md
-      - States: components/states/state-canon.md
+  - Writing libraries:
+      - Perspectives:
+          - Node author: welcome/user/index.md
+          - Workbench extender: welcome/advanced/index.md
+      - Components:
+          - Nodes: components/nodes/node-canon.md
+          - Datatypes: components/datatypes/datatype-canon.md
+          - Adapters: components/adapters/adapter-canon.md
+          - Settings: components/settings/setting-canon.md
+          - Widgets: components/widgets/widget-canon.md
+          - Skins: components/skins/skin-canon.md
+          - Themes: components/themes/theme-canon.md
+          - Editors: components/editors/editor-canon.md
+          - Panels: components/panels/panel-canon.md
+          - States: components/states/state-canon.md
+      - Haybale:
+          - Authoring a haybale: haybale/haybale-canon.md
+          - Metadata flow: haybale/metadata-flow.md
+          - Marketplace: haybale/marketplace/marketplace-canon.md
+          - Marketplace — architecture: haybale/marketplace/haybale-marketplace-arch.md
+          - Curated marketplace: haybale/marketplace/curated-marketplace.md
+      - Guides:
+          - Node roles: guides/node-roles.md
+          - Ports: guides/ports.md
+          - Signals: guides/signals.md
+          - Model catalogs: guides/model-catalogs.md
+          - Graph notices: guides/graph-notices.md
+          - Renaming a library: guides/rename-library.md
+          - Sharing libraries: guides/sharing-libraries.md
+          - Publishing to PyPI: guides/publish-to-pypi.md
 
-  - Haybale:
-      - Authoring a haybale: haybale/haybale-canon.md
-      - Metadata flow: haybale/metadata-flow.md
-      - Marketplace: haybale/marketplace/marketplace-canon.md
-      - Marketplace — architecture: haybale/marketplace/haybale-marketplace-arch.md
-      - Curated marketplace: haybale/marketplace/curated-marketplace.md
-
-  - Guides:
-      - Node roles: guides/node-roles.md
-      - Ports: guides/ports.md
-      - Signals: guides/signals.md
-      - Renaming a library: guides/rename-library.md
-      - Sharing libraries: guides/sharing-libraries.md
-      - Publishing to PyPI: guides/publish-to-pypi.md
-      - Subscribing to marketplaces: guides/subscribing-to-marketplaces.md
-      - Security: guides/security.md
-      - Model catalogs: guides/model-catalogs.md
-      - Graph notices: guides/graph-notices.md
-      - Flow meters: guides/flow-meters.md
-      - Developing Haywire: guides/development.md
-
-  - Workflows:
-      - workflows/index.md
-      - Basics: workflows/basics.md
-      - Library authors:
-          - Create and first share: workflows/create-and-share.md
-          - Share an update: workflows/share-an-update.md
-          - Rename, then share: workflows/rename-then-share.md
-      - Users:
-          - Subscribe and install: workflows/subscribe-and-install.md
-      - Contributors:
-          - A first contribution: workflows/first-contribution.md
-      - Maintainers:
-          - A task with its live check: workflows/task-with-live-check.md
-          - A fork's pull request: workflows/fork-pull-request.md
-          - A change across core and a library: workflows/core-and-library-change.md
-          - A core release: workflows/core-release.md
-          - A library release: workflows/library-release.md
-          - Lead and tasks: workflows/lead-and-tasks.md
-          - A new org library: workflows/new-org-library.md
-          - A developer's workstation: workflows/workstation.md
-
-  - Architecture:
-      - Overview: architecture/overview/overview-arch.md
-      - Design: architecture/design/design-arch.md
-      - Stepper (multi-step flows): architecture/design/stepper-arch.md
-      - Graph: architecture/graph/graph-arch.md
-      - Execution:
-          - Overview: architecture/execution/execution-arch.md
-          - Assembly: architecture/execution/assembly/assembly-arch.md
-          - Edges: architecture/execution/edges/edges-arch.md
-          - Flow: architecture/execution/flow/flow-arch.md
-          - Virtual machine: architecture/execution/virtual-machine/virtual-machine-arch.md
-          - Lazy evaluation: architecture/execution/lazy-evaluation/lazy-evaluation-arch.md
-          - Worker exceptions: architecture/execution/failures/exceptions-arch.md
-          - Callbacks: architecture/execution/callbacks/callbacks-arch.md
-      - Library system: architecture/library-system/library-system-arch.md
-      - Sharing — pipeline: architecture/sharing/share-pipeline-arch.md
-      - Sharing — agent-safe release design: architecture/sharing/agent-safe-release-design.md
-      - Hot-reload: architecture/hot-reload/hot-reload-arch.md
-      - Settings: architecture/settings/settings-arch.md
-      - Session and state: architecture/session-and-state/session-and-state-arch.md
-      - Errors: architecture/errors/errors-arch.md
-      - Volumes: architecture/volumes/volumes-arch.md
-      - Studio:
-          - Overview: architecture/studio/studio-arch.md
-          - App shell: architecture/studio/app-shell/app-shell-arch.md
-          - Workspace: architecture/studio/workspace/workspace-arch.md
-          - Canvas: architecture/studio/canvas/canvas-arch.md
-          - Rendering: architecture/studio/rendering/rendering-arch.md
+  - Developing Haywire:
+      - Start here:
+          - Core perspective: welcome/core/index.md
+          - Setup and commands: guides/development.md
+      - Collaboration:
+          - collaboration/index.md
+          - Basics: collaboration/basics.md
+          - Library authors:
+              - Create and first share: collaboration/create-and-share.md
+              - Share an update: collaboration/share-an-update.md
+              - Rename, then share: collaboration/rename-then-share.md
+          - Users:
+              - Subscribe and install: collaboration/subscribe-and-install.md
+          - Contributors:
+              - A first contribution: collaboration/first-contribution.md
+          - Maintainers:
+              - A task with its live check: collaboration/task-with-live-check.md
+              - A fork's pull request: collaboration/fork-pull-request.md
+              - A change across core and a library: collaboration/core-and-library-change.md
+              - A core release: collaboration/core-release.md
+              - A library release: collaboration/library-release.md
+              - Lead and tasks: collaboration/lead-and-tasks.md
+              - A new org library: collaboration/new-org-library.md
+              - A developer's workstation: collaboration/workstation.md
+      - Architecture:
+          - Overview: architecture/overview/overview-arch.md
+          - Design: architecture/design/design-arch.md
+          - Stepper (multi-step flows): architecture/design/stepper-arch.md
+          - Graph: architecture/graph/graph-arch.md
+          - Execution:
+              - Overview: architecture/execution/execution-arch.md
+              - Assembly: architecture/execution/assembly/assembly-arch.md
+              - Edges: architecture/execution/edges/edges-arch.md
+              - Flow: architecture/execution/flow/flow-arch.md
+              - Virtual machine: architecture/execution/virtual-machine/virtual-machine-arch.md
+              - Lazy evaluation: architecture/execution/lazy-evaluation/lazy-evaluation-arch.md
+              - Worker exceptions: architecture/execution/failures/exceptions-arch.md
+              - Callbacks: architecture/execution/callbacks/callbacks-arch.md
+          - Library system: architecture/library-system/library-system-arch.md
+          - Sharing — pipeline: architecture/sharing/share-pipeline-arch.md
+          - Sharing — agent-safe release design: architecture/sharing/agent-safe-release-design.md
+          - Hot-reload: architecture/hot-reload/hot-reload-arch.md
+          - Settings: architecture/settings/settings-arch.md
+          - Session and state: architecture/session-and-state/session-and-state-arch.md
+          - Errors: architecture/errors/errors-arch.md
+          - Volumes: architecture/volumes/volumes-arch.md
+          - Studio:
+              - Overview: architecture/studio/studio-arch.md
+              - App shell: architecture/studio/app-shell/app-shell-arch.md
+              - Workspace: architecture/studio/workspace/workspace-arch.md
+              - Canvas: architecture/studio/canvas/canvas-arch.md
+              - Rendering: architecture/studio/rendering/rendering-arch.md
 
   - Reference:
       - Index: reference/index.md

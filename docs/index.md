@@ -2,16 +2,19 @@
 
 *This is a placeholder for the docs landing page.*
 
-Pick a perspective:
+Pick what you are here for:
 
-- **[User](welcome/user/index.md)** — writing nodes, types, ports, adapters, settings, widgets
-- **[Advanced](welcome/advanced/index.md)** — editors, panels, themes, skins, states, libraries, haybale packaging
-- **[Core](/welcome/core/index.md)** — system architecture, execution, library system, studio internals
+- **Using Haywire** — building and running graphs in the studio:
+  [subscribing to marketplaces](guides/subscribing-to-marketplaces.md),
+  [security](guides/security.md), [flow meters](guides/flow-meters.md)
+- **Writing libraries** — nodes, types, ports, adapters, settings, widgets, editors,
+  panels, themes, and packaging and sharing a haybale: start as a
+  [node author](welcome/user/index.md) or a [workbench extender](welcome/advanced/index.md)
+- **Developing Haywire** — working on the repositories themselves:
+  [the core perspective](welcome/core/index.md), [setup and commands](guides/development.md),
+  [how people work together](collaboration/index.md), [system internals](architecture/overview/overview-arch.md)
 
-Or browse:
+For everyone:
 
-- **[Components](components/)** — extension-point stories
-- **[Architecture](architecture/)** — system internals
-- **[Reference](reference/)** — glossary, design guide, API
-- **[Archive](archive/)** — foundational historical material (e.g. the original whitepaper)
-
+- **[Reference](reference/index.md)** — glossary, design guide, file formats
+- **[Archive](archive/whitepaper/Haywire_design.md)** — foundational historical material (the original whitepaper)

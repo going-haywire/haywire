@@ -728,7 +728,7 @@ See [guides/signals.md](../guides/signals.md) for authoring patterns; [architect
 
 ## Development workflow *(new — settled, unbuilt)*
 
-How work moves through branches, pull requests, releases and agent sessions. Drawn in [Workflows](../workflows/index.md); the reasons are in ADRs [0086](../adr/0086-the-simple-path-is-the-floor.md) to [0089](../adr/0089-permanent-refs-have-no-bypass-and-agents-clean-up-only-through-finish.md).
+How work moves through branches, pull requests, releases and agent sessions. Drawn in [Collaboration](../collaboration/index.md); the reasons are in ADRs [0086](../adr/0086-the-simple-path-is-the-floor.md) to [0089](../adr/0089-permanent-refs-have-no-bypass-and-agents-clean-up-only-through-finish.md).
 
 | Term | Definition | Aliases to avoid |
 |------|-----------|-----------------|

@@ -10,7 +10,7 @@ see-also:
 
 # Subscribe and install
 
-**For:** users of the studio. None of the other workflows is needed to install a library.
+**For:** users of the studio. None of the other pages is needed to install a library.
 
 ```mermaid
 sequenceDiagram

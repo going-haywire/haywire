@@ -1,7 +1,7 @@
 ---
 status: draft
 doc_template: guide
-scope: The software-development terms the workflow pages use (repository, commit, branch, pull request, CI, release, ruleset, pin, plugin, worktree), in plain words for readers who are not developers
+scope: The software-development terms the Collaboration pages use (repository, commit, branch, pull request, CI, release, ruleset, pin, plugin, worktree), in plain words for readers who are not developers
 see-also:
   - index.md
   - ../reference/glossary.md
@@ -9,7 +9,7 @@ see-also:
 
 # Basics
 
-The ideas behind every workflow page, one at a time, each building on the ones before.
+The ideas behind every page in this section, one at a time, each building on the ones before.
 Plain words first; the folded *Technical detail* boxes are optional. Haywire's own terms
 (task, lead, release PR, dependency floor) are defined in the
 [glossary](../reference/glossary.md).

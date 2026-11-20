@@ -1,16 +1,16 @@
 ---
 status: draft
 doc_template: workflow
-scope: The map of haywire's workflows, ordered along one project's journey from a first project to an organisation library worked on in parallel tasks, with the readers of each workflow
+scope: The map of how people work together on haywire, ordered along one project's journey from a first project to an organisation library worked on in parallel tasks, with the readers of each page
 see-also:
   - basics.md
   - ../reference/glossary.md
 ---
 
-# Workflows
+# Collaboration
 
 How work moves in haywire, from a first project on one computer to a library of the
-going-haywire organisation that several agents work on at once. Each workflow has a page
+going-haywire organisation that several agents work on at once. Each process has a page
 with a sequence diagram (one lane per actor, your decisions numbered ①②③) and a step
 table whose every row links to the place that holds that step's rule or command. The
 pages draw; they restate no rule.
@@ -38,7 +38,7 @@ flowchart TD
     G --> H["8 · several tasks at once"]
 ```
 
-| Stage | What happens | Workflows |
+| Stage | What happens | Pages |
 |---|---|---|
 | 1 · Start a project | `haywire init` creates a project with one library, agent instructions and a dormant publishing workflow | [Create and first share](create-and-share.md) |
 | 2 · Share from your repository | A public `haybale-` name, a repository on any host, then Share; others install from your repository's tag | [Create and first share](create-and-share.md), [Share an update](share-an-update.md), [Rename, then share](rename-then-share.md) |
@@ -55,7 +55,7 @@ and the maintainer's side of it, [A fork's pull request](fork-pull-request.md).
 
 ## By reader
 
-| Reader | Workflows |
+| Reader | Pages |
 |---|---|
 | Users | [Subscribe and install](subscribe-and-install.md) |
 | Library authors | [Create and first share](create-and-share.md), [Share an update](share-an-update.md), [Rename, then share](rename-then-share.md) |
@@ -73,7 +73,7 @@ and [ADR 0088](../adr/0088-a-release-is-the-merge-of-a-release-pr-and-ci-tags-it
 
 | Place | Read by | The one home for |
 |---|---|---|
-| This documentation site | users, authors, contributors, maintainers | how haywire works and how to use it; these workflows |
+| This documentation site | users, authors, contributors, maintainers | how haywire works and how to use it; these pages |
 | [Glossary](../reference/glossary.md) | everyone | what each haywire term means |
 | [Developing Haywire](../guides/development.md) | contributors, agents | every command: setup, checks, tests, builds |
 | [CONTRIBUTING.md](https://github.com/going-haywire/haywire/blob/master/CONTRIBUTING.md) | contributors, maintainers, agents | the process and its rules |

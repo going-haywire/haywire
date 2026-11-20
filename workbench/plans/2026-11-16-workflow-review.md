@@ -620,6 +620,7 @@ changes W8, W10 and W12.
 
    | R11 | Who publishes the libraries a core release unblocks (W8) | **(a)** `/haywire-release` ends with one question from the lead, naming the libraries `release_sweep.py floors --ref vX.Y.Z` reports unblocked: "publish them now?"; on "publish" the lead starts one short release task per library (release PR, merge once green, `finish`) |
    | R12 | A workstation with only some libraries (W13) | **(a)** the W13 page says how to drop the missing libraries from the umbrella's `pyproject.toml` locally before `uv sync`; a generating command only once outside developers use the umbrella |
+   | R13 | "Workflows" reads as haywire's graphs to a studio user (decided 2026-11-20, after the pages) | **(a)** the docs menu is grouped by reader in three tabs, *Using Haywire*, *Writing libraries*, *Developing Haywire*, with Reference and Archive for all; **(a)** the section is *Collaboration*, `docs/collaboration/`, under *Developing Haywire*; **(a)** in this PR. This supersedes R5's and step 2's nav placement *Workflows* after *Guides* and their `docs/workflows/` path |
 
    The W1–W13 review (3c) is in the primer's Part 6. Also found: `mkdocs build --strict`
    fails on the glossary's link to this plan; S7 points it at `docs/workflows/index.md`.
