@@ -4997,7 +4997,7 @@ tool only translates its own way of doing things to it.</p>
 <tbody>
 <tr>
 <td><code>plugins/haywire-dev/orchestrators/&lt;tool&gt;/session.sh</code></td>
-<td>At session start, prints a paragraph for the agent when its tool runs the session (where it runs, how to message the lead), nothing otherwise</td>
+<td>At session start, prints a paragraph for the agent when its tool runs the session (where it runs, how to message the lead), nothing otherwise; lines starting with <code>user:</code> are for you, the developer</td>
 </tr>
 <tr>
 <td><code>plugins/haywire-dev/orchestrators/&lt;tool&gt;/agents.py</code></td>
@@ -5018,7 +5018,11 @@ tool only translates its own way of doing things to it.</p>
 </tbody>
 </table>
 <p>The hook <code>session-place.sh</code> runs every slot's <code>session.sh</code>, and <code>tasks.py</code> every slot's
-<code>agents.py</code>. The <code>haywire-dev</code> plugin carries the slots, so the organisation's libraries
+<code>agents.py</code>. The hook passes a slot's lines to the agent, except those starting with
+<code>user:</code>: it strips the prefix and shows them to the developer at session start (the hook's
+<code>systemMessage</code>), for something only the developer can fix, such as a missing setting. A slot
+that uses them tells the agent the same, so the agent can relay it where the tool does not
+show the message. The <code>haywire-dev</code> plugin carries the slots, so the organisation's libraries
 get them too.</p>
 <h2 id="adding-a-tool">Adding a tool<a class="headerlink" href="#adding-a-tool" title="Permanent link">&para;</a></h2>
 <ol>
