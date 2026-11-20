@@ -200,7 +200,8 @@ them.
    (*Live check*), mark the PR ready: `gh pr ready <n>`. macOS joins the checks.
 2. Ask the user to review, as in *Asking the user for a decision*, with the last live
    check round's table, or why there was none.
-3. Merge only on the user's word ("merge"), and only once the checks are green:
+3. Merge only on the user's word ("merge"), and only once the checks are green. A release
+   PR is merged on "publish" instead, never on "merge" (*Releasing*):
 
    ```sh
    gh pr checks <n> --watch
@@ -269,6 +270,19 @@ them.
    user's word, then watches the merge's run on `master` (step 4) and warns the tasks
    whose PRs now conflict. The task does the cleanup above. Without a lead, the user is
    the lead and the task session does all of it.
+
+## Releasing
+
+A release is its own decision, and its word is **"publish"**: "merge" takes a change
+into the default branch and never merges a release PR. On "publish" the agent prepares the
+release PR and merges it once its checks are green, without asking again. When to ask:
+
+- **Core** releases are batched: the agent asks only when the user starts a release
+  (`/haywire-release`), never after a merge.
+- **A library** usually releases one change at a time: after each merged change the agent
+  asks (*In a library repository*).
+- **After a core release**, the lead asks once whether to publish the libraries it
+  unblocked; on "publish" it starts one short release task per library.
 
 ## Keeping a branch current
 
@@ -435,15 +449,19 @@ plugin, installed once per clone (the library's `CLAUDE.md` says how). What diff
   under `~/.herdr/worktrees` (*Parallel sessions*). There is no `worktree_setup.py`: after
   `git worktree add ../<repo>-<name> -b <kind>/<name> origin/<default branch>`, run
   `uv sync` in the worktree and give its studio a port of its own.
-- **Checks** are the library's own, in its `CLAUDE.md`: `ruff check`, `ruff format
-  --check`, `pytest`, each with `uv run --frozen`.
+- **Checks** are the library's own, in the library
+  [CONTRIBUTING.md](https://github.com/going-haywire/.github/blob/main/CONTRIBUTING.md#checks),
+  each with `uv run --frozen`.
 - **CI** is `ci.yml`, calling the org's `library-ci.yml`: the library's tests against core's
   `master`, Linux on a draft, macOS added once the PR is ready; `nightly.yml` runs the same
   every night. The merge guard wants every check passed, a macOS check among them.
 - **A change that needs unreleased core** raises the library's dependency floor in the same
   commit; CI passes because it runs against core's `master`, and the library is released
   once core is.
-- **Releases** go through a release PR: `uv run --frozen haywire share --bump patch --pr`.
-  Merging it is the user's word; the merge run tags and publishes. Never tag by hand.
+- **Releases** go through a release PR (*Releasing*): after a merged change, run
+  `uv run --frozen haywire share --status`; if it is `READY`, list what is unreleased and ask
+  "publish now, or wait for more?"; if a dependency floor waits for core, say so instead.
+  On "publish": `uv run --frozen haywire share --bump patch --pr`, then merge the release PR
+  once its checks are green. The merge run tags and publishes. Never tag by hand.
 - **`finish` and the task view** run from this skill's folder, as above; they read the
   default branch from the clone (`main` in haybale-stream).

@@ -10,7 +10,7 @@ see-also:
 
 # Developing Haywire
 
-This page is for contributors working on the Haywire repository: setup and every command. How to contribute (forks, issues, pull requests, review) is in [CONTRIBUTING.md](https://github.com/going-haywire/haywire/blob/master/CONTRIBUTING.md). To use Haywire, see the [README](https://github.com/going-haywire/haywire#readme); to author a library, see [Authoring a haybale](../haybale/haybale-canon.md).
+This page is for contributors working on the Haywire repository: setup and every command. How to contribute (forks, issues, pull requests, review) is in [CONTRIBUTING.md](https://github.com/going-haywire/haywire/blob/master/CONTRIBUTING.md). The [Collaboration](../collaboration/index.md) pages draw each process as a diagram. To use Haywire, see the [README](https://github.com/going-haywire/haywire#readme); to author a library, see [Authoring a haybale](../haybale/haybale-canon.md).
 
 ## Repository layout
 

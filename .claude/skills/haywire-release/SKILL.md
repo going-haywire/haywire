@@ -5,11 +5,11 @@ description: >
   CI passed on master, bumps every Tier 1+2 package to a new lockstep version (via
   scripts/bump_version.py), shows a unified diff of every change, then on
   confirmation commits `chore: release vX.Y.Z` on a release branch and opens a PR;
-  the user's "yes" is the word to merge it once its checks pass, and the merge is the
+  the user's "publish" is the word to merge it once its checks pass, and the merge is the
   publish: CI tags the merge commit, publishes, and writes the release notes.
   Starts with a view of what the release would ship (commits, waiting libraries,
   reminders, a proposed version) and ends by reporting the release notes and the
-  libraries the release unblocks. Supports `--dry-run` to
+  libraries the release unblocks, offering to publish them. Supports `--dry-run` to
   preview the flow without committing. Use this skill whenever the user wants
   to cut, ship, publish, release, or version-bump the monorepo. Trigger
   phrases: "/haywire-release", "cut a release", "ship a release", "release
@@ -275,15 +275,16 @@ Tell the user:
 
 **Otherwise (normal invocation)**: ask via `AskUserQuestion`:
 
-> "Apply the bump, commit `chore: release v<NEW_VERSION>` on `release/v<NEW_VERSION>`,
-> and open the release PR? Answering yes also means I merge it once its checks are green,
+> "Publish v<NEW_VERSION>? I apply the bump, commit `chore: release v<NEW_VERSION>` on
+> `release/v<NEW_VERSION>`, open the release PR and merge it once its checks are green,
 > and the merge publishes v<NEW_VERSION>: CI tags the merge commit, publishes to PyPI and
 > deploys the marketstall. You run no command."
 
 Offer three options:
 
-- **Yes, do it.** Proceeds to steps 6–10 (including the Step 6.5 wheel smoke). This
-  answer is the user's word to merge the release PR in Step 7, and so to publish.
+- **Publish.** Proceeds to steps 6–10 (including the Step 6.5 wheel smoke). This
+  answer is the user's word "publish": it merges the release PR in Step 7, and so
+  publishes.
 - **No, abort.** Switch back with `git switch master` and delete the empty branch
   with `git branch -d release/v<NEW_VERSION>`; just stop.
 - **Apply the bump but don't commit/push yet.** Runs
@@ -450,7 +451,7 @@ gh pr checks --watch
 If a check fails, STOP and show the failure: the bump broke something CI catches and
 the local steps did not. Fix it on the release branch and push again.
 
-Once every check is green, merge. The user's "yes" in Step 5 is the word; do not ask
+Once every check is green, merge. The user's "publish" in Step 5 is the word; do not ask
 again. Read the PR's comments first, as in the `haywire-workflow` skill (*Finishing as the
 maintainer*, step 3); a comment from a person is answered before the merge.
 
@@ -517,7 +518,9 @@ uv run python scripts/release_sweep.py reminders --ref v<NEW_VERSION>
 
 The release URL first. Then the libraries `floors` lists as `unblocked`: each now has a
 core release that satisfies its dependency floor, so the library's own release can go
-ahead (the work is in that library's session). Then the reminders: each open one with
+ahead. Ask once: "publish <libraries> now?". On "publish", start one release task per
+library (*Lead and tasks* in the `haywire-workflow` skill), whose brief is the library
+release of *In a library repository*: the release PR, its merge once green, `finish`. Then the reminders: each open one with
 the commit on its `Waits for:` line and `released` (the tag contains it), `waiting`,
 `unknown commit` (not in this clone: `git fetch`) or `no Waits for line` (read the
 issue's body and say what it waits for). Show them as a table with the URLs. Offer, per
@@ -559,7 +562,7 @@ a real release — without any persistent or shared-state action. Rollback is a 
 - Tag or push a tag. CI tags the merge commit (Step 8); a tag push from here is
   blocked by the local `block-dangerous-git.sh` hook, and a tag pushed by hand is the
   user's recovery. Pushing the release branch is allowed.
-- Merge without the user's "yes" (Step 5) and a green PR.
+- Merge without the user's "publish" (Step 5) and a green PR.
 - Run the test suite. `master` only holds commits whose CI passed, and Step 2 checks
   that result; the release PR's checks cover the bump.
 - Force-push or delete tags or branches. If a tag exists at the target version the

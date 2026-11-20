@@ -30,6 +30,6 @@ level: architectural
 **Consequences.**
 
 - Tag and publish are one run and one workflow file; a split would need a credential that can start further runs.
-- The merge of a release PR is the point of no return and is the user's word.
+- The merge of a release PR is the point of no return and is the user's word: "publish", which an agent never takes from a "merge".
 - Every release is a GitHub Release with generated notes.
 - A failed publish after the merge leaves a merged bump without a release; the run is re-run or fixed forward.

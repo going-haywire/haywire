@@ -728,13 +728,13 @@ See [guides/signals.md](../guides/signals.md) for authoring patterns; [architect
 
 ## Development workflow *(new — settled, unbuilt)*
 
-How work moves through branches, pull requests, releases and agent sessions. Decided in [workbench/plans/2026-11-16-workflow-review.md](../../workbench/plans/2026-11-16-workflow-review.md); the reasons are in ADRs [0086](../adr/0086-the-simple-path-is-the-floor.md) to [0089](../adr/0089-permanent-refs-have-no-bypass-and-agents-clean-up-only-through-finish.md).
+How work moves through branches, pull requests, releases and agent sessions. Drawn in [Collaboration](../collaboration/index.md); the reasons are in ADRs [0086](../adr/0086-the-simple-path-is-the-floor.md) to [0089](../adr/0089-permanent-refs-have-no-bypass-and-agents-clean-up-only-through-finish.md).
 
 | Term | Definition | Aliases to avoid |
 |------|-----------|-----------------|
 | **Release** | A published version of one repository's packages: a tag and what it publishes (PyPI, a marketstall). | — |
 | **Share** | Releasing a project's libraries with `haywire share` or the Share wizard; a share produces a **Release**. | publish (for this act) |
-| **Release PR** | A PR holding only a release's version bump and generated files; merging it publishes the release. | release branch (that is its branch) |
+| **Release PR** | A PR holding only a release's version bump and generated files; merging it publishes the release. It is merged on the maintainer's word "publish", never on "merge". | release branch (that is its branch) |
 | **Waiting library** | An org library whose master carries a **Dependency floor** above the latest core release. | blocked library |
 | **Simple path** | `haywire init` → work → a repository on a host → the Share wizard, needing only git and a host account. Nothing added to the product may break it. | beginner flow |
 | **Task** | One piece of work on one branch, in its own worktree, with its own agent session; named by its branch. | stream, work stream |
