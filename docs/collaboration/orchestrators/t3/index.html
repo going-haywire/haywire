@@ -5085,7 +5085,9 @@ use it is in the workflow skill's
 <li>Add the repository's main folder as a T3 project. T3 reads
    <a href="https://github.com/going-haywire/haywire/blob/master/t3.json"><code>t3.json</code></a> at its root
    and applies its settings, but runs no script from it until it is imported. Import all
-   three once, in <em>Project settings → Import scripts → Import from t3.json</em>; the scripts menu
+   three once, in <em>Project settings → Actions → Import scripts → Import from t3.json</em>; the
+   <em>Import scripts</em> button shows only while some <code>t3.json</code> script is not imported yet. The
+   agent can import them for you with <code>t3_project_update</code>, on your yes. The scripts menu
    then lists them as <em>From t3.json</em>:</li>
 <li><strong>Worktree setup</strong> runs <code>python3 scripts/worktree_setup.py</code> when T3 creates a
      worktree, before the agent starts.</li>
