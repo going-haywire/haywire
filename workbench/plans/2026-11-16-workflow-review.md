@@ -793,10 +793,33 @@ Decision Q14. After S2–S5 exist.
    [t3-cleanup]: https://github.com/pingdotgg/t3code/blob/main/docs/user/project-settings.md#storage-cleanup
    [t3-mcp]: https://github.com/pingdotgg/t3code/blob/main/docs/orchestration-v2/orchestrator-mcp-server.md
 
-3. **(user)** Decide the lead layer: T3 Code, or a minimal own lead (14C) built on S3.
-   With T3: a T3 branch in `session-place.sh` (or none, if T3's own context suffices), a
-   T3 variant of the skill's *Lead and tasks* and *Parallel sessions*, the `finish` →
-   remove worktree → settle order, and W11's page.
+3. **(user)** Decide the lead layer. **Decided 2026-11-20: T3 Code**, the user's own lead
+   layer from now on; other developers may bring other tools, so the repository stays
+   orchestrator-neutral through a slot per tool (decision A):
+   - **The contract.** A task has four events, each with one neutral part that every tool
+     only translates to: *created* → `worktree_setup.py`; *view* → `tasks.py`; *message the
+     lead* → the skill's report rule; *merged* → `finish.py`.
+   - **The folders.** `plugins/haywire-dev/orchestrators/<tool>/session.sh` (optional
+     session-start context); `hooks/session-place.sh` only dispatches to the running tool's
+     `session.sh`; `skills/haywire-workflow/SKILL.md` holds the neutral lead and task
+     contract and `skills/haywire-workflow/orchestrators/<tool>.md` the agent's how-to;
+     `docs/collaboration/orchestrators/index.md` (the contract, the tools) and `<tool>.md`
+     (a person's setup); a file a tool requires at the repository root (`t3.json`) stays
+     thin.
+   - **The rules.** Every tool is optional and contributors need none; a tool's files
+     only translate events to the neutral scripts, logic goes into those; adding a tool
+     touches no neutral part; the plugin carries all but root files, so libraries get it
+     (a library's `t3.json` comes from the template, #153).
+   - **T3, the first entry.** `t3.json`: setup on worktree creation with `async: false`,
+     the settle script (`finish` from the main folder). The lead re-settles a task thread
+     after its merge (decided 2-A: a thread can settle before its PR merges). Library
+     tasks: the lead creates the worktree beside the repositories and binds the thread
+     (`existing_worktree`). The user's T3 settings: *Delete merged worktrees* on, *Keep
+     worktrees with local changes* on *Uncommitted changes*, branch naming by the model's
+     semantic prefix.
+   - **herdr, the second entry.** Today's herdr text, `session-place.sh` and `tasks.py`'s
+     agent column move into its slot.
+   - An ADR records the slot, then W11 and the skill follow.
 4. Mark S8 done.
 
 ## Open design points
