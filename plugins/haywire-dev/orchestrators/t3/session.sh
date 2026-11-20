@@ -15,7 +15,7 @@ missing=()
 dirs=$(git -C "$dir" rev-parse --path-format=absolute --git-dir --git-common-dir 2>/dev/null)
 if [ -n "$dirs" ] && [ "$(sed -n 1p <<<"$dirs")" != "$(sed -n 2p <<<"$dirs")" ]; then
   if [ ! -d "$dir/.venv" ] || ! jq -e '.network.port.value | type == "number"' "$dir/.haywire/settings.json" >/dev/null 2>&1; then
-    missing+=("the t3.json scripts are not imported, so the worktree setup did not run: *Project settings → Import scripts → Import from t3.json*, both scripts; then run \`python3 scripts/worktree_setup.py\` in this worktree now")
+    missing+=("the t3.json scripts are not imported, so the worktree setup did not run: import all three, *Haywire studio* optional (one click starts this worktree's studio), either yourself in *Project settings → Actions → Import scripts → Import from t3.json*, or the agent offers to do it with \`t3_project_update\` (read the project first, append only the missing scripts) and does so only on your yes; then run \`python3 scripts/worktree_setup.py\` in this worktree now")
   fi
 fi
 
