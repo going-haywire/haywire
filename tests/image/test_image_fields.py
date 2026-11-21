@@ -8,7 +8,7 @@ from haywire.barn.builtin.types import CARRIER, FLOAT
 
 from haybale_image.io.codecs import EncodeOptions, encode_image
 from haybale_image.io.formats import Format
-from haybale_image.types.image import IMAGE, IMAGE_GRAY, IMAGE_RGB, IMAGE_RGBA
+from haybale_image.types.image import IMAGE, GRAY_IMAGE, RGB_IMAGE, RGBA_IMAGE
 from haybale_image.value import ImageMetadata, ImageValue, Layout, convert_layout
 
 pytestmark = pytest.mark.unit
@@ -75,7 +75,7 @@ def test_describe_lists_icc_and_exif_sizes():
     assert both.describe() == {"icc": "3 bytes", "exif": "1 bytes"}
 
 
-@pytest.mark.parametrize("image_type", [IMAGE, IMAGE_GRAY, IMAGE_RGB, IMAGE_RGBA])
+@pytest.mark.parametrize("image_type", [IMAGE, GRAY_IMAGE, RGB_IMAGE, RGBA_IMAGE])
 def test_image_types_are_visible_carriers_with_unchanged_keys(image_type):
     assert issubclass(image_type, CARRIER)
     assert image_type.element_type_cls is ImageValue
@@ -83,7 +83,7 @@ def test_image_types_are_visible_carriers_with_unchanged_keys(image_type):
     assert image_type.class_identity.registry_key == f"haybale-image:type:{image_type.__name__}"
 
 
-@pytest.mark.parametrize(("image_type", "layout"), [(IMAGE, Layout.GRAY), (IMAGE_RGB, Layout.RGB)])
+@pytest.mark.parametrize(("image_type", "layout"), [(IMAGE, Layout.GRAY), (RGB_IMAGE, Layout.RGB)])
 def test_a_new_field_starts_as_the_empty_image_of_its_layout(image_type, layout):
     value = image_type.create_field().get_value()
     assert isinstance(value, ImageValue)

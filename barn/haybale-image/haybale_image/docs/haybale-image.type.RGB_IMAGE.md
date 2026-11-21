@@ -1,6 +1,6 @@
-# RGB image
+# RGB Image
 
-`haybale-image:type:IMAGE_RGB` · kind: type
+`haybale-image:type:RGB_IMAGE` · kind: type
 
 A three-channel picture.
 

@@ -4,7 +4,7 @@ from typing_extensions import override
 
 from haywire.api import BaseAdapter, adapter
 
-from haybale_image.types.image import IMAGE, IMAGE_GRAY, IMAGE_RGB, IMAGE_RGBA
+from haybale_image.types.image import IMAGE, GRAY_IMAGE, RGB_IMAGE, RGBA_IMAGE
 from haybale_image.value import ImageValue, Layout, convert_layout
 
 
@@ -15,7 +15,7 @@ def _sample(layout: Layout) -> ImageValue:
     return ImageValue.from_array(np.zeros((2, 2, *channels), dtype=np.uint8))
 
 
-@adapter(description="Convert an image to gray", converts_from=IMAGE, converts_to=IMAGE_GRAY)
+@adapter(description="Convert an image to gray", converts_from=IMAGE, converts_to=GRAY_IMAGE)
 class ImageToGrayAdapter(BaseAdapter):
     """Convert an image to one gray channel (luma of the colour channels)."""
 
@@ -27,7 +27,7 @@ class ImageToGrayAdapter(BaseAdapter):
         return _sample(Layout.RGB)
 
 
-@adapter(description="Convert an image to RGB", converts_from=IMAGE, converts_to=IMAGE_RGB)
+@adapter(description="Convert an image to RGB", converts_from=IMAGE, converts_to=RGB_IMAGE)
 class ImageToRgbAdapter(BaseAdapter):
     """Convert an image to three colour channels, dropping transparency or repeating gray."""
 
@@ -39,7 +39,7 @@ class ImageToRgbAdapter(BaseAdapter):
         return _sample(Layout.GRAY)
 
 
-@adapter(description="Convert an image to RGBA", converts_from=IMAGE, converts_to=IMAGE_RGBA)
+@adapter(description="Convert an image to RGBA", converts_from=IMAGE, converts_to=RGBA_IMAGE)
 class ImageToRgbaAdapter(BaseAdapter):
     """Convert an image to colour plus transparency, fully opaque when it had none."""
 

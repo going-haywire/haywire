@@ -3,8 +3,8 @@
 import json
 
 import pytest
-from haybale_image.types.depth import DEPTH
-from haybale_image.types.image import IMAGE_GRAY, IMAGE_RGB
+from haybale_image.types.depth import DEPTH_BUFFER
+from haybale_image.types.image import GRAY_IMAGE, RGB_IMAGE
 from haybale_testing.types.test_types import TEST_FLOAT, TEST_INT
 
 from haywire.barn.builtin.nodes.metadata import MetadataNode
@@ -142,8 +142,8 @@ def test_the_pin_menu_cannot_remove_a_field_pin(setup):
 
 
 def _sources(source):
-    source.node.add(IMAGE_RGB.as_outlet("rgb_out"))
-    source.node.add(IMAGE_GRAY.as_outlet("gray_out"))
+    source.node.add(RGB_IMAGE.as_outlet("rgb_out"))
+    source.node.add(GRAY_IMAGE.as_outlet("gray_out"))
     source.node.add(BUNDLE.as_outlet("bundle_out"))
 
 
@@ -151,11 +151,11 @@ def test_carrier_outlet_follows_the_source(setup):
     graph, _, _, meta, source = setup
     _sources(source)
     sink = _make_link_node(graph, (600, 0))
-    sink.node.add(IMAGE_RGB.as_inlet("rgb_in"))
+    sink.node.add(RGB_IMAGE.as_inlet("rgb_in"))
 
     first = graph.create_edge_wrapper(source.node_id, "rgb_out", meta.node_id, "carrier_inlet")
     _validate(graph)
-    assert meta.node.ports["carrier_outlet"].type_cls is IMAGE_RGB
+    assert meta.node.ports["carrier_outlet"].type_cls is RGB_IMAGE
     assert meta.node.ports["carrier_inlet"].type_cls.__name__ == "CARRIER"
 
     downstream = graph.create_edge_wrapper(meta.node_id, "carrier_outlet", sink.node_id, "rgb_in")
@@ -164,11 +164,11 @@ def test_carrier_outlet_follows_the_source(setup):
 
     graph.remove_edge_wrapper(first.edge_id)
     _validate(graph)
-    assert meta.node.ports["carrier_outlet"].type_cls is IMAGE_RGB
+    assert meta.node.ports["carrier_outlet"].type_cls is RGB_IMAGE
 
     graph.create_edge_wrapper(source.node_id, "gray_out", meta.node_id, "carrier_inlet")
     _validate(graph)
-    assert meta.node.ports["carrier_outlet"].type_cls is IMAGE_GRAY
+    assert meta.node.ports["carrier_outlet"].type_cls is GRAY_IMAGE
     assert downstream.is_functional()
 
 
@@ -320,16 +320,16 @@ def test_a_retype_travels_down_a_chain_of_metadata_nodes(setup):
     _validate(graph)
     graph.create_edge_wrapper(source.node_id, "rgb_out", first.node_id, "carrier_inlet")
     _validate(graph)
-    assert second.node.ports["carrier_outlet"].type_cls is IMAGE_RGB
+    assert second.node.ports["carrier_outlet"].type_cls is RGB_IMAGE
 
 
 def test_swapping_the_source_refuses_what_a_chain_can_no_longer_deliver(setup):
     graph, _, _, first, source = setup
     _sources(source)
-    source.node.add(DEPTH.as_outlet("depth_out"))
+    source.node.add(DEPTH_BUFFER.as_outlet("depth_out"))
     second = _metadata(graph, (600, 0))
     sink = _make_link_node(graph, (900, 0))
-    sink.node.add(IMAGE_RGB.as_inlet("rgb_in"))
+    sink.node.add(RGB_IMAGE.as_inlet("rgb_in"))
     edge = graph.create_edge_wrapper(source.node_id, "rgb_out", first.node_id, "carrier_inlet")
     graph.create_edge_wrapper(first.node_id, "carrier_outlet", second.node_id, "carrier_inlet")
     end = graph.create_edge_wrapper(second.node_id, "carrier_outlet", sink.node_id, "rgb_in")
@@ -338,7 +338,7 @@ def test_swapping_the_source_refuses_what_a_chain_can_no_longer_deliver(setup):
     graph.remove_edge_wrapper(edge.edge_id)
     graph.create_edge_wrapper(source.node_id, "depth_out", first.node_id, "carrier_inlet")
     _validate(graph)
-    assert second.node.ports["carrier_outlet"].type_cls is DEPTH
+    assert second.node.ports["carrier_outlet"].type_cls is DEPTH_BUFFER
     assert not end.is_functional()
 
 
