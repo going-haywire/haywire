@@ -1,6 +1,6 @@
 # Control Switch
 
-`haybale-core:node:ControlSwitch` · kind: node
+`haybale-core:node:ControlSwitchNode` · kind: node
 
 Switches control flow based on condition
 

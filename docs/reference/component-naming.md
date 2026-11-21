@@ -93,5 +93,5 @@ N1 compares letters only, so it lets `MidiSendNode` / "MIDI Send" pass; X1 and
 the word-order rules (N2–N6, T2–T4) are for review. A line reads:
 
 ```text
-haybale-core:node:ControlSwitch: naming: N1 class `ControlSwitch` does not end in `Node`
+haywire-core:node:GraphNode: naming: N1 class `GraphNode` is not its label 'Group' + `Node`
 ```

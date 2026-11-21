@@ -307,8 +307,8 @@ class TestEdges:
         ARRAY[TEST_BOOL] outlet → pooled ARRAY[TEST_STRING] inlet should
         require an ArrayArrayAdapter wrapping a scalar chain.
 
-        Since pooled_array_string_inlet stores ArrayType[TEST_STRING],
-        and the outlet is ArrayType[TEST_BOOL], adapter chain should have
+        Since pooled_array_string_inlet stores ARRAY[TEST_STRING],
+        and the outlet is ARRAY[TEST_BOOL], adapter chain should have
         the ArrayArrayAdapter + element adapters.
         """
         graph = graph_with_library_system

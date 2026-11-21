@@ -79,7 +79,7 @@ class ForEachFileNode(BaseNode):
     progress = bag(ForEachProgress)
 
     def init(self) -> None:
-        from haybale_core.types import ArrayType
+        from haybale_core.types import ARRAY
 
         self.add(
             EXEC.as_inlet("execute", label="Execute", description="Starts the loop over the folder's files")
@@ -116,9 +116,7 @@ class ForEachFileNode(BaseNode):
             )
         )
         self.add(
-            ArrayType[FILE_PATH].as_outlet(
-                "failed", label="Failed", description="Files whose iteration failed"
-            )
+            ARRAY[FILE_PATH].as_outlet("failed", label="Failed", description="Files whose iteration failed")
         )
 
         # Completed outlet - executes when loop finishes

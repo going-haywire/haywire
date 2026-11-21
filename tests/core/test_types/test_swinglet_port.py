@@ -56,10 +56,10 @@ def test_as_swinglet_defaults():
 
 @pytest.mark.unit
 def test_a_pooled_type_refuses_a_swinglet():
-    from haybale_core.types import PooledType
+    from haybale_core.types import POOLED
 
-    with pytest.raises(ValueError, match="PooledType"):
-        PooledType[FLOAT].as_swinglet("s")  # type: ignore[valid-type]
+    with pytest.raises(ValueError, match="POOLED"):
+        POOLED[FLOAT].as_swinglet("s")  # type: ignore[valid-type]
 
 
 @pytest.mark.integration

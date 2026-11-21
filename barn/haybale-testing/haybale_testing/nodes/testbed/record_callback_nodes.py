@@ -41,11 +41,11 @@ class TestRecordEmitNode(BaseNode):
     """Test-only emitter collecting `TEST_RECORD_CALLBACK` subscriptions in a pooled inlet."""
 
     def init(self):
-        from haybale_core.types import PooledType
+        from haybale_core.types import POOLED
         from haybale_testing.types import TEST_RECORD_CALLBACK
 
         self.add(EXEC.as_inlet("execute", label="Execute"))
-        self.add(PooledType[TEST_RECORD_CALLBACK].as_inlet("subscriptions", label="Trigger"))
+        self.add(POOLED[TEST_RECORD_CALLBACK].as_inlet("subscriptions", label="Trigger"))
         self.add(EXEC.as_outlet("exec", label="Then"))
 
     def worker(self, context: ExecutionContext) -> str | None:

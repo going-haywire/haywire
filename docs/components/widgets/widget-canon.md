@@ -212,11 +212,11 @@ This doesn't breach the stamped-widget contract of [ADR 0017](../../adr/0017-wid
 
 ### Delegating per item: `ArrayWidget`
 
-`ArrayWidget` (haybale-core) is the list counterpart of `OptionalWidget`: it edits an `ArrayType[T]` value with one row per item, and each row is the item type's own declared widget. It is **opt-in**. `ArrayType` declares no `widget_key`, so a port or setting names it:
+`ArrayWidget` (haybale-core) is the list counterpart of `OptionalWidget`: it edits an `ARRAY[T]` value with one row per item, and each row is the item type's own declared widget. It is **opt-in**. `ARRAY` declares no `widget_key`, so a port or setting names it:
 
 ```python
-options = setting[ArrayType[STRING]](["One", "Two", "Three"], label="Options", widget=ArrayWidget.config())
-self.add(ArrayType[FLOAT].as_inlet("weights", default={"value": [1.0]}, widget=ArrayWidget.config()))
+options = setting[ARRAY[STRING]](["One", "Two", "Three"], label="Options", widget=ArrayWidget.config())
+self.add(ARRAY[FLOAT].as_inlet("weights", default={"value": [1.0]}, widget=ArrayWidget.config()))
 ```
 
 A compound port's `default` is constructor kwargs (`{"value": [...]}`); a setting's default is the plain list.

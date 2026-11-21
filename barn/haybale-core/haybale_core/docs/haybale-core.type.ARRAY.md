@@ -1,6 +1,6 @@
 # Array
 
-`haybale-core:type:ArrayType` · kind: type
+`haybale-core:type:ARRAY` · kind: type
 
 Homogeneous typed array
 
@@ -18,16 +18,16 @@ All elements must be the same type (or compatible via adapters).
 
 Usage:
     # Array of floats
-    ArrayType[FLOAT].as_inlet(id='numbers', default={'value': [1.0, 2.0, 3.0]})
+    ARRAY[FLOAT].as_inlet(id='numbers', default={'value': [1.0, 2.0, 3.0]})
 
     # Array of meshes
-    ArrayType[MeshData].as_outlet(id='meshes')
+    ARRAY[MeshData].as_outlet(id='meshes')
 
 Storage: ArrayField stores List[T] with unwrapped elements
 Transfer: List of unwrapped values (primitives or instances)
 
 IMPORTANT:
-ArrayType declares no wire type, so it travels on its element type's; a declared one would take
+ARRAY declares no wire type, so it travels on its element type's; a declared one would take
 precedence (see wire_type_of).
 
 Hooks: Uses default implementations from IType

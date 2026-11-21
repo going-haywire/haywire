@@ -22,7 +22,7 @@ Example library for demonstrating multi-library support
 - **Temperature** — Temperature data types
 
 ## Adapters
-- **MapsString to Array** — Transform MapsString elements (MapsStringType[str, X] → ArrayType[Y])
+- **MapsString to Array** — Transform MapsString elements (MapsStringType[str, X] → ARRAY[Y])
 
 ## Widgets
 - **FillWidget** — Background fill editor (solid / linear / radial)

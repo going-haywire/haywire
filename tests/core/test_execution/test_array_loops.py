@@ -157,7 +157,7 @@ class _Loop:
     """BeginPlay → List Files → Loop Array; body, completed and stopped → sinks."""
 
     def __init__(self, graph: Any):
-        self.begin = _add(graph, "haybale_core.nodes.events.begin_play", "BeginPlayNode")
+        self.begin = _add(graph, "haybale_core.nodes.events.begin_play_event", "BeginPlayEventNode")
         self.lister = _list_files(graph)
         self.loop = _add(graph, "haybale_core.nodes.loop_array", "LoopArrayNode")
         self.body, self.after, self.halt = _add(graph, *SINK), _add(graph, *SINK), _add(graph, *SINK)
@@ -185,12 +185,12 @@ class _Loop:
 
 
 def test_loop_array_takes_its_types_from_the_wired_array(graph_with_library_system, scans):
-    from haybale_core.types import ArrayType
+    from haybale_core.types import ARRAY
     from haywire.barn.builtin.types import FILE_PATH
 
     loop = _Loop(graph_with_library_system).loop
 
-    assert issubclass(loop.ports["array"].type_cls, ArrayType)
+    assert issubclass(loop.ports["array"].type_cls, ARRAY)
     assert loop.ports["array"].type_cls.element_type_cls is FILE_PATH
     assert loop.ports["item"].type_cls is FILE_PATH
     assert loop.ports["failed"].type_cls.element_type_cls is FILE_PATH
@@ -268,7 +268,7 @@ def test_loop_array_stop_ends_through_stopped(graph_with_library_system, scans):
 
 def test_loop_array_without_an_array_completes(graph_with_library_system):
     graph = graph_with_library_system
-    begin = _add(graph, "haybale_core.nodes.events.begin_play", "BeginPlayNode")
+    begin = _add(graph, "haybale_core.nodes.events.begin_play_event", "BeginPlayEventNode")
     loop = _add(graph, "haybale_core.nodes.loop_array", "LoopArrayNode")
     body, after = _add(graph, *SINK), _add(graph, *SINK)
     _edge(graph, begin, "exec", loop, "execute")
@@ -290,7 +290,7 @@ class _Steps:
     """BeginPlay → List Files → Step Array.Start; Tick Event → Next; step and completed → sinks."""
 
     def __init__(self, graph: Any, mode: str):
-        self.begin = _add(graph, "haybale_core.nodes.events.begin_play", "BeginPlayNode")
+        self.begin = _add(graph, "haybale_core.nodes.events.begin_play_event", "BeginPlayEventNode")
         self.tick = _add(graph, "haybale_core.nodes.events.tick_event", "TickEventNode")
         self.lister = _list_files(graph)
         self.steps = _add(graph, "haybale_core.nodes.step_array", "StepArrayNode")
@@ -357,7 +357,7 @@ def test_step_array_next_before_start_does_nothing(graph_with_library_system, sc
 
 def test_step_array_stop_forgets_the_array(graph_with_library_system, scans):
     s = _Steps(graph_with_library_system, "loop")
-    halt = _add(graph_with_library_system, "haybale_core.nodes.events.shutdown", "ShutdownNode")
+    halt = _add(graph_with_library_system, "haybale_core.nodes.events.shutdown_event", "ShutdownEventNode")
     _edge(graph_with_library_system, halt, "exec", s.steps, "stop")
     run = _Runner(graph_with_library_system)
     run.fire(s.begin)

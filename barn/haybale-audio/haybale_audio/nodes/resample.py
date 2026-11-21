@@ -89,7 +89,7 @@ class ResampleNode(BaseNode):
     resample = bag(ResampleSettings)
 
     def init(self) -> None:
-        from haybale_core.types import PooledType
+        from haybale_core.types import POOLED
         from haybale_audio.types.audio import AUDIO
         from haybale_audio.types.callback import AUDIO_CALLBACK
         from haybale_audio.types.audio_exec import AUDIO_EXEC
@@ -97,7 +97,7 @@ class ResampleNode(BaseNode):
         self.add(AUDIO_EXEC.as_inlet("write", label="Write"))
         self.add(AUDIO.as_inlet("audio", label="Audio", description="Block to convert"))
         self.add(
-            PooledType[AUDIO_CALLBACK].as_inlet(
+            POOLED[AUDIO_CALLBACK].as_inlet(
                 "callbacks", label="Subscribers", description="Connect to an Audio Event node."
             )
         )

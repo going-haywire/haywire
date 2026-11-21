@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from haybale_core.nodes.widgets.base import WidgetNode
+from haybale_core.nodes.widgets.base import BaseWidgetNode
 from haywire.api import FLOAT, INT, NUMBER_WIDGET, OPTIONAL, NodeSettings, NodeType, node, setting
 
 
@@ -13,7 +13,7 @@ from haywire.api import FLOAT, INT, NUMBER_WIDGET, OPTIONAL, NodeSettings, NodeT
     search_tags=["float", "number", "value", "widget", "control", "stage"],
     node_type=NodeType.DATA,
 )
-class FloatNumberNode(WidgetNode):
+class FloatNumberNode(BaseWidgetNode):
     """A number box that sends a decimal number: drag it, or click and type.
 
     A value arriving at *In* shows in the box and is sent on. Last write wins, so a
@@ -45,7 +45,7 @@ class FloatNumberNode(WidgetNode):
     search_tags=["int", "integer", "number", "value", "widget", "control", "stage"],
     node_type=NodeType.DATA,
 )
-class IntNumberNode(WidgetNode):
+class IntNumberNode(BaseWidgetNode):
     """A number box that sends a whole number: drag it, or click and type.
 
     A value arriving at *In* shows in the box and is sent on. Last write wins, so a

@@ -144,10 +144,10 @@ def test_stop_while_held_for_reassembly_skips_shutdown_grace(
     graph_with_library_system: BaseGraph, library_system
 ):
     """A Shutdown flow cannot run on a stale assembly, so stop does not wait for it."""
-    from haybale_core.nodes.events.shutdown import ShutdownNode
+    from haybale_core.nodes.events.shutdown_event import ShutdownEventNode
 
     rig = _Rig(graph_with_library_system, timer=False)
-    make_node(rig.graph, ShutdownNode.class_identity.registry_key, position=(0, 300))
+    make_node(rig.graph, ShutdownEventNode.class_identity.registry_key, position=(0, 300))
     rig.interpreter.load_graph(rig.graph)
     rig.graph._validation.adopt_scheduler(ThreadingTimerScheduler())
     rig.interpreter.start_execution()

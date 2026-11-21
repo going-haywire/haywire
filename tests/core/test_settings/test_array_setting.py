@@ -1,4 +1,4 @@
-"""``setting[ArrayType[T]]`` — a setting that holds a list.
+"""``setting[ARRAY[T]]`` — a setting that holds a list.
 
 Pins the paths a list setting shares with every other setting: the cell, the
 node's save/load, reset, promotion to each direction, a graph round trip, an
@@ -76,13 +76,13 @@ def test_a_default_list_saves_no_value(graph_with_library_system):
 
 
 def test_a_promoted_list_port_carries_the_array_type(graph_with_library_system):
-    from haybale_core.types import ArrayType
+    from haybale_core.types import ARRAY
 
     node = _node(graph_with_library_system).node
     pid = _promote(node, "example_string_list", PortType.INLET)
 
     port = node.ports[pid]
-    assert port.type_cls is ArrayType[STRING]
+    assert port.type_cls is ARRAY[STRING]
     assert port._data is node.example._cell_for(_desc(node, "example_string_list"))
     assert port.get_value() == DEFAULT_STRINGS
 

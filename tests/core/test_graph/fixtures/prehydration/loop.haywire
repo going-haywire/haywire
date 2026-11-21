@@ -9,7 +9,7 @@
   "nodes": {
     "BeginPlayNode_8d7335c8": {
       "node_id": "BeginPlayNode_8d7335c8",
-      "registry_key": "haybale-core:node:BeginPlayNode",
+      "registry_key": "haybale-core:node:BeginPlayEventNode",
       "position": [
         936.7521107244153,
         1050.2518374418269
@@ -90,14 +90,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "BeginPlayNode",
-          "registry_key": "haybale-core:node:BeginPlayNode",
+          "registry_id": "BeginPlayEventNode",
+          "registry_key": "haybale-core:node:BeginPlayEventNode",
           "label": "Begin Player",
           "description": "Triggered once when execution starts",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "BeginPlayNode",
-          "module": "haybale_core.nodes.events.begin_play",
+          "class_name": "BeginPlayEventNode",
+          "module": "haybale_core.nodes.events.begin_play_event",
           "search_tags": [
             "start",
             "init",
@@ -213,11 +213,11 @@
           },
           "callback_names": {
             "kwargs": {
-              "registry_id": "PooledType",
-              "registry_key": "haybale-core:type:PooledType",
+              "registry_id": "POOLED",
+              "registry_key": "haybale-core:type:POOLED",
               "label": "Trigger",
               "description": "Multi-source aggregation",
-              "class_name": "PooledType",
+              "class_name": "POOLED",
               "module": "haybale_core.types.pooled_type",
               "flow_type": "callback",
               "default": {
@@ -231,7 +231,7 @@
               "order": 3
             },
             "recipe": {
-              "registry_key": "haybale-core:type:PooledType",
+              "registry_key": "haybale-core:type:POOLED",
               "element_type": {
                 "registry_key": "haywire-core:type:CALLBACK"
               }
@@ -752,7 +752,7 @@
     },
     "ControlSwitch_48a0d650": {
       "node_id": "ControlSwitch_48a0d650",
-      "registry_key": "haybale-core:node:ControlSwitch",
+      "registry_key": "haybale-core:node:ControlSwitchNode",
       "position": [
         1983.0960756684008,
         1251.7767038314423
@@ -1005,14 +1005,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "ControlSwitch",
-          "registry_key": "haybale-core:node:ControlSwitch",
+          "registry_id": "ControlSwitchNode",
+          "registry_key": "haybale-core:node:ControlSwitchNode",
           "label": "Control Switch",
           "description": "Switches control flow based on condition",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "ControlSwitch",
-          "module": "haybale_core.nodes.switch",
+          "class_name": "ControlSwitchNode",
+          "module": "haybale_core.nodes.control_switch",
           "search_tags": [
             "switch",
             "control",
@@ -1225,7 +1225,7 @@
     },
     "ShutdownNode_0fb7bb57": {
       "node_id": "ShutdownNode_0fb7bb57",
-      "registry_key": "haybale-core:node:ShutdownNode",
+      "registry_key": "haybale-core:node:ShutdownEventNode",
       "position": [
         930.0919174880954,
         1218.0529496758252
@@ -1306,14 +1306,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "ShutdownNode",
-          "registry_key": "haybale-core:node:ShutdownNode",
+          "registry_id": "ShutdownEventNode",
+          "registry_key": "haybale-core:node:ShutdownEventNode",
           "label": "Shutdown",
           "description": "Triggered when execution is shutting down",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "ShutdownNode",
-          "module": "haybale_core.nodes.events.shutdown",
+          "class_name": "ShutdownEventNode",
+          "module": "haybale_core.nodes.events.shutdown_event",
           "search_tags": [
             "stop",
             "end",

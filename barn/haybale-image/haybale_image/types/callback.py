@@ -18,7 +18,7 @@ class CALLBACK_IMAGE(BaseType):
 
     A `BaseType` on `CallbackWire`, deliberately not a subclass of the core `CALLBACK`
     (or of any other callback type): only an emitter whose pooled inlet is
-    `PooledType[CALLBACK_IMAGE]` connects to an Image Event node.
+    `POOLED[CALLBACK_IMAGE]` connects to an Image Event node.
 
     The emitter's payload for each image:
     `{"image": ImageValue, "timestamp": float, "frame_number": int}`.

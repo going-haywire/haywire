@@ -1,6 +1,6 @@
 # Pooled
 
-`haybale-core:type:PooledType` · kind: type
+`haybale-core:type:POOLED` · kind: type
 
 Multi-source aggregation
 
@@ -18,10 +18,10 @@ and aggregate their values into a dictionary keyed by source ID.
 
 Usage:
     # Pooled floats
-    PooledType[FLOAT].as_inlet(id='values')
+    POOLED[FLOAT].as_inlet(id='values')
 
     # Pooled meshes
-    PooledType[MeshData].as_inlet(id='mesh_collection')
+    POOLED[MeshData].as_inlet(id='mesh_collection')
 
 Note: Pooled is INLET-ONLY - cannot be used with outlets!
 

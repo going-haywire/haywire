@@ -1,8 +1,8 @@
-# List
+# Untyped List
 
 `haybale-core:type:LIST` · kind: type
 
-Ordered collection
+Ordered collection of values of any type
 
 ## Details
 
@@ -12,4 +12,7 @@ Ordered collection
 
 ## Notes
 
-List data type
+An ordered list whose items may be of any type and are not checked.
+
+Use `ARRAY[T]` for a list of one item type: the port knows the item type, so pins and
+adapters follow it. `LIST` is for values whose items have no single type.

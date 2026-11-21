@@ -34,7 +34,7 @@ class EmitCallbackNode(BaseNode):
     """
 
     def init(self):
-        from haybale_core.types import PooledType
+        from haybale_core.types import POOLED
 
         # Control input
         self.add(EXEC.as_inlet("execute", label="Execute"))
@@ -63,7 +63,7 @@ class EmitCallbackNode(BaseNode):
 
         self.add(FLOAT.as_inlet("payload", use_mode="optional", label="Payload"))
 
-        self.add(PooledType[CALLBACK].as_inlet("edge_callback", label="Trigger", on_change="printout"))
+        self.add(POOLED[CALLBACK].as_inlet("edge_callback", label="Trigger", on_change="printout"))
 
         # Control output
         self.add(EXEC.as_outlet("exec", label="Then"))

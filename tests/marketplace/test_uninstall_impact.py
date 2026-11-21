@@ -26,7 +26,7 @@ def _graph(path: Path, *registry_keys: str) -> None:
 
 
 def test_finds_graph_referencing_library(tmp_path: Path) -> None:
-    _graph(tmp_path / "a.haywire", "visiongraph:node:WebCameraNode", "core:node:BeginPlayNode")
+    _graph(tmp_path / "a.haywire", "visiongraph:node:WebCameraNode", "core:node:BeginPlayEventNode")
 
     usage = find_graph_usage(tmp_path, "visiongraph")
 
@@ -35,7 +35,7 @@ def test_finds_graph_referencing_library(tmp_path: Path) -> None:
 
 
 def test_ignores_graphs_without_the_library(tmp_path: Path) -> None:
-    _graph(tmp_path / "a.haywire", "core:node:BeginPlayNode")
+    _graph(tmp_path / "a.haywire", "core:node:BeginPlayEventNode")
 
     assert find_graph_usage(tmp_path, "visiongraph") == []
 

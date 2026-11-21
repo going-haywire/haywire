@@ -24,7 +24,7 @@ from haywire.api import (
 
 from haywire.core.settings import Vec2i, Vec3f, Vec4f
 from haybale_testing.settings.testing import TestingSettings
-from haybale_core.types import ArrayType
+from haybale_core.types import ARRAY
 from haybale_core.widgets.array_widget import ArrayWidget
 from haybale_testing.types.test_types import TEST_STRING
 
@@ -241,19 +241,19 @@ class SettingsNode(BaseNode):
         )
 
         # --- array ---
-        example_string_list = setting[ArrayType[STRING]](
+        example_string_list = setting[ARRAY[STRING]](
             ["One", "Two", "Three"],
             label="Example String List",
             category="array",
             widget=ArrayWidget.config(),
         )
-        example_int_list = setting[ArrayType[INT]](
+        example_int_list = setting[ARRAY[INT]](
             [1, 2, 3],
             label="Example Int List",
             category="array",
             widget=ArrayWidget.config(),
         )
-        example_float_list = setting[ArrayType[FLOAT]](
+        example_float_list = setting[ARRAY[FLOAT]](
             [0.5, 1.5],
             label="Example Float List",
             category="array",
