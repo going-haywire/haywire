@@ -63,9 +63,9 @@ class AudioEventNode(BaseNode):
     `{"audio": AudioBlock, "timestamp": float, "block_number": int}`.
 
     Everything wired from `Block Ready` is an audio flow, paced by the emitter's sample rate and block
-    size. Its execution pins are `EXEC_AUDIO`: `Block Ready`, and the `Write`, `Tick` and `Next` pins of
+    size. Its execution pins are `AUDIO_EXEC`: `Block Ready`, and the `Write`, `Tick` and `Next` pins of
     the audio nodes. A plain `EXEC` outlet does not connect to them, so a control node cannot drive an
-    audio flow, while an `EXEC_AUDIO` outlet does connect to an `EXEC` inlet, so an audio flow can drive
+    audio flow, while an `AUDIO_EXEC` outlet does connect to an `EXEC` inlet, so an audio flow can drive
     a control node. That node then runs inside the flow's pass, and its time counts against the block
     period. `Start` and `Stop` pins stay plain `EXEC`: the control world starts and stops audio nodes.
 
@@ -79,20 +79,20 @@ class AudioEventNode(BaseNode):
 
     def init(self) -> None:
         from haybale_audio.types.audio import AUDIO
-        from haybale_audio.types.callback import CALLBACK_AUDIO
-        from haybale_audio.types.exec_audio import EXEC_AUDIO
+        from haybale_audio.types.callback import AUDIO_CALLBACK
+        from haybale_audio.types.audio_exec import AUDIO_EXEC
 
-        self.add(CALLBACK_AUDIO.as_outlet("listen_callback", label="Listen"))
-        self.add(EXEC_AUDIO.as_outlet("block_ready", label="Block Ready"))
+        self.add(AUDIO_CALLBACK.as_outlet("listen_callback", label="Listen"))
+        self.add(AUDIO_EXEC.as_outlet("block_ready", label="Block Ready"))
         self.add(AUDIO.as_outlet("audio", label="Audio"))
         self.add(FLOAT.as_outlet("timestamp", label="Timestamp (s)"))
         self.add(INT.as_outlet("block_number", label="Block Number"))
 
     def post_init(self) -> None:
-        from haybale_audio.types.callback import CALLBACK_AUDIO
+        from haybale_audio.types.callback import AUDIO_CALLBACK
 
         # A copy or a loaded graph restores the saved id; the listener publishes the id it listens on.
-        self.out("listen_callback", CALLBACK_AUDIO(name=self.node_id))
+        self.out("listen_callback", AUDIO_CALLBACK(name=self.node_id))
         queue_mode = _QUEUE_MODES.get(str(self.dispatch.queue_mode), QueueMode.BLOCK)
         if queue_mode is QueueMode.DROP:
             logger.warning(

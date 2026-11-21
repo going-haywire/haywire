@@ -32,7 +32,7 @@ another format converts it (Reblock/Resample).
 Inputs:
     start / stop: Begin or end playback
     path: Audio file to play
-    callbacks: Pooled CALLBACK_AUDIO subscriptions from Audio Event nodes
+    callbacks: Pooled AUDIO_CALLBACK subscriptions from Audio Event nodes
 
 Outputs:
     started / stopped: Control flow after the matching input

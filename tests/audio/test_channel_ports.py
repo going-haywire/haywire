@@ -1,4 +1,4 @@
-"""Channel Merge and Channel Split: their ADD slots grow audio ports when connected."""
+"""Merge Channels and Split Channels: their ADD slots grow audio ports when connected."""
 
 import importlib
 from typing import Any
@@ -37,7 +37,7 @@ def _block(channels: int, fill: float) -> AudioBlock:
 
 def test_merge_grows_an_input_per_connection(graph_with_library_system):
     g = graph_with_library_system
-    merge = _add(g, "channel_merge", "ChannelMergeNode")
+    merge = _add(g, "merge_channels", "MergeChannelsNode")
     assert (_kind(merge.node, "in_0"), _kind(merge.node, "in_1")) == ("ADD", "missing")
 
     for n in range(2):
@@ -49,7 +49,7 @@ def test_merge_grows_an_input_per_connection(graph_with_library_system):
 
 def test_merge_stacks_the_connected_blocks(graph_with_library_system):
     g = graph_with_library_system
-    merge = _add(g, "channel_merge", "ChannelMergeNode")
+    merge = _add(g, "merge_channels", "MergeChannelsNode")
     for n in range(2):
         make_edge(g, _add(g, "audio_event", "AudioEventNode").node_id, "audio", merge.node_id, f"in_{n}")
     blocks = {"in_0": _block(1, 0.25), "in_1": _block(2, 0.5)}
@@ -64,7 +64,7 @@ def test_merge_stacks_the_connected_blocks(graph_with_library_system):
 
 def test_merge_skips_inputs_without_a_block(graph_with_library_system):
     g = graph_with_library_system
-    merge = _add(g, "channel_merge", "ChannelMergeNode")
+    merge = _add(g, "merge_channels", "MergeChannelsNode")
     for n in range(2):
         make_edge(g, _add(g, "audio_event", "AudioEventNode").node_id, "audio", merge.node_id, f"in_{n}")
     blocks = {"in_1": _block(1, 0.5)}
@@ -74,7 +74,7 @@ def test_merge_skips_inputs_without_a_block(graph_with_library_system):
 
 
 def test_merge_without_any_block_is_an_error(graph_with_library_system):
-    merge = _add(graph_with_library_system, "channel_merge", "ChannelMergeNode")
+    merge = _add(graph_with_library_system, "merge_channels", "MergeChannelsNode")
     merge.node.value = lambda port_id: None
     with pytest.raises(ValueError, match="no audio block on any input"):
         merge.node.worker(None)
@@ -82,7 +82,7 @@ def test_merge_without_any_block_is_an_error(graph_with_library_system):
 
 def test_split_grows_an_output_per_connection_and_numbers_them(graph_with_library_system):
     g = graph_with_library_system
-    split = _add(g, "channel_split", "ChannelSplitNode")
+    split = _add(g, "split_channels", "SplitChannelsNode")
     assert (_kind(split.node, "ch_0"), _kind(split.node, "ch_1")) == ("ADD", "missing")
 
     for n in range(2):
@@ -98,7 +98,7 @@ def test_split_grows_an_output_per_connection_and_numbers_them(graph_with_librar
 
 def test_split_names_a_missing_channel(graph_with_library_system):
     g = graph_with_library_system
-    split = _add(g, "channel_split", "ChannelSplitNode")
+    split = _add(g, "split_channels", "SplitChannelsNode")
     for n in range(2):
         make_edge(g, split.node_id, f"ch_{n}", _add(g, "recorder", "RecorderNode").node_id, "audio")
     with pytest.raises(ValueError, match="channel 1 does not exist"):

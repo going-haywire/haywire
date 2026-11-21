@@ -231,7 +231,7 @@
             "recipe": {
               "registry_key": "haybale-core:type:PooledType",
               "element_type": {
-                "registry_key": "haybale-audio:type:CALLBACK_AUDIO"
+                "registry_key": "haybale-audio:type:AUDIO_CALLBACK"
               }
             }
           },
@@ -387,11 +387,11 @@
         "ports": {
           "listen_callback": {
             "kwargs": {
-              "registry_id": "CALLBACK_AUDIO",
-              "registry_key": "haybale-audio:type:CALLBACK_AUDIO",
+              "registry_id": "AUDIO_CALLBACK",
+              "registry_key": "haybale-audio:type:AUDIO_CALLBACK",
               "label": "Listen",
               "description": "Subscription for emitters that deliver audio blocks",
-              "class_name": "CALLBACK_AUDIO",
+              "class_name": "AUDIO_CALLBACK",
               "module": "haybale_audio.types.callback",
               "default": {
                 "name": "AudioEventNode_f5917691"
@@ -403,7 +403,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haybale-audio:type:CALLBACK_AUDIO"
+              "registry_key": "haybale-audio:type:AUDIO_CALLBACK"
             },
             "field_data": {
               "name": "AudioEventNode_f5917691"
@@ -898,7 +898,7 @@
             "recipe": {
               "registry_key": "haybale-core:type:PooledType",
               "element_type": {
-                "registry_key": "haybale-audio:type:CALLBACK_AUDIO"
+                "registry_key": "haybale-audio:type:AUDIO_CALLBACK"
               }
             }
           },
@@ -1054,11 +1054,11 @@
         "ports": {
           "listen_callback": {
             "kwargs": {
-              "registry_id": "CALLBACK_AUDIO",
-              "registry_key": "haybale-audio:type:CALLBACK_AUDIO",
+              "registry_id": "AUDIO_CALLBACK",
+              "registry_key": "haybale-audio:type:AUDIO_CALLBACK",
               "label": "Listen",
               "description": "Subscription for emitters that deliver audio blocks",
-              "class_name": "CALLBACK_AUDIO",
+              "class_name": "AUDIO_CALLBACK",
               "module": "haybale_audio.types.callback",
               "default": {
                 "name": "AudioEventNode_1017a6a1"
@@ -1070,7 +1070,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haybale-audio:type:CALLBACK_AUDIO"
+              "registry_key": "haybale-audio:type:AUDIO_CALLBACK"
             },
             "field_data": {
               "name": "AudioEventNode_1017a6a1"
@@ -1310,7 +1310,7 @@
             "recipe": {
               "registry_key": "haybale-core:type:PooledType",
               "element_type": {
-                "registry_key": "haybale-audio:type:CALLBACK_AUDIO"
+                "registry_key": "haybale-audio:type:AUDIO_CALLBACK"
               }
             }
           },
@@ -1463,11 +1463,11 @@
         "ports": {
           "listen_callback": {
             "kwargs": {
-              "registry_id": "CALLBACK_AUDIO",
-              "registry_key": "haybale-audio:type:CALLBACK_AUDIO",
+              "registry_id": "AUDIO_CALLBACK",
+              "registry_key": "haybale-audio:type:AUDIO_CALLBACK",
               "label": "Listen",
               "description": "Subscription for emitters that deliver audio blocks",
-              "class_name": "CALLBACK_AUDIO",
+              "class_name": "AUDIO_CALLBACK",
               "module": "haybale_audio.types.callback",
               "default": {
                 "name": "AudioEventNode_f2d97224"
@@ -1479,7 +1479,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haybale-audio:type:CALLBACK_AUDIO"
+              "registry_key": "haybale-audio:type:AUDIO_CALLBACK"
             },
             "field_data": {
               "name": "AudioEventNode_f2d97224"

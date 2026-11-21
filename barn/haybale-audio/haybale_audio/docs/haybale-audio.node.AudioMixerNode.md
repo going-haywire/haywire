@@ -8,10 +8,10 @@ Sums several audio sources into one block per clock tick
 
 | id | direction | type | description |
 |---|---|---|---|
-| `tick` | inlet | `haybale-audio:type:EXEC_AUDIO` | Signal for sequencing the nodes of an audio flow |
+| `tick` | inlet | `haybale-audio:type:AUDIO_EXEC` | Signal for sequencing the nodes of an audio flow |
 | `in_0` | inlet | `haywire-core:type:ADD` | Grows a new port from whatever connects to it |
 | `status` | config | `haywire-core:type:STRING` | Text data |
-| `next` | outlet | `haybale-audio:type:EXEC_AUDIO` | Signal for sequencing the nodes of an audio flow |
+| `next` | outlet | `haybale-audio:type:AUDIO_EXEC` | Signal for sequencing the nodes of an audio flow |
 | `mixed` | outlet | `haybale-audio:type:AUDIO` | A block of audio samples. Never saved with the graph. |
 
 ## Settings

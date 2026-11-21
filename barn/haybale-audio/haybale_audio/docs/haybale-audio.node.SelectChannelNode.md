@@ -1,6 +1,6 @@
-# Channel Select
+# Select Channel
 
-`haybale-audio:node:ChannelSelectNode` · kind: node
+`haybale-audio:node:SelectChannelNode` · kind: node
 
 Picks, reorders or repeats the channels of an audio block
 

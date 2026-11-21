@@ -1,4 +1,4 @@
-"""Reblock, Resample, Channel Select and Mix to Mono nodes."""
+"""Reblock, Resample, Select Channel and Mix to Mono nodes."""
 
 import importlib
 from typing import Any
@@ -21,7 +21,7 @@ def _node(graph: Any, module: str, name: str) -> Any:
 
 
 def _with_listener(node: Any) -> None:
-    cb = importlib.import_module("haybale_audio.types.callback").CALLBACK_AUDIO
+    cb = importlib.import_module("haybale_audio.types.callback").AUDIO_CALLBACK
     node.value = lambda port_id: {"edge": cb(name="listener")} if port_id == "callbacks" else None
 
 
@@ -68,16 +68,16 @@ def test_resample_delivers_blocks_at_the_target_rate(graph_with_library_system):
     assert [p["block_number"] for p in out] == list(range(len(out)))
 
 
-def test_channel_select_reorders(graph_with_library_system):
-    node = _node(graph_with_library_system, "channel_select", "ChannelSelectNode")
+def test_select_channel_reorders(graph_with_library_system):
+    node = _node(graph_with_library_system, "select_channel", "SelectChannelNode")
     node.worker(MagicMock(), audio=_ramp(2, 4), channels="1, 0, 0")
     out = node.ports["selected"].get_value()
     assert out.channels == 3
     np.testing.assert_array_equal(out.data[0], _ramp(2, 4).data[1])
 
 
-def test_channel_select_names_a_missing_channel(graph_with_library_system):
-    node = _node(graph_with_library_system, "channel_select", "ChannelSelectNode")
+def test_select_channel_names_a_missing_channel(graph_with_library_system):
+    node = _node(graph_with_library_system, "select_channel", "SelectChannelNode")
     with pytest.raises(ValueError, match="channel 5 does not exist"):
         node.worker(MagicMock(), audio=_ramp(2, 4), channels="0, 5")
 

@@ -8,11 +8,11 @@ Converts audio blocks to another sample rate and delivers them to Audio Event no
 
 | id | direction | type | description |
 |---|---|---|---|
-| `write` | inlet | `haybale-audio:type:EXEC_AUDIO` | Signal for sequencing the nodes of an audio flow |
+| `write` | inlet | `haybale-audio:type:AUDIO_EXEC` | Signal for sequencing the nodes of an audio flow |
 | `audio` | inlet | `haybale-audio:type:AUDIO` | Block to convert |
 | `callbacks` | inlet | `haybale-core:type:PooledType` | Connect to an Audio Event node. |
 | `status` | config | `haywire-core:type:STRING` | Text data |
-| `next` | outlet | `haybale-audio:type:EXEC_AUDIO` | Signal for sequencing the nodes of an audio flow |
+| `next` | outlet | `haybale-audio:type:AUDIO_EXEC` | Signal for sequencing the nodes of an audio flow |
 
 ## Settings
 
@@ -37,7 +37,7 @@ Use cases:
 - Record or send at a set rate. A Recorder writes, and an OMT send transmits, the rate of the
   blocks it gets. Resample in front when the file or the receiver expects another one, for
   example a 44.1 kHz MP3 played into a 48 kHz show.
-- Match sources before a node that does not convert. A Channel Merge needs blocks of one
+- Match sources before a node that does not convert. A Merge Channels node needs blocks of one
   sample rate; resample the odd one out first.
 
 ```text
@@ -51,7 +51,7 @@ fixed ratio and does not do that.
 Inputs:
     write: Convert the block on `audio`
     audio: The block to convert
-    callbacks: Pooled CALLBACK_AUDIO subscriptions from Audio Event nodes
+    callbacks: Pooled AUDIO_CALLBACK subscriptions from Audio Event nodes
 
 Outputs:
     next: Control flow after the block is taken in
