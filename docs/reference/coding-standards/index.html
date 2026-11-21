@@ -1,0 +1,6470 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+      
+      
+      
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/reference/coding-standards/">
+      
+      
+        <link rel="prev" href="../design-principles/">
+      
+      
+        <link rel="next" href="../questionnaire/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Coding standards - Haywire Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#coding-standards" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Haywire Documentation" class="md-header__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haywire Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Coding standards
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../guides/subscribing-to-marketplaces/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Using Haywire
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../welcome/user/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Writing libraries
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../welcome/core/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developing Haywire
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../archive/whitepaper/Haywire_design/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Archive
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Haywire Documentation" class="md-nav__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Haywire Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using Haywire
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Using Haywire
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/subscribing-to-marketplaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subscribing to marketplaces
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/flow-meters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flow meters
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing libraries
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Writing libraries
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_1" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../welcome/user/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Perspectives
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Perspectives
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../welcome/advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workbench extender
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Components
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/nodes/node-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/datatypes/datatype-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/adapters/adapter-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adapters
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/settings/setting-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/widgets/widget-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Widgets
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--stable"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/skins/skin-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skins
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/themes/theme-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/editors/editor-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Editors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/panels/panel-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panels
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/states/state-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    States
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/farmhands/farmhand-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Farmhands
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Haybale
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Haybale
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../haybale/haybale-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authoring a haybale
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../haybale/metadata-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metadata flow
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../haybale/marketplace/marketplace-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Marketplace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../haybale/marketplace/haybale-marketplace-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Marketplace — architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curated marketplace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/node-roles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node roles
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ports
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signals
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/panels/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panels
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/model-catalogs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model catalogs
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/graph-notices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph notices
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/rename-library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Renaming a library
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/rename-components/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Renaming components
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/sharing-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/publish-to-pypi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publishing to PyPI
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developing Haywire
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developing Haywire
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_1" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../welcome/core/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Start here
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4_1" id="__nav_4_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Start here
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup and commands
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../collaboration/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Collaboration
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Collaboration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collaboration/basics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Basics
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2_3" id="__nav_4_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library authors
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Library authors
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collaboration/create-and-share/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Create and first share
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collaboration/share-an-update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Share an update
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collaboration/rename-then-share/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rename, then share
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2_4" id="__nav_4_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Users
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Users
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collaboration/subscribe-and-install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subscribe and install
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2_5" id="__nav_4_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributors
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributors
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collaboration/first-contribution/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    A first contribution
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2_6" id="__nav_4_2_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintainers
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Maintainers
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collaboration/task-with-live-check/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    A task with its live check
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collaboration/fork-pull-request/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    A fork's pull request
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collaboration/core-and-library-change/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    A change across core and a library
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collaboration/core-release/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    A core release
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collaboration/library-release/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    A library release
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collaboration/lead-and-tasks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lead and tasks
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2_6_7" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../collaboration/orchestrators/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orchestrators
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4_2_6_7" id="__nav_4_2_6_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_4_2_6_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2_6_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Orchestrators
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collaboration/orchestrators/t3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    T3 Code
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collaboration/orchestrators/herdr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    herdr
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collaboration/new-org-library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    A new org library
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../collaboration/workstation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    A developer's workstation
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/overview-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/design/design-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/design/stepper-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stepper (multi-step flows)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/graph/graph-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3_5" id="__nav_4_3_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Execution
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Execution
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/execution-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/assembly/assembly-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/edges/edges-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edges
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/flow/flow-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flow
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/virtual-machine/virtual-machine-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Virtual machine
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/lazy-evaluation/lazy-evaluation-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lazy evaluation
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/failures/exceptions-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worker exceptions
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/callbacks/callbacks-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Callbacks
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/library-system/library-system-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library system
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/sharing/share-pipeline-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — pipeline
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/sharing/agent-safe-release-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — agent-safe release design
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/hot-reload/hot-reload-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hot-reload
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/settings/settings-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/session-and-state/session-and-state-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session and state
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/errors/errors-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/volumes/volumes-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Volumes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_3_14" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3_14" id="__nav_4_3_14_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Studio
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_3_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3_14">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Studio
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/studio-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/app-shell/app-shell-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App shell
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/workspace/workspace-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/canvas/canvas-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Canvas
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/rendering/rendering-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../component-naming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component naming
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guide
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design-principles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design principles
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coding standards
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coding standards
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-read-a-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How to read a rule
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-or-changing-a-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding or changing a rule
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#d-docstrings-and-comments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D · Docstrings and comments
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="D · Docstrings and comments">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cs-d1-each-kind-of-information-has-one-place" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D1 · Each kind of information has one place
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-d2-a-docstring-states-the-contract-for-a-reader-who-sees-only-the-signature" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D2 · A docstring states the contract, for a reader who sees only the signature
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-d3-arguments-return-values-and-exceptions-are-documented-when-the-type-doesnt-say-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D3 · Arguments, return values and exceptions are documented when the type doesn't say it
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-d4-public-classes-and-public-functions-whose-use-isnt-obvious-have-an-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D4 · Public classes, and public functions whose use isn't obvious, have an example
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-d5-displayed-docstrings-are-markdown-in-the-users-words-all-others-are-rest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D5 · Displayed docstrings are Markdown in the user's words; all others are reST
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-d6-a-comment-says-why-in-the-present-tense-on-the-line-it-explains" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D6 · A comment says why, in the present tense, on the line it explains
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-d7-docstrings-and-comments-never-carry-history-argument-or-session-reasoning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D7 · Docstrings and comments never carry history, argument or session reasoning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-d8-length-follows-the-kind-of-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D8 · Length follows the kind of code
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-d9-docstring-shape-follows-the-google-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D9 · Docstring shape follows the Google convention
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#t-typing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        T · Typing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="T · Typing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cs-t1-annotations-use-the-modern-syntax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-T1 · Annotations use the modern syntax
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-t2-every-module-starts-with-from-__future__-import-annotations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-T2 · Every module starts with from __future__ import annotations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-t3-a-type-in-an-annotation-the-framework-reads-at-runtime-is-imported-at-runtime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-T3 · A type in an annotation the framework reads at runtime is imported at runtime
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-t4-public-functions-and-methods-are-fully-annotated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-T4 · Public functions and methods are fully annotated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-t5-every-escape-hatch-names-its-code-and-its-reason" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-T5 · Every escape hatch names its code and its reason
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-t6-any-only-where-the-type-is-unknowable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-T6 · Any only where the type is unknowable
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#e-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        E · Errors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="E · Errors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cs-e1-a-rejection-correct-code-can-reach-is-a-refusal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-E1 · A rejection correct code can reach is a Refusal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-e2-a-broad-except-is-a-boundary-or-best-effort-code-that-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-E2 · A broad except is a boundary or best-effort code that logs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-e3-catch-the-narrowest-exception-the-code-expects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-E3 · Catch the narrowest exception the code expects
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#i-imports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        I · Imports
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="I · Imports">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cs-i1-imports-are-sorted-standard-library-third-party-first-party" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-I1 · Imports are sorted: standard library, third party, first party
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-i2-dependencies-point-one-way" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-I2 · Dependencies point one way
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-i3-no-relative-imports-in-a-barn-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-I3 · No relative imports in a barn library
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-i4-an-import-inside-a-function-names-its-reason" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-I4 · An import inside a function names its reason
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#s-state-and-dependency-injection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S · State and dependency injection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="S · State and dependency injection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cs-s1-an-app-scoped-service-comes-from-the-injector" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-S1 · An app-scoped service comes from the injector
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-s2-objects-the-injector-doesnt-build-read-services-through-haywirecoredicontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-S2 · Objects the injector doesn't build read services through haywire.core.di.context
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-s3-no-other-module-level-mutable-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-S3 · No other module-level mutable state
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-s4-never-contextvar-for-app-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-S4 · Never ContextVar for app state
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l-logging-and-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L · Logging and output
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L · Logging and output">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cs-l1-each-module-logs-through-logginggetlogger__name__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-L1 · Each module logs through logging.getLogger(__name__)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-l2-print-only-for-a-command-line-tools-output-to-its-user" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-L2 · print only for a command-line tool's output to its user
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-l3-log-levels-mean-the-same-everywhere" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-L3 · Log levels mean the same everywhere
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../questionnaire/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Questionnaire
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../doc-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a doc page
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../publish_releases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publishing releases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_10" id="__nav_5_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File formats
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    File formats
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../files/haybale-toml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    haybale.toml
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../files/pyproject-toml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pyproject.toml
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../files/marketstall-toml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    marketstall.toml
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../files/marketplace-toml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    marketplace.toml
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Archive
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../archive/whitepaper/Haywire_design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Whitepaper
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-read-a-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How to read a rule
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-or-changing-a-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding or changing a rule
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#d-docstrings-and-comments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D · Docstrings and comments
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="D · Docstrings and comments">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cs-d1-each-kind-of-information-has-one-place" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D1 · Each kind of information has one place
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-d2-a-docstring-states-the-contract-for-a-reader-who-sees-only-the-signature" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D2 · A docstring states the contract, for a reader who sees only the signature
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-d3-arguments-return-values-and-exceptions-are-documented-when-the-type-doesnt-say-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D3 · Arguments, return values and exceptions are documented when the type doesn't say it
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-d4-public-classes-and-public-functions-whose-use-isnt-obvious-have-an-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D4 · Public classes, and public functions whose use isn't obvious, have an example
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-d5-displayed-docstrings-are-markdown-in-the-users-words-all-others-are-rest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D5 · Displayed docstrings are Markdown in the user's words; all others are reST
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-d6-a-comment-says-why-in-the-present-tense-on-the-line-it-explains" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D6 · A comment says why, in the present tense, on the line it explains
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-d7-docstrings-and-comments-never-carry-history-argument-or-session-reasoning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D7 · Docstrings and comments never carry history, argument or session reasoning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-d8-length-follows-the-kind-of-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D8 · Length follows the kind of code
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-d9-docstring-shape-follows-the-google-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-D9 · Docstring shape follows the Google convention
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#t-typing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        T · Typing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="T · Typing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cs-t1-annotations-use-the-modern-syntax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-T1 · Annotations use the modern syntax
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-t2-every-module-starts-with-from-__future__-import-annotations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-T2 · Every module starts with from __future__ import annotations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-t3-a-type-in-an-annotation-the-framework-reads-at-runtime-is-imported-at-runtime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-T3 · A type in an annotation the framework reads at runtime is imported at runtime
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-t4-public-functions-and-methods-are-fully-annotated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-T4 · Public functions and methods are fully annotated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-t5-every-escape-hatch-names-its-code-and-its-reason" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-T5 · Every escape hatch names its code and its reason
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-t6-any-only-where-the-type-is-unknowable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-T6 · Any only where the type is unknowable
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#e-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        E · Errors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="E · Errors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cs-e1-a-rejection-correct-code-can-reach-is-a-refusal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-E1 · A rejection correct code can reach is a Refusal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-e2-a-broad-except-is-a-boundary-or-best-effort-code-that-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-E2 · A broad except is a boundary or best-effort code that logs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-e3-catch-the-narrowest-exception-the-code-expects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-E3 · Catch the narrowest exception the code expects
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#i-imports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        I · Imports
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="I · Imports">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cs-i1-imports-are-sorted-standard-library-third-party-first-party" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-I1 · Imports are sorted: standard library, third party, first party
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-i2-dependencies-point-one-way" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-I2 · Dependencies point one way
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-i3-no-relative-imports-in-a-barn-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-I3 · No relative imports in a barn library
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-i4-an-import-inside-a-function-names-its-reason" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-I4 · An import inside a function names its reason
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#s-state-and-dependency-injection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S · State and dependency injection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="S · State and dependency injection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cs-s1-an-app-scoped-service-comes-from-the-injector" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-S1 · An app-scoped service comes from the injector
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-s2-objects-the-injector-doesnt-build-read-services-through-haywirecoredicontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-S2 · Objects the injector doesn't build read services through haywire.core.di.context
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-s3-no-other-module-level-mutable-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-S3 · No other module-level mutable state
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-s4-never-contextvar-for-app-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-S4 · Never ContextVar for app state
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l-logging-and-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L · Logging and output
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L · Logging and output">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cs-l1-each-module-logs-through-logginggetlogger__name__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-L1 · Each module logs through logging.getLogger(__name__)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-l2-print-only-for-a-command-line-tools-output-to-its-user" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-L2 · print only for a command-line tool's output to its user
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cs-l3-log-levels-mean-the-same-everywhere" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-L3 · Log levels mean the same everywhere
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="coding-standards">Coding standards<a class="headerlink" href="#coding-standards" title="Permanent link">&para;</a></h1>
+<p>These rules hold for all Python in this repository: <code>packages/</code>, <code>barn/</code>, <code>tests/</code> and
+<code>scripts/</code>. A review cites a rule by its ID ("breaks CS-E2"). The node templates that
+<code>haywire init</code> and the New Node wizard copy into authors' libraries follow every rule.</p>
+<h2 id="how-to-read-a-rule">How to read a rule<a class="headerlink" href="#how-to-read-a-rule" title="Permanent link">&para;</a></h2>
+<p>Each rule has a stable ID, <code>CS-&lt;area&gt;&lt;n&gt;</code>, and these lines:</p>
+<ul>
+<li><strong>Why</strong>: what goes wrong without it.</li>
+<li><strong>Example</strong>: ✗ the wrong form, ✓ the right one.</li>
+<li><strong>Enforced by</strong>: the tool that checks it, or <em>review</em>. Review skips what a tool checks.</li>
+<li><strong>Scope</strong>: <em>repo</em> is this repository's house style. <em>libraries too</em> means the rule
+  protects a mechanism that also runs in an author's library (hot reload, annotations
+  the framework reads, docstrings the studio displays), so a library that ignores it breaks.</li>
+</ul>
+<p>Formatting, line length (109) and the lint rules in <code>[tool.ruff]</code> and <code>[tool.mypy]</code> of
+the root <code>pyproject.toml</code> are part of this standard; the comments there say why each is
+on. Run them as <a href="../../guides/development/#checks">Checks</a> describes.</p>
+<h2 id="adding-or-changing-a-rule">Adding or changing a rule<a class="headerlink" href="#adding-or-changing-a-rule" title="Permanent link">&para;</a></h2>
+<p>A rule belongs here only when all three hold:</p>
+<ol>
+<li>No tool can check it. A rule a tool can check is a line of config instead.</li>
+<li>Breaking it has cost something in this repository: a bug, rework, a trap in
+   <code>.insights/</code>, a review comment that keeps coming back. The proposal names that evidence.</li>
+<li>It is specific to haywire, or the code disagrees with itself on it.</li>
+</ol>
+<p>Changes go through a pull request the maintainer reads line by line, like any file that
+steers agents. When a tool starts enforcing a rule, the rule shrinks to one line and its
+<strong>Enforced by</strong> names the tool. A dropped rule keeps its ID as <code>CS-X9 · retired</code>, with one
+line saying why, so old citations still resolve.</p>
+<hr />
+<h2 id="d-docstrings-and-comments">D · Docstrings and comments<a class="headerlink" href="#d-docstrings-and-comments" title="Permanent link">&para;</a></h2>
+<p>A docstring tells a caller what the code does and how to use it. A comment tells a
+maintainer why a specific line is written the way it is. Everything else belongs
+somewhere else.</p>
+<h3 id="cs-d1-each-kind-of-information-has-one-place">CS-D1 · Each kind of information has one place<a class="headerlink" href="#cs-d1-each-kind-of-information-has-one-place" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Information</th>
+<th>Place</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>What it does, arguments, return value, exceptions, side effects, observable edge cases</td>
+<td>Docstring</td>
+</tr>
+<tr>
+<td>Usage example, when correct use isn't obvious from the signature</td>
+<td>Docstring</td>
+</tr>
+<tr>
+<td>What implementers of an overridable method or Protocol must guarantee</td>
+<td>Docstring</td>
+</tr>
+<tr>
+<td>Why a non-obvious line is written the way it is</td>
+<td>Comment on that line</td>
+</tr>
+<tr>
+<td>What changed and what it used to be</td>
+<td>Commit message</td>
+</tr>
+<tr>
+<td>Design reasoning and rejected alternatives</td>
+<td>ADR in <code>docs/adr/</code>; a comment may point to it (<code># See ADR 0017.</code>)</td>
+</tr>
+<tr>
+<td>Meaning of domain terms</td>
+<td><a href="../glossary/">Glossary</a></td>
+</tr>
+<tr>
+<td>Behavior of another class or function</td>
+<td>That component's docstring; reference it instead of restating it</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why</strong>: information in the wrong place goes stale where nobody looks for it.
+<strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
+<h3 id="cs-d2-a-docstring-states-the-contract-for-a-reader-who-sees-only-the-signature">CS-D2 · A docstring states the contract, for a reader who sees only the signature<a class="headerlink" href="#cs-d2-a-docstring-states-the-contract-for-a-reader-who-sees-only-the-signature" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Start with a one-line summary of what the code does or returns ("Return ...",
+  "Reset ...", "A setting that ..."). It must make sense alone in an IDE tooltip.</li>
+<li>Describe behavior, not implementation.</li>
+<li>State edge cases as outcomes: "Returns <code>None</code> if the pin isn't promoted." Don't
+  explain why the outcome is right.</li>
+<li>In user-facing API (settings, node base classes, anything a library author touches),
+  use the words users see in the UI. Keep internal terms (bag, cell, tier, descriptor) to
+  internal code.</li>
+<li>Refer to another component by name ("See <code>DataField.accepts_absence</code>.") instead of
+  describing what it does.</li>
+<li>Don't describe callers. Test: if the sentence would become false when some other code
+  changes, it describes that code, not this one.</li>
+<li>Keep timing and threading guarantees that callers or implementers rely on: "Called once
+  when the edge is built, so the result must not depend on the current value."</li>
+</ul>
+<p>Before writing a sentence, check: can the caller act on it? Would it stay true if the
+implementation were rewritten with the same behavior? Does it mention the past or a
+rejected alternative? Only a yes, yes, no sentence goes in.</p>
+<p>✗</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">_element_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">[</span><span class="n">IType</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;The wrapped IType, read off the cell rather than declared here.</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="sd">    ``type_cls``, NOT ``get_stored_type()``: the two deliberately disagree</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="sd">    for a wrapper field. ``type_cls`` is what the field IS ... (five more lines)</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">wrapper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">type_cls</span>
+</span></code></pre></div>
+<p>✓</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">_element_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">[</span><span class="n">IType</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the element type of this row&#39;s wrapper field (``INT`` for ``OPTIONAL[INT]``), or ``None``.&quot;&quot;&quot;</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="c1"># type_cls, not get_stored_type(): the stored type is already the element type.</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">wrapper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">type_cls</span>
+</span></code></pre></div>
+<p><strong>Why</strong>: callers read docstrings in tooltips and Component Docs; narration and rationale
+there bury the contract and go stale with the implementation.
+<strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
+<h3 id="cs-d3-arguments-return-values-and-exceptions-are-documented-when-the-type-doesnt-say-it">CS-D3 · Arguments, return values and exceptions are documented when the type doesn't say it<a class="headerlink" href="#cs-d3-arguments-return-values-and-exceptions-are-documented-when-the-type-doesnt-say-it" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Document an argument or return value of a plain type (<code>str</code>, <code>int</code>, <code>float</code>, <code>bool</code>),
+  <code>dict</code>, <code>list</code>, <code>tuple</code>, <code>Any</code>, a union or a callable: what the value represents, plus
+  whichever apply: units, valid range, format, allowed values, what <code>None</code> means, where
+  to get one.</li>
+<li>Skip the entry for a documented framework class, and when the name alone says
+  everything (<code>label: str</code>; but <code>port_id: str</code> needs one if ids have a format).</li>
+<li>A precise name or type beats an explanation: <code>timeout_s: float</code> needs no "in seconds".
+  Choose names and types so that fewer entries are needed.</li>
+<li>Document every exception a caller can reasonably handle, with the condition that
+  raises it.</li>
+<li>Sections in this order: <code>Args:</code>, <code>Returns:</code>, <code>Raises:</code>, then the example. In a private
+  helper, a phrase in the summary is enough.</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">Args</span><span class="p">:</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">iou_threshold</span><span class="p">:</span> <span class="n">Minimum</span> <span class="n">overlap</span> <span class="n">between</span> <span class="n">two</span> <span class="n">boxes</span><span class="p">,</span> <span class="kn">from</span><span class="w"> </span><span class="mi">0</span> <span class="n">to</span> <span class="mi">1</span><span class="p">,</span> <span class="k">for</span> <span class="n">the</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>        <span class="n">lower</span><span class="o">-</span><span class="n">scoring</span> <span class="n">box</span> <span class="n">to</span> <span class="n">be</span> <span class="n">dropped</span><span class="o">.</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">port</span><span class="p">:</span> <span class="n">The</span> <span class="n">port</span> <span class="n">to</span> <span class="n">connect</span><span class="o">.</span>   <span class="c1"># ✗ delete: framework type, clear name</span>
+</span></code></pre></div>
+<p><strong>Why</strong>: the entry carries what the signature can't; an entry that repeats it is noise.
+<strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
+<h3 id="cs-d4-public-classes-and-public-functions-whose-use-isnt-obvious-have-an-example">CS-D4 · Public classes, and public functions whose use isn't obvious, have an example<a class="headerlink" href="#cs-d4-public-classes-and-public-functions-whose-use-isnt-obvious-have-an-example" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Show each typical way to use it: the plain call, and every argument, context block or
+  mode that changes the result, each with a short comment on its effect. Never cut a
+  correct example to save space.</li>
+<li>Examples must be correct for the current code; take them from the tests and real call
+  sites.</li>
+<li>In reST docstrings, the example follows the sections, introduced by <code>Example::</code> and
+  indented. In displayed docstrings (CS-D5), use a fenced block.</li>
+</ul>
+<p><strong>Why</strong>: an example is the fastest way to use an API correctly, and a wrong one is worse
+than none. <strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
+<h3 id="cs-d5-displayed-docstrings-are-markdown-in-the-users-words-all-others-are-rest">CS-D5 · Displayed docstrings are Markdown in the user's words; all others are reST<a class="headerlink" href="#cs-d5-displayed-docstrings-are-markdown-in-the-users-words-all-others-are-rest" title="Permanent link">&para;</a></h3>
+<p><strong>Displayed docstrings</strong> are the class docstrings of registered components (nodes,
+types, widgets, skins, panels, and anything else the studio shows in Component Docs or
+returns from <code>describe_component</code>). They are user documentation rendered as Markdown:</p>
+<ul>
+<li>single backticks for code: <code>OPTIONAL[INT]</code>;</li>
+<li>fenced code blocks with a language tag, not indented blocks;</li>
+<li>no reST: no double backticks, no <code>::</code>, no roles like <code>:class:</code>;</li>
+<li>the words users see in the UI, with internals left out.</li>
+</ul>
+<p><strong>All other docstrings</strong> (methods, functions, modules, non-component classes) use reST:
+double backticks for code, and <code>::</code> followed by an indented block for examples.</p>
+<p><strong>Why</strong>: the studio renders a component's class docstring as Markdown; reST shows up as
+literal markup in Component Docs and in what Farmhand returns.
+<strong>Enforced by</strong>: review. <strong>Scope</strong>: libraries too.</p>
+<h3 id="cs-d6-a-comment-says-why-in-the-present-tense-on-the-line-it-explains">CS-D6 · A comment says why, in the present tense, on the line it explains<a class="headerlink" href="#cs-d6-a-comment-says-why-in-the-present-tense-on-the-line-it-explains" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Explain why, not what. If a better name or a small helper would make the code say it,
+  change the code instead.</li>
+<li>Write about the code as it is now, on the line it explains, not in the docstring.</li>
+<li>Aim for one or two lines. A comment longer than four lines is usually design reasoning
+  that belongs in an ADR.</li>
+<li>Leave markers (<code># TODO</code>, <code># noqa</code>, <code># type: ignore</code>, <code># pragma</code>, licence headers) as
+  they are.</li>
+</ul>
+<p><strong>Why</strong>: a comment that narrates the code or its history drifts from it.
+<strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
+<h3 id="cs-d7-docstrings-and-comments-never-carry-history-argument-or-session-reasoning">CS-D7 · Docstrings and comments never carry history, argument or session reasoning<a class="headerlink" href="#cs-d7-docstrings-and-comments-never-carry-history-argument-or-session-reasoning" title="Permanent link">&para;</a></h3>
+<ul>
+<li>No history: "used to", "previously", "no longer", "was changed to". Git keeps it.</li>
+<li>No arguments against alternatives: "NOT X", "deliberately", "rather than". Say what
+  the code does. Where a maintainer could plausibly reintroduce a bug, one present-tense
+  line is enough: <code># type_cls, not get_stored_type(): the stored type is already the element type.</code></li>
+<li>No reasoning from the work session that produced the code.</li>
+<li>No emphasis in ALL CAPS or bold. If a word needs emphasis to be understood, rewrite the
+  sentence.</li>
+</ul>
+<p><strong>Why</strong>: these read as contract and aren't; they are where agent-written text drifts most.
+<strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
+<h3 id="cs-d8-length-follows-the-kind-of-code">CS-D8 · Length follows the kind of code<a class="headerlink" href="#cs-d8-length-follows-the-kind-of-code" title="Permanent link">&para;</a></h3>
+<p>Counting prose lines only (examples, section entries and blank lines don't count):</p>
+<ul>
+<li>Private helper: one line; up to about five with edge cases. No docstring is fine when
+  the name says it all.</li>
+<li>Public function or method: summary plus up to about ten lines.</li>
+<li>Public class: summary, when to use it, an example, edge cases; rarely over 20 lines.</li>
+<li>Module: what it contains and when to use it; rarely over 25 lines.</li>
+</ul>
+<p>These are guides, not limits: cut rationale, history and narration, never contract.
+<strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
+<h3 id="cs-d9-docstring-shape-follows-the-google-convention">CS-D9 · Docstring shape follows the Google convention<a class="headerlink" href="#cs-d9-docstring-shape-follows-the-google-convention" title="Permanent link">&para;</a></h3>
+<p>Summary on the first line, a blank line after it, sections as in CS-D3.
+<strong>Enforced by</strong>: review (ruff <code>D2xx</code>/<code>D4xx</code>, Google convention, planned). <strong>Scope</strong>: repo.</p>
+<hr />
+<h2 id="t-typing">T · Typing<a class="headerlink" href="#t-typing" title="Permanent link">&para;</a></h2>
+<h3 id="cs-t1-annotations-use-the-modern-syntax">CS-T1 · Annotations use the modern syntax<a class="headerlink" href="#cs-t1-annotations-use-the-modern-syntax" title="Permanent link">&para;</a></h3>
+<p><code>list[str]</code>, <code>X | None</code>, <code>A | B</code>, <code>Self</code>, <code>def f[T](x: T) -&gt; T</code>, and <code>Callable</code> from
+<code>collections.abc</code>; never <code>List</code>, <code>Optional</code>, <code>Union</code> or a <code>TypeVar</code> for a plain generic.
+<strong>Enforced by</strong>: review (ruff <code>UP</code>, planned). <strong>Scope</strong>: repo.</p>
+<h3 id="cs-t2-every-module-starts-with-from-__future__-import-annotations">CS-T2 · Every module starts with <code>from __future__ import annotations</code><a class="headerlink" href="#cs-t2-every-module-starts-with-from-__future__-import-annotations" title="Permanent link">&para;</a></h3>
+<p>Forward references then need no quotes: ✗ <code>-&gt; "Graph"</code> ✓ <code>-&gt; Graph</code>.
+<strong>Enforced by</strong>: review (ruff <code>I002</code> and <code>UP037</code>, planned). <strong>Scope</strong>: repo.</p>
+<h3 id="cs-t3-a-type-in-an-annotation-the-framework-reads-at-runtime-is-imported-at-runtime">CS-T3 · A type in an annotation the framework reads at runtime is imported at runtime<a class="headerlink" href="#cs-t3-a-type-in-an-annotation-the-framework-reads-at-runtime-is-imported-at-runtime" title="Permanent link">&para;</a></h3>
+<p>The framework resolves annotations with <code>get_type_hints</code> or <code>inspect.signature</code> on
+settings classes, state classes, Farmhand tools and node worker methods. With CS-T2,
+every annotation is a string resolved at that moment, so a name imported only under
+<code>TYPE_CHECKING</code> raises there, far from the import.</p>
+<p>✗</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">my_library.devices</span><span class="w"> </span><span class="kn">import</span> <span class="n">Camera</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">CameraState</span><span class="p">(</span><span class="n">AppState</span><span class="p">):</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">camera</span><span class="p">:</span> <span class="n">Camera</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>   <span class="c1"># get_type_hints(CameraState) raises NameError</span>
+</span></code></pre></div>
+<p>✓ import <code>Camera</code> at module level. If that is a cycle, annotate with a type that resolves
+at runtime (<code>SessionState.session</code> is annotated <code>weakref.ref</code> for this reason) rather
+than hiding the import under <code>TYPE_CHECKING</code>.</p>
+<p><strong>Why</strong>: the failure is silent until the class is read, often at registration or in an
+agent's tool call. <strong>Enforced by</strong>: review. <strong>Scope</strong>: libraries too.</p>
+<h3 id="cs-t4-public-functions-and-methods-are-fully-annotated">CS-T4 · Public functions and methods are fully annotated<a class="headerlink" href="#cs-t4-public-functions-and-methods-are-fully-annotated" title="Permanent link">&para;</a></h3>
+<p>Every parameter and the return value, <code>-&gt; None</code> included. Private helpers and UI
+callbacks may omit annotations; a signature is never half annotated.
+<strong>Why</strong>: a half-typed signature looks checked and isn't; mypy skips the body of an
+unannotated function.
+<strong>Enforced by</strong>: mypy <code>check_untyped_defs</code> and <code>disallow_incomplete_defs</code> (planned) for
+half-annotated signatures; review for the public surface. <strong>Scope</strong>: repo.</p>
+<h3 id="cs-t5-every-escape-hatch-names-its-code-and-its-reason">CS-T5 · Every escape hatch names its code and its reason<a class="headerlink" href="#cs-t5-every-escape-hatch-names-its-code-and-its-reason" title="Permanent link">&para;</a></h3>
+<p><code># type: ignore[code]</code>, <code># noqa: RULE</code> and <code>cast()</code> carry a reason on the same line or
+the line above, unless the code says it (<code>import-untyped</code>). An escape hatch that no
+longer suppresses anything is deleted.</p>
+<p>✗ <code>value = cast(int, raw)</code> ✓ <code>value = cast(int, raw)  # the INT widget only ever stores int</code></p>
+<p><strong>Why</strong>: an unexplained suppression is never removed, and a stale one hides the next real
+error on that line.
+<strong>Enforced by</strong>: mypy <code>ignore-without-code</code> and <code>warn_unused_ignores</code>, ruff <code>PGH004</code> and
+<code>RUF100</code> (planned); review for the reason. <strong>Scope</strong>: repo.</p>
+<h3 id="cs-t6-any-only-where-the-type-is-unknowable">CS-T6 · <code>Any</code> only where the type is unknowable<a class="headerlink" href="#cs-t6-any-only-where-the-type-is-unknowable" title="Permanent link">&para;</a></h3>
+<p>At a real boundary: parsed JSON or TOML, a <code>**kwargs</code> passthrough, an untyped third-party
+API. Not as a stand-in for a type nobody worked out.
+<strong>Why</strong>: <code>Any</code> switches checking off for everything it touches, silently.
+<strong>Enforced by</strong>: review, for new code. <strong>Scope</strong>: repo.</p>
+<hr />
+<h2 id="e-errors">E · Errors<a class="headerlink" href="#e-errors" title="Permanent link">&para;</a></h2>
+<p>How failures reach the error ledger, and the list of named boundaries, is
+<a href="../../architecture/errors/errors-arch/">errors-arch.md</a>. These rules cover how ordinary
+code raises and catches.</p>
+<h3 id="cs-e1-a-rejection-correct-code-can-reach-is-a-refusal">CS-E1 · A rejection correct code can reach is a <code>Refusal</code><a class="headerlink" href="#cs-e1-a-rejection-correct-code-can-reach-is-a-refusal" title="Permanent link">&para;</a></h3>
+<p>Bad input, a stale id after another session's edit, a name collision: raise <code>Refusal</code>
+(<code>haywire.core.errors</code>, and <code>haywire.api</code> for libraries). Anything only a bug can reach
+raises any other exception. Never <code>ValueError</code> for an expected rejection.
+<strong>Why</strong>: a <code>Refusal</code> goes back to the user or agent with its own message; anything else is
+recorded as a failure in the ledger.
+<strong>Enforced by</strong>: review. <strong>Scope</strong>: libraries too.</p>
+<h3 id="cs-e2-a-broad-except-is-a-boundary-or-best-effort-code-that-logs">CS-E2 · A broad <code>except</code> is a boundary or best-effort code that logs<a class="headerlink" href="#cs-e2-a-broad-except-is-a-boundary-or-best-effort-code-that-logs" title="Permanent link">&para;</a></h3>
+<p><code>except Exception</code> appears only:</p>
+<ul>
+<li>at a named boundary, which calls <code>report_failure</code> (errors-arch §3 and §6), or</li>
+<li>in best-effort code (cleanup, teardown, an optional feature) that logs with
+  <code>exc_info</code> and says on the line why a failure there is harmless.</li>
+</ul>
+<p>Never a silent <code>pass</code>, <code>continue</code> or <code>return</code>.</p>
+<p>✗</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">try</span><span class="p">:</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">watcher</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="k">pass</span>
+</span></code></pre></div>
+<p>✓</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">try</span><span class="p">:</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">watcher</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="c1"># Teardown: a watcher that fails to stop dies with the process.</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;watcher stop failed&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>Why</strong>: a swallowed exception is the silent failure this codebase loses the most time to.
+<strong>Enforced by</strong>: review (ruff <code>S110</code>/<code>S112</code>, planned). <strong>Scope</strong>: repo.</p>
+<h3 id="cs-e3-catch-the-narrowest-exception-the-code-expects">CS-E3 · Catch the narrowest exception the code expects<a class="headerlink" href="#cs-e3-catch-the-narrowest-exception-the-code-expects" title="Permanent link">&para;</a></h3>
+<p>✗ <code>except Exception</code> around a dict lookup ✓ <code>except KeyError</code>.
+<strong>Why</strong>: a broad catch turns an unrelated bug into the expected fallback.
+<strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
+<hr />
+<h2 id="i-imports">I · Imports<a class="headerlink" href="#i-imports" title="Permanent link">&para;</a></h2>
+<h3 id="cs-i1-imports-are-sorted-standard-library-third-party-first-party">CS-I1 · Imports are sorted: standard library, third party, first party<a class="headerlink" href="#cs-i1-imports-are-sorted-standard-library-third-party-first-party" title="Permanent link">&para;</a></h3>
+<p><strong>Enforced by</strong>: review (ruff <code>I</code> with <code>known-first-party</code>, planned). <strong>Scope</strong>: repo.</p>
+<h3 id="cs-i2-dependencies-point-one-way">CS-I2 · Dependencies point one way<a class="headerlink" href="#cs-i2-dependencies-point-one-way" title="Permanent link">&para;</a></h3>
+<p><code>haybale-*</code> → <code>haywire-studio</code> → <code>haywire-core</code>; libraries import the framework through
+the Author API (ADR 0084). <strong>Enforced by</strong>: ruff <code>TID251</code>. <strong>Scope</strong>: libraries too
+(<code>haywire init</code> configures it).</p>
+<h3 id="cs-i3-no-relative-imports-in-a-barn-library">CS-I3 · No relative imports in a barn library<a class="headerlink" href="#cs-i3-no-relative-imports-in-a-barn-library" title="Permanent link">&para;</a></h3>
+<p><strong>Why</strong>: hot reload resolves a library's modules through <code>sys.modules</code> and mis-resolves a
+relative import mid-reload, silently. <strong>Enforced by</strong>: ruff <code>TID252</code> (barn/ only).
+<strong>Scope</strong>: libraries too.</p>
+<h3 id="cs-i4-an-import-inside-a-function-names-its-reason">CS-I4 · An import inside a function names its reason<a class="headerlink" href="#cs-i4-an-import-inside-a-function-names-its-reason" title="Permanent link">&para;</a></h3>
+<p>Imports are at module level. A local import is allowed for one of three reasons, named
+in a short comment:</p>
+<ul>
+<li><code># cycle: &lt;module&gt; imports this one</code>;</li>
+<li>a heavy or optional dependency (<code>torch</code>, <code>cv2</code>, a model hub), loaded only when used;</li>
+<li><code># reload:</code> a barn module that must be looked up fresh after a hot reload.</li>
+</ul>
+<p>✗</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.graph</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseGraph</span>
+</span></code></pre></div>
+<p>✓</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.graph</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseGraph</span>  <span class="c1"># cycle: graph imports node, node imports this</span>
+</span></code></pre></div>
+<p><strong>Why</strong>: an unexplained local import is the one the next reader tidies to the top and
+turns into a cycle or a stale reference after reload. Tests follow
+<a href="https://github.com/going-haywire/haywire/blob/master/tests/README.md">tests/README.md</a>.
+<strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
+<hr />
+<h2 id="s-state-and-dependency-injection">S · State and dependency injection<a class="headerlink" href="#s-state-and-dependency-injection" title="Permanent link">&para;</a></h2>
+<h3 id="cs-s1-an-app-scoped-service-comes-from-the-injector">CS-S1 · An app-scoped service comes from the injector<a class="headerlink" href="#cs-s1-an-app-scoped-service-comes-from-the-injector" title="Permanent link">&para;</a></h3>
+<p>Services are provided by <code>HaywireModule</code> (<code>haywire.core.di.config</code>) and reach the objects
+the injector builds through their constructors.
+<strong>Why</strong>: a service reached any other way can't be replaced in a test or an embedding.
+<strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
+<h3 id="cs-s2-objects-the-injector-doesnt-build-read-services-through-haywirecoredicontext">CS-S2 · Objects the injector doesn't build read services through <code>haywire.core.di.context</code><a class="headerlink" href="#cs-s2-objects-the-injector-doesnt-build-read-services-through-haywirecoredicontext" title="Permanent link">&para;</a></h3>
+<p>Nodes, ports, edges and other objects built from graph data or by authors' code call an
+accessor such as <code>get_node_factory()</code>. Adding an accessor is an architecture decision
+for the maintainer.
+<strong>Why</strong>: these constructors are author-facing and rebuilt by hot reload, so they can't
+take services as arguments; each accessor is process-wide state.
+<strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
+<h3 id="cs-s3-no-other-module-level-mutable-state">CS-S3 · No other module-level mutable state<a class="headerlink" href="#cs-s3-no-other-module-level-mutable-state" title="Permanent link">&para;</a></h3>
+<p>A module-level variable that changes after import is allowed only for a process-wide
+fact, named by its kind and commented with why it is process-wide: an
+<a href="../glossary/">observable store</a> (error ledger, activity tracker), a strategy hook (a
+module-level callable whose absence is a valid mode, such as the access resolver), or a
+process switch (GC freeze, GIL switch). A new one is an architecture decision for the
+maintainer.
+<strong>Why</strong>: module state outlives sessions and survives or resets across hot reload in ways
+tests don't show; see
+<a href="https://github.com/going-haywire/haywire/blob/master/.insights/project_settings_registry_construction_side_effects.md">the DI context trap</a>.
+<strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
+<h3 id="cs-s4-never-contextvar-for-app-state">CS-S4 · Never <code>ContextVar</code> for app state<a class="headerlink" href="#cs-s4-never-contextvar-for-app-state" title="Permanent link">&para;</a></h3>
+<p><strong>Why</strong>: a hot-reloaded module captures a different <code>ContextVar</code> instance than the rest of
+the app, so lookups miss silently; see
+<a href="https://github.com/going-haywire/haywire/blob/master/.insights/project_di_context.md">project_di_context.md</a>.
+<strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
+<hr />
+<h2 id="l-logging-and-output">L · Logging and output<a class="headerlink" href="#l-logging-and-output" title="Permanent link">&para;</a></h2>
+<h3 id="cs-l1-each-module-logs-through-logginggetlogger__name__">CS-L1 · Each module logs through <code>logging.getLogger(__name__)</code><a class="headerlink" href="#cs-l1-each-module-logs-through-logginggetlogger__name__" title="Permanent link">&para;</a></h3>
+<p><strong>Why</strong>: the logger tree follows the package tree, so one setting silences or raises a
+whole library. <strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
+<h3 id="cs-l2-print-only-for-a-command-line-tools-output-to-its-user">CS-L2 · <code>print</code> only for a command-line tool's output to its user<a class="headerlink" href="#cs-l2-print-only-for-a-command-line-tools-output-to-its-user" title="Permanent link">&para;</a></h3>
+<p>Everything else logs. <strong>Why</strong>: an embedder of the library system or a test can't silence
+a print. <strong>Enforced by</strong>: review (ruff <code>T20</code> with per-file ignores for CLI modules,
+planned). <strong>Scope</strong>: repo.</p>
+<h3 id="cs-l3-log-levels-mean-the-same-everywhere">CS-L3 · Log levels mean the same everywhere<a class="headerlink" href="#cs-l3-log-levels-mean-the-same-everywhere" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DEBUG</code></td>
+<td>diagnostics a developer turns on</td>
+</tr>
+<tr>
+<td><code>INFO</code></td>
+<td>lifecycle a user would recognise: a library loaded, a graph saved</td>
+</tr>
+<tr>
+<td><code>WARNING</code></td>
+<td>degraded but working: a fallback taken, a setting ignored</td>
+</tr>
+<tr>
+<td><code>ERROR</code></td>
+<td>a failure; on a pathway the ledger covers, report it with <code>report_failure</code> instead of <code>logger.error</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why</strong>: a <code>logger.error</code> on a ledger pathway is a failure the Errors editor never shows
+(errors-arch §6). <strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
+<hr />
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../component-naming/">Component naming</a>: names of nodes, types and other components.</li>
+<li><a href="../design-principles/">Design principles</a>: what the framework refuses and how
+  machinery is shaped.</li>
+<li><a href="../../architecture/errors/errors-arch/">Errors architecture</a>: boundaries and the ledger.</li>
+<li><a href="https://github.com/going-haywire/haywire/blob/master/tests/README.md">tests/README.md</a>:
+  how tests are written.</li>
+<li><a href="https://github.com/going-haywire/haywire/blob/master/.insights/INDEX.md">.insights/INDEX.md</a>:
+  known traps, NiceGUI and async among them.</li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://unpkg.com/mermaid@11.17.2/dist/mermaid.min.js"></script>
+      
+        <script src="../../javascripts/mermaid-theme.js"></script>
+      
+    
+  </body>
+</html>
