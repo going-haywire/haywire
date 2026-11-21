@@ -1,6 +1,6 @@
-# Emit Callback
+# Callback Emit
 
-`haybale-example:node:EmitCallbackNode` · kind: node
+`haybale-example:node:CallbackEmitNode` · kind: node
 
 Emits a callback to trigger event nodes in other flows
 

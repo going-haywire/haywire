@@ -1,6 +1,6 @@
-# Custom Callback
+# Callback Event
 
-`haybale-example:node:CustomCallbackNode` · kind: node
+`haybale-example:node:CallbackEventNode` · kind: node
 
 Listens for custom callbacks from other flows
 
