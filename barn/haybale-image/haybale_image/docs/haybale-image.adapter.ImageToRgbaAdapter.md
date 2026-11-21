@@ -7,7 +7,7 @@ Convert an image to RGBA
 ## Details
 
 - **converts_from**: `haybale-image:type:IMAGE`
-- **converts_to**: `haybale-image:type:IMAGE_RGBA`
+- **converts_to**: `haybale-image:type:RGBA_IMAGE`
 - **priority**: `0`
 
 ## Notes

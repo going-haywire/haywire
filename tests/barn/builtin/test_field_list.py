@@ -73,7 +73,7 @@ def test_the_type_list_offers_values_only(library_system):
     keys = library_system.get_type_registry().list_value_type_keys()
     assert "haywire-core:type:FLOAT" in keys
     assert "haywire-core:type:BUNDLE" in keys
-    assert "haybale-image:type:IMAGE_RGB" in keys
+    assert "haybale-image:type:RGB_IMAGE" in keys
     for name in (
         "EXEC",
         "CALLBACK",
