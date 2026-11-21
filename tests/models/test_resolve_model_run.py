@@ -65,7 +65,7 @@ def test_resolve_model_size_reaches_a_downstream_print(
     state.index.scan()
     state.index.hash_pending()
 
-    begin = _add(graph, "haybale_core.nodes.events.begin_play", "BeginPlayNode")
+    begin = _add(graph, "haybale_core.nodes.events.begin_play_event", "BeginPlayEventNode")
     resolve = _add(graph, "haybale_models.nodes.resolve_model", "ResolveModelNode")
     printer = _add(graph, "haybale_core.nodes.print", "PrintNode")
     graph.create_edge_wrapper(begin.node_id, "exec", printer.node_id, "exec")

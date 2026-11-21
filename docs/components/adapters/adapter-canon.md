@@ -12,15 +12,15 @@ see-also:
 
 ## 1. What it solves
 
-An **adapter** converts a value from one datatype to another so that ports of incompatible types can be connected. When a user drags an edge from a `TEMPERATURE` outlet to a `STRING` inlet, the framework asks the adapter registry: "is there a chain from `TEMPERATURE` to `STRING`?" If yes, an adapter chain is attached to the edge and values are converted automatically as they flow through it.
+An **adapter** converts a value from one datatype to another so that ports of incompatible types can be connected. When a user drags an edge from a `Temperature` outlet to a `STRING` inlet, the framework asks the adapter registry: "is there a chain from `Temperature` to `STRING`?" If yes, an adapter chain is attached to the edge and values are converted automatically as they flow through it.
 
 You author an adapter when:
 
-- You introduce a new datatype that should interoperate with existing types (e.g. `TEMPERATURE → FLOAT` so any FLOAT-consuming node can also accept a `TEMPERATURE`).
+- You introduce a new datatype that should interoperate with existing types (e.g. `Temperature → FLOAT` so any FLOAT-consuming node can also accept a `Temperature`).
 - Two existing types need a conversion that's not built in (e.g. `Color → STRING` for hex export, `STRING → Color` for hex parsing).
 - You want to specialise the conversion priority when multiple paths exist.
 
-Adapters operate on **unwrapped values** — they receive and return raw Python objects (`float`, `str`, an instance of your custom class), never `IType` wrappers. Subclassing inheritance does most of the work for you: a derived primitive is automatically connectable to its ancestor type without any adapter (e.g. `TEMPERATURE` outlet → `FLOAT` inlet just works). You only need an adapter when the conversion is *not* a simple inheritance walk.
+Adapters operate on **unwrapped values** — they receive and return raw Python objects (`float`, `str`, an instance of your custom class), never `IType` wrappers. Subclassing inheritance does most of the work for you: a derived primitive is automatically connectable to its ancestor type without any adapter (e.g. `Temperature` outlet → `FLOAT` inlet just works). You only need an adapter when the conversion is *not* a simple inheritance walk.
 
 ## 2. How it fits
 
@@ -43,7 +43,7 @@ class T2F(BaseAdapter):          @adapter decorator on          the EdgeWrapper
                                                                  is finalised.
 ```
 
-The registry handles **chain assembly** automatically. If you register `TEMPERATURE → FLOAT` and `FLOAT → STRING`, the framework can route `TEMPERATURE → STRING` through both — no explicit chain adapter needed.
+The registry handles **chain assembly** automatically. If you register `Temperature → FLOAT` and `FLOAT → STRING`, the framework can route `Temperature → STRING` through both — no explicit chain adapter needed.
 
 The runtime mechanics — when chains are searched, how they are tested at edge-build time, when adapter chain rebuild happens after hot-reload — live in [architecture/execution/edges](../../architecture/execution/edges/edges-arch.md). This file documents the *authoring* surface only.
 
@@ -76,9 +76,9 @@ Optional overrides:
 | `test(value)` | calls `execute(value)` | Custom test harness if the default sample-test is insufficient |
 | `execute(value)` | `convert(value)` then chains | Run the full adapter chain. You normally don't override this — `BaseAdapter` handles chaining automatically. |
 
-**Adapter chains are assembled, not authored.** You write single-step adapters. The framework finds chains. If `TEMPERATURE → FLOAT` and `FLOAT → STRING` are both registered, then `TEMPERATURE → STRING` is connectable for free with the chain `[T2F, F2S]`. You don't write a `TEMPERATURE → STRING` adapter unless the chained conversion is unacceptable (lossy, expensive, semantically wrong).
+**Adapter chains are assembled, not authored.** You write single-step adapters. The framework finds chains. If `Temperature → FLOAT` and `FLOAT → STRING` are both registered, then `Temperature → STRING` is connectable for free with the chain `[T2F, F2S]`. You don't write a `Temperature → STRING` adapter unless the chained conversion is unacceptable (lossy, expensive, semantically wrong).
 
-**Inheritance and adapter selection.** A derived primitive (e.g. `TEMPERATURE(FLOAT)`) is automatically compatible with its ancestor — no adapter is needed for `TEMPERATURE → FLOAT` (passthrough). The framework only searches the adapter graph when no inheritance path exists, or when going *from* an ancestor *to* a descendant (which always requires an explicit adapter, since not every float is a valid Temperature).
+**Inheritance and adapter selection.** A derived primitive (e.g. `Temperature(FLOAT)`) is automatically compatible with its ancestor — no adapter is needed for `Temperature → FLOAT` (passthrough). The framework only searches the adapter graph when no inheritance path exists, or when going *from* an ancestor *to* a descendant (which always requires an explicit adapter, since not every float is a valid Temperature).
 
 **Sample testing at edge build.** When a user creates an edge between two compatible-via-chain ports, the `EdgeWrapper.test` step:
 
@@ -135,7 +135,7 @@ from: `IntToFloatAdapter` — registry_key: `haybale-testing:adapter:IntToFloatA
 
 from: `FloatToStringAdapter` — registry_key: `haybale-testing:adapter:FloatToStringAdapter`
 
-**Compound type adapter** — `STRING_MAP → ArrayType` from `barn/haybale-example/haybale_example/adapters/compound_adapters.py:MapsStringArrayAdapter`. Demonstrates a cross-category conversion with `get_test_value()` delegating to the chain and `get_test_repetitions()` set above 1:
+**Compound type adapter** — `STRING_MAP → ARRAY` from `barn/haybale-example/haybale_example/adapters/compound_adapters.py:MapsStringArrayAdapter`. Demonstrates a cross-category conversion with `get_test_value()` delegating to the chain and `get_test_repetitions()` set above 1:
 
 ```python
 --8<-- "barn/haybale-example/haybale_example/adapters/compound_adapters.py:10:48"
@@ -165,7 +165,7 @@ What these examples exercise:
 | `TEST_BOOL → TEST_STRING` | `[BoolToInt, IntToFloat, FloatToString]` | auto-chained |
 | `TEST_STRING → TEST_BOOL` | rejected | no reverse adapters registered |
 
-For datatype declaration (the `Color` and `TEMPERATURE` classes themselves), see [components/datatypes](../datatypes/datatype-canon.md). For the edge build pipeline that consumes these adapters at connection time, see [architecture/execution/edges](../../architecture/execution/edges/edges-arch.md).
+For datatype declaration (the `Color` and `Temperature` classes themselves), see [components/datatypes](../datatypes/datatype-canon.md). For the edge build pipeline that consumes these adapters at connection time, see [architecture/execution/edges](../../architecture/execution/edges/edges-arch.md).
 
 ---
 

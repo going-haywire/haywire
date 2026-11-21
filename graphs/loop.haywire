@@ -10,7 +10,7 @@
   "nodes": {
     "BeginPlayNode_8d7335c8": {
       "node_id": "BeginPlayNode_8d7335c8",
-      "registry_key": "haybale-core:node:BeginPlayNode",
+      "registry_key": "haybale-core:node:BeginPlayEventNode",
       "node_data": {
         "node_id": "BeginPlayNode_8d7335c8",
         "ports": {
@@ -84,14 +84,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "BeginPlayNode",
-          "registry_key": "haybale-core:node:BeginPlayNode",
+          "registry_id": "BeginPlayEventNode",
+          "registry_key": "haybale-core:node:BeginPlayEventNode",
           "label": "Begin Player",
           "description": "Triggered once when execution starts",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "BeginPlayNode",
-          "module": "haybale_core.nodes.events.begin_play",
+          "class_name": "BeginPlayEventNode",
+          "module": "haybale_core.nodes.events.begin_play_event",
           "tags": [],
           "search_tags": [
             "start",
@@ -202,11 +202,11 @@
           },
           "callback_names": {
             "kwargs": {
-              "registry_id": "PooledType",
-              "registry_key": "haybale-core:type:PooledType",
+              "registry_id": "POOLED",
+              "registry_key": "haybale-core:type:POOLED",
               "label": "Trigger",
               "description": "Multi-source aggregation",
-              "class_name": "PooledType",
+              "class_name": "POOLED",
               "module": "haybale_core.types.pooled_type",
               "default": {
                 "value": {}
@@ -218,7 +218,7 @@
               "order": 3
             },
             "recipe": {
-              "registry_key": "haybale-core:type:PooledType",
+              "registry_key": "haybale-core:type:POOLED",
               "element_type": {
                 "registry_key": "haywire-core:type:CALLBACK"
               }
@@ -747,7 +747,7 @@
     },
     "ControlSwitch_48a0d650": {
       "node_id": "ControlSwitch_48a0d650",
-      "registry_key": "haybale-core:node:ControlSwitch",
+      "registry_key": "haybale-core:node:ControlSwitchNode",
       "node_data": {
         "node_id": "ControlSwitch_48a0d650",
         "ports": {
@@ -987,14 +987,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "ControlSwitch",
-          "registry_key": "haybale-core:node:ControlSwitch",
+          "registry_id": "ControlSwitchNode",
+          "registry_key": "haybale-core:node:ControlSwitchNode",
           "label": "Control Switch",
           "description": "Switches control flow based on condition",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "ControlSwitch",
-          "module": "haybale_core.nodes.switch",
+          "class_name": "ControlSwitchNode",
+          "module": "haybale_core.nodes.control_switch",
           "tags": [],
           "search_tags": [
             "switch",
@@ -1205,7 +1205,7 @@
     },
     "ShutdownNode_0fb7bb57": {
       "node_id": "ShutdownNode_0fb7bb57",
-      "registry_key": "haybale-core:node:ShutdownNode",
+      "registry_key": "haybale-core:node:ShutdownEventNode",
       "node_data": {
         "node_id": "ShutdownNode_0fb7bb57",
         "ports": {
@@ -1279,14 +1279,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "ShutdownNode",
-          "registry_key": "haybale-core:node:ShutdownNode",
+          "registry_id": "ShutdownEventNode",
+          "registry_key": "haybale-core:node:ShutdownEventNode",
           "label": "Shutdown",
           "description": "Triggered when execution is shutting down",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "ShutdownNode",
-          "module": "haybale_core.nodes.events.shutdown",
+          "class_name": "ShutdownEventNode",
+          "module": "haybale_core.nodes.events.shutdown_event",
           "tags": [],
           "search_tags": [
             "stop",

@@ -28,8 +28,8 @@ Type definition          Field selection            Worker sees
 ────────────────         ────────────────           ────────────
 PrimitiveType[T]    →    PrimitiveField        →    T (unwrapped)
 BaseType            →    BaseField             →    instance of your class
-ArrayType[T]        →    ArrayField            →    list[T]
-PooledType[T]       →    PooledField           →    dict[node_id, T]
+ARRAY[T]        →    ArrayField            →    list[T]
+POOLED[T]       →    PooledField           →    dict[node_id, T]
 ```
 
 You define the type. The framework instantiates the right field. The worker function sees the unwrapped value (for primitives) or the instance itself (for `BaseType`).
@@ -38,7 +38,7 @@ You define the type. The framework instantiates the right field. The worker func
 
 - **`PrimitiveType[T]`** — wraps a single Python built-in.
 - **`BaseType`** — a structured object, declared as `@dataclass`.
-- **`CompoundType[T]`** — a typed collection. The core library already provides `ArrayType` and `PooledType`; you almost never define new compound types.
+- **`CompoundType[T]`** — a typed collection. The core library already provides `ARRAY` and `POOLED`; you almost never define new compound types.
 
 Adapters live in [components/adapters](../adapters/adapter-canon.md); how the chain is built and tested at edge-link time lives in [architecture/execution/edges](../../architecture/execution/edges/edges-arch.md).
 
@@ -48,7 +48,7 @@ Adapters live in [components/adapters](../adapters/adapter-canon.md); how the ch
 
 **`default` dict.** Constructor kwargs for the default instance. For primitives: `{'value': <val>}` (or just the bare value, which the decorator auto-wraps). For `@dataclass` complex types: `{'attr1': v1, 'attr2': v2}` — keys must match the dataclass fields.
 
-**`wire_type`.** The wire type values of this type travel on: a class such as `DataWire`, `ControlWire` or `CallbackWire` (imported from `haywire.barn.builtin.wires`), or one your library defines (see [ADR 0042](../../adr/0042-wire-types-replace-flowtype.md)). Ordinary value-carrying datatypes name `DataWire`. A derived type inherits its parent's; a container or wrapper that names none (`ArrayType[T]`, `PooledType[T]`) takes its element's. `@type` refuses a type that has none and is not a container, a wrapper or `ADD`: its pins could never link. Whether a type has a widget is the author's call; a widget writes only to a field that can hold an own value. A wire type that declares `holds_absence` (`CallbackWire`) lets its types hold `None`: declare `default=None` and the type's fields start absent, primitive and dataclass alike, and a pool of the type drops an absent entry. Absence is "no subscription" for a callback type; every present value, an empty name included, is a real one. Containers and wrappers of such a type keep their own fields. A port derives its wire type from its type; it is never passed per port or saved.
+**`wire_type`.** The wire type values of this type travel on: a class such as `DataWire`, `ControlWire` or `CallbackWire` (imported from `haywire.barn.builtin.wires`), or one your library defines (see [ADR 0042](../../adr/0042-wire-types-replace-flowtype.md)). Ordinary value-carrying datatypes name `DataWire`. A derived type inherits its parent's; a container or wrapper that names none (`ARRAY[T]`, `POOLED[T]`) takes its element's. `@type` refuses a type that has none and is not a container, a wrapper or `ADD`: its pins could never link. Whether a type has a widget is the author's call; a widget writes only to a field that can hold an own value. A wire type that declares `holds_absence` (`CallbackWire`) lets its types hold `None`: declare `default=None` and the type's fields start absent, primitive and dataclass alike, and a pool of the type drops an absent entry. Absence is "no subscription" for a callback type; every present value, an empty name included, is a real one. Containers and wrappers of such a type keep their own fields. A port derives its wire type from its type; it is never passed per port or saved.
 
 **Inheritance.** A derived type inherits its parent's full identity (`color`, `widget_key`, `wire_type`, …) and overrides only the parameters you pass to its `@type`. Derived types are **automatically compatible with ancestors** for connections — child→parent works as a passthrough; child→sibling-of-parent walks up to the parent's adapter; parent→child still requires an explicit adapter.
 
@@ -70,7 +70,7 @@ Every IType belongs to exactly one, and the choice is not cosmetic — other sub
 |---|---|---|---|
 | `PrimitiveType` | one unwrapped primitive | `PrimitiveField` | no |
 | `BaseType` | a structured instance (the instance IS the data) | `BaseField` | no |
-| `CompoundType` | **N** elements of one IType | `CompoundField` subclasses | `ArrayType[FLOAT]` |
+| `CompoundType` | **N** elements of one IType | `CompoundField` subclasses | `ARRAY[FLOAT]` |
 | `WrapperType` | **exactly one** value of another IType, **or absence** | the element's field class, made absence-tolerant | `OPTIONAL[INT]` |
 
 Two rules worth knowing before you add a type:
@@ -79,7 +79,7 @@ Two rules worth knowing before you add a type:
 
 **`CompoundType` means "container", and code acts on that.** `AdapterFactory` builds element-wise adapter chains for compounds, and `pin_render` gives them collection iconography. A type holding zero-or-one that inherited `CompoundType` for the parameterisation machinery would get both behaviours silently and wrongly. That is why `WrapperType` exists as a separate family rather than as a `CompoundType` subclass — see [ADR 0033](../../adr/0033-absence-is-a-type.md).
 
-**Parameterised identity differs between the two.** A `CompoundType[T]` **shares** its parent's `class_identity`, so every `ArrayType[*]` reports one colour and one widget key and differs only in its element. A `WrapperType[T]` stamps a **per-parameterisation** identity instead: it keeps the wrapper's `registry_key` and `widget_key` (a graph must resolve back to the wrapper, and the wrapper's own widget renders the row) but takes the element's colour and declared widget properties — without which `OPTIONAL[VEC3F]` would reach `VectorWidget` with no `vec_meta` and be unrenderable.
+**Parameterised identity differs between the two.** A `CompoundType[T]` **shares** its parent's `class_identity`, so every `ARRAY[*]` reports one colour and one widget key and differs only in its element. A `WrapperType[T]` stamps a **per-parameterisation** identity instead: it keeps the wrapper's `registry_key` and `widget_key` (a graph must resolve back to the wrapper, and the wrapper's own widget renders the row) but takes the element's colour and declared widget properties — without which `OPTIONAL[VEC3F]` would reach `VectorWidget` with no `vec_meta` and be unrenderable.
 
 ## 4. Live examples from the codebase
 

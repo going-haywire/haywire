@@ -96,7 +96,7 @@ def test_a_first_run_that_raises_runs_again_without_a_dirty_port(graph_with_libr
 
 def test_a_loaded_data_node_computes_on_its_first_run(graph_with_library_system, monkeypatch):
     graph = graph_with_library_system
-    begin = _add(graph, "haybale_core.nodes.events.begin_play", "BeginPlayNode")
+    begin = _add(graph, "haybale_core.nodes.events.begin_play_event", "BeginPlayEventNode")
     compute = _add(graph, f"{_BENCH}.bench_data_pass_node", "BenchDataPassNode")
     printer = _add(graph, "haybale_core.nodes.print", "PrintNode")
     graph.create_edge_wrapper(begin.node_id, "exec", printer.node_id, "exec")

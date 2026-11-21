@@ -10,7 +10,7 @@ see-also:
 # Renaming components — Author guide
 
 Every saved graph records each component it uses by its **registry key**,
-`<dist>:<kind>:<ClassName>` (`haybale-core:node:BeginPlayNode`). On load, the
+`<dist>:<kind>:<ClassName>` (`haybale-core:node:BeginPlayEventNode`). On load, the
 graph loader looks a component up by that key and nothing else. If you rename a
 node, type or widget class, its key changes too, so every graph that still holds
 the old key stops loading. Nothing maps old keys to new ones at runtime.

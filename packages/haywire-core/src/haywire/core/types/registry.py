@@ -199,7 +199,7 @@ class TypeRegistry(BaseRegistry[IType]):
         """
         Resolve a type spec to a fully parameterized type class.
 
-        Handles nested compound types like PooledType[ArrayType[STRING]].
+        Handles nested compound types like POOLED[ARRAY[STRING]].
 
         Args:
             spec: Dict with 'registry_key' and optional 'element_type'
@@ -215,7 +215,7 @@ class TypeRegistry(BaseRegistry[IType]):
                 'registry_key': 'core.array',
                 'element_type': {'registry_key': 'core.string'}
             })
-            # → ArrayType[STRING]
+            # → ARRAY[STRING]
 
             registry.resolve_type_from_spec({
                 'registry_key': 'core.pooled',
@@ -224,7 +224,7 @@ class TypeRegistry(BaseRegistry[IType]):
                     'element_type': {'registry_key': 'core.string'}
                 }
             })
-            # → PooledType[ArrayType[STRING]]
+            # → POOLED[ARRAY[STRING]]
         """
         registry_key = spec.get("registry_key")
         if not registry_key:

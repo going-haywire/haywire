@@ -19,7 +19,7 @@
 - `haybale-example:type:TEMPERATURE` — Temperature — Temperature data types
 
 ## adapter
-- `haybale-example:adapter:MapsStringArrayAdapter` — MapsString to Array — Transform MapsString elements (STRING_MAP[str, X] → ArrayType[Y])
+- `haybale-example:adapter:MapsStringArrayAdapter` — MapsString to Array — Transform MapsString elements (STRING_MAP[str, X] → ARRAY[Y])
 
 ## widget
 - `haybale-example:widget:FillWidget` — FillWidget — Background fill editor (solid / linear / radial)

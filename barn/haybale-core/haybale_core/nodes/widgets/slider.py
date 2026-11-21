@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from haybale_core.nodes.widgets.base import WidgetNode
+from haybale_core.nodes.widgets.base import BaseWidgetNode
 from haywire.api import FLOAT, INT, SLIDER_WIDGET, NodeSettings, NodeType, node, setting
 
 
@@ -13,7 +13,7 @@ from haywire.api import FLOAT, INT, SLIDER_WIDGET, NodeSettings, NodeType, node,
     search_tags=["float", "slider", "widget", "control", "stage"],
     node_type=NodeType.DATA,
 )
-class FloatSliderNode(WidgetNode):
+class FloatSliderNode(BaseWidgetNode):
     """A slider that sends a decimal number from Min to Max.
 
     A value arriving at *In* moves the slider and is sent on. Last write wins, so a
@@ -45,7 +45,7 @@ class FloatSliderNode(WidgetNode):
     search_tags=["int", "integer", "slider", "widget", "control", "stage"],
     node_type=NodeType.DATA,
 )
-class IntSliderNode(WidgetNode):
+class IntSliderNode(BaseWidgetNode):
     """A slider that sends a whole number from Min to Max.
 
     A value arriving at *In* moves the slider and is sent on. Last write wins, so a

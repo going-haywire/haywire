@@ -10,7 +10,7 @@ Emits a silent audio block at a steady rate
 |---|---|---|---|
 | `start` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `stop` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `callbacks` | inlet | `haybale-core:type:PooledType` | Connect to an Audio Event node. |
+| `callbacks` | inlet | `haybale-core:type:POOLED` | Connect to an Audio Event node. |
 | `status` | config | `haywire-core:type:STRING` | Text data |
 | `started` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `stopped` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |

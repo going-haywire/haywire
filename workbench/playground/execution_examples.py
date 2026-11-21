@@ -24,11 +24,13 @@ def _create_graph_with_math(graph: BaseGraph) -> BaseGraph:
     Returns:
         The populated graph
     """
-    from haybale_core.nodes import BeginPlayNode
+    from haybale_core.nodes import BeginPlayEventNode
     from haybale_core.nodes import LoggerNode
     from haybale_example.nodes import MathOperationNode
 
-    begin_play = graph.create_node_wrapper(BeginPlayNode.class_identity.registry_key, position=(100, 100))
+    begin_play = graph.create_node_wrapper(
+        BeginPlayEventNode.class_identity.registry_key, position=(100, 100)
+    )
 
     print_msg = graph.create_node_wrapper(LoggerNode.class_identity.registry_key, position=(300, 100))
 
@@ -144,14 +146,16 @@ def example_sequence_flow():
     """
     Example with sequence: BeginPlay → PrintMessage → PrintMessage
     """
-    from haybale_core.nodes.events.begin_play import BeginPlayNode
+    from haybale_core.nodes.events.begin_play_event import BeginPlayEventNode
     from haybale_test_a.nodes.print_node import PrintMessageNode
 
     # Create graph
     graph = BaseGraph(graph_id="sequence_example", name="Sequence Flow Example")
 
     # Create nodes
-    begin_play = graph.create_node_wrapper(BeginPlayNode.class_identity.registry_key, position=(100, 100))
+    begin_play = graph.create_node_wrapper(
+        BeginPlayEventNode.class_identity.registry_key, position=(100, 100)
+    )
 
     print_msg1 = graph.create_node_wrapper(PrintMessageNode.class_identity.registry_key, position=(300, 100))
 
@@ -189,7 +193,7 @@ def example_callback_string_based():
     Both nodes configured with matching callback name strings.
     No callback edge - connection happens via string matching.
     """
-    from haybale_core.nodes.events.begin_play import BeginPlayNode
+    from haybale_core.nodes.events.begin_play_event import BeginPlayEventNode
     from haybale_example.nodes.emits.callback_event import CallbackEventNode
     from haybale_example.nodes.emits.callback_emit import CallbackEmitNode
     from haybale_test_a.nodes.print_node import PrintMessageNode
@@ -198,7 +202,9 @@ def example_callback_string_based():
     graph = BaseGraph(graph_id="callback_string_example", name="Callback String-Based Example")
 
     # Flow 1: Emitter flow
-    begin_play = graph.create_node_wrapper(BeginPlayNode.class_identity.registry_key, position=(100, 100))
+    begin_play = graph.create_node_wrapper(
+        BeginPlayEventNode.class_identity.registry_key, position=(100, 100)
+    )
 
     emit_callback = graph.create_node_wrapper(
         CallbackEmitNode.class_identity.registry_key, position=(300, 100)
@@ -271,7 +277,7 @@ def example_callback_edge_based():
     Event name (CustomCallback's node_id) propagates through the edge automatically
     via the pipe mechanism.
     """
-    from haybale_core.nodes.events.begin_play import BeginPlayNode
+    from haybale_core.nodes.events.begin_play_event import BeginPlayEventNode
     from haybale_example.nodes.emits.callback_event import CallbackEventNode
     from haybale_example.nodes.emits.callback_emit import CallbackEmitNode
     from haybale_test_a.nodes.print_node import PrintMessageNode
@@ -280,7 +286,9 @@ def example_callback_edge_based():
     graph = BaseGraph(graph_id="callback_edge_example", name="Callback Edge-Based Example")
 
     # Flow 1: Emitter flow
-    begin_play = graph.create_node_wrapper(BeginPlayNode.class_identity.registry_key, position=(100, 100))
+    begin_play = graph.create_node_wrapper(
+        BeginPlayEventNode.class_identity.registry_key, position=(100, 100)
+    )
 
     emit_callback = graph.create_node_wrapper(
         CallbackEmitNode.class_identity.registry_key, position=(300, 100)
@@ -362,7 +370,7 @@ def example_external_events():
     """
     Example with external events (e.g., keyboard input)
     """
-    from haybale_core.nodes.events.begin_play import BeginPlayNode
+    from haybale_core.nodes.events.begin_play_event import BeginPlayEventNode
     from haybale_test_a.nodes.print_node import PrintMessageNode
 
     # Create graph
@@ -370,7 +378,9 @@ def example_external_events():
 
     # Create key press listener
     # (This would be a KeyPressedNode in real implementation)
-    begin_play = graph.create_node_wrapper(BeginPlayNode.class_identity.registry_key, position=(100, 100))
+    begin_play = graph.create_node_wrapper(
+        BeginPlayEventNode.class_identity.registry_key, position=(100, 100)
+    )
 
     print_msg = graph.create_node_wrapper(PrintMessageNode.class_identity.registry_key, position=(300, 100))
 

@@ -905,7 +905,7 @@ Ports use a "recipe" format that stores the **creation parameters** rather than 
 
 1. **Type Identity Storage:**
    - `type_cls`: Registry key for the IType class
-   - `element_type_cls`: For compound types (e.g., ArrayType[FLOAT])
+   - `element_type_cls`: For compound types (e.g., ARRAY[FLOAT])
    - Allows reconstruction of exact type hierarchy
 
 2. **Default Values:**

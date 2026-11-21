@@ -22,8 +22,8 @@ class EdgeLinkTestNode(BaseNode):
     """
 
     def init(self):
-        from haybale_core.types import ArrayType
-        from haybale_core.types import PooledType
+        from haybale_core.types import ARRAY
+        from haybale_core.types import POOLED
         from haybale_testing.types.test_types import (
             TEST_BOOL,
             TEST_FLOAT,
@@ -58,22 +58,22 @@ class EdgeLinkTestNode(BaseNode):
                 TEST_TEMPERATURE.as_inlet(id="temperature_inlet", label="Temperature Inlet", default=20.0)
             )
 
-            self.add(PooledType[TEST_BOOL].as_inlet(id="pooled_bool_inlet", label="Pooled BOOL Inlet"))
+            self.add(POOLED[TEST_BOOL].as_inlet(id="pooled_bool_inlet", label="Pooled BOOL Inlet"))
 
-            self.add(PooledType[TEST_INT].as_inlet(id="pooled_int_inlet", label="Pooled INT Inlet"))
+            self.add(POOLED[TEST_INT].as_inlet(id="pooled_int_inlet", label="Pooled INT Inlet"))
 
-            self.add(PooledType[TEST_FLOAT].as_inlet(id="pooled_float_inlet", label="Pooled FLOAT Inlet"))
+            self.add(POOLED[TEST_FLOAT].as_inlet(id="pooled_float_inlet", label="Pooled FLOAT Inlet"))
 
             self.add(
-                PooledType[TEST_TEMPERATURE].as_inlet(
+                POOLED[TEST_TEMPERATURE].as_inlet(
                     id="pooled_temperature_inlet", label="Pooled Temperature Inlet"
                 )
             )
 
-            self.add(PooledType[TEST_STRING].as_inlet(id="pooled_string_inlet", label="Pooled STRING Inlet"))
+            self.add(POOLED[TEST_STRING].as_inlet(id="pooled_string_inlet", label="Pooled STRING Inlet"))
 
             self.add(
-                PooledType[ArrayType[TEST_STRING]].as_inlet(
+                POOLED[ARRAY[TEST_STRING]].as_inlet(
                     id="pooled_array_string_inlet", label="Pooled ARRAY[STRING] Inlet"
                 )
             )
@@ -94,19 +94,19 @@ class EdgeLinkTestNode(BaseNode):
 
             self.add(TEST_STRING.as_outlet(id="string_outlet", label="Text Output"))
 
-            self.add(ArrayType[TEST_BOOL].as_outlet(id="array_bool_outlet", label="ARRAY[TEST_BOOL]"))
+            self.add(ARRAY[TEST_BOOL].as_outlet(id="array_bool_outlet", label="ARRAY[TEST_BOOL]"))
 
-            self.add(ArrayType[TEST_INT].as_outlet(id="array_int_outlet", label="ARRAY[TEST_INT]"))
+            self.add(ARRAY[TEST_INT].as_outlet(id="array_int_outlet", label="ARRAY[TEST_INT]"))
 
-            self.add(ArrayType[TEST_FLOAT].as_outlet(id="array_float_outlet", label="ARRAY[TEST_FLOAT]"))
+            self.add(ARRAY[TEST_FLOAT].as_outlet(id="array_float_outlet", label="ARRAY[TEST_FLOAT]"))
 
             self.add(
-                ArrayType[TEST_TEMPERATURE].as_outlet(
+                ARRAY[TEST_TEMPERATURE].as_outlet(
                     id="array_temperature_outlet", label="ARRAY[TEST_TEMPERATURE]"
                 )
             )
 
-            self.add(ArrayType[TEST_STRING].as_outlet(id="array_string_outlet", label="ARRAY[TEST_STRING]"))
+            self.add(ARRAY[TEST_STRING].as_outlet(id="array_string_outlet", label="ARRAY[TEST_STRING]"))
 
     def redraw(self, *args, **kwargs) -> None:
         """Request a redraw of the node in the UI."""

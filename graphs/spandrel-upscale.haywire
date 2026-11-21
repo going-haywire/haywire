@@ -10,7 +10,7 @@
   "nodes": {
     "BeginPlayNode_1fcaf05d": {
       "node_id": "BeginPlayNode_1fcaf05d",
-      "registry_key": "haybale-core:node:BeginPlayNode",
+      "registry_key": "haybale-core:node:BeginPlayEventNode",
       "node_data": {
         "node_id": "BeginPlayNode_1fcaf05d",
         "ports": {
@@ -84,14 +84,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "BeginPlayNode",
-          "registry_key": "haybale-core:node:BeginPlayNode",
+          "registry_id": "BeginPlayEventNode",
+          "registry_key": "haybale-core:node:BeginPlayEventNode",
           "label": "Begin Player",
           "description": "Triggered once when execution starts",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "BeginPlayNode",
-          "module": "haybale_core.nodes.events.begin_play",
+          "class_name": "BeginPlayEventNode",
+          "module": "haybale_core.nodes.events.begin_play_event",
           "tags": [],
           "search_tags": [
             "start",
@@ -1718,11 +1718,11 @@
           },
           "files": {
             "kwargs": {
-              "registry_id": "ArrayType",
-              "registry_key": "haybale-core:type:ArrayType",
+              "registry_id": "ARRAY",
+              "registry_key": "haybale-core:type:ARRAY",
               "label": "Files",
               "description": "The matching files, in name order",
-              "class_name": "ArrayType",
+              "class_name": "ARRAY",
               "module": "haybale_core.types.array_type",
               "default": {
                 "value": []
@@ -1735,7 +1735,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haybale-core:type:ArrayType",
+              "registry_key": "haybale-core:type:ARRAY",
               "element_type": {
                 "registry_key": "haywire-core:type:FILE_PATH"
               }
@@ -1897,11 +1897,11 @@
           },
           "array": {
             "kwargs": {
-              "registry_id": "ArrayType",
-              "registry_key": "haybale-core:type:ArrayType",
+              "registry_id": "ARRAY",
+              "registry_key": "haybale-core:type:ARRAY",
               "label": "Array",
               "description": "The items to go through",
-              "class_name": "ArrayType",
+              "class_name": "ARRAY",
               "module": "haybale_core.types.array_type",
               "default": {
                 "value": []
@@ -1914,7 +1914,7 @@
               "on_connect": "hb_adopt_array"
             },
             "recipe": {
-              "registry_key": "haybale-core:type:ArrayType",
+              "registry_key": "haybale-core:type:ARRAY",
               "element_type": {
                 "registry_key": "haywire-core:type:FILE_PATH"
               }
@@ -1960,11 +1960,11 @@
           },
           "failed": {
             "kwargs": {
-              "registry_id": "ArrayType",
-              "registry_key": "haybale-core:type:ArrayType",
+              "registry_id": "ARRAY",
+              "registry_key": "haybale-core:type:ARRAY",
               "label": "Failed",
               "description": "Items whose iteration failed",
-              "class_name": "ArrayType",
+              "class_name": "ARRAY",
               "module": "haybale_core.types.array_type",
               "default": {
                 "value": []
@@ -1977,7 +1977,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haybale-core:type:ArrayType",
+              "registry_key": "haybale-core:type:ARRAY",
               "element_type": {
                 "registry_key": "haywire-core:type:FILE_PATH"
               }

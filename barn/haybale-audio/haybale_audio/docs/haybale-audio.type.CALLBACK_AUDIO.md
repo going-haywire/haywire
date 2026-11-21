@@ -14,7 +14,7 @@ Subscription for emitters that deliver audio blocks
 Subscription value: the callback name a listener registers under.
 
 A `BaseType` on `CallbackWire`, independent of the core `CALLBACK` and of every other callback
-type: only an emitter whose pooled inlet is `PooledType[CALLBACK_AUDIO]` connects to an
+type: only an emitter whose pooled inlet is `POOLED[CALLBACK_AUDIO]` connects to an
 Audio Event node.
 
 The emitter's payload for each block:

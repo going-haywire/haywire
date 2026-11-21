@@ -225,7 +225,7 @@ def test_only_the_seven_widget_nodes_are_registered(library_system):
     widget_nodes = sorted(name for name in names if name.startswith("haybale-core:node:") and "Node" in name)
     for cls, _, _ in _NODES:
         assert cls.class_identity.registry_key in names
-    assert not any(name.endswith(":WidgetNode") for name in names), widget_nodes
+    assert not any(name.endswith(":BaseWidgetNode") for name in names), widget_nodes
 
 
 # ---------------------------------------------------------------------------

@@ -33,7 +33,7 @@ T = TypeVar("T")
     color="#d8e91e",
     default={"value": []},
 )
-class ArrayType(CompoundType[T]):
+class ARRAY(CompoundType[T]):
     """
     Homogeneous typed array compound type.
 
@@ -42,16 +42,16 @@ class ArrayType(CompoundType[T]):
 
     Usage:
         # Array of floats
-        ArrayType[FLOAT].as_inlet(id='numbers', default={'value': [1.0, 2.0, 3.0]})
+        ARRAY[FLOAT].as_inlet(id='numbers', default={'value': [1.0, 2.0, 3.0]})
 
         # Array of meshes
-        ArrayType[MeshData].as_outlet(id='meshes')
+        ARRAY[MeshData].as_outlet(id='meshes')
 
     Storage: ArrayField stores List[T] with unwrapped elements
     Transfer: List of unwrapped values (primitives or instances)
 
     IMPORTANT:
-    ArrayType declares no wire type, so it travels on its element type's; a declared one would take
+    ARRAY declares no wire type, so it travels on its element type's; a declared one would take
     precedence (see wire_type_of).
 
     Hooks: Uses default implementations from IType
@@ -73,7 +73,7 @@ class ArrayType(CompoundType[T]):
     @property
     def value(self):
         """Arrays don't have instances - this is for type checking only"""
-        raise NotImplementedError("ArrayType is a type descriptor, not instantiable")
+        raise NotImplementedError("ARRAY is a type descriptor, not instantiable")
 
 
 # ============================================================================
@@ -84,7 +84,7 @@ class ArrayType(CompoundType[T]):
 @dataclass
 class ArrayField(DataField):
     """
-    Field implementation for ArrayType.
+    Field implementation for ARRAY.
 
     Stores list of unwrapped values with element type tracking.
 
@@ -152,4 +152,4 @@ class ArrayField(DataField):
 
 
 # Set field_class now that ArrayField is defined
-ArrayType.field_class = ArrayField
+ARRAY.field_class = ArrayField

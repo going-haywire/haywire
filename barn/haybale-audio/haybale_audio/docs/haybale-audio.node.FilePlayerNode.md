@@ -11,7 +11,7 @@ Plays an audio file as audio blocks, in real time
 | `start` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `stop` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `path` | inlet | `haywire-core:type:FILE_PATH` | Audio file to play |
-| `callbacks` | inlet | `haybale-core:type:PooledType` | Connect to an Audio Event node. |
+| `callbacks` | inlet | `haybale-core:type:POOLED` | Connect to an Audio Event node. |
 | `status` | config | `haywire-core:type:STRING` | Text data |
 | `started` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `stopped` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |

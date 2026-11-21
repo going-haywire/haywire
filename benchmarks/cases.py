@@ -30,13 +30,13 @@ _LOOP_EDGES: list[tuple[str, str, str, str]] = [
     ("BeginPlay", "exec", "TickEmit", "start"),
     ("TickEvent", "listen_callback", "TickEmit", "callback_names"),
     ("TickEvent", "exec", "ForLoop", "execute"),
-    ("ForLoop", "loop_body", "ControlSwitch", "exec"),
+    ("ForLoop", "loop_body", "ControlSwitchNode", "exec"),
     ("ForLoop", "index", "MathOperationNode", "value_a"),
     ("ForLoop", "index", "MathOperationNode", "value_b"),
-    ("MathOperationNode", "result", "ControlSwitch", "with"),
+    ("MathOperationNode", "result", "ControlSwitchNode", "with"),
     ("Shutdown", "exec", "TickEmit", "stop"),
     ("MathOperationNode", "result", "Print", "message"),
-    ("ControlSwitch", "true", "Print", "exec"),
+    ("ControlSwitchNode", "true", "Print", "exec"),
 ]
 
 
@@ -50,12 +50,12 @@ def _build_loop_graph():
     the primitive types were hoisted into the `builtin` library.
     """
     from haybale_core.nodes.emits.tick_emit import TickEmitNode
-    from haybale_core.nodes.events.begin_play import BeginPlayNode
-    from haybale_core.nodes.events.shutdown import ShutdownNode
+    from haybale_core.nodes.events.begin_play_event import BeginPlayEventNode
+    from haybale_core.nodes.events.shutdown_event import ShutdownEventNode
     from haybale_core.nodes.events.tick_event import TickEventNode
     from haybale_core.nodes.for_loop import ForLoopNode
     from haybale_core.nodes.logger import LoggerNode
-    from haybale_core.nodes.switch import ControlSwitch
+    from haybale_core.nodes.control_switch import ControlSwitchNode
     from haybale_example.nodes.math_operation import MathOperationNode
 
     from haywire.core.graph.base import BaseGraph
@@ -63,14 +63,14 @@ def _build_loop_graph():
     # (stable short id -> node class). The short id keys _LOOP_EDGES and stays fixed
     # even if the class's registry_key changes.
     node_classes = {
-        "BeginPlay": BeginPlayNode,
+        "BeginPlay": BeginPlayEventNode,
         "TickEmit": TickEmitNode,
         "TickEvent": TickEventNode,
         "ForLoop": ForLoopNode,
-        "ControlSwitch": ControlSwitch,
+        "ControlSwitchNode": ControlSwitchNode,
         "MathOperationNode": MathOperationNode,
         "Print": LoggerNode,
-        "Shutdown": ShutdownNode,
+        "Shutdown": ShutdownEventNode,
     }
 
     graph = BaseGraph(filestem="bench loop")
@@ -187,7 +187,7 @@ def _fire_only_flow(graph):
 
 
 def _build_chain_graph(root_raises: bool):
-    from haybale_core.nodes.events.begin_play import BeginPlayNode
+    from haybale_core.nodes.events.begin_play_event import BeginPlayEventNode
     from haybale_testing.nodes.benchmark.bench_data_pass_node import BenchDataPassNode
     from haybale_testing.nodes.benchmark.bench_data_raise_node import BenchDataRaiseNode
     from haybale_testing.nodes.benchmark.bench_fan_in_node import BenchFanInNode
@@ -202,7 +202,7 @@ def _build_chain_graph(root_raises: bool):
         assert nw is not None, f"failed to create benchmark node {cls.__name__}"
         return nw.node_id
 
-    begin, sink, fan_in = make(BeginPlayNode), make(BenchSinkNode), make(BenchFanInNode)
+    begin, sink, fan_in = make(BeginPlayEventNode), make(BenchSinkNode), make(BenchFanInNode)
     chain = [
         make(BenchDataRaiseNode if (root_raises and i == 0) else BenchDataPassNode)
         for i in range(_CHAIN_LENGTH)
@@ -238,7 +238,7 @@ def _prepare_graph_data_chain_root_fails() -> Prepared:
 
 
 def _prepare_graph_loop_half_failing() -> Prepared:
-    from haybale_core.nodes.events.begin_play import BeginPlayNode
+    from haybale_core.nodes.events.begin_play_event import BeginPlayEventNode
     from haybale_core.nodes.for_loop import ForLoopNode
     from haybale_testing.nodes.benchmark.bench_loop_raise_node import BenchLoopRaiseNode
     from haybale_testing.nodes.benchmark.bench_sink_node import BenchSinkNode
@@ -248,7 +248,7 @@ def _prepare_graph_loop_half_failing() -> Prepared:
     graph = BaseGraph(filestem="bench loop half failing")
     ids = {}
     for short, cls in {
-        "begin": BeginPlayNode,
+        "begin": BeginPlayEventNode,
         "loop": ForLoopNode,
         "raise": BenchLoopRaiseNode,
         "sink": BenchSinkNode,

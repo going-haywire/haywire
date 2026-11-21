@@ -48,7 +48,7 @@ def create_port_spec(type_cls: type["IType"], port_type: PortType, id: str, **kw
     Create a port specification dict.
 
     Args:
-        type_cls: The IType class (FLOAT, ArrayType[STRING], etc.)
+        type_cls: The IType class (FLOAT, ARRAY[STRING], etc.)
         port_type: port type
         id: Port identifier. Must not contain '.' — see below.
         **kwargs: Port configuration (label, default, widget, etc.)
@@ -149,7 +149,7 @@ def serialize_element_type(type_cls: type["IType"]) -> ElementTypeSpec:
         serialize_element_type(STRING)
         # → {'registry_key': 'core:type:string'}
 
-        serialize_element_type(ArrayType[STRING])
+        serialize_element_type(ARRAY[STRING])
         # → {
         #     'registry_key': 'core:type:array',
         #     'element_type': {'registry_key': 'core:type:string'}

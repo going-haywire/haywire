@@ -172,7 +172,7 @@ class Interpreter:
 
         Call after load_graph(). Clears the runtime errors of every node in the
         loaded flows, then dispatches the BEGIN_PLAY system event which triggers
-        BeginPlayNode flows.
+        BeginPlayEventNode flows.
         """
         if self._executing:
             return

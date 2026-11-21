@@ -23,7 +23,7 @@ This is the third leg of haywire's connection types — see [reference/glossary 
 |---|---|---|
 | **DATA edge** | Carries typed values from outlet to inlet | Run-time data transport |
 | **EXEC edge** | Carries control flow within a Flow | Run-time control transport |
-| **CALLBACK edge** | Carries a listener's subscription value from its EVENT node's CALLBACK outlet to an emitter's pooled `PooledType[...]` callback inlet | Run-time value transport |
+| **CALLBACK edge** | Carries a listener's subscription value from its EVENT node's CALLBACK outlet to an emitter's pooled `POOLED[...]` callback inlet | Run-time value transport |
 
 ## 2. Contract
 
@@ -36,7 +36,7 @@ CALLBACK ports use the same `DataPort` infrastructure as DATA ports but sit on `
 | Direction | Ceiling |
 |---|---|
 | Outlet | many: one listener can subscribe to several emitters |
-| Inlet | one; emitters use a `PooledType[...]` inlet, whose field keeps one value per source and so takes many, keyed by edge id |
+| Inlet | one; emitters use a `POOLED[...]` inlet, whose field keeps one value per source and so takes many, keyed by edge id |
 
 A CALLBACK edge is created through the same `graph.create_edge_wrapper(...)` as DATA and EXEC edges, and its value travels over an ordinary pipe into the emitter's pool. Removing a direct edge removes that edge's entry from the pool (`PooledField.remove_source`); longer paths are covered in §2.4. Assembly does not read callback edges to route anything — see §3.1.
 
@@ -49,7 +49,7 @@ Two guards apply to an edge's write into an immediate inlet (`DataPort._fire_imm
 - **Echo guard.** The write is stored, and `on_change` fires only when the value the node sees (`get_value()`) differs before and after. An emitter's pool fed the same subscription twice tells its node once.
 - **Re-entrancy guard.** A write that reaches an inlet whose `on_change` is still running on the same thread closes a loop of immediate edges. It is dropped, not stored, and logged as a warning naming the port and node. Every loop ends after one pass, value-changing loops included; a loop that relays the value unchanged ends at the echo guard with no warning. A Subgraph relay runs on the same call stack, so one guard covers both graphs. In a loop, the dropped inlet keeps what its node was last told, and the upstream outlet disagrees with it until the next write.
 
-This matters because emitter nodes with a pooled `PooledType[CALLBACK]` inlet are often `NodeType.CONTROL` nodes (e.g. `OakDCameraNode`) that only execute their `worker()` in response to a control pulse (`start`/`stop`), not on every dirty-port change. If a callback inlet's `on_change` were deferred like a normal DATA inlet, a subscriber changing its requirements (e.g. a `NumpyFrameEventNode` toggling `enable_depth`) would update the pooled dict but the emitter's `on_change` handler — and anything it derives, like a requirement-union setting — would silently stay stale until the node happened to execute again for an unrelated reason.
+This matters because emitter nodes with a pooled `POOLED[CALLBACK]` inlet are often `NodeType.CONTROL` nodes (e.g. `OakDCameraNode`) that only execute their `worker()` in response to a control pulse (`start`/`stop`), not on every dirty-port change. If a callback inlet's `on_change` were deferred like a normal DATA inlet, a subscriber changing its requirements (e.g. a `NumpyFrameEventNode` toggling `enable_depth`) would update the pooled dict but the emitter's `on_change` handler — and anything it derives, like a requirement-union setting — would silently stay stale until the node happened to execute again for an unrelated reason.
 
 ### 2.2 Two ways to subscribe
 

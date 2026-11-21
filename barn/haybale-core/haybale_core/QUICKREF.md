@@ -1,8 +1,8 @@
 # haybale-core — component index (v0.5.4)
 
 ## node
-- `haybale-core:node:BeginPlayNode` — Begin Player — Triggered once when execution starts  _tags: start, init, begin, event_
-- `haybale-core:node:ControlSwitch` — Control Switch — Switches control flow based on condition  _tags: switch, control, flow, event_
+- `haybale-core:node:BeginPlayEventNode` — Begin Play Event — Triggered once when execution starts  _tags: start, init, begin, event_
+- `haybale-core:node:ControlSwitchNode` — Control Switch — Switches control flow based on condition  _tags: switch, control, flow, event_
 - `haybale-core:node:CreateFolderNode` — Create Folder — Creates a folder inside a volume, including any folders above it  _tags: folder, create, mkdir, directory, output, batch_
 - `haybale-core:node:FloatNumberNode` — Float Number — A number box that sends a decimal number, and shows the one it is fed  _tags: float, number, value, widget, control, stage_
 - `haybale-core:node:FloatSliderNode` — Float Slider — A slider that sends a decimal number, and shows the one it is fed  _tags: float, slider, widget, control, stage_
@@ -19,24 +19,24 @@
 - `haybale-core:node:PrintNode` — Print — Print to the haywire UI console
 - `haybale-core:node:ResolvePathNode` — Resolve Path — Gives the absolute location of a path on this machine, as text  _tags: path, resolve, absolute, location, file, folder, volume_
 - `haybale-core:node:RunButtonNode` — Run Button — A button on the card that triggers connected Tick Event flows while the graph runs  _tags: run, button, trigger, press, batch, emit_
-- `haybale-core:node:ShutdownNode` — Shutdown — Triggered when execution is shutting down  _tags: stop, end, cleanup, event_
+- `haybale-core:node:ShutdownEventNode` — Shutdown Event — Triggered when execution is shutting down  _tags: stop, end, cleanup, event_
 - `haybale-core:node:SplitPathNode` — Split Path — Splits a path into its volume, base, subfolder, stem and extension  _tags: path, split, folder, parent, name, stem, extension, volume, base_
 - `haybale-core:node:StepArrayNode` — Step Array — Goes through an array one item at a time, each time Next runs  _tags: step, array, next, sequence, slideshow, playlist, iterate_
 - `haybale-core:node:TextNode` — Text — A text field that sends its text on Enter, and shows the text it is fed  _tags: text, string, field, widget, control, stage_
 - `haybale-core:node:TickEmitNode` — Tick Emit — Emits tick callbacks at a configurable framerate  _tags: tick, frame, loop, emit, fps, timer_
-- `haybale-core:node:TickEventNode` — Tick — Triggered by a connected emitter (Tick Emit, Run Button)  _tags: frame, update, loop, event, tick_
+- `haybale-core:node:TickEventNode` — Tick Event — Triggered by a connected emitter (Tick Emit, Run Button)  _tags: frame, update, loop, event, tick_
 - `haybale-core:node:ToggleNode` — Toggle — An on/off switch that sends true or false, and shows the value it is fed  _tags: toggle, switch, bool, boolean, widget, control, stage_
 
 ## type
-- `haybale-core:type:ArrayType` — Array — Homogeneous typed array
+- `haybale-core:type:ARRAY` — Array — Homogeneous typed array
 - `haybale-core:type:BYTES` — Bytes — Binary data
 - `haybale-core:type:DICT` — Dictionary — Key-value pairs
 - `haybale-core:type:DRAIN` — Drain — Every value its edge delivers, queued until the node takes them
-- `haybale-core:type:LIST` — List — Ordered collection
-- `haybale-core:type:PooledType` — Pooled — Multi-source aggregation
+- `haybale-core:type:LIST` — Untyped List — Ordered collection of values of any type
+- `haybale-core:type:POOLED` — Pooled — Multi-source aggregation
 
 ## adapter
-- `haybale-core:adapter:ArrayArrayAdapter` — Array to Array — Transform array elements (ArrayType[X] → ArrayType[Y])
+- `haybale-core:adapter:ArrayArrayAdapter` — Array to Array — Transform array elements (ARRAY[X] → ARRAY[Y])
 
 ## widget
 - `haybale-core:widget:ArrayWidget` — ArrayWidget — List editor — one row per item, each drawn by the item type's widget

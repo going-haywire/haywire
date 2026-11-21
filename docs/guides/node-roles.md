@@ -19,7 +19,7 @@ A CONTROL node has at least one EXEC inlet *and* outlet. When it has **multiple*
 
 Source: `barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py`
 
-`TestEmitCallbackNode` is a CONTROL node with one EXEC inlet (`execute`) and one EXEC outlet (`exec`). It also demonstrates `PooledType[CALLBACK]` as an inlet, `post_init()` for non-serializable state, and dispatching via `context.emit_callback`:
+`TestEmitCallbackNode` is a CONTROL node with one EXEC inlet (`execute`) and one EXEC outlet (`exec`). It also demonstrates `POOLED[CALLBACK]` as an inlet, `post_init()` for non-serializable state, and dispatching via `context.emit_callback`:
 
 ```python
 --8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py:16:88"
@@ -27,7 +27,7 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.p
 
 from: `TestEmitCallbackNode` — registry_key: `haybale-testing:node:TestEmitCallbackNode`
 
-**Role-specific:** EXEC inlet (`execute`) + EXEC outlet (`exec`) makes this CONTROL. The worker returns the outlet ID `"exec"` to continue control flow. `context.emit_callback(event_name=..., payload=...)` dispatches to listener nodes by name. `PooledType[CALLBACK].as_inlet(...)` collects all connected listener IDs into a dict.
+**Role-specific:** EXEC inlet (`execute`) + EXEC outlet (`exec`) makes this CONTROL. The worker returns the outlet ID `"exec"` to continue control flow. `context.emit_callback(event_name=..., payload=...)` dispatches to listener nodes by name. `POOLED[CALLBACK].as_inlet(...)` collects all connected listener IDs into a dict.
 
 ## DATA — pure compute
 
@@ -79,7 +79,7 @@ from: `CallbackEventNode` — registry_key: `haybale-example:node:CallbackEventN
 
 **Emitter** — source: `barn/haybale-example/haybale_example/nodes/emits/callback_emit.py`
 
-`CallbackEmitNode` is the CONTROL counterpart: it has an EXEC inlet, reads connected listener IDs via `PooledType[CALLBACK]`, and emits to them via `context.emit_callback`:
+`CallbackEmitNode` is the CONTROL counterpart: it has an EXEC inlet, reads connected listener IDs via `POOLED[CALLBACK]`, and emits to them via `context.emit_callback`:
 
 ```python
 --8<-- "barn/haybale-example/haybale_example/nodes/emits/callback_emit.py:16:105"
@@ -90,7 +90,7 @@ from: `CallbackEmitNode` — registry_key: `haybale-example:node:CallbackEmitNod
 **What the pair shows:**
 
 - **One listener, many emitters:** a `CALLBACK` outlet fans out by its link ceiling, so a listener needs no flag to target several emitters (port detail in [guides/ports](./ports.md)).
-- **`PooledType[CALLBACK].as_inlet(...)`** on the emitter collects all connected listener IDs into a dict (port detail in [guides/ports](./ports.md)).
+- **`POOLED[CALLBACK].as_inlet(...)`** on the emitter collects all connected listener IDs into a dict (port detail in [guides/ports](./ports.md)).
 - **`context.emit_callback(event_name=..., payload=...)`** dispatches to subscribers.
 - **`context.trigger.payload`** delivers the emitter's payload to the listener's worker.
 - **`wrapper.request_graph_reassembly()`** is called when the subscription changes so the flow graph is rebuilt with the new wiring.
