@@ -131,6 +131,7 @@ nav:
           - Model catalogs: guides/model-catalogs.md
           - Graph notices: guides/graph-notices.md
           - Renaming a library: guides/rename-library.md
+          - Renaming components: guides/rename-components.md
           - Sharing libraries: guides/sharing-libraries.md
           - Publishing to PyPI: guides/publish-to-pypi.md
 

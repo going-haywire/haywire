@@ -75,3 +75,55 @@ class RenamePlan:
                 *self.dependent_changes,
             )
         )
+
+
+@dataclass(frozen=True)
+class KeyRename:
+    """One entry of a key map: a component's registry key, before and after.
+
+    *old_module*/*new_module* are dotted module paths, set together when the
+    component's module moved; ``None`` leaves a saved ``module`` as it is.
+    """
+
+    old: str
+    new: str
+    old_module: str | None = None
+    new_module: str | None = None
+
+    @property
+    def old_name(self) -> str:
+        """The class name the old key ends in."""
+        return self.old.rsplit(":", 1)[1]
+
+    @property
+    def new_name(self) -> str:
+        """The class name the new key ends in."""
+        return self.new.rsplit(":", 1)[1]
+
+
+@dataclass
+class KeyMapPlan:
+    """Everything ``haywire rename --map`` will do, computed without writing anything.
+
+    ``key_counts`` and ``key_graphs`` count, per ``old`` key, the keys rewritten
+    and the graphs they were found in; ``copies`` counts the descriptive copies
+    (``class_name``, ``registry_id``, ``module``) rewritten alongside.
+    """
+
+    map_path: Path
+    workspace_root: Path
+    renames: list[KeyRename] = field(default_factory=list)
+    blockers: list[Blocker] = field(default_factory=list)
+    graph_changes: list[FileChange] = field(default_factory=list)
+    key_counts: dict[str, int] = field(default_factory=dict)
+    key_graphs: dict[str, int] = field(default_factory=dict)
+    copies: int = 0
+    unrecognized: list[Occurrence] = field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        return not self.blockers
+
+    @property
+    def total_changes(self) -> int:
+        return sum(change.count for change in self.graph_changes)
