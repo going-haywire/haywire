@@ -106,19 +106,26 @@ Use a timeout ≥ 600000 ms for the full suite. `--durations=25` shows where the
 time goes; anything over ~5s in the non-browser suite is worth a look — a 60s
 outlier is usually an accidental network call, not real work.
 
-## Waiting in browser tests
+## Waiting
 
-Fixed sleeps were cut from 45s to 20s across the harness tests. When adding a
-test, wait on the thing you are about to assert, not on a duration:
+CI runners are heavily loaded: anything a test leaves to the clock fails there
+sooner or later. Wait on the thing you are about to assert, never on a duration,
+and never assert how long something took:
 
 - `nav.goto_ready(page, url)` — navigate and wait for the client to be
   interactive (`data-hw-synced`). Always use this over `page.goto`.
 - `nav.wait_for_canvas_settled(page)` — the canvas centres itself after
-  `goto_ready` returns, which moves every pin. Call this before reading
+  `goto_ready` returns, through a server round trip, which moves every pin.
+  A harness canvas stamps `data-hw-fit-done` once the fit has run; this waits
+  for the stamp, then for the transform to hold still. Call it before reading
   geometry, instead of sleeping.
+- `nav.next_frames(page, n)` — for work the page defers to
+  `requestAnimationFrame` (an edge repaint, a cull pass).
 - A retrying `expect(locator)` assertion needs no wait in front of it at all.
-- `nav.wait_until(page, check)` polls any condition; in a NiceGUI user-simulation
-  test, `tests.ui.user_wait.eventually(check)` does the same on the event loop.
+- `nav.wait_until(page, check)` polls any condition in the browser;
+  `tests.ui.user_wait.eventually(check)` does the same on the NiceGUI event loop;
+  `tests.wait.wait_until(check)` in a plain test waiting on another thread, a
+  timer or a server.
 
 The condition you wait on must be false *before* the action, or the wait returns
 at once and the assertion races the app. Check it against the state you start
@@ -130,11 +137,20 @@ browser: a fake file watcher waits for the file's text, not for the file to exis
 (`open(path, "x")` creates it empty). See
 [.insights/feedback_wait_true_before_the_action.md](../.insights/feedback_wait_true_before_the_action.md).
 
-Three sleeps survive deliberately, each with a comment saying why. Two are at
-`[data-testid="rekey"]`, which remounts the canvas: `_wait_for_all_edges` is
-satisfied by the edges still on screen from *before* the remount, so removing
-the sleep measures geometry mid-remount (it failed 3/3). Nothing observable
-marks that teardown. The third precedes a negative assertion, where there is
-nothing to wait *for* and the wait is what gives a wrong edge time to appear.
+The other rules:
 
-If a sleep genuinely cannot be replaced, keep it and say why in a comment.
+- **Order, not latency.** To show that A does not wait for B, hold B on a gate the
+  test opens after A has finished (the Farmhand stall test holds Block until
+  Release reaches it), instead of timing A against B's sleep.
+- **Time the code reads, the test controls.** A throttle or a debounce window is
+  tested with a patched clock or with timers the test fires itself
+  (`test_needs.py`, `test_file_watcher.py`), not by sleeping past the window.
+- **A timeout only bounds a failing run.** Make it generous (10 s and more): a
+  passing run never waits for it.
+- **A fake server records before it answers.** The client can finish and the test
+  assert before the server thread runs its next line.
+
+A sleep survives only before a negative assertion ("nothing happens"), where there
+is nothing to wait *for*, or where the sleep is itself the work under test. Each
+carries a comment saying why. If a sleep genuinely cannot be replaced, keep it and
+say why in a comment.
