@@ -279,6 +279,12 @@ class TestLibraryInit:
             "haywire.barn",
         }
 
+    def test_project_lint_bans_relative_imports(self, scaffold_project):
+        """The project's ruff config bans relative imports, which hot reload mis-resolves."""
+        ruff = toml.loads((scaffold_project / "pyproject.toml").read_text())["tool"]["ruff"]["lint"]
+        assert "TID252" in ruff["extend-select"]
+        assert ruff["flake8-tidy-imports"]["ban-relative-imports"] == "all"
+
     def test_registers_all_folders(self, scaffold_project):
         """Every folder the scaffold creates is registered, and vice versa."""
         init_content = (
