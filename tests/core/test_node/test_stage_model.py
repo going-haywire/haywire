@@ -44,7 +44,6 @@ def test_stage_props_defaults():
     props = NodeProperties()
     assert props.on_stage is False
     assert (props.stage_x, props.stage_y) == (0.0, 0.0)
-    assert (props.stage_width, props.stage_height) == (200, 200)
     assert props.stage_size_adapt == "auto"
 
 

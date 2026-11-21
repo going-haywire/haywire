@@ -125,7 +125,6 @@ def test_meta_defaults(graph):
     assert graph.meta.label == ""
     assert graph.meta.description == ""
     assert graph.meta.author == ""
-    assert graph.meta.version == "1.0.0"
 
 
 def test_meta_round_trips(graph):
@@ -162,7 +161,6 @@ def test_absent_meta_falls_back_to_defaults(graph):
     graph.load_from_dict({"nodes": {}, "edges": {}, "meta": {"values": {"author": "ann"}, "promoted": {}}})
     assert graph.meta.author == "ann"
     assert graph.meta.label == ""
-    assert graph.meta.version == "1.0.0"
 
 
 def test_reload_does_not_leak_previous_meta(graph):

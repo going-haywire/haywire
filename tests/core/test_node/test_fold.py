@@ -159,7 +159,12 @@ def test_a_fold_describes_itself_without_the_author(graph_with_library_system) -
     """An undescribed fold must not fall through to BOOL's "True or False",
     which describes the mechanism rather than what the fold holds."""
     probe = _make_probe(graph_with_library_system)
-    assert probe.ports["advanced"].description == "Hides or shows the ports inside it"
+    from haywire.barn.builtin.types import BOOL, FOLD
+
+    advanced = probe.ports["advanced"].description
+    assert advanced == FOLD.class_identity.description
+    assert advanced
+    assert advanced != BOOL.class_identity.description
     assert probe.ports["solver"].description == "How the solver steps through time.", (
         "an explicit description= must still win"
     )

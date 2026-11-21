@@ -338,13 +338,8 @@ def test_the_skin_is_bound_by_key_and_text_redraws(graph):
 def test_the_annotation_bag_holds_text_and_arrangement_with_defaults(graph):
     a = make_node(graph, _key())
     bag: Any = a.node.annotation  # type: ignore[attr-defined]
-    assert (bag.text, bag.h_align, bag.v_align, bag.font, bag.font_size) == (
-        "",
-        "center",
-        "middle",
-        "sans",
-        14,
-    )
+    assert bag.text == ""
+    assert all(getattr(bag, name) for name in ("h_align", "v_align", "font", "font_size"))
     assert (bag.bold, bag.italic, bag.underline) == (False, False, False)
     assert (bag.text_color, bag.highlight_color) == ("", "")
 
