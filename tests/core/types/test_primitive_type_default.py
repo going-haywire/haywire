@@ -10,7 +10,7 @@ pytestmark = pytest.mark.unit
 
 
 def test_a_primitive_type_without_a_default_value_is_rejected():
-    with pytest.raises(TypeError, match="needs a 'value' that is not None"):
+    with pytest.raises(TypeError, match="value"):
 
         @type_dec(wire_type=DataWire, label="NoValue", default={})
         class NoValue(PrimitiveType[str]):

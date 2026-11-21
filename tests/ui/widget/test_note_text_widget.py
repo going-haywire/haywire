@@ -8,7 +8,7 @@ import pytest
 from nicegui import ui
 
 from haywire.barn.builtin.types import STRING
-from haywire.barn.builtin.widgets.note_text_widget import NoteTextWidget
+from haywire.barn.builtin.widgets.note_text_widget import _HINT, NoteTextWidget
 from haywire.core.types.enums import PortType
 from haywire.core.types.port import DataPort
 from haywire.ui.panel.setting_widget_model import SettingWidgetModel
@@ -114,7 +114,7 @@ def test_empty_text_shows_the_hint(nicegui_slot_context) -> None:
     root = NoteTextWidget(_model("", lambda _v: None)).render()
 
     label = _label(root)
-    assert label.text == "Double-click to write"
+    assert label.text == _HINT
     assert "italic" in label._style.get("font-style", "")
 
 

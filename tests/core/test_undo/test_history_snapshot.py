@@ -150,7 +150,7 @@ def test_a_flushed_group_lists_its_children_with_their_own_origins():
     group = history.snapshot()[0]
 
     assert group.kind == "group"
-    assert group.description == "Group of 2 actions"
+    assert "2" in group.description
     assert group.origin == ALICE
     assert [(c.description, c.origin) for c in group.children] == [("one", ALICE), ("two", BOB)]
 

@@ -91,14 +91,14 @@ def test_a_reverse_visual_edge_is_refused(graph):
     v1, v2 = (make_node(graph, _key(SwingletVisualProbeNode)) for _ in range(2))
     make_edge(graph, v1.node_id, "note", v2.node_id, "note")
     graph.force_validation()
-    with pytest.raises(Refusal, match="other way"):
+    with pytest.raises(Refusal):
         graph.create_edge_wrapper(v2.node_id, "note", v1.node_id, "note")
 
 
 def test_a_reverse_control_edge_is_refused_too(graph):
     c1, c2 = (make_node(graph, _key(SwingletControlProbeNode)) for _ in range(2))
     make_edge(graph, c1.node_id, "flow", c2.node_id, "flow")
-    with pytest.raises(Refusal, match="other way"):
+    with pytest.raises(Refusal):
         graph.create_edge_wrapper(c2.node_id, "flow", c1.node_id, "flow")
 
 

@@ -287,7 +287,7 @@ def test_one_start_node_in_a_list_is_the_anchor():
 
 def test_directed_scopes_refuse_several_start_nodes():
     graph = _graph(["a>b", "c>d"])
-    with pytest.raises(ValueError, match="one start node"):
+    with pytest.raises(ValueError, match=r"\b2\b"):
         arrange_layout(graph, DOWN, ["a", "c"])
 
 

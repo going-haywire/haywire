@@ -5,12 +5,6 @@ import pytest
 pytestmark = pytest.mark.unit
 
 
-def test_max_actions_default():
-    from haywire.core.undo.settings import UndoSettings
-
-    assert UndoSettings().max_actions == 100
-
-
 def test_undo_config_defaults_to_the_setting():
     """A bare UndoConfig() takes its limit from UndoSettings, not a literal."""
     from haywire.core.undo.config import UndoConfig

@@ -1,8 +1,8 @@
-# Running the test suite
+# Writing and running tests
 
-Commands live in [docs/guides/development.md](../docs/guides/development.md). This file is the why behind them — read it when a
-run behaves oddly, when you are changing test infrastructure, or when you are
-about to write off a failure as flakiness.
+Commands live in [docs/guides/development.md](../docs/guides/development.md). This file is the why behind them — read it before
+writing a test, when a run behaves oddly, when you are changing test infrastructure, or
+when you are about to write off a failure as flakiness.
 
 ## Tiers
 
@@ -74,6 +74,23 @@ working graphs in `graphs/` or `haystacks/`: those are edited and resaved during
 work, and a resave silently changes what the test checks. A test that needs a saved graph
 gets a frozen copy under `tests/` (for example `tests/core/test_graph/fixtures/`) or
 builds it in code.
+
+## Text in tests
+
+A test never pins wording: error and validation messages, hints, tooltips, labels,
+placeholders, empty-state text, dialog sentences, CLI and agent-facing prose. Wording is
+rewritten whenever a reader misunderstands it, and that must not break the suite. A test
+may check:
+
+- that a message exists (non-empty, a notification shown, the exception type);
+- the facts it carries: a file path, a node or port name, an id, a count, a value;
+- names with a function: a command the user types, a tool or parameter an agent calls,
+  an error code, a protocol marker (`STATE:`, `STOP:`), a URI;
+- text the test itself supplies (a fixture's description passed through).
+
+For `pytest.raises(ValueError)`, which ruff (PT011) requires a `match=` for, match one of
+those facts, never a phrase. To tell two refusals apart, check the state each leaves
+behind, or the fact each names.
 
 ## Shared mutable state
 

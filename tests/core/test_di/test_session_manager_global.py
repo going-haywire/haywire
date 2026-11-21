@@ -13,7 +13,7 @@ def test_get_raises_before_set():
 
     from haywire.core.di.context import get_session_manager
 
-    with pytest.raises(RuntimeError, match="SessionManager not set"):
+    with pytest.raises(RuntimeError, match="SessionManager"):
         get_session_manager()
 
 

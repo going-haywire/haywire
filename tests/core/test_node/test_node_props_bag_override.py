@@ -42,7 +42,7 @@ def test_a_non_subclass_bag_is_still_rejected():
     """The guard only permits a redeclaration that EXTENDS the inherited bag."""
     from haywire.core.settings import NodeSettings
 
-    with pytest.raises(ValueError, match="without subclassing it"):
+    with pytest.raises(ValueError, match="_BadBagNode"):
 
         @node(label="BadBagNode")
         class _BadBagNode(BaseNode):

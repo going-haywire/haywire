@@ -7,6 +7,7 @@ writing (``.insights/project_stepper_flows.md``), so promotion is split:
 """
 
 import json
+import re
 from typing import cast
 
 import pytest
@@ -212,7 +213,7 @@ def test_writing_a_refused_plan_raises(tmp_path, graph_with_library_system):
     definition = _group(graph_with_library_system)
     plan = plan_promotion(definition, name="9lives", macros_folder=tmp_path)
 
-    with pytest.raises(ValueError, match="cannot be saved as a macro"):
+    with pytest.raises(ValueError, match=re.escape(str(plan.refusal))):
         write_macro_file(plan)
 
     assert not plan.path.exists()

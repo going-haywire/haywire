@@ -140,7 +140,7 @@ def test_list_components_truncated_result_gets_scoping_tip():
 
     result = run_tool(StudioListComponentsTool, limit=1)
     assert result["total"] > 1
-    assert "narrow this" in result["help"]
+    assert "kind=" in result["help"]
     assert "count_only=true" in result["help"]
 
 
@@ -150,7 +150,7 @@ def test_list_components_untruncated_result_has_no_tip():
     result = run_tool(StudioListComponentsTool, library="haybale-testing", kind="node", limit=10_000)
     assert result["total"] <= 10_000
     # A complete result still gets a drill-down hint, but never the scoping nag.
-    assert "narrow this" not in result.get("help", "")
+    assert "kind=" not in result.get("help", "")
 
 
 def test_list_libraries_excludes_system_library_by_default():

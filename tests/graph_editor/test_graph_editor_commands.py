@@ -100,7 +100,8 @@ def test_graph_editor_paste_uses_position(monkeypatch):
     manager.paste.reset_mock()
     editor._on_paste(cast(Any, context), Paste(binding_id=BINDING, position=None, text="t"))
     manager.paste.assert_not_called()
-    notify.assert_called_once_with("Nothing to paste here", type="warning")
+    notify.assert_called_once()
+    assert notify.call_args.kwargs["type"] == "warning"
 
 
 def test_commands_no_op_before_the_first_draw():

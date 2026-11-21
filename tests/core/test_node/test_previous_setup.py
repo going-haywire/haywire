@@ -96,7 +96,8 @@ def test_report_names_the_node_in_a_root_graph(graph_with_library_system, ledger
         graph.graph_id,
         wrapper.node_id,
     )
-    assert entry.message == f"{wrapper.node.display_label} '{wrapper.node_id}' holds a previous setup"
+    assert wrapper.node.display_label in entry.message
+    assert wrapper.node_id in entry.message
 
 
 def test_report_names_the_host_of_an_interior(graph_with_library_system, library_system, ledger):
@@ -120,4 +121,4 @@ def test_report_names_the_host_of_an_interior(graph_with_library_system, library
     report_previous_setup(interior, operation="Hot reload")
     (entry,) = ledger.query().entries
     assert (entry.graph_id, entry.node_id) == (definition.graph_id, interior.node_id)
-    assert entry.message.endswith(f"kept its previous setup (inside '{host.node.display_label}')")
+    assert host.node.display_label in entry.message

@@ -73,7 +73,7 @@ class TestStateDecorator:
         class _NotAState:
             pass
 
-        with pytest.raises(TypeError, match="@state can only be applied"):
+        with pytest.raises(TypeError, match="@state"):
             state()(_NotAState)  # type: ignore[type-var]
 
     def test_rejects_bare_library_state_subclass(self):
@@ -84,5 +84,5 @@ class TestStateDecorator:
         class _BareMarker(LibraryState):
             pass
 
-        with pytest.raises(TypeError, match="@state can only be applied"):
+        with pytest.raises(TypeError, match="@state"):
             state()(_BareMarker)  # type: ignore[type-abstract]

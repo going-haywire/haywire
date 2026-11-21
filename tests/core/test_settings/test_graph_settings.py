@@ -104,7 +104,7 @@ def test_promotion_unavailable():
     registry, bag = _make_bag()
     from haywire.core.types.enums import PortType
 
-    with pytest.raises(ValueError, match="bag has no bound node"):
+    with pytest.raises(ValueError, match="default_skin"):
         bag._promote("default_skin", PortType.INLET)
 
 

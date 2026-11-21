@@ -628,8 +628,6 @@ def test_detached_head_fails_with_remedy(tmp_path: Path, bare_remote: Path) -> N
         assert f.kind == "act"
         assert f.fix_id == "switch_branch"
         assert f.lib_dir == branch
-        # And it says WHY publishing is blocked, not only what to do.
-        assert "nothing to push to" in f.remedy
 
 
 def test_detached_head_with_no_branch_suggests_switch_dash_c(tmp_path: Path, bare_remote: Path) -> None:
@@ -722,10 +720,9 @@ def test_non_default_branch_fails_with_remedy(tmp_path: Path) -> None:
         assert "feature-x" in f.message
         # feature-x carries a commit the default branch does not, so no
         # one-click switch is offered — moving off unmerged work is the
-        # author's decision. The remedy says nothing is lost either way.
+        # author's decision.
         assert f.kind == "inform"
         assert f.fix_id is None
-        assert "keeps its commits" in f.remedy
         assert f"git switch {default_branch}" in f.remedy
 
 
@@ -986,7 +983,7 @@ def test_add_origin_round_trip_clears_the_missing_origin_failure(tmp_path: Path,
     pipeline.apply_precondition_fix("add_origin", url=str(bare_remote))
 
     report2 = pipeline.check_preconditions()
-    assert not any("No 'origin' remote is configured" in f.message for f in report2.failures)
+    assert not any(f.fix_id == "add_origin" for f in report2.failures)
 
 
 # ── apply_precondition_fix("commit_dirty_tree") ─────────────────────────────

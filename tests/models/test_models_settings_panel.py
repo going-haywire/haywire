@@ -15,7 +15,6 @@ def test_panel_is_registered_under_barns():
 
     identity = ModelsSettingsPanel.class_identity
     assert identity.surface is BarnsSurface
-    assert identity.label == "Models"
 
 
 def test_draw_renders_models_settings_schema(monkeypatch):

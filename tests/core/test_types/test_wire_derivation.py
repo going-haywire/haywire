@@ -60,19 +60,19 @@ class TestTypesDeclare:
         from haywire.barn.builtin.types import FLOAT
         from haywire.barn.builtin.wires import DataWire
 
-        with pytest.raises(TypeError, match="takes its wire type from its type"):
+        with pytest.raises(TypeError):
             FLOAT.as_inlet("x", wire_type=DataWire)
 
     def test_a_port_spec_refuses_an_allow_multiple_links_kwarg(self):
         from haywire.barn.builtin.types import FLOAT
 
-        with pytest.raises(TypeError, match="link ceiling.*single_link=True"):
+        with pytest.raises(TypeError, match="single_link=True"):
             FLOAT.as_inlet("x", allow_multiple_links=True)
 
     def test_a_port_spec_refuses_a_flow_type_kwarg(self):
         from haywire.barn.builtin.types import FLOAT
 
-        with pytest.raises(TypeError, match="wire type comes from its data type.*wire_type="):
+        with pytest.raises(TypeError, match="wire_type="):
             FLOAT.as_inlet("x", flow_type="data")
 
 

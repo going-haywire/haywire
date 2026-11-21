@@ -16,18 +16,6 @@ def test_flow_meters_are_on_by_default():
     assert FlowMeterSettings().show is True
 
 
-def test_the_setting_has_a_label_a_user_can_find():
-    from haybale_haystack.settings.flow_meter_settings import FlowMeterSettings
-
-    assert FlowMeterSettings.show._label == "Show flow meters"
-
-
-def test_the_setting_sits_under_a_flow_meters_heading():
-    from haybale_haystack.settings.flow_meter_settings import FlowMeterSettings
-
-    assert FlowMeterSettings.show._category == "Flow meters"
-
-
 def test_the_bookkeeping_settings_stay_out_of_the_schema():
     from haybale_haystack.settings.flow_meter_settings import FlowMeterSettings
 
@@ -41,7 +29,6 @@ def test_panel_is_registered_under_barns():
 
     identity = HaystackSettingsPanel.class_identity
     assert identity.surface is BarnsSurface
-    assert identity.label == "Haystack", "a library's panel on Barns is named after the library"
     assert identity.icon == hui.icon.haystack, "and carries the library's icon"
 
 

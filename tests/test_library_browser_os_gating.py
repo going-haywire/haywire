@@ -40,7 +40,6 @@ def test_should_block_install_for_os_returns_message_when_unsupported() -> None:
     with patch.object(marketstall_platform.platform, "system", return_value="Windows"):
         msg = should_block_install_for_os(h)
         assert msg is not None
-        assert "Not available on this OS" in msg
         assert "macos" in msg
         assert "linux" in msg
 

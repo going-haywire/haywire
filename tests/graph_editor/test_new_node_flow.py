@@ -208,7 +208,7 @@ def test_an_unusable_class_name_is_refused_live(env, class_name):
 def test_an_existing_file_is_refused_live(env):
     flow = _flow(env, source_cls=env["single"])
     (env["target"].folder / "single_copy.py").write_text("")
-    assert "already exists" in (flow.details_refusal or "")
+    assert flow.details_refusal
 
 
 def test_no_target_is_refused(env):

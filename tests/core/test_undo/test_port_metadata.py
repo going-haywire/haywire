@@ -125,7 +125,7 @@ class TestWhatIsRefused:
         """The node author's contract — it appears in the component's docs."""
         graph, wrapper = node_with_a_resolved_port
 
-        with pytest.raises(Refusal, match="not resolved"):
+        with pytest.raises(Refusal):
             SetPortMetadataAction(graph, wrapper.node_id, "authored", label="Mine").execute()
 
         assert wrapper.node.ports["authored"].label == "Authored"
@@ -154,7 +154,7 @@ class TestWhatIsRefused:
     def test_an_unknown_field_is_refused_at_construction(self, node_with_a_resolved_port):
         graph, wrapper = node_with_a_resolved_port
 
-        with pytest.raises(ValueError, match="cannot write"):
+        with pytest.raises(ValueError, match="widget_key"):
             SetPortMetadataAction(graph, wrapper.node_id, "grown", widget_key="x")
 
     def test_an_unknown_port_is_reported(self, node_with_a_resolved_port, library_system):

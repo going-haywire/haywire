@@ -243,7 +243,7 @@ def test_library_id_for_path_raises_on_ambiguous_shared_parent(tmp_path):
 
     service = _FakeService(registry)
 
-    with pytest.raises(ValueError, match="Ambiguous library path"):
+    with pytest.raises(ValueError, match=r"lib_a.*lib_b"):
         _library_id_for_path(service, parent)
 
 
