@@ -12,7 +12,7 @@ dir=$(cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null && pwd -P) || exit 0
 missing=()
 
 # In a worktree, the imported setup script has built the environment and given the studio a port.
-# T3 starts the agent without waiting for that script (it ignores t3.json's `async`), so wait
+# T3's import drops t3.json's `async: false`, so T3 starts the agent alongside that script; wait
 # here until it is done: the port is the last thing it writes. HAYWIRE_T3_SETUP_WAIT is seconds.
 set_up() {
   [ -d "$dir/.venv" ] && jq -e '.network.port.value | type == "number"' "$dir/.haywire/settings.json" >/dev/null 2>&1
@@ -25,7 +25,7 @@ if [ -n "$dirs" ] && [ "$(sed -n 1p <<<"$dirs")" != "$(sed -n 2p <<<"$dirs")" ];
     waited=$((waited + 1))
   done
   if ! set_up; then
-    missing+=("the worktree setup did not finish within ${HAYWIRE_T3_SETUP_WAIT:-300} s, most likely because the t3.json scripts are not imported: import all three, *Haywire studio* optional (one click starts this worktree's studio), either yourself in *Project settings → Actions → Import scripts → Import from t3.json*, or the agent offers to do it with \`t3_project_update\` (read the project first, append only the missing scripts) and does so only on your yes; then run \`python3 scripts/worktree_setup.py\` in this worktree now")
+    missing+=("the worktree setup did not finish within ${HAYWIRE_T3_SETUP_WAIT:-300} s, most likely because the t3.json scripts are not imported: import all three, *Haywire studio* optional (one click starts this worktree's studio), in *Project settings → Actions → Import scripts → Import from t3.json* (not with \`t3_project_update\`, whose write T3 does not run, pingdotgg/t3code#14991), then set \`async: false\` on *Worktree setup* again, which the import drops (pingdotgg/t3code#40325; the T3 how-to says how); then run \`python3 scripts/worktree_setup.py\` in this worktree now")
   fi
 fi
 
