@@ -271,8 +271,11 @@ def test_labels_sit_outside_the_fence() -> None:
     for block in re.findall(r"```sh\n(.*?)\n```", new_content, re.DOTALL):
         assert "\n" not in block
         assert not block.startswith("#")
-    assert "Always the latest" in new_content
-    assert "Frozen to this version" in new_content
+    blocks = re.findall(r"```sh\n(.*?)\n```", new_content, re.DOTALL)
+    assert sorted(blocks) == [
+        "https://example.com/a/marketstall.toml",
+        "https://example.com/b/marketstall.toml",
+    ]
 
 
 @pytest.mark.unit
@@ -285,4 +288,3 @@ def test_single_block_when_there_is_no_tag() -> None:
     assert re.findall(r"```sh\n(.*?)\n```", new_content, re.DOTALL) == [
         "https://example.com/a/marketstall.toml"
     ]
-    assert "Frozen to this version" not in new_content

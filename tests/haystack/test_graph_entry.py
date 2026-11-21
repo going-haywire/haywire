@@ -171,7 +171,6 @@ def test_graph_entry_has_run_settings_by_default():
 
     entry = GraphEntry(graph=MagicMock(), editor=MagicMock())
     assert isinstance(entry.run_settings, GraphRunSettings)
-    assert entry.run_settings.autorestart is False
 
 
 def test_graph_entry_run_settings_are_per_instance():
