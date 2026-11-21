@@ -4626,6 +4626,8 @@
       
         
       
+        
+      
     
     
     
@@ -4707,6 +4709,41 @@
   
   
     <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/component-naming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Component naming
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--accepted"></span>
   
 
   
@@ -4917,10 +4954,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_8" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_9" >
         
           
-          <label class="md-nav__link" for="__nav_5_8" id="__nav_5_8_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5_9" id="__nav_5_9_label" tabindex="0">
             
   
   
@@ -4938,8 +4975,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_8">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -5521,7 +5558,7 @@
 <p><strong>Boundaries.</strong> What datatypes <em>are</em> lives in <a href="../../datatypes/datatype-canon/">components/datatypes</a>. How a port binds a widget at creation time (<code>as_inlet(widget=...)</code>) lives in <a href="../../../guides/ports/">guides/ports</a>. The runtime layer that converts values between incompatible <em>types</em> on an edge lives in <a href="../../adapters/adapter-canon/">components/adapters</a> and <a href="../../../architecture/execution/edges/edges-arch/">architecture/execution/edges</a>.</p>
 <h2 id="3-important-concepts">3. Important concepts<a class="headerlink" href="#3-important-concepts" title="Permanent link">&para;</a></h2>
 <h3 id="the-widget-decorator">The <code>@widget</code> decorator<a class="headerlink" href="#the-widget-decorator" title="Permanent link">&para;</a></h3>
-<p><code>@widget(...)</code> registers the class with <code>WidgetRegistry</code> and attaches its identity. It is always invoked with parentheses.</p>
+<p><code>@widget(...)</code> registers the class with <code>WidgetRegistry</code> and attaches its identity. It is always invoked with parentheses. Name the class <code>&lt;Control&gt;Widget</code> or <code>&lt;Type&gt;Widget</code> (see <a href="../../../reference/component-naming/">component naming</a>).</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@widget</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Fast number input&quot;</span><span class="p">)</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">NumberWidget</span><span class="p">(</span><span class="n">BaseWidget</span><span class="p">):</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="o">...</span>
