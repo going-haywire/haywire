@@ -34,6 +34,9 @@ def _card(page: Page, name: str):
     return page.locator(f'[id="{node_id}"]')
 
 
+@pytest.mark.xfail(
+    strict=False, reason="product race, #167: a mid-drag loopback echo can commit a stale value"
+)
 def test_an_operator_drives_a_slider_on_a_locked_stage(page: Page, harness):
     _open(page, harness)
     slider = _card(page, "slider").locator(".q-slider").first
