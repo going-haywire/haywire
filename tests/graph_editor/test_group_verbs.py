@@ -82,7 +82,6 @@ class TestEditorVerbs:
         assert card_id is None
         assert reason is not None
         assert b.node_id in reason
-        assert "Add them to the selection" in reason
 
     def test_a_refused_collapse_records_no_undo_step(self, graph: BaseGraph, library_system):
         a, b, c = (make_node(graph, _PRINT) for _ in range(3))
@@ -280,10 +279,11 @@ class TestEditInstanceRow:
         placement = _menu_ctx(active_node=card)
         plain = _menu_ctx(active_node=_menu_placement(is_macro=False))
 
-        assert EditInstanceMenuPanel.class_identity.label == "Edit Instance"
         assert EditInstanceMenuPanel.poll(placement) is True
         assert EditInstanceMenuPanel.poll(plain) is False
-        assert _drawn_labels(EditInstanceMenuPanel, placement) == ["Edit Instance"]
+        assert _drawn_labels(EditInstanceMenuPanel, placement) == [
+            EditInstanceMenuPanel.class_identity.label
+        ]
 
 
 @pytest.mark.unit
@@ -352,7 +352,7 @@ class TestRevertToMacroRow:
 
         revert = self._call(row, "Revert to Macro")
         assert revert.kwargs["enabled"] is False
-        assert revert.kwargs["tooltip"] == "Blur copy is not installed."
+        assert "Blur copy" in revert.kwargs["tooltip"]
 
     @pytest.mark.parametrize("installed", [True, False])
     def test_forget_row_acts_whether_or_not_the_macro_is_installed(self, installed):

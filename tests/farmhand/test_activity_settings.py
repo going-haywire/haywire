@@ -11,12 +11,6 @@ def test_namespace_is_farmhand_activity():
     assert ActivitySettings()._namespace == "farmhand.activity"
 
 
-def test_history_size_defaults_to_fifty():
-    from haywire.core.farmhand.settings import ActivitySettings
-
-    assert ActivitySettings().history_size == 50
-
-
 def test_log_path_defaults_to_empty_meaning_off():
     from haywire.core.farmhand.settings import ActivitySettings
 

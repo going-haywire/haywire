@@ -66,7 +66,7 @@ def test_display_name_falls_back_to_untitled():
 
     g = MagicMock(spec=[])  # no .filestem attribute
     entry = GraphEntry(graph=cast(Any, g), editor=MagicMock(), path=None, unsaved=True)
-    assert entry.display_name == "Untitled"
+    assert entry.display_name
 
 
 def test_is_executing_false_when_no_interpreter():

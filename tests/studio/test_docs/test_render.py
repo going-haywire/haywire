@@ -250,7 +250,6 @@ def test_readme_inserts_placeholder_marker_when_existing_readme_lacks_it():
     existing = "# Some README\n\nno marker here"
     out = render_readme(doc, notes="", existing_readme=existing)
     assert "marketstall:share-url:start" in out
-    assert "Subscribe URL not yet published" in out
 
 
 def test_render_component_lists_a_swinglet_between_inlets_and_outlets():

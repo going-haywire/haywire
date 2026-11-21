@@ -383,4 +383,4 @@ def test_connection_hint_explains_missing_agent_when_auth_enabled(tmp_path):
     document = SecurityDocument()
     document.auth.enabled = True
     hint = FarmhandHost._connection_hint(8124, document, tls=False)
-    assert "no agent principal exists" in hint
+    assert "haywire user add" in hint

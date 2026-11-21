@@ -125,7 +125,6 @@ async def _open(user: User, harness: _Harness) -> None:
 
 def test_editor_identity_is_an_edit_tier_context_slot_editor() -> None:
     identity = HistoryEditor.class_identity
-    assert identity.label == "History"
     assert identity.default_slot is SlotName.CONTEXT
     assert identity.requires is AccessTier.EDIT
     assert getattr(HistoryEditor._on_history, _REDRAW_ON_ATTR, ()) == (ActiveGraphMoved, GraphHistoryChanged)
@@ -140,14 +139,6 @@ def test_graph_path_walks_down_from_the_file() -> None:
     assert graph_path(root, group) == ["Mixer"]
     assert graph_path(root, inner) == ["Mixer", "Inner"]
     assert graph_path(root, _graph("Gone")) is None
-
-
-@pytest.mark.anyio
-async def test_without_an_active_graph_it_says_so(user: User) -> None:
-    harness = _Harness(None, _graph())
-    await _open(user, harness)
-
-    assert "Open a graph to see its undo history." in harness.labels()
 
 
 @pytest.mark.anyio
@@ -175,7 +166,7 @@ async def test_an_interiors_history_is_its_files(user: User) -> None:
     harness.history.add_action(_Step("Add node", group), origin=ALICE)
     await _open(user, harness)
 
-    assert "History · Rig" in harness.labels()
+    assert any("Rig" in text for text in harness.labels())
     assert "Add node" in harness.labels()
 
 

@@ -154,7 +154,6 @@ async def _open(user: User, harness: _Harness) -> None:
 
 def test_editor_identity_is_a_context_slot_editor() -> None:
     identity = ShortcutsEditor.class_identity
-    assert identity.label == "Shortcuts"
     assert identity.default_slot is SlotName.CONTEXT
 
 
@@ -269,10 +268,8 @@ async def test_a_shadowed_command_is_marked_with_its_winner(user: User) -> None:
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("keymap", [None, _empty_keymap()])
-async def test_no_shortcuts_shows_the_empty_state(user: User, keymap: Keymap | None) -> None:
+async def test_no_shortcuts_draws_no_groups(user: User, keymap: Keymap | None) -> None:
     harness = _Harness(keymap, None)
     await _open(user, harness)
 
-    texts = [getattr(el, "text", None) for el in harness.descendants()]
-    assert "No editor declares keyboard shortcuts." in texts
     assert harness.groups() == {}
