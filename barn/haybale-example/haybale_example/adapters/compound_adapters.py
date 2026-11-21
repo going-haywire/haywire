@@ -4,30 +4,30 @@ from typing_extensions import override
 from haywire.api import BaseAdapter, adapter
 
 from haybale_core.types import ARRAY
-from haybale_example.types.maps_string_type import MapsStringType
+from haybale_example.types.string_map import STRING_MAP
 
 
 @adapter(
     label="MapsString to Array",
-    description="Transform MapsString elements (MapsStringType[str, X] → ARRAY[Y])",
-    converts_from=MapsStringType,
+    description="Transform MapsString elements (STRING_MAP[str, X] → ARRAY[Y])",
+    converts_from=STRING_MAP,
     converts_to=ARRAY,
     priority=0,
 )
 class MapsStringArrayAdapter(BaseAdapter):
     """
-    Transforms MapsStringType[str, X] → ARRAY[Y].
+    Transforms STRING_MAP[str, X] → ARRAY[Y].
 
     Uses internal adapter chain for element transformation.
     Always skips None values to prevent chain failures.
 
     Examples:
-        # MapsStringType[FLOAT] → ARRAY[FLOAT] (no element transformation)
+        # STRING_MAP[FLOAT] → ARRAY[FLOAT] (no element transformation)
         adapter = MapsStringArrayAdapter()
         result = adapter.convert({"a": 1.0, "b": 2.0, "c": 3.0})
         # → [1.0, 2.0, 3.0]
 
-        # MapsStringType[FLOAT] → ARRAY[STRING] (with element transformation)
+        # STRING_MAP[FLOAT] → ARRAY[STRING] (with element transformation)
         float_to_str = FloatToStringAdapter()
         adapter = MapsStringArrayAdapter(_chain=float_to_str)
         result = adapter.convert({"a": 1.5, "b": None, "c": 2.7})

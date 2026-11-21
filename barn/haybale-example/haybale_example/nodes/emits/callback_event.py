@@ -14,13 +14,13 @@ from haywire.api import (
 
 
 @node(
-    label="Custom Callback",
+    label="Callback Event",
     description="Listens for custom callbacks from other flows",
     menu="examples/event/callback",
     search_tags=["callback", "listen", "event", "custom"],
     node_type=NodeType.EVENT,
 )
-class CustomCallbackNode(BaseNode):
+class CallbackEventNode(BaseNode):
     """
     Listens for custom callbacks from other flows.
 

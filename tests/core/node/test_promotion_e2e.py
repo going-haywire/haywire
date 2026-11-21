@@ -16,9 +16,9 @@ def test_full_promote_drive_demote_cycle(graph_with_library_system, library_syst
 
     # SettingsNode.example.example_float is a plain setting[FLOAT] (default 5 → clamped
     # to its 0..1 range is irrelevant here; we read the resolved default and the driven
-    # value). MathOP.result is a FLOAT outlet we can drive.
+    # value). MathOperationNode.result is a FLOAT outlet we can drive.
     settings_wrapper = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0))
-    math_wrapper = graph.create_node_wrapper("haybale-example:node:MathOP", position=(200, 0))
+    math_wrapper = graph.create_node_wrapper("haybale-example:node:MathOperationNode", position=(200, 0))
 
     node = settings_wrapper.node
     default_value = node.example.example_float
@@ -28,7 +28,7 @@ def test_full_promote_drive_demote_cycle(graph_with_library_system, library_syst
     pid = type(node.example).__dict__["example_float"].storage_key
     assert pid in node.ports
 
-    # 2. wire MathOP.result (FLOAT outlet) -> the promoted inlet
+    # 2. wire MathOperationNode.result (FLOAT outlet) -> the promoted inlet
     edge = graph.create_edge_wrapper(math_wrapper.node_id, "result", settings_wrapper.node_id, pid)
     assert edge.state.is_valid()
 
@@ -56,7 +56,7 @@ def test_promoted_outlet_drives_consumer_lazily(graph_with_library_system, libra
 
     graph = graph_with_library_system
     settings_wrapper = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0))
-    math_wrapper = graph.create_node_wrapper("haybale-example:node:MathOP", position=(200, 0))
+    math_wrapper = graph.create_node_wrapper("haybale-example:node:MathOperationNode", position=(200, 0))
     src = settings_wrapper.node
 
     # 1. promote example.example_float -> OUTLET
@@ -65,7 +65,7 @@ def test_promoted_outlet_drives_consumer_lazily(graph_with_library_system, libra
     assert src.ports[pid].is_outlet()
     assert src.ports[pid].is_linked_lazy is True
 
-    # 2. wire the promoted outlet -> MathOP.value_a (FLOAT inlet)
+    # 2. wire the promoted outlet -> MathOperationNode.value_a (FLOAT inlet)
     edge = graph.create_edge_wrapper(settings_wrapper.node_id, pid, math_wrapper.node_id, "value_a")
     assert edge.state.is_valid()
     # The is_linked_lazy outlet locks the linked edge to lazy.

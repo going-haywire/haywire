@@ -1,6 +1,6 @@
 # Test Data
 
-`haybale-TEST_A:type:TestData` · kind: type
+`haybale-TEST_A:type:TEST_DATA` · kind: type
 
 Simple test data structure for cross-library testing
 

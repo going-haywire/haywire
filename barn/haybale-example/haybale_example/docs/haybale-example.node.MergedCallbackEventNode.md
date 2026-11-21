@@ -1,6 +1,6 @@
-# Merge Callback
+# Merged Callback Event
 
-`haybale-example:node:MergeCallbackNode` · kind: node
+`haybale-example:node:MergedCallbackEventNode` · kind: node
 
 Listens for a specified number of callbacks from other flows
 

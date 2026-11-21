@@ -1,6 +1,6 @@
-from haybale_test_a.types.data import TestData
+from haybale_test_a.types.data import TEST_DATA
 
 
 __all__ = [
-    "TestData",
+    "TEST_DATA",
 ]

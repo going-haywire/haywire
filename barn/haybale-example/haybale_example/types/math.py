@@ -19,13 +19,13 @@ class MathOPs(Enum):
 
 
 @type(
-    label="Simple Operations",
+    label="Math Operation",
     description="Simple mathematical operations for one or two float values",
     widget_key="haywire-core:widget:MenuWidget",
     widget_config={"properties": {"options": MathOPs.values()}},
     default=MathOPs.ADD.value,
 )
-class MathOPSelector(STRING):
+class MATH_OPERATION(STRING):
     """
     A custom type representing simple mathematical operations.
     """

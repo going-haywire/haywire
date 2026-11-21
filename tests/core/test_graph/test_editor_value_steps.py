@@ -16,7 +16,7 @@ from haywire.core.undo.history_manager import HistoryManager
 
 pytestmark = pytest.mark.integration
 
-PORT_NODE_KEY = "haybale-example:node:MathOP"
+PORT_NODE_KEY = "haybale-example:node:MathOperationNode"
 SETTINGS_NODE_KEY = "haybale-testing:node:SettingsNode"
 
 

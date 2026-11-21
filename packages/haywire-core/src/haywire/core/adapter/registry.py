@@ -27,10 +27,10 @@ class AdapterRegistry(BaseRegistry[BaseAdapter]):
         registry.register_class(TempToFloatAdapter)
 
         # Check direct adapter
-        registry.has_adapter('lib.Temperature', 'core.FLOAT')  # True
+        registry.has_adapter('lib.TEMPERATURE', 'core.FLOAT')  # True
 
         # Find adapter chain
-        chain = registry.find_adapter_chain('lib.Temperature', 'core.INT')
+        chain = registry.find_adapter_chain('lib.TEMPERATURE', 'core.INT')
         # Returns: [TempToFloatAdapter, FloatToIntAdapter]
     """
 
@@ -202,11 +202,11 @@ class AdapterRegistry(BaseRegistry[BaseAdapter]):
 
         Examples:
             # Direct adapter exists
-            find_adapter_chain('lib.Temperature', 'core.FLOAT')
+            find_adapter_chain('lib.TEMPERATURE', 'core.FLOAT')
             # → [TempToFloatAdapter]
 
             # Chain required
-            find_adapter_chain('lib.Temperature', 'core.INT')
+            find_adapter_chain('lib.TEMPERATURE', 'core.INT')
             # → [TempToFloatAdapter, FloatToIntAdapter]
 
             # No path exists

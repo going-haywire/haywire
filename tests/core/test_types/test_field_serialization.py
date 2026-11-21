@@ -84,11 +84,11 @@ class TestContainers:
         assert _round_trip(ARRAY[CALLBACK], ["a", None])[1] == ["a", None]
 
     def test_a_map_value_survives_save_and_load(self, library_system):
-        from haybale_example.types.maps_string_type import MapsStringType
+        from haybale_example.types.string_map import STRING_MAP
 
         from haywire.barn.builtin.types import FLOAT
 
-        assert _round_trip(MapsStringType[FLOAT], {"a": 1.0, "b": 2.0})[1] == {"a": 1.0, "b": 2.0}
+        assert _round_trip(STRING_MAP[FLOAT], {"a": 1.0, "b": 2.0})[1] == {"a": 1.0, "b": 2.0}
 
     def test_an_array_port_value_survives_the_port_block(self, library_system):
         from haybale_core.types import ARRAY

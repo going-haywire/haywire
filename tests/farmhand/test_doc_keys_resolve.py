@@ -59,7 +59,7 @@ def _iter_doc_keys() -> list[tuple[Path, int, str]]:
 def test_doc_source_keys_exist() -> None:
     """Sanity: the extractor finds the planted keys (guards against a broken regex)."""
     keys = {key for _f, _ln, key in _iter_doc_keys()}
-    assert "haybale-example:node:MathOP" in keys
+    assert "haybale-example:node:MathOperationNode" in keys
     assert "haybale-testing:setting:TestingSettings" in keys
     assert len(keys) >= 15
 

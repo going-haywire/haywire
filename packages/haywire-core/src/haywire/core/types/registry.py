@@ -26,7 +26,7 @@ class TypeRegistry(BaseRegistry[IType]):
     Universal registry for all data types.
 
     Handles both:
-    - Type variants: Primitive type wrappers (FLOAT, INT, Temperature)
+    - Type variants: Primitive type wrappers (FLOAT, INT, TEMPERATURE)
     - Custom compound types: Complex data structures with serialization (MeshData)
 
     All types must:

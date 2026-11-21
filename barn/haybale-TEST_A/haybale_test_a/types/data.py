@@ -22,7 +22,7 @@ from haywire.api.workbench import hui
     help_url="https://haywire.io/docs/types/test-data",
 )
 @dataclass
-class TestData(BaseType):
+class TEST_DATA(BaseType):
     """
     A simple test data structure.
 
@@ -49,7 +49,7 @@ class TestData(BaseType):
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "TestData":
+    def from_dict(cls, data: dict) -> "TEST_DATA":
         """
         Deserialize test data from dictionary format.
 
@@ -57,7 +57,7 @@ class TestData(BaseType):
             data: Dictionary containing test data
 
         Returns:
-            New TestData instance
+            New TEST_DATA instance
         """
         return cls(**data)
 
@@ -86,4 +86,4 @@ class TestData(BaseType):
 
     def __str__(self) -> str:
         """String representation of the test data."""
-        return f"TestData('{self.label}', value={self.value}, metadata_keys={list(self.metadata.keys())})"
+        return f"TEST_DATA('{self.label}', value={self.value}, metadata_keys={list(self.metadata.keys())})"

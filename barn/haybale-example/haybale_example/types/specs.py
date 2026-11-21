@@ -8,7 +8,7 @@ from haywire.api import FLOAT, type
     widget_key="haybale-example:widget:TemperatureWidget",
     widget_config={"properties": {"unit": "°D"}},
 )
-class Temperature(FLOAT):
+class TEMPERATURE(FLOAT):
     """
     Temperature measurement type.
 
@@ -22,8 +22,8 @@ class Temperature(FLOAT):
     **widget_config** = {'properties': {'unit': '°D'}} - Display unit for temperature values
 
     Usage:
-        Temperature.as_inlet('temp', default=25.0)
-        Temperature.as_outlet('result')
+        TEMPERATURE.as_inlet('temp', default=25.0)
+        TEMPERATURE.as_outlet('result')
 
     Note: This class inherits the 'value: float' field from FLOAT.
     No need to redefine it - the decorator auto-extracts cls=float from FLOAT.

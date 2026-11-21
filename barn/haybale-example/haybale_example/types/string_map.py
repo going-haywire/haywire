@@ -13,13 +13,13 @@ T = TypeVar("T")
 
 @type(
     wire_type=DataWire,
-    label="Array",
+    label="String Map",
     description="Map with key type string",
     color="#39f55f",
     icon=hui.icon.list,
     default={"value": []},
 )
-class MapsStringType(CompoundType[T]):
+class STRING_MAP(CompoundType[T]):
     """
     Maps string keyed typed array compound type.
 
@@ -27,13 +27,13 @@ class MapsStringType(CompoundType[T]):
     All elements must be the same type (or compatible via adapters).
 
     Usage:
-        # MapsStringType of floats
-        MapsStringType[FLOAT].as_inlet(id='numbers', default=[1.0, 2.0, 3.0])
+        # STRING_MAP of floats
+        STRING_MAP[FLOAT].as_inlet(id='numbers', default=[1.0, 2.0, 3.0])
 
-        # MapsStringType of meshes
-        MapsStringType[MeshData].as_outlet(id='meshes')
+        # STRING_MAP of meshes
+        STRING_MAP[MeshData].as_outlet(id='meshes')
 
-    Storage: MapsStringType stores Map[str, T] with unwrapped elements
+    Storage: STRING_MAP stores Map[str, T] with unwrapped elements
 
     Hooks: Uses default implementations from IType
     - _validate_port_type: Allows all port types (inlet, outlet, config)
@@ -48,8 +48,8 @@ class MapsStringType(CompoundType[T]):
 
     @property
     def value(self):
-        """MapsStringType don't have instances - this is for type checking only"""
-        raise NotImplementedError("MapsStringType is a type descriptor, not instantiable")
+        """STRING_MAP don't have instances - this is for type checking only"""
+        raise NotImplementedError("STRING_MAP is a type descriptor, not instantiable")
 
 
 # ============================================================================
@@ -60,7 +60,7 @@ class MapsStringType(CompoundType[T]):
 @dataclass
 class MapsStringField(DataField):
     """
-    Field implementation for MapsStringType.
+    Field implementation for STRING_MAP.
 
     Stores map of unwrapped values with element type tracking.
 
@@ -129,4 +129,4 @@ class MapsStringField(DataField):
 
 
 # Set field_class now that MapsStringField is defined
-MapsStringType.field_class = MapsStringField
+STRING_MAP.field_class = MapsStringField

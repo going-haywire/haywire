@@ -67,25 +67,25 @@ from: `TestBeginPlayNode` — registry_key: `haybale-testing:node:TestBeginPlayN
 
 `event_subscription` also accepts `CallbackEvent(event_name=...)`, which lets one node trigger another by name. A callback listener needs a matching emitter, so we show the pair together.
 
-**Listener** — source: `barn/haybale-example/haybale_example/nodes/emits/custom_callback.py`
+**Listener** — source: `barn/haybale-example/haybale_example/nodes/emits/callback_event.py`
 
-`CustomCallbackNode` listens for named callbacks from other flows. It broadcasts its own ID via a `CALLBACK` outlet so emitters can wire to it, and updates its `event_subscription` dynamically when the config changes:
-
-```python
---8<-- "barn/haybale-example/haybale_example/nodes/emits/custom_callback.py:16:95"
-```
-
-from: `CustomCallbackNode` — registry_key: `haybale-example:node:CustomCallbackNode`
-
-**Emitter** — source: `barn/haybale-example/haybale_example/nodes/emits/emit_callback.py`
-
-`EmitCallbackNode` is the CONTROL counterpart: it has an EXEC inlet, reads connected listener IDs via `POOLED[CALLBACK]`, and emits to them via `context.emit_callback`:
+`CallbackEventNode` listens for named callbacks from other flows. It broadcasts its own ID via a `CALLBACK` outlet so emitters can wire to it, and updates its `event_subscription` dynamically when the config changes:
 
 ```python
---8<-- "barn/haybale-example/haybale_example/nodes/emits/emit_callback.py:16:105"
+--8<-- "barn/haybale-example/haybale_example/nodes/emits/callback_event.py:16:95"
 ```
 
-from: `EmitCallbackNode` — registry_key: `haybale-example:node:EmitCallbackNode`
+from: `CallbackEventNode` — registry_key: `haybale-example:node:CallbackEventNode`
+
+**Emitter** — source: `barn/haybale-example/haybale_example/nodes/emits/callback_emit.py`
+
+`CallbackEmitNode` is the CONTROL counterpart: it has an EXEC inlet, reads connected listener IDs via `POOLED[CALLBACK]`, and emits to them via `context.emit_callback`:
+
+```python
+--8<-- "barn/haybale-example/haybale_example/nodes/emits/callback_emit.py:16:105"
+```
+
+from: `CallbackEmitNode` — registry_key: `haybale-example:node:CallbackEmitNode`
 
 **What the pair shows:**
 

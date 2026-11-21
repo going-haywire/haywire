@@ -1,6 +1,6 @@
-# Simple Operations
+# Math Operation
 
-`haybale-example:type:MathOPSelector` · kind: type
+`haybale-example:type:MATH_OPERATION` · kind: type
 
 Simple mathematical operations for one or two float values
 

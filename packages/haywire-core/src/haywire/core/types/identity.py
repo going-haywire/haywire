@@ -30,7 +30,7 @@ class DataTypeIdentity(BaseIdentity):
     - UI metadata (color, icon, widget, ui)
 
     Used for:
-    - Type variants (FLOAT, INT, Temperature) - primitive type wrappers
+    - Type variants (FLOAT, INT, TEMPERATURE) - primitive type wrappers
     - Custom types (MeshData, with to_dict/from_dict) - compound data structures
 
     Attributes:

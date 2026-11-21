@@ -1,0 +1,9 @@
+# Key renames of haybale-TEST_A in release 0.6.
+#
+# Apply to a project's graphs with:
+#   uv run haywire rename --map <this file> --apply
+# The rules behind the names: docs/reference/component-naming.md.
+
+[[rename]]
+old = "haybale-TEST_A:type:TestData"
+new = "haybale-TEST_A:type:TEST_DATA"

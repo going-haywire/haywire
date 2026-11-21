@@ -1,8 +1,8 @@
 # Math Operation
 
-`haybale-example:node:MathOP` · kind: node
+`haybale-example:node:MathOperationNode` · kind: node
 
-Node that outputs a constant value.
+Applies the chosen operation (add, subtract, multiply, divide) to two float values.
 
 > **Deprecated:** This node will be moved to the math library
 
@@ -10,11 +10,11 @@ Node that outputs a constant value.
 
 | id | direction | type | description |
 |---|---|---|---|
-| `operator` | inlet | `haybale-example:type:MathOPSelector` | Simple mathematical operations for one or two float values |
+| `operator` | inlet | `haybale-example:type:MATH_OPERATION` | Simple mathematical operations for one or two float values |
 | `value_a` | inlet | `haywire-core:type:FLOAT` | Decimal number |
 | `value_b` | inlet | `haywire-core:type:FLOAT` | Decimal number |
 | `result` | outlet | `haywire-core:type:FLOAT` | Decimal number |
 
 ## Notes
 
-Node that outputs a constant value
+Applies the chosen operation to Value A and Value B; division by zero gives 0.0.
