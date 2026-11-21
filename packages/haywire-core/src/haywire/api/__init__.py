@@ -60,42 +60,42 @@ from haywire.barn.builtin.types import (
     is_valid_field_key,
 )
 from haywire.barn.builtin.widget_keys import (
+    ANNOTATION_TEXT_WIDGET,
     ARROW_HEAD_WIDGET,
     BUTTON_WIDGET,
     COLOR_WIDGET,
     FIELD_LIST_WIDGET,
     FOLD_WIDGET,
+    LABEL_WIDGET,
     MATRIX_WIDGET,
-    ANNOTATION_TEXT_WIDGET,
+    MENU_WIDGET,
     NUMBER_WIDGET,
     OPTIONAL_WIDGET,
     PATH_WIDGET,
     PROGRESS_WIDGET,
-    MENU_WIDGET,
-    LABEL_WIDGET,
     SLIDER_WIDGET,
-    TOGGLE_WIDGET,
     TEXT_WIDGET,
+    TOGGLE_WIDGET,
     VECTOR_WIDGET,
 )
 from haywire.barn.builtin.widgets import (
+    AnnotationTextWidget,
     ArrowHeadWidget,
     ButtonWidget,
     CheckboxWidget,
     ColorWidget,
     FieldListWidget,
     FoldWidget,
+    LabelWidget,
     MatrixWidget,
-    AnnotationTextWidget,
+    MenuWidget,
     NumberWidget,
     OptionalWidget,
     PathWidget,
     ProgressWidget,
-    MenuWidget,
-    LabelWidget,
     SliderWidget,
-    ToggleWidget,
     TextWidget,
+    ToggleWidget,
     VectorWidget,
 )
 from haywire.barn.builtin.wires import CallbackWire, ControlWire, DataWire
@@ -192,7 +192,32 @@ from haywire.ui.widget.registry import WidgetRegistry
 
 #: Names that left ``__all__`` and are still served, with a notice, until the
 #: release each entry names. ``tests/api/names.py`` lists them too.
-_DEPRECATED: dict[str, DeprecatedName] = {}
+_DEPRECATED: dict[str, DeprecatedName] = {
+    old: DeprecatedName(f"{module}:{new}", f"haywire.api.{new}", "0.7.0")
+    for module, renames in (
+        (
+            "haywire.barn.builtin.widgets",
+            {
+                "NoteTextWidget": "AnnotationTextWidget",
+                "SelectWidget": "MenuWidget",
+                "SimpleLabelWidget": "LabelWidget",
+                "SwitchWidget": "ToggleWidget",
+                "VecWidget": "VectorWidget",
+            },
+        ),
+        (
+            "haywire.barn.builtin.widget_keys",
+            {
+                "NOTE_TEXT_WIDGET": "ANNOTATION_TEXT_WIDGET",
+                "SELECT_WIDGET": "MENU_WIDGET",
+                "SIMPLE_LABEL_WIDGET": "LABEL_WIDGET",
+                "SWITCH_WIDGET": "TOGGLE_WIDGET",
+                "VEC_WIDGET": "VECTOR_WIDGET",
+            },
+        ),
+    )
+    for old, new in renames.items()
+}
 
 
 def __getattr__(name: str):
@@ -311,41 +336,41 @@ __all__ = [
     "get_widget_class",
     "widget",
     # Builtin widgets (all of haywire.barn.builtin.widgets)
+    "AnnotationTextWidget",
     "ArrowHeadWidget",
     "ButtonWidget",
     "CheckboxWidget",
     "ColorWidget",
     "FieldListWidget",
     "FoldWidget",
+    "LabelWidget",
     "MatrixWidget",
-    "AnnotationTextWidget",
+    "MenuWidget",
     "NumberWidget",
     "OptionalWidget",
     "PathWidget",
     "ProgressWidget",
-    "MenuWidget",
-    "LabelWidget",
     "SliderWidget",
-    "ToggleWidget",
     "TextWidget",
+    "ToggleWidget",
     "VectorWidget",
     # Builtin widget keys (all of haywire.barn.builtin.widget_keys)
+    "ANNOTATION_TEXT_WIDGET",
     "ARROW_HEAD_WIDGET",
     "BUTTON_WIDGET",
     "COLOR_WIDGET",
     "FIELD_LIST_WIDGET",
     "FOLD_WIDGET",
+    "LABEL_WIDGET",
     "MATRIX_WIDGET",
-    "ANNOTATION_TEXT_WIDGET",
+    "MENU_WIDGET",
     "NUMBER_WIDGET",
     "OPTIONAL_WIDGET",
     "PATH_WIDGET",
     "PROGRESS_WIDGET",
-    "MENU_WIDGET",
-    "LABEL_WIDGET",
     "SLIDER_WIDGET",
-    "TOGGLE_WIDGET",
     "TEXT_WIDGET",
+    "TOGGLE_WIDGET",
     "VECTOR_WIDGET",
     # Settings
     "LibrarySettings",

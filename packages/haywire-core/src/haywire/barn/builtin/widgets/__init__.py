@@ -1,18 +1,18 @@
+from .annotation_text_widget import AnnotationTextWidget
 from .arrow_head_widget import ArrowHeadWidget
 from .basic_widgets import (
     ButtonWidget,
     CheckboxWidget,
-    NumberWidget,
-    MenuWidget,
     LabelWidget,
+    MenuWidget,
+    NumberWidget,
     SliderWidget,
-    ToggleWidget,
     TextWidget,
+    ToggleWidget,
 )
 from .color_widget import ColorWidget
 from .field_list_widget import FieldListWidget
 from .fold_widget import FoldWidget
-from .annotation_text_widget import AnnotationTextWidget
 from .optional_widget import OptionalWidget
 from .path_widget import PathWidget
 from .progress_widget import ProgressWidget
