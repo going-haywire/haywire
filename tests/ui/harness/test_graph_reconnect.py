@@ -232,6 +232,7 @@ def test_reconnect_keeps_the_edge_when_the_anchor_pin_is_not_in_the_dom(page: Pa
         }"""
     )
     _click_menu_item(page, "Reconnect")
+    # A negative: nothing marks a drag that did not start, so give a stray one time to show.
     page.wait_for_timeout(800)
 
     assert page.query_selector(".graph-canvas.edge-dragging") is None, "no drag may start without an anchor"

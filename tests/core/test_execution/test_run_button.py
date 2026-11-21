@@ -3,7 +3,7 @@
 import threading
 import time
 from types import SimpleNamespace
-from typing import Any, Callable
+from typing import Any
 
 import pytest
 
@@ -12,6 +12,7 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.types.enums import PortType
 
 from tests.conftest import make_node
+from tests.wait import wait_until
 
 pytestmark = pytest.mark.integration
 
@@ -43,15 +44,6 @@ def _context(control_pin: str, calls: list) -> SimpleNamespace:
     )
 
 
-def _wait_for(predicate: Callable[[], bool], timeout_s: float = 1.0) -> bool:
-    deadline = time.monotonic() + timeout_s
-    while time.monotonic() < deadline:
-        if predicate():
-            return True
-        time.sleep(0.01)
-    return predicate()
-
-
 @pytest.fixture
 def button(graph_with_library_system):
     node = _button(graph_with_library_system)
@@ -73,7 +65,7 @@ def test_press_emits_once_to_every_callback(button):
     button.button.run = True
 
     assert sorted(calls) == [("tick_a", {"delta_time": 0.0}), ("tick_b", {"delta_time": 0.0})]
-    assert _wait_for(lambda: button.button.run is False)
+    assert wait_until(lambda: button.button.run is False)
     assert len(calls) == 2
 
 
@@ -83,8 +75,8 @@ def test_second_press_reports_time_since_previous(button):
     button.worker(_context("start", calls))
 
     button.button.run = True
-    assert _wait_for(lambda: button.button.run is False)
-    time.sleep(0.06)
+    assert wait_until(lambda: button.button.run is False)
+    time.sleep(0.06)  # the gap the second press reports; a sleep never ends early
     button.button.run = True
 
     assert len(calls) == 2
@@ -131,8 +123,8 @@ def test_press_while_stopped_emits_nothing(button):
     _listen(button, "tick")
 
     button.button.run = True
-    time.sleep(0.1)
 
+    # A press while stopped returns from the setter's handler before it emits or posts anything.
     assert calls == []
     assert button.button.run is True
 

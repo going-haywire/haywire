@@ -38,7 +38,8 @@ def test_enter_writes_once(page: Page, harness):
     field = _text_input(page)
     field.click()
     field.press_sequentially("/data/scene.json")
-    # Past one echo poll: nothing typed so far may have reached the model.
+    # Past one echo poll: nothing typed so far may have reached the model. Nothing to wait for
+    # when nothing should happen: the wait gives a wrong write time to show.
     page.wait_for_timeout(500)
     expect(_echo(page, "text_commit")).to_have_text("|0")
 
@@ -73,6 +74,8 @@ def test_a_blur_without_change_writes_nothing(page: Page, harness):
     field = _text_input(page)
     field.click()
     page.locator("body").click(position={"x": 5, "y": 5})
+    # Past one echo poll. Nothing to wait for when nothing should happen: the wait gives a
+    # wrong write time to show.
     page.wait_for_timeout(500)
     expect(_echo(page, "text_commit")).to_have_text("|0")
 

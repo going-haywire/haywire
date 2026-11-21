@@ -6,6 +6,8 @@ import time
 import pytest
 from haywire.core.debug.stall_watchdog import StallWatchdog, condense_dump
 
+from tests.wait import wait_until
+
 
 def _hold_the_interpreter() -> None:
     """Hold the interpreter lock for about half a second in one C call, which never releases it."""
@@ -22,14 +24,10 @@ def test_a_held_up_process_prints_the_stack_that_held_it(tmp_path, caplog):
     with out.open("w") as stream, caplog.at_level(logging.WARNING):
         watchdog = StallWatchdog(50, file=stream)
         watchdog.start()
-        time.sleep(0.2)
         # A hold that starts between two of the watchdog's arms goes unseen: hold again until one is seen.
         for _ in range(5):
             _hold_the_interpreter()
-            deadline = time.monotonic() + 1
-            while not _caught_the_hold(caplog) and time.monotonic() < deadline:
-                time.sleep(0.01)
-            if _caught_the_hold(caplog):
+            if wait_until(lambda: _caught_the_hold(caplog), timeout_s=2.0):
                 break
         watchdog.stop()
     text = out.read_text()
@@ -44,6 +42,7 @@ def test_a_quiet_process_prints_nothing(tmp_path, caplog):
     with out.open("w") as stream, caplog.at_level(logging.WARNING):
         watchdog = StallWatchdog(1000, file=stream)
         watchdog.start()
+        # Nothing marks a report as not coming: the sleep gives a false one the time to land.
         time.sleep(0.5)
         watchdog.stop()
     assert out.read_text() == ""

@@ -49,8 +49,8 @@ def test_post_value_delivers_on_scheduler_thread(graph_with_library_system: Base
 
     poster = threading.Thread(target=post)
     poster.start()
-    poster.join(2.0)
-    assert delivered.wait(2.0)
+    poster.join(10.0)
+    assert delivered.wait(10.0)
     assert writes[0][0] is not posted_from[0]
     assert node.value("value_a") == 7.5
 

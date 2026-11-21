@@ -354,10 +354,10 @@ def test_a_manager_built_canvas_logs_no_missing_gesture_requires(page: Page, har
     _click_card(page, node_id)
     _wait_selected(page, [node_id])
     page.get_by_test_id("views-lock").click()
-    page.wait_for_timeout(300)
+    page.wait_for_selector('.graph-canvas[data-hw-level-mode="operate"]')
     _click_card(page, node_id)
     page.get_by_test_id("views-unlock").click()
-    page.wait_for_timeout(300)
+    page.wait_for_selector('.graph-canvas[data-hw-level-mode="edit"]')
     _show(page, "stage", nodes=2, edges=2, limit=limit)
     _show(page, "patch", nodes=4, edges=2, limit=limit)
 

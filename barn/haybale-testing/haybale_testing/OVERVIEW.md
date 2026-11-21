@@ -65,9 +65,10 @@ Test library for test support
 
 ## Farmhands
 - **Affinity** — Report handler thread and loop.
-- **Block** — Sleep off-loop for `seconds`.
+- **Block** — Sleep off-loop for `seconds`, or until `gate` is released.
 - **Echo** — Echo text back (canned read tool).
 - **Fail** — Always fails with a stable code.
+- **Release** — Open a gate a Block call waits on.
 
 ## States
 - **Test Session State** — 

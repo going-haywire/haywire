@@ -628,8 +628,12 @@ async def test_leaving_before_the_delay_elapses_cancels_the_pending_open(user: U
     assert row._menu is not None
 
     _hover(user, row._row)
-    _unhover(user, row._row)  # leave well before the delay elapses
+    timers = [c for c in row._row.default_slot.children if isinstance(c, ui.timer)]
+    assert len(timers) == 1, "hovering must schedule exactly one pending open"
+    _unhover(user, row._row)  # both handlers run before the event loop can fire the timer
 
+    assert timers[0]._is_canceled is True, "leaving before the delay elapsed must cancel the pending open"
+    # A negative: nothing marks an open that did not happen, so give a stray one time to show.
     await asyncio.sleep(FLYOUT_OPEN_DELAY_S + 0.08)
     assert row._menu.value is False, "leaving before the delay elapsed must cancel the pending open"
 

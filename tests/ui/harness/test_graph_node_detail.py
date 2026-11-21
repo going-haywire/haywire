@@ -20,7 +20,7 @@ the edge check vacuous.
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
+from tests.ui.harness.nav import goto_ready, next_frames, wait_for_canvas_settled
 from tests.ui.harness.pin_edge import PIN_EDGE_JS
 
 _PATH = "/graph-detail"
@@ -103,11 +103,33 @@ def _open(page: Page, harness) -> None:
     wait_for_canvas_settled(page)
 
 
+def _sink_id(page: Page) -> str:
+    """The id of the node that owns the linked ``int_inlet`` pin."""
+    return page.evaluate(
+        """() => [...document.querySelectorAll('.connection-pin')]
+            .find(e => e.dataset.pinId === 'int_inlet' && e.dataset.pinDir === 'inlet')
+            .closest('[data-node-id]').dataset.nodeId"""
+    )
+
+
+def _settle_rank(page: Page, node_id: str, rank: str) -> None:
+    """Wait until the node's container carries *rank* and canvas.vue's rAF-deferred edge repaint has run."""
+    page.wait_for_function(
+        """([id, rank]) => [...document.querySelectorAll('[data-node-id]')]
+            .some(e => e.dataset.nodeId === id && e.dataset.nodePropsDetail === rank)""",
+        arg=[node_id, rank],
+    )
+    # The attribute observer queues the repaint for the next frame; a card that changes
+    # height also queues one from its ResizeObserver, a frame later.
+    next_frames(page, 3)
+
+
 def _switch(page: Page, testid: str) -> None:
-    page.click(f'[data-testid="{testid}"]')
     # A rank flip is an attribute write plus one rAF-deferred repaint. No hover,
     # no drag, no other incidental trigger — that is the point of the test.
-    page.wait_for_timeout(900)
+    node_id = _sink_id(page)
+    page.click(f'[data-testid="{testid}"]')
+    _settle_rank(page, node_id, testid.removeprefix("set-"))
 
 
 def test_detail_pins_hides_the_unlinked_inlets(page: Page, harness) -> None:

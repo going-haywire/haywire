@@ -1,12 +1,12 @@
 """BlockPump: pacing, end of source, stop, errors."""
 
 import threading
-import time
-
 import pytest
 
 from haybale_audio.emitter import BlockPump
 from haybale_audio.value import AudioBlock
+
+from tests.wait import wait_until
 
 pytestmark = pytest.mark.unit
 
@@ -26,26 +26,46 @@ def _run(produce, **kwargs):
     return pump, seen, ended, result
 
 
+class _RecordingStop(threading.Event):
+    """The pump's stop event, logging each timed wait the pump asks for into *log*."""
+
+    def __init__(self, log: list) -> None:
+        super().__init__()
+        self._log = log
+
+    def wait(self, timeout=None):
+        self._log.append(("wait", timeout))
+        return super().wait(timeout)
+
+
 def test_delivers_numbered_blocks_at_the_block_rate():
     left = [_BLOCK] * 20
-    pump, seen, ended, _ = _run(lambda: left.pop() if left else None)
-    assert ended.wait(2)
+    log, seen, ended = [], [], threading.Event()
+
+    def deliver(block, number, seconds):
+        log.append(("deliver", number))
+        seen.append((number, seconds))
+
+    pump = BlockPump(lambda: left.pop() if left else None, deliver, lambda error: ended.set())
+    pump._stop = _RecordingStop(log)
+    pump.start()
+    assert ended.wait(10)
     pump.stop()
     assert [n for n, _ in seen] == list(range(20))
-    assert seen[0][1] < 0.01, "the first block goes out at once, not a block later"
+    assert log[0] == ("deliver", 0), "the first block goes out at once, not after a wait"
+    waits = [t for kind, t in log if kind == "wait"]
+    assert all(0 < t <= _BLOCK.duration + 1e-9 for t in waits), "the pump never sleeps past a block"
+    # Only the lower bound is exact: a busy machine can deliver any block late.
     early = [(n, at) for n, at in seen if at < n * 0.01 - 0.001]
     assert not early, f"no block goes out before its time: {early}"
-    # Only a lower bound is exact: a busy machine can deliver any block late.
-    assert seen[-1][1] < 0.5, "19 blocks of 10 ms after the first, give or take a busy machine"
 
 
 def test_stop_interrupts_the_wait_and_reports_end():
-    pump, seen, ended, result = _run(lambda: _BLOCK)
-    time.sleep(0.05)
-    started = time.monotonic()
+    long_block = AudioBlock.silence(1, 480_000, 48000)  # 10 s: the pump sleeps 10 s before the second
+    pump, seen, ended, result = _run(lambda: long_block)
+    assert wait_until(lambda: seen)  # the first block is out, so the pump is at (or near) its wait
     pump.stop()
-    assert time.monotonic() - started < 0.1
-    assert ended.wait(1)
+    assert ended.wait(5), "stop() interrupts the 10 s wait; an uninterrupted pump ends only after it"
     assert result["error"] is None
     assert not pump.running
 
@@ -55,5 +75,5 @@ def test_error_from_produce_is_reported():
         raise RuntimeError("disk gone")
 
     _, _, ended, result = _run(produce)
-    assert ended.wait(1)
+    assert ended.wait(10)
     assert str(result["error"]) == "disk gone"

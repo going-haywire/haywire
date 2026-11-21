@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import importlib
 import json
@@ -29,6 +28,7 @@ from haywire.core.volumes import VolumeStore, volume_location
 from haywire.ui.widget.factory import WidgetFactory
 
 from tests.conftest import edit_route, make_node
+from tests.ui.user_wait import eventually
 
 DATA = b"weights"
 SHA = hashlib.sha256(DATA).hexdigest()
@@ -154,11 +154,8 @@ def _direct(port: DataPort) -> Callable[[], Any]:
 
 
 async def _eventually(check: Callable[[], bool]) -> None:
-    for _ in range(200):
-        if check():
-            return
-        await asyncio.sleep(0.01)
-    raise AssertionError("condition not met")
+    if not await eventually(check, timeout_s=10):
+        raise AssertionError("condition not met")
 
 
 def _cache_file(
@@ -402,12 +399,12 @@ async def test_choosing_shows_the_choice_and_use_writes_it(user: User, state: An
 @pytest.mark.anyio
 async def test_cancel_stores_nothing(user: User, state: Any) -> None:
     port = _port(ModelRef(catalog="haybale-beta:catalog:4x-Sharp"))
-    await _open(user, _direct(port))
+    widget = await _open(user, _direct(port))
     _open_picker(user)
 
     _click_row(user, "model-ref-catalog-pick", "Soft")
     user.find(marker="model-ref-cancel").click()
-    await asyncio.sleep(0.05)
+    await _eventually(lambda: widget._dialog.value is False)
 
     assert port.get_value() == ModelRef(catalog="haybale-beta:catalog:4x-Sharp")
 
@@ -515,9 +512,19 @@ def test_hf_rows_take_main_else_the_newest_revision(state: Any) -> None:
     assert uris == {"org/a/m.pth": "hf://org/a/m.pth@new", "org/b/m.pth": "hf://org/b/m.pth"}
 
 
+_ADDRESS_HINT = "Press Enter to take the address."
+
+
 def _enter_address(user: User, text: str) -> None:
     cast(ui.input, user.find(marker="model-ref-uri").elements.pop()).value = text
     user.find(marker="model-ref-uri").trigger("keydown.enter")
+
+
+async def _address_taken(user: User) -> None:
+    """Wait until the address tab has answered the address entered: its note leaves the hint."""
+    await _eventually(
+        lambda: cast(ui.label, user.find(marker="model-ref-uri-note").elements.pop()).text != _ADDRESS_HINT
+    )
 
 
 @pytest.mark.unit
@@ -587,7 +594,7 @@ async def test_an_address_without_scheme_is_not_taken(user: User, state: Any) ->
     _open_picker(user, "address")
 
     _enter_address(user, "example.invalid/m.pth")
-    await asyncio.sleep(0.05)
+    await _address_taken(user)
 
     note = cast(ui.label, user.find(marker="model-ref-uri-note").elements.pop())
     assert note.text == "An address starts with hf:// or https://"
@@ -602,7 +609,7 @@ async def test_an_address_with_an_unknown_prefix_is_not_taken(user: User, state:
     _open_picker(user, "address")
 
     _enter_address(user, "ftp://x/w.pth")
-    await asyncio.sleep(0.05)
+    await _address_taken(user)
 
     note = cast(ui.label, user.find(marker="model-ref-uri-note").elements.pop())
     assert note.text == "An address starts with hf:// or https://"
@@ -617,7 +624,7 @@ async def test_picker_refuses_a_cache_address(user: User, state: Any) -> None:
     _open_picker(user, "address")
 
     _enter_address(user, "torchhub://w.pth")
-    await asyncio.sleep(0.05)
+    await _address_taken(user)
 
     note = cast(ui.label, user.find(marker="model-ref-uri-note").elements.pop())
     assert note.text == "An address starts with hf:// or https://"
@@ -632,7 +639,7 @@ async def test_picker_refuses_a_whole_repo_address(user: User, state: Any) -> No
     _open_picker(user, "address")
 
     _enter_address(user, "hf://org/repo@" + "a" * 40)
-    await asyncio.sleep(0.05)
+    await _address_taken(user)
 
     note = cast(ui.label, user.find(marker="model-ref-uri-note").elements.pop())
     assert note.text == "A whole-repo address belongs in a catalog entry."
@@ -647,7 +654,7 @@ async def test_a_malformed_hf_address_is_refused(user: User, state: Any) -> None
     _open_picker(user, "address")
 
     _enter_address(user, "hf://onlyone")
-    await asyncio.sleep(0.05)
+    await _address_taken(user)
 
     note = cast(ui.label, user.find(marker="model-ref-uri-note").elements.pop())
     assert "org/repo/path" in note.text
@@ -746,13 +753,14 @@ async def test_view_mode_stores_nothing(
     _put(state, "dl/m.pth", source="https://example.invalid/m.pth")
     unpinned = ModelRef(urls=("https://example.invalid/m.pth",))
     port, build = _routed(library_system, held_graph, editor, LevelMode.VIEW, unpinned)
-    await _open(user, build)
+    widget = await _open(user, build)
 
     user.find(marker="model-ref-pin").click()
     _open_picker(user)
     _click_row(user, "model-ref-catalog-pick", "Sharp")
     user.find(marker="model-ref-use").click()
-    await asyncio.sleep(0.05)
+    # Use closes the dialog just before it writes; the pin, started first, has run by then.
+    await _eventually(lambda: widget._dialog.value is False)
 
     assert port.get_value() == unpinned
     assert editor.can_undo() is False
@@ -806,7 +814,7 @@ async def test_picker_accepts_an_http_address(user: User, state: Any) -> None:
     _open_picker(user, "address")
 
     _enter_address(user, "http://host/w.pth")
-    await asyncio.sleep(0.05)
+    await _address_taken(user)
 
     note = cast(ui.label, user.find(marker="model-ref-uri-note").elements.pop())
     assert not note.text.startswith("An address starts with")

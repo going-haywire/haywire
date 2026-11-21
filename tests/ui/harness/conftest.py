@@ -42,8 +42,9 @@ def harness():
         cwd=str(_REPO_ROOT),
         env=env,
     )
-    deadline = time.time() + 20
-    while time.time() < deadline:
+    # Bounds only a harness that never starts; a loaded runner can take well over 20 s.
+    deadline = time.monotonic() + 60
+    while time.monotonic() < deadline:
         try:
             r = requests.get(f"{base_url}/status", timeout=1)
             if r.status_code == 200:
@@ -53,7 +54,7 @@ def harness():
         time.sleep(0.4)
     else:
         proc.terminate()
-        raise RuntimeError("Harness did not become ready within 20s")
+        raise RuntimeError("Harness did not become ready within 60s")
     yield base_url
     proc.terminate()
     proc.wait(timeout=5)

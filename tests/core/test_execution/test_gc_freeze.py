@@ -25,17 +25,41 @@ def _released():
     _release_all()
 
 
+@pytest.fixture
+def calls(monkeypatch) -> list[str]:
+    """Record every ``gc.freeze`` and ``gc.unfreeze``, still running them.
+
+    The frozen count is no record of them: threads that earlier tests left running
+    free frozen objects at any time, so the count drifts between two reads.
+    """
+    recorded: list[str] = []
+    freeze, unfreeze = gc.freeze, gc.unfreeze
+
+    def _freeze() -> None:
+        recorded.append("freeze")
+        freeze()
+
+    def _unfreeze() -> None:
+        recorded.append("unfreeze")
+        unfreeze()
+
+    monkeypatch.setattr(gc, "freeze", _freeze)
+    monkeypatch.setattr(gc, "unfreeze", _unfreeze)
+    return recorded
+
+
 @pytest.mark.unit
-def test_the_first_graph_freezes_and_the_last_unfreezes():
-    before = gc.get_freeze_count()
+def test_the_first_graph_freezes_and_the_last_unfreezes(calls):
     gc_freeze.freeze_for_run()
     frozen = gc.get_freeze_count()
-    assert frozen > before
+    assert calls == ["freeze"]
+    assert frozen > 0
     gc_freeze.freeze_for_run()
-    assert gc.get_freeze_count() == frozen, "a second graph does not freeze again"
+    assert calls == ["freeze"], "a second graph does not freeze again"
     gc_freeze.unfreeze_after_run()
-    assert gc.get_freeze_count() == frozen, "one graph is still running"
+    assert calls == ["freeze"], "one graph is still running"
     gc_freeze.unfreeze_after_run()
+    assert calls == ["freeze", "unfreeze"]
     assert gc.get_freeze_count() < frozen // 10, "the heap is back with the collector"
     assert gc_freeze.running_graphs() == 0
 
@@ -112,19 +136,18 @@ def test_a_collector_that_was_off_stays_off():
 
 
 @pytest.mark.unit
-def test_objects_built_in_a_pause_join_the_frozen_heap_while_a_graph_runs():
+def test_objects_built_in_a_pause_join_the_frozen_heap_while_a_graph_runs(calls):
     gc_freeze.freeze_for_run()
-    before = gc.get_freeze_count()
     with gc_freeze.collection_paused():
         kept = [[i] for i in range(5000)]
-    assert gc.get_freeze_count() >= before + 5000
+        assert calls == ["freeze"]
+    assert calls == ["freeze", "freeze"], "the pause's objects are frozen when it ends"
     del kept
 
 
 @pytest.mark.unit
-def test_a_pause_without_a_running_graph_freezes_nothing():
-    before = gc.get_freeze_count()
+def test_a_pause_without_a_running_graph_freezes_nothing(calls):
     with gc_freeze.collection_paused():
         kept = [[i] for i in range(5000)]
-    assert gc.get_freeze_count() == before
+    assert calls == []
     del kept

@@ -48,8 +48,9 @@ def _drawn_vs_model_offset(page: Page) -> list[float]:
 
 def _park_first_node_mid_view(page: Page) -> None:
     """Zoom 1, first NumberDrag's node 450px from the left — its right-hand neighbour starts off-screen."""
-    for _ in range(10):
-        settled = page.evaluate(
+
+    def parked() -> bool:
+        return page.evaluate(
             """() => {
                 const c = document.querySelector('.zoom-pan-container')._zoomPanControls;
                 let h = document.querySelector('[data-number_drag]').closest('[data-node-id]');
@@ -62,11 +63,10 @@ def _park_first_node_mid_view(page: Page) -> None:
                 return false;
             }"""
         )
-        if settled:
-            return
-        # The canvas's own fit-to-content can land after our pan; set it again until it holds.
-        page.wait_for_timeout(200)
-    raise AssertionError("viewport did not settle at the parked position")
+
+    # The canvas's own fit-to-content can land after our pan; set it again until it holds.
+    if not wait_until(page, parked, timeout=10_000, interval=200):
+        raise AssertionError("viewport did not settle at the parked position")
 
 
 def _wait_for_focus(page: Page, index: int) -> None:

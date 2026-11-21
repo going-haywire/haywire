@@ -12,7 +12,6 @@ place. These tests pin the three halves of that claim:
 
 from __future__ import annotations
 
-import asyncio
 import re
 from collections.abc import AsyncGenerator
 
@@ -27,6 +26,7 @@ from haywire.ui.app.shell import STATIC_CSS
 from haywire.ui.elements.elements import MENU_ROW_CLASS, MENU_ROW_ICON_CLASS
 from haywire.ui.elements.flyout import open_flyout_group
 from haywire.ui.themes.workbench import BaseTheme
+from tests.ui.user_wait import eventually
 
 
 @pytest.fixture
@@ -336,7 +336,7 @@ async def test_a_returned_coroutine_is_awaited_before_the_menu_closes(user: User
 
     await user.open("/")
     user.find(marker="b").click()
-    await asyncio.sleep(0.05)
+    await eventually(lambda: calls == ["advance", "dismiss"])
 
     assert calls == ["advance", "dismiss"]
 

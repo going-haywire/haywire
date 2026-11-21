@@ -2,6 +2,7 @@
 
 import importlib
 import sys
+import threading
 import time
 from typing import Any
 from unittest.mock import MagicMock
@@ -14,6 +15,7 @@ from haybale_audio.dsp.fifo import FrameFifo
 from haybale_audio.io.device import DeviceOutput, output_device_names
 from haybale_audio.value import AudioBlock
 from tests.conftest import make_node
+from tests.wait import wait_until
 
 pytestmark = pytest.mark.unit
 
@@ -171,13 +173,16 @@ def test_the_device_buffer_is_passed_on_to_the_device():
     assert backend.latency == 0.1
 
 
-def _wait_for(condition, timeout: float = 3.0) -> bool:
-    end = time.monotonic() + timeout
-    while time.monotonic() < end:
-        if condition():
-            return True
-        time.sleep(0.005)
-    return False
+class _StopEvent(threading.Event):
+    """The feeder's stop event; ``waited`` is set once the feeder waits for late audio."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.waited = threading.Event()
+
+    def wait(self, timeout=None):
+        self.waited.set()
+        return super().wait(timeout)
 
 
 def test_a_thread_feeds_the_device_until_closed():
@@ -187,7 +192,7 @@ def test_a_thread_feeds_the_device_until_closed():
         out.write(_block(0.5))
     stream = backend.stream
     assert stream is not None
-    assert _wait_for(lambda: len(stream.written) > 5), "the thread keeps writing, silence included"
+    assert wait_until(lambda: len(stream.written) > 5), "the thread keeps writing, silence included"
     assert all(chunk.shape == (256, 2) for chunk in stream.written)
     assert any(np.allclose(chunk, 0.5, atol=0.1) for chunk in stream.written), "the queued audio reaches it"
     out.close()
@@ -199,18 +204,19 @@ def test_a_thread_feeds_the_device_until_closed():
 def test_late_audio_is_waited_for_while_the_device_still_holds_some():
     backend = FakeBackend()
     out = DeviceOutput(None, prefill_blocks=1, backend=backend)
+    stop = out._stop = _StopEvent()
     for _ in range(3):
         out.write(_block(0.5))
     stream = backend.stream
     assert stream is not None
-    assert _wait_for(lambda: len(stream.written) > 3)
+    assert wait_until(lambda: len(stream.written) > 3)
     stream.queued = 3000  # the device holds plenty
-    time.sleep(0.05)  # the feeder drains what is queued, then has nothing to give
+    assert stop.waited.wait(10)  # the feeder drained what was queued and now waits for audio
     count = len(stream.written)
-    time.sleep(0.1)
+    time.sleep(0.1)  # nothing marks a write that should not happen: give one time to show
     assert len(stream.written) == count, "no silence is written while the device can bridge the gap"
     stream.queued = 0
-    assert _wait_for(lambda: len(stream.written) > count), "silence is written once the device runs low"
+    assert wait_until(lambda: len(stream.written) > count), "silence is written once the device runs low"
     out.close()
 
 
@@ -221,7 +227,7 @@ def test_a_write_after_which_the_device_ran_dry_is_counted():
     stream = backend.stream
     assert stream is not None
     stream.underflow = True
-    assert _wait_for(lambda: out.late_writes > 0)
+    assert wait_until(lambda: out.late_writes > 0)
     out.close()
 
 
@@ -232,7 +238,7 @@ def test_a_failing_device_is_reported():
     stream = backend.stream
     assert stream is not None
     stream.fail = OSError("device unplugged")
-    assert _wait_for(lambda: out.error is not None)
+    assert wait_until(lambda: out.error is not None)
     out.close()
 
 

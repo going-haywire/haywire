@@ -11,6 +11,7 @@ from haywire.core.execution.interpreter import Interpreter
 from haywire.core.graph.base import BaseGraph
 
 from tests.conftest import make_edge, make_node
+from tests.wait import wait_until
 
 pytestmark = [pytest.mark.integration, pytest.mark.slow]
 
@@ -57,11 +58,12 @@ def test_clock_through_reblock_to_recorder(graph_with_library_system: BaseGraph,
 
         monkeypatch.setattr(vm, "emit_callback", record)  # every emitter reaches the VM through this
         assert clock.node.worker(SimpleNamespace(control_pin="start", emit_callback=record)) == "started"
-        time.sleep(0.5)
+        written = recorder.node.ports["frames"]
+        assert wait_until(lambda: (written.get_value() or 0) >= 40 * 256, timeout_s=60)
         clock.node.worker(SimpleNamespace(control_pin="stop", emit_callback=record))
-        time.sleep(0.2)  # the queued blocks drain through both flows
+        time.sleep(0.2)  # the queued blocks drain through both flows; nothing marks the last one
     finally:
-        interpreter.stop_execution(timeout=2.0)
+        interpreter.stop_execution(timeout=10.0)
         interpreter.shutdown()
 
     assert sizes[first.node_id] == {512}, "the clock delivers 512-sample blocks to the first Audio Event"
@@ -70,4 +72,4 @@ def test_clock_through_reblock_to_recorder(graph_with_library_system: BaseGraph,
     assert rate == 48000
     assert data.shape[1] == 1
     assert len(data) % 256 == 0, "the Reblock delivers whole 256-sample blocks"
-    assert len(data) >= 40 * 256, "512-sample blocks every 10.7 ms for 0.5 s, cut to 256"
+    assert len(data) >= 40 * 256, "the recorder wrote what it reported, in 256-sample blocks"

@@ -155,7 +155,7 @@ def test_undeclared_imports_name_what_the_pyproject_lacks(src_modules, target, s
 # ── the registration watch ──────────────────────────────────────────────────
 
 
-def _watched_write(registry, ledger, module_name, registry_key, write, event, timeout_s=5.0):
+def _watched_write(registry, ledger, module_name, registry_key, write, event, timeout_s=30.0):
     async def _go():
         with RegistrationWatch(registry, ledger, module_name, registry_key) as watch:
             write()

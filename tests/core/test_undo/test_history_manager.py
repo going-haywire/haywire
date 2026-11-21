@@ -49,8 +49,18 @@ class RecordingAction(ActionBase):
 
 
 def _merging_config(**kw) -> UndoConfig:
-    """Config with merging on and auto-grouping on (the studio's shape)."""
-    params: dict[str, Any] = dict(max_actions=100, enable_auto_grouping=True, enable_action_merging=True)
+    """Config with merging on and auto-grouping on (the studio's shape).
+
+    The time windows are a minute, so two actions a test adds back to back fall in one window
+    however slowly the machine runs them.
+    """
+    params: dict[str, Any] = dict(
+        max_actions=100,
+        enable_auto_grouping=True,
+        enable_action_merging=True,
+        grouping_time_window_ms=60_000,
+        merge_time_window_ms=60_000,
+    )
     params.update(kw)
     return UndoConfig(**params)
 
@@ -154,7 +164,7 @@ def test_merge_does_not_fire_outside_the_time_window():
     first = RecordingAction("a", log, mergeable=True)
     second = RecordingAction("b", log, mergeable=True)
     h.add_action(first)
-    time.sleep(0.05)
+    time.sleep(0.05)  # past the 10 ms window; a sleep never ends early
     h.add_action(second)
 
     assert _names(h._pending_actions) == ["a", "b"]

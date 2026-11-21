@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -11,6 +12,8 @@ from haywire.core.volumes import get_volume_store
 
 from haybale_models.keys import HF_VOLUME, MODELS_VOLUME
 from haybale_models.states.models_state import ModelsState, hf_default_cache
+
+from tests.wait import wait_until
 
 
 @pytest.fixture(autouse=True)
@@ -62,7 +65,6 @@ def test_fresh_on_enable_creates_only_the_default_models_folder(fresh):
 
 def test_download_to_fresh_models_volume_succeeds(fresh, http_server):
     import hashlib
-    import time
 
     from haybale_models.resolver import FetchSpec
     from haybale_models.value.model_ref import ModelRef
@@ -73,11 +75,12 @@ def test_download_to_fresh_models_volume_succeeds(fresh, http_server):
     url = http_server.file("/w.bin", data)
     ref = ModelRef(urls=(url,), sha256=hashlib.sha256(data).hexdigest(), label="w")
     (job_id,) = state.fetch([FetchSpec(ref=ref)], "tester")
-    deadline = time.monotonic() + 5
-    job = next(j for j in state.queue.jobs() if j.id == job_id)
-    while job.state in ("queued", "running") and time.monotonic() < deadline:
-        time.sleep(0.01)
-        job = next(j for j in state.queue.jobs() if j.id == job_id)
+
+    def job_now() -> Any:
+        return next(j for j in state.queue.jobs() if j.id == job_id)
+
+    wait_until(lambda: job_now().state not in ("queued", "running"))
+    job = job_now()
     assert job.state == "done", job.error
     assert job.target is not None
     assert job.target.read_bytes() == data
@@ -143,11 +146,11 @@ def test_state_bridges_queue_and_index_to_models_changed(models_env):
         state.index._notify()
         done = threading.Event()
         loop.call_soon_threadsafe(done.set)
-        assert done.wait(2)
+        assert done.wait(10)
     finally:
         core.loop = previous
         loop.call_soon_threadsafe(loop.stop)
-        thread.join(2)
+        thread.join(10)
     assert len(emitted) == 2
     assert all(isinstance(s, ModelsChanged) for s in emitted)
     assert ModelsChanged.cross_session is True
@@ -176,7 +179,7 @@ def test_on_enable_scans_in_background(models_env, monkeypatch, request):
     monkeypatch.setattr(state.index, "scan", lambda: ran.set() or [])  # type: ignore[func-returns-value]
     monkeypatch.setattr(state.index, "hash_pending", lambda: None)
     state.on_enable()
-    assert ran.wait(2)
+    assert ran.wait(10)
 
 
 def test_files_changed_tells_the_needs_watcher_and_publishes(models_env, monkeypatch):

@@ -11,7 +11,7 @@ only that.
 import pytest
 from playwright.sync_api import Page, expect
 
-from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
+from tests.ui.harness.nav import goto_ready, next_frames, wait_for_canvas_settled
 
 pytestmark = pytest.mark.ui
 
@@ -443,7 +443,9 @@ def test_a_slot_expanded_by_its_click_becomes_active(page: Page, harness):
     assert _active_slot(page) == "edit"
     _show_ctx_root(page, True)
 
-    page.wait_for_function("() => document.documentElement.dataset.hwActiveSlot === 'context'", timeout=2000)
+    page.wait_for_function(
+        "() => document.documentElement.dataset.hwActiveSlot === 'context'", timeout=10_000
+    )
 
 
 def test_a_later_click_elsewhere_cancels_the_pending_slot(page: Page, harness):
@@ -453,7 +455,8 @@ def test_a_later_click_elsewhere_cancels_the_pending_slot(page: Page, harness):
     page.locator("#ctx-bar").click()
     _click_root(page, _TWO)
     _show_ctx_root(page, True)
-    page.wait_for_timeout(300)
+    # The pending slot is checked from a ResizeObserver, delivered by the next rendered frame.
+    next_frames(page)
 
     assert _active_slot(page) == "edit"
 
@@ -476,7 +479,7 @@ def test_a_hidden_active_editor_lights_the_edit_slot_at_once(page: Page, harness
 
     page.locator("#ctx-root").evaluate("el => { el.style.display = 'none'; }")
 
-    page.wait_for_function("() => document.documentElement.dataset.hwActiveSlot === 'edit'", timeout=2000)
+    page.wait_for_function("() => document.documentElement.dataset.hwActiveSlot === 'edit'", timeout=10_000)
 
 
 def test_a_bar_click_moves_no_target_until_a_key(page: Page, harness):
@@ -486,6 +489,10 @@ def test_a_bar_click_moves_no_target_until_a_key(page: Page, harness):
     expect(page.locator("#last-target")).to_have_text("ed::one")
 
     page.locator("#ctx-bar").click()
+    page.wait_for_function(
+        "() => document.documentElement.dataset.hwActiveSlot === 'context'", timeout=10_000
+    )
+    # A negative: nothing marks a target message that was not sent, so give a stray one time to arrive.
     page.wait_for_timeout(300)
     expect(page.locator("#last-target")).to_have_text("ed::one")
 

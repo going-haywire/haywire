@@ -77,7 +77,7 @@ class _DataNode(_LifecycleNode):
         self.worker_runs += 1
         self.events.append(f"worker:{context.trigger.source_key}")
         self.inside.set()
-        self.release_worker.wait(5.0)
+        self.release_worker.wait(30.0)
         self.value = f"computed-by-{context.trigger.source_key}"
         self.dirty = False
         return None
@@ -136,7 +136,7 @@ def _enqueue(flow: _Flow, key: str) -> bool:
     return flow.queue.enqueue_trigger(_trigger(key))
 
 
-def _wait(flow: _Flow, timeout_s: float = 2.0) -> bool:
+def _wait(flow: _Flow, timeout_s: float = 10.0) -> bool:
     assert flow.queue is not None
     return flow.queue.wait_for_completion(timeout_s)
 
@@ -155,7 +155,7 @@ def test_frames_of_one_group_never_overlap():
         with lock:
             state["active"] += 1
             state["max"] = max(state["max"], state["active"])
-        time.sleep(0.001)
+        time.sleep(0.001)  # widens the window an overlapping frame would show in
         with lock:
             state["active"] -= 1
 
@@ -196,7 +196,8 @@ def test_frames_run_in_arrival_order():
 
 def test_two_groups_run_concurrently():
     vm = _Vm()
-    barrier = threading.Barrier(2, timeout=2.0)
+    # Opens only while both groups are inside a frame at once; the timeout only bounds a failing run.
+    barrier = threading.Barrier(2, timeout=10.0)
     broken: List[bool] = []
 
     def frame(vm, trigger):
@@ -229,19 +230,19 @@ def test_drop_keeps_newest_pending():
         seen.append(trigger.source_key)
         if trigger.source_key == "t0":
             inside.set()
-            gate.wait(2.0)
+            gate.wait(30.0)
 
     a = _Flow("A", frame=frame)
     group = _group([a], vm, mode=QueueMode.DROP, size=1)
     group.start()
     try:
         assert _enqueue(a, "t0")
-        assert inside.wait(2.0)
+        assert inside.wait(10.0)
         assert [_enqueue(a, k) for k in ("t1", "t2", "t3")] == [True, True, True]
         assert a.queue is not None
         assert a.queue.get_queue_size() == 1
         gate.set()
-        assert a.queue.wait_for_completion(1.0) is True
+        assert a.queue.wait_for_completion(10.0) is True
     finally:
         group.stop()
     assert seen == ["t0", "t3"]
@@ -273,7 +274,7 @@ def test_emit_from_own_runner_never_blocks():
     finally:
         group.stop()
     assert results == [True, False, False]
-    assert elapsed[0] < 0.2
+    assert elapsed[0] < 5.0  # a blocking enqueue would wait 5 s for room, each
 
 
 def test_startup_and_shutdown_once_per_node():
@@ -359,9 +360,11 @@ def test_shared_data_node_computed_once_and_read_fresh():
     events: List[str] = []
     s = _DataNode("s", events)
     read: dict = {}
+    entered = {"A": threading.Event(), "B": threading.Event()}
 
     def frame_for(flow_name):
         def frame(vm, trigger):
+            entered[flow_name].set()
             _evaluate(vm, flows[flow_name], trigger, s)
             read[flow_name] = s.value
 
@@ -379,8 +382,10 @@ def test_shared_data_node_computed_once_and_read_fresh():
     gb.start()
     try:
         _enqueue(a, "a")
-        assert s.inside.wait(2.0)
+        assert s.inside.wait(10.0)
         _enqueue(b, "b")
+        assert entered["B"].wait(10.0)
+        # Nothing marks B parked on s's lock; the sleep gives a wrong read the time to land.
         time.sleep(0.1)
         assert "B" not in read  # B waits for s while A computes it
         s.release_worker.set()
@@ -450,7 +455,7 @@ def test_in_group_emit_runs_after_current_frame():
     def frame_a(vm, trigger):
         order.append("A-start")
         _enqueue(b, "b")
-        time.sleep(0.05)
+        time.sleep(0.05)  # the window in which a B frame running too early would start
         order.append("A-end")
 
     a = _Flow("A", frame=frame_a)
@@ -474,7 +479,7 @@ def test_hold_is_bounded_by_a_stuck_frame():
 
     def frame(vm, trigger):
         inside.set()
-        stuck.wait(5.0)
+        stuck.wait(30.0)
 
     a = _Flow("A", frame=frame)
     group = _group([a], vm)
@@ -483,11 +488,11 @@ def test_hold_is_bounded_by_a_stuck_frame():
     group.start()
     try:
         _enqueue(a, "a")
-        assert inside.wait(2.0)
+        assert inside.wait(10.0)
         start = time.monotonic()
         assert group.hold(timeout_s=0.2) is False
         assert interpreter.hold_for_batch(timeout_s=0.2) is True
-        assert time.monotonic() - start < 1.0
+        assert time.monotonic() - start < 15.0  # well short of the 30 s the frame stays stuck
         interpreter.release_after_batch(requires_reassembly=False)
     finally:
         stuck.set()

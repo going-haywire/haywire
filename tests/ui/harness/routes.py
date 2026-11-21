@@ -680,8 +680,31 @@ def _mount_graph_canvas(
         manager.canvas_vue.props(f'data-testid="{testid}-canvas"')
         if sync:
             manager.sync_with_graph()
-        manager.zoom_container._on_ready = manager.zoom_container.center_on_content
+        _centre_when_ready(manager.zoom_container)
     return manager
+
+
+def _centre_when_ready(zoom: ZoomPanContainer) -> None:
+    """Centre *zoom* on its content once it is ready, and mark when that fit has landed.
+
+    The container carries ``data-hw-fit-pending`` from the start; ``data-hw-fit-done``
+    joins it once the fit has run (see ``nav.wait_for_canvas_settled``). ``fitToContent``
+    fits two frames after it is called, so the stamp queued behind it waits two frames.
+    """
+    zoom.props("data-hw-fit-pending")
+
+    def centre() -> None:
+        zoom.center_on_content()
+        zoom.client.run_javascript(
+            f"""{{
+                const el = getElement({zoom.id})?.$el;  // the component sets its root's DOM id itself
+                requestAnimationFrame(() => requestAnimationFrame(() => {{
+                    if (el) el.dataset.hwFitDone = '1';
+                }}));
+            }}"""
+        )
+
+    zoom._on_ready = centre
 
 
 def _build_enter_graph(library_service):
@@ -1501,6 +1524,7 @@ def register_routes(library_service) -> None:
         # itself (via _zoomPanControls.setPan) to move the sink node in and
         # out of the culled band on demand.
         manager.zoom_container._on_ready = None
+        manager.zoom_container.props(remove="data-hw-fit-pending")
         _stamp_synced()
 
     # -------------------------------------------------------------------------
@@ -2019,7 +2043,8 @@ def register_routes(library_service) -> None:
     # on a canvas in level mode ``mode`` (the card is on stage too; ``view=stage``
     # mounts the stage canvas). ``size=manual`` sizes the card 600 x 400 in both views
     # by hand; ``cull=1`` adds an ``enable-culling`` button (culling for any node
-    # count and zoom). ``inset-card-id`` / ``inset-slider-id`` carry the ids; polled
+    # count and zoom; ``echo-culling`` reads "on" once it is clicked).
+    # ``inset-card-id`` / ``inset-slider-id`` carry the ids; polled
     # echoes show the slider's ``value`` (``echo-inset-value``), whether the
     # host history can undo (``echo-undo``, cleared after setup) and the card's
     # patch position (``echo-position``); ``enter-log`` records an Enter.
@@ -2072,8 +2097,11 @@ def register_routes(library_service) -> None:
 
             def _enable_culling() -> None:
                 pz.cull_enabled = True
+                # Rides the same update as the canvas's cull-enabled prop.
+                culling_echo.text = "on"
 
             ui.button("enable-culling", on_click=_enable_culling).props('data-testid="enable-culling"')
+            culling_echo = ui.label("off").props('data-testid="echo-culling"')
 
         ui.label(card_id).props(f'data-testid="inset-card-id" data-node="{card_id}"')
         ui.label(slider.node_id).props(f'data-testid="inset-slider-id" data-node="{slider.node_id}"')

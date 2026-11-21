@@ -64,6 +64,7 @@ def test_double_click_on_a_widget_does_not_enter(page: Page, harness):
     widget.wait_for()
 
     widget.dblclick()
+    # A negative: nothing marks an Enter that was not sent, so give a stray one time to arrive.
     page.wait_for_timeout(600)
 
     assert _log(page) == ""

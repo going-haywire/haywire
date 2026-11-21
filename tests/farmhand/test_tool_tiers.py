@@ -58,6 +58,7 @@ VIEW_TOOLS = {
     "fail",
     "list",
     "needs",
+    "release",
     "get_findings",
 }
 

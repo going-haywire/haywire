@@ -118,6 +118,14 @@ class FakeServer:
         with self._lock:
             self._active += 1
             self.max_active = max(self.max_active, self._active)
+        left = False
+
+        def leave() -> None:
+            nonlocal left
+            with self._lock:
+                if not left:
+                    left, self._active = True, self._active - 1
+
         try:
             data: bytes = route["data"]
             if route.get("delay"):
@@ -138,16 +146,20 @@ class FakeServer:
             with self._lock:
                 self.sent[h.path] = self.sent.get(h.path, 0) + len(body)
             half = len(body) // 2 if route.get("hold") or route.get("die") else len(body)
+            # A request stops counting as active before its last bytes go out: once the client
+            # has them it may start the next download before this thread resumes.
+            if half == len(body):
+                leave()
             h.wfile.write(body[:half])
             h.wfile.flush()
             if half < len(body) and not route.get("die"):
-                self.release.wait(5)
+                self.release.wait(60)  # bounds a test that never releases; close() releases
+                leave()
                 h.wfile.write(body[half:])
         except (BrokenPipeError, ConnectionResetError):
             pass
         finally:
-            with self._lock:
-                self._active -= 1
+            leave()
 
     def close(self) -> None:
         self.release.set()

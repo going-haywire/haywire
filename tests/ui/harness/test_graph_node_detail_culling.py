@@ -19,8 +19,8 @@ view, until an incidental trigger (a hover, a drag) repaints it.
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
-from tests.ui.harness.test_graph_node_detail import _edge_end, _pin
+from tests.ui.harness.nav import goto_ready, next_frames, wait_for_canvas_settled, wait_until
+from tests.ui.harness.test_graph_node_detail import _edge_end, _pin, _settle_rank
 
 _PATH = "/graph-detail-culled"
 
@@ -39,8 +39,8 @@ def _set_pan(page: Page, x: float, y: float) -> None:
     """Move the viewport via the same handle _pin()'s zoom read uses.
 
     Deterministic and gesture-free: `setPan` runs `_setPanDirect` synchronously
-    and schedules `_applyCulling` for the next frame, so a short wait after
-    this settles both the transform and the cull pass.
+    and schedules `_applyCulling` for the next frame; an uncull then queues the
+    edge repaint for the frame after. Three frames settle all of it.
     """
     page.evaluate(
         """([x, y]) => {
@@ -49,7 +49,7 @@ def _set_pan(page: Page, x: float, y: float) -> None:
         }""",
         [x, y],
     )
-    page.wait_for_timeout(300)
+    next_frames(page, 3)
 
 
 def _is_culled(page: Page, node_id: str) -> bool:
@@ -75,9 +75,10 @@ def _sink_node_id(page: Page) -> str:
     )
 
 
-def _switch(page: Page, testid: str) -> None:
+def _switch(page: Page, testid: str, node_id: str) -> None:
+    """Flip the sink's rank; its container keeps the attribute while the card is culled."""
     page.click(f'[data-testid="{testid}"]')
-    page.wait_for_timeout(900)
+    _settle_rank(page, node_id, testid.removeprefix("set-"))
 
 
 def _open(page: Page, harness) -> str:
@@ -102,11 +103,12 @@ def _open(page: Page, harness) -> str:
     # the graph may still be mid-load at first render. Flip it here, after
     # the graph has settled, the way a user would from the settings panel.
     page.click('[data-testid="enable-culling"]')
-    page.wait_for_timeout(300)
 
     # Pan away — enabling culling while parked on the sink (still near) does
     # not cull it by itself; this is what actually drops it out of the DOM.
+    # Culling switched on after the pan culls at once, so either order ends culled.
     _set_pan(page, *_PAN_AWAY)
+    wait_until(page, lambda: _is_culled(page, node_id))
     assert _is_culled(page, node_id), "test setup: sink should be culled once panned away with culling armed"
     return node_id
 
@@ -122,7 +124,7 @@ def test_edge_repaints_after_detail_change_while_culled(page: Page, harness) -> 
     # Cull it again, then flip detail while it has no card in the DOM at all.
     _set_pan(page, *_PAN_AWAY)
     assert _is_culled(page, node_id), "premise: node must be culled before the detail change"
-    _switch(page, "set-pins")
+    _switch(page, "set-pins", node_id)
 
     # Reveal it again — no hover, no drag, no other incidental trigger.
     _set_pan(page, *_PAN_TO_SINK)
@@ -149,12 +151,12 @@ def test_edge_repaints_on_the_return_trip_while_culled(page: Page, harness) -> N
 
     _set_pan(page, *_PAN_TO_SINK)
     assert not _is_culled(page, node_id), "premise: node must be visible to set up the PINS starting state"
-    _switch(page, "set-pins")
+    _switch(page, "set-pins", node_id)
     lifted = _pin(page, "int_inlet")
 
     _set_pan(page, *_PAN_AWAY)
     assert _is_culled(page, node_id), "premise: node must be culled before the detail change"
-    _switch(page, "set-full")
+    _switch(page, "set-full", node_id)
 
     _set_pan(page, *_PAN_TO_SINK)
     assert not _is_culled(page, node_id), "premise: node must be visible again to check its edge"

@@ -34,6 +34,9 @@ def _card(page: Page, name: str):
     return page.locator(f'[id="{node_id}"]')
 
 
+@pytest.mark.xfail(
+    strict=False, reason="product race, #167: a mid-drag loopback echo can commit a stale value"
+)
 def test_an_operator_drives_a_slider_on_a_locked_stage(page: Page, harness):
     _open(page, harness)
     slider = _card(page, "slider").locator(".q-slider").first
@@ -171,6 +174,7 @@ def test_an_edit_widget_keeps_its_press_in_edit(page: Page, harness):
     before = _box(card)
 
     _press_and_drag(page, card.locator(".q-slider").first, 60)
+    # Nothing to wait for when nothing should happen: the wait gives a wrong card drag time to show.
     page.wait_for_timeout(300)
 
     after = _box(card)

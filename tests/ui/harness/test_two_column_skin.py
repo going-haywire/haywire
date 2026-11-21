@@ -13,7 +13,7 @@ to any multi-column skin, not just SplitNodeSkin.
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 
 _PATH = "/graph-two-column"
 
@@ -24,12 +24,20 @@ def _open(page: Page, harness) -> None:
     goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-node-id]")
     page.wait_for_selector(".connection-pin")
-    page.wait_for_timeout(1000)
+    wait_for_canvas_settled(page)
 
 
 def _switch(page: Page, testid: str) -> None:
     page.click(f'[data-testid="{testid}"]')
-    page.wait_for_timeout(900)
+    # Each pin carries the layout it was drawn for; the card redraws its columns with them.
+    page.wait_for_function(
+        """(layout) => {
+            const pins = [...document.querySelectorAll('.split-node-card .connection-pin')];
+            return pins.length > 0 && pins.every((p) => p.dataset.hwLayout === layout);
+        }""",
+        arg=testid.removeprefix("set-"),
+    )
+    wait_for_canvas_settled(page)
 
 
 def _column_headings_in_order(page: Page) -> list[str]:

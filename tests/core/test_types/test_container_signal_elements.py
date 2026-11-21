@@ -16,7 +16,7 @@ def _run(graph) -> None:
     interpreter.load_graph(graph)
     try:
         interpreter.dispatch_system_event(SystemEventType.BEGIN_PLAY)
-        interpreter.wait_all(timeout=5.0)
+        interpreter.wait_all(timeout=30.0)
     finally:
         interpreter.shutdown()
 

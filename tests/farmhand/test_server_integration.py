@@ -66,19 +66,29 @@ def test_mutating_tool_runs_on_event_loop(farmhand_call):
 
 
 def test_blocking_tool_does_not_stall_concurrent_request(farmhand_call):
+    """While Block waits off-loop, other requests complete: Release reaches it and opens its gate.
+
+    A stalled server would serve Release only after Block gave up, so Block reports
+    ``released: false``. The 60 s give-up bounds a failing run; a passing one never waits for it.
+    """
+
     async def scenario(session, init):
-        started = time.monotonic()
+        gate = "stall-check"
+        block = asyncio.create_task(
+            session.call_tool("haybale-testing_block", {"seconds": 60, "gate": gate})
+        )
+        released = False
+        while not released and not block.done():
+            echo = await session.call_tool("haybale-testing_echo", {"text": "quick"})
+            assert call_tool_json(echo)["echo"] == "quick"
+            released = call_tool_json(await session.call_tool("haybale-testing_release", {"gate": gate}))[
+                "released"
+            ]
+        return released, call_tool_json(await block)
 
-        async def timed_echo():
-            await session.call_tool("haybale-testing_echo", {"text": "quick"})
-            return time.monotonic() - started
-
-        block = asyncio.create_task(session.call_tool("haybale-testing_block", {"seconds": 1.5}))
-        echo_elapsed = await timed_echo()
-        await block
-        return echo_elapsed
-
-    assert farmhand_call(scenario) < 1.0  # echo finished while block still sleeping
+    released, block_result = farmhand_call(scenario)
+    assert released is True
+    assert block_result["released"] is True
 
 
 def test_disable_enable_shrinks_and_grows_tool_list(farmhand_server, farmhand_call):
@@ -91,7 +101,7 @@ def test_disable_enable_shrinks_and_grows_tool_list(farmhand_server, farmhand_ca
         assert "haybale-testing_echo" in names
         registry.disable_library("haybale-testing")
         try:
-            deadline = time.monotonic() + 10
+            deadline = time.monotonic() + 30  # bounds a failing run only
             while time.monotonic() < deadline:
                 names = {t.name for t in (await session.list_tools()).tools}
                 if "haybale-testing_echo" not in names:
@@ -100,7 +110,7 @@ def test_disable_enable_shrinks_and_grows_tool_list(farmhand_server, farmhand_ca
             assert "haybale-testing_echo" not in names
         finally:
             registry.enable_library("haybale-testing")
-        deadline = time.monotonic() + 10
+        deadline = time.monotonic() + 30  # bounds a failing run only
         while time.monotonic() < deadline:
             names = {t.name for t in (await session.list_tools()).tools}
             if "haybale-testing_echo" in names:
@@ -121,7 +131,7 @@ def _post(url: str, headers: dict) -> int:
     body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "ping"}).encode()
     request = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json", **headers})
     try:
-        with urllib.request.urlopen(request, timeout=5) as response:
+        with urllib.request.urlopen(request, timeout=30) as response:  # bounds a failing run only
             return response.status
     except urllib.error.HTTPError as exc:
         return exc.code

@@ -50,6 +50,24 @@ def _degenerate(d: str) -> bool:
     return not numbers or all(float(n) == 0.0 for n in numbers)
 
 
+def _rekey(page: Page) -> None:
+    """Re-key the panel and wait until the canvas on screen is the remounted one.
+
+    The edges of the canvas from before the remount satisfy ``_wait_for_all_edges``
+    until its teardown drops them, so the old canvas element is marked first and
+    the wait is for a canvas without the mark.
+    """
+    page.evaluate(f"() => {{ document.querySelector('{_CANVAS}').__hwBeforeRekey = true; }}")
+    page.click('[data-testid="rekey"]')
+    page.wait_for_function(
+        f"""() => {{
+            const canvases = [...document.querySelectorAll('{_CANVAS}')];
+            return canvases.length > 0 && canvases.every(c => !c.__hwBeforeRekey);
+        }}""",
+        timeout=10_000,
+    )
+
+
 def _wait_for_all_edges(page: Page) -> list[str]:
     page.wait_for_function(f"() => ({_PATH_DS})().length === {_EDGES}", timeout=10_000)
     return page.evaluate(_PATH_DS)
@@ -168,12 +186,7 @@ def test_re_keying_the_panel_brings_the_edges_back(page: Page, harness):
     page.click('[data-testid="reveal"]')
     _wait_for_all_edges(page)
 
-    page.click('[data-testid="rekey"]')
-    # The remount is what is under test, and _wait_for_all_edges would be
-    # satisfied by the edges still on screen from BEFORE it. The count is the
-    # only observable that distinguishes them, so wait for the teardown to
-    # drop them first; it is too brief to catch any other way.
-    page.wait_for_timeout(500)
+    _rekey(page)
 
     assert len(_wait_for_all_edges(page)) == _EDGES
     errors = _wait_until_on_pins(page)
@@ -220,9 +233,9 @@ def test_edges_re_measure_after_a_re_mount_at_another_zoom(page: Page, harness):
     page.click('[data-testid="reveal"]')
     _wait_for_all_edges(page)
 
-    errors = _endpoint_errors(page)
+    errors = _wait_until_on_pins(page)
     assert errors, "no edge endpoints could be compared against their pins"
-    assert max(errors) < 12.0, (
+    assert max(errors) < _MAX_ENDPOINT_ERROR_PX, (
         f"edges are drawn away from their pins (worst {max(errors):.0f}px) — measured against the wrong zoom"
     )
 
@@ -266,10 +279,7 @@ def test_a_re_mount_at_another_zoom_draws_on_the_pins(page: Page, harness):
     _wait_for_all_edges(page)
     page.click('[data-testid="zoom-out"]')
 
-    page.click('[data-testid="rekey"]')
-    # See the other rekey: the edges on screen are the pre-remount ones until
-    # the teardown drops them, and nothing observable marks that moment.
-    page.wait_for_timeout(500)
+    _rekey(page)
     _wait_for_all_edges(page)
 
     errors = _wait_until_on_pins(page)

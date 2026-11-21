@@ -156,7 +156,7 @@ def test_lookup_not_blocked_by_scan_walk(models_env: VolumeStore, index: ModelIn
 
     def slow_walk(top: Path):  # type: ignore[no-untyped-def]
         in_walk.set()
-        assert release.wait(5)
+        assert release.wait(30)  # longer than the looker's join: a blocked lookup stays blocked through it
         yield from real_walk(top)
 
     drop(_root(models_env) / "a.bin", b"a")
@@ -167,7 +167,7 @@ def test_lookup_not_blocked_by_scan_walk(models_env: VolumeStore, index: ModelIn
         result: list[object] = []
         looker = threading.Thread(target=lambda: result.append(index.by_sha256("x") or "none"))
         looker.start()
-        looker.join(2)
+        looker.join(10)  # bounds a lookup that blocks on the scan
         finished = not looker.is_alive()
         release.set()
         scanner.join(5)

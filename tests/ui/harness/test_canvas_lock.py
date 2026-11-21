@@ -45,7 +45,8 @@ def _drag_100px(page: Page, node_id: str) -> None:
     page.mouse.down()
     page.mouse.move(x + 100, y, steps=8)
     page.mouse.up()
-    # Long enough for a drag's events to reach the server and the polled label to refresh.
+    # A negative: nothing marks a move the lock refused, so give a stray one time to
+    # reach the server and the polled label.
     page.wait_for_timeout(600)
 
 
