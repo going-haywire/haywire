@@ -174,21 +174,8 @@ def remote_branches(ctx: Context) -> dict[str, str]:
 
 def pull_requests(ctx: Context, branch: str | None = None) -> dict[str, dict]:
     """Return ``{head branch: newest pull request}`` from the head repository, via ``gh``."""
-    cmd = [
-        "gh",
-        "pr",
-        "list",
-        "--repo",
-        ctx.pr_repo,
-        "--state",
-        "all",
-        "--limit",
-        "1000",
-        "--json",
-        PR_FIELDS,
-    ]
-    if branch:
-        cmd += ["--head", branch]
+    cmd = ["gh", "pr", "list", "--repo", ctx.pr_repo, "--state", "all", "--limit", "1000"]
+    cmd += ["--json", PR_FIELDS, *(["--head", branch] if branch else [])]
     newest: dict[str, dict] = {}
     for pr in json.loads(run(*cmd)):
         owner = (pr.get("headRepositoryOwner") or {}).get("login", "")
@@ -256,24 +243,23 @@ def finish_branch(ctx: Context, branch: str, abandon: bool, pr: dict | None = No
             f"the worktree {holder.path} has uncommitted changes",
             "commit or discard them, then run finish again",
         )
-    if holder:
-        default = ctx.default_branch
-        if holder.path == here and holder.path == main:
-            run("git", "fetch", "--quiet", ctx.pr_remote, default)
+    default, target = ctx.default_branch, f"{ctx.pr_remote}/{ctx.default_branch}"
+    if holder and holder.path != here:
+        run("git", "worktree", "remove", str(holder.path))
+        result["actions"].append(f"removed worktree {holder.path}")
+    elif holder:
+        run("git", "fetch", "--quiet", ctx.pr_remote, default)
+        if here == main:
             run("git", "switch", "--quiet", default)
-            run("git", "merge", "--quiet", "--ff-only", f"{ctx.pr_remote}/{default}")
+            run("git", "merge", "--quiet", "--ff-only", target)
             result["actions"].append(f"switched the main folder to {default}")
-        elif holder.path == here:
-            run("git", "fetch", "--quiet", ctx.pr_remote, default)
-            run("git", "switch", "--quiet", "--detach", f"{ctx.pr_remote}/{default}")
-            result["actions"].append(f"detached {here} at {ctx.pr_remote}/{default}")
+        else:
+            run("git", "switch", "--quiet", "--detach", target)
+            result["actions"].append(f"detached {here} at {target}")
             result["help"] = (
                 "this folder is now an empty detached checkout; remove it through your orchestrator "
                 f"or with `git worktree remove {here}` from the main folder"
             )
-        else:
-            run("git", "worktree", "remove", str(holder.path))
-            result["actions"].append(f"removed worktree {holder.path}")
     if have_local:
         run("git", "branch", "-D", branch)
         result["actions"].append("deleted local branch")
@@ -290,7 +276,6 @@ def sweep_rows(ctx: Context, abandon: bool) -> list[dict]:
     """Return one row per leftover, with a ``status`` of ``ready``, ``needs --abandon`` or ``skip: ...``."""
     prs = pull_requests(ctx)
     here = toplevel()
-    all_trees = worktrees()
     rows: list[dict] = []
 
     def status_of(pr: dict) -> str:
@@ -318,20 +303,10 @@ def sweep_rows(ctx: Context, abandon: bool) -> list[dict]:
             )
         else:
             rows.append({"kind": "remote branch", "name": branch, "status": status_of(pr), "pr": pr})
-    for tree in all_trees[1:]:
-        if tree.path == here:
-            continue
-        if tree.prunable:
-            rows.append({"kind": "worktree", "name": str(tree.path), "status": "ready"})
-        elif tree.branch is None:
-            clean = is_clean(tree.path)
-            rows.append(
-                {
-                    "kind": "worktree",
-                    "name": str(tree.path),
-                    "status": "ready" if clean else "skip: not clean",
-                }
-            )
+    for tree in worktrees()[1:]:
+        if tree.path != here and (tree.prunable or tree.branch is None):
+            status = "ready" if tree.prunable or is_clean(tree.path) else "skip: not clean"
+            rows.append({"kind": "worktree", "name": str(tree.path), "status": status})
     return rows
 
 

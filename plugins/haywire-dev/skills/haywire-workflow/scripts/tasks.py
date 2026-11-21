@@ -78,9 +78,8 @@ def repositories(root: Path) -> list[Path]:
 def worktrees(repo: Path) -> list[Worktree]:
     """Return every worktree of *repo*, the main folder first."""
     found: list[Worktree] = []
-    for index, block in enumerate(
-        run("git", "worktree", "list", "--porcelain", cwd=repo).strip().split("\n\n")
-    ):
+    blocks = run("git", "worktree", "list", "--porcelain", cwd=repo).strip().split("\n\n")
+    for index, block in enumerate(blocks):
         fields = dict(line.partition(" ")[::2] for line in block.splitlines())
         if "prunable" in fields or "bare" in fields:
             continue
@@ -150,10 +149,9 @@ def pull_request(slug: str | None, branch: str) -> dict | None:
     if slug is None:
         return None
     try:
-        raw = run(
-            "gh", "pr", "list", "--repo", slug, "--head", branch, "--state", "all", "--json", PR_FIELDS
+        prs = json.loads(
+            run("gh", "pr", "list", "--repo", slug, "--head", branch, "--state", "all", "--json", PR_FIELDS)
         )
-        prs = json.loads(raw)
     except (CommandFailed, json.JSONDecodeError):
         return None
     if not prs:

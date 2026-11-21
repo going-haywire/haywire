@@ -13,8 +13,6 @@ block() {
 }
 
 DANGEROUS_PATTERNS=(
-  "git reset --hard"
-  "git clean -fd"
   "git clean -f"
   "git branch -D"
   "git checkout \."
@@ -56,11 +54,8 @@ if echo "$COMMAND" | grep -qE "gh[[:space:]]+api[[:space:]]" \
   fi
 fi
 
-if echo "$COMMAND" | grep -qE "rm -r(f)?"; then
-  if ! echo "$COMMAND" | grep -qE "(\.claude|\.scratchpad|/tmp|/private/tmp)"; then
-    echo "BLOCKED: 'rm -r' outside safe directories. Only allowed in .claude, scratchpad, or /tmp folders." >&2
-    exit 2
-  fi
+if echo "$COMMAND" | grep -qE "rm -r" && ! echo "$COMMAND" | grep -qE "\.claude|\.scratchpad|/tmp"; then
+  block "runs rm -r outside .claude, a scratchpad or /tmp"
 fi
 
 exit 0

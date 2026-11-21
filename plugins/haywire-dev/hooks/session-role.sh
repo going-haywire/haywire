@@ -13,14 +13,14 @@ UPSTREAM=${UPSTREAM%.git}
 UPSTREAM=${UPSTREAM:-going-haywire/haywire}
 
 warnings=""
-command -v jq >/dev/null 2>&1 || warnings+=" jq is not installed, so the workflow hooks (skill gate, merge guard) check nothing."
-command -v gh >/dev/null 2>&1 || warnings+=" The GitHub CLI (gh) is not installed: the role cannot be checked and pull requests cannot be handled."
-
 permission=""
+command -v jq >/dev/null 2>&1 || warnings+=" jq is not installed, so the workflow hooks (skill gate, merge guard) check nothing."
 if command -v gh >/dev/null 2>&1; then
   # perl's alarm bounds the network call: macOS has no `timeout`.
   permission=$(perl -e 'alarm 8; exec @ARGV' gh repo view "$UPSTREAM" --json viewerPermission \
     --jq .viewerPermission 2>/dev/null)
+else
+  warnings+=" The GitHub CLI (gh) is not installed: the role cannot be checked and pull requests cannot be handled."
 fi
 
 case "$permission" in
