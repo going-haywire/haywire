@@ -214,10 +214,18 @@ def test_in_t3_the_agent_learns_its_thread_and_how_to_message(tmp_path, env):
     assert "orchestrators/t3.md" in context
 
 
-_T3_COMPLETE = {
-    "storageCleanup": {"worktreeOnMerge": True, "worktreeKeepWhen": "uncommitted-changes"},
-    "branchNamingMode": "semantic",
-}
+_T3_SCRIPTS = json.loads((ROOT / "t3.json").read_text())["scripts"]
+_T3_SETTINGS = {"storageCleanup": {"worktreeOnMerge": True}, "branchNamingMode": "semantic"}
+
+
+def _t3_project(*scripts: dict, **settings) -> dict:
+    """T3 settings whose one project runs ``scripts`` (all of t3.json's if none), with ``settings``."""
+    listed = list(scripts or _T3_SCRIPTS)
+    return {
+        **_T3_SETTINGS,
+        "projectSettingsOverrides": {"p1": {"defaultProjectScripts": listed}},
+        **settings,
+    }
 
 
 def _t3_home(tmp_path: Path, settings: str | dict | None) -> Path:
@@ -276,36 +284,58 @@ def _t3_setup(tmp_path: Path, **kwargs) -> str:
 
 
 def test_a_complete_t3_setup_adds_nothing(tmp_path):
-    output = _t3_output(tmp_path, settings=_T3_COMPLETE)
+    output = _t3_output(tmp_path, settings=_t3_project(), t3_json=True)
     assert "T3 setup is incomplete" not in output["hookSpecificOutput"]["additionalContext"]
     assert "systemMessage" not in output
 
 
-def test_the_developer_sees_what_the_t3_setup_lacks(tmp_path):
-    output = _t3_output(tmp_path, settings={**_T3_COMPLETE, "branchNamingMode": "static"}, venv=False)
-    message = output["systemMessage"]
-    assert message.startswith("T3 setup is incomplete:")
-    assert "Import from t3.json" in message
-    assert "Branch naming → semantic" in message
-    assert "Delete merged worktrees" not in message
+def test_a_dropped_async_and_a_missing_script_are_offered_as_a_fix(tmp_path):
+    setup, finish, _ = _T3_SCRIPTS
+    without_async = {k: v for k, v in setup.items() if k != "async"}
+    output = _t3_output(tmp_path, settings=_t3_project(without_async, finish), t3_json=True)
     context = output["hookSpecificOutput"]["additionalContext"]
     assert "in your first reply, before other work" in context
+    assert "*Worktree setup* lacks `async: false`, which T3's import drops [fix]" in context
+    assert "lacks the t3.json script *Haywire studio* [fix]" in context
+    assert "doctor.py --fix" in context
+    assert "run it only on the user's yes" in context
     assert "user: " not in context
+    assert output["systemMessage"].startswith("T3 setup is incomplete:")
 
 
-def test_the_keep_setting_may_be_left_at_its_default(tmp_path):
-    settings = {"storageCleanup": {"worktreeOnMerge": True}, "branchNamingMode": "semantic"}
-    assert "T3 setup is incomplete" not in _t3_setup(tmp_path, settings=settings)
+def test_scripts_not_imported_point_to_the_docs(tmp_path):
+    context = _t3_setup(tmp_path, settings=_t3_project({"command": "make x"}), t3_json=True)
+    assert "the t3.json scripts are not imported" in context
+    assert "orchestrators/t3.md#setup" in context
+    assert "--fix" not in context
 
 
-@pytest.mark.parametrize("missing", [{"venv": False}, {"port": False}])
-def test_a_worktree_without_its_setup_asks_for_the_import(tmp_path, missing):
-    context = _t3_setup(tmp_path, settings=_T3_COMPLETE, **missing)
+@pytest.mark.parametrize(
+    ("change", "named"),
+    [
+        ({"storageCleanup": {"worktreeOnMerge": False}}, "Delete merged worktrees"),
+        ({"storageCleanup": {"worktreeOnMerge": True, "worktreeKeepWhen": "never"}}, "Uncommitted changes"),
+        ({"branchNamingMode": "static"}, "Branch naming"),
+    ],
+)
+def test_each_wrong_t3_setting_is_named(tmp_path, change, named):
+    context = _t3_setup(tmp_path, settings=_t3_project(**change), t3_json=True)
+    assert "T3 setup is incomplete" in context
+    assert named in context
+    assert "[fix]" not in context
+
+
+@pytest.mark.parametrize("settings", ["{not json", "[]"])
+def test_a_broken_t3_settings_file_points_to_the_docs(tmp_path, settings):
+    context = _t3_setup(tmp_path, settings=settings, t3_json=True)
+    assert "could not check the T3 settings, see" in context
+    assert "orchestrators/t3.md#setup" in context
+
+
+def test_a_worktree_without_its_setup_is_told_to_run_it(tmp_path):
+    context = _t3_setup(tmp_path, settings=_t3_project(), t3_json=True, port=False)
     assert "T3 setup is incomplete; pass this list to the user" in context
-    assert "Project settings → Actions → Import scripts → Import from t3.json" in context
-    assert "all three" in context
-    assert "async: false" in context
-    assert "python3 scripts/worktree_setup.py" in context
+    assert "run `python3 scripts/worktree_setup.py` in this worktree now" in context
 
 
 def test_the_slot_waits_for_a_setup_still_running(tmp_path):
@@ -319,81 +349,11 @@ def test_the_slot_waits_for_a_setup_still_running(tmp_path):
 
     setup = threading.Thread(target=finish_setup)
     setup.start()
-    context = _t3_setup(tmp_path, settings=_T3_COMPLETE, port=False, HAYWIRE_T3_SETUP_WAIT="30")
+    context = _t3_setup(
+        tmp_path, settings=_t3_project(), t3_json=True, port=False, HAYWIRE_T3_SETUP_WAIT="30"
+    )
     setup.join()
     assert "T3 setup is incomplete" not in context
-
-
-@pytest.mark.parametrize(
-    ("change", "named"),
-    [
-        ({"storageCleanup": {"worktreeOnMerge": False}}, "Delete merged worktrees"),
-        ({"storageCleanup": {"worktreeOnMerge": True, "worktreeKeepWhen": "never"}}, "Uncommitted changes"),
-        ({"branchNamingMode": "static"}, "Branch naming → semantic"),
-    ],
-)
-def test_each_wrong_t3_setting_is_named(tmp_path, change, named):
-    context = _t3_setup(tmp_path, settings={**_T3_COMPLETE, **change})
-    assert "T3 setup is incomplete" in context
-    assert named in context
-    assert "Import from t3.json" not in context
-
-
-def test_t3_defaults_name_the_cleanup_and_naming(tmp_path):
-    context = _t3_setup(tmp_path, settings={})
-    assert "Delete merged worktrees" in context
-    assert "Branch naming → semantic" in context
-    assert "Uncommitted changes" not in context
-
-
-@pytest.mark.parametrize("settings", [None, "{not json", "[]"])
-def test_a_missing_or_broken_t3_settings_file_is_skipped(tmp_path, settings):
-    assert "T3 setup is incomplete" not in _t3_setup(tmp_path, settings=settings)
-
-
-_T3_SCRIPTS = json.loads((ROOT / "t3.json").read_text())["scripts"]
-
-
-def _t3_project(*scripts: dict) -> dict:
-    """T3 settings, complete but for its one project's scripts, which are ``scripts``."""
-    return {
-        **_T3_COMPLETE,
-        "projectSettingsFolded": True,
-        "projectSettingsOverrides": {"p1": {"defaultProjectScripts": list(scripts)}},
-    }
-
-
-def test_imported_scripts_as_in_t3_json_add_nothing(tmp_path):
-    settings = _t3_project(*_T3_SCRIPTS)
-    assert "T3 setup is incomplete" not in _t3_setup(tmp_path, settings=settings, t3_json=True)
-
-
-def test_a_dropped_async_and_a_missing_script_are_offered_as_a_fix(tmp_path):
-    setup, finish, _ = _T3_SCRIPTS
-    without_async = {k: v for k, v in setup.items() if k != "async"}
-    output = _t3_output(tmp_path, settings=_t3_project(without_async, finish), t3_json=True)
-    context = output["hookSpecificOutput"]["additionalContext"]
-    assert "*Worktree setup* lacks `async: false`" in context
-    assert "lacks the t3.json script *Haywire studio* [fix]" in context
-    assert "doctor.py --fix" in context
-    assert "run it only on the user's yes" in context
-    assert "set in T3 by hand" not in context
-    assert "(the agent can fix this)" in output["systemMessage"]
-
-
-def test_scripts_not_imported_are_left_to_the_user_with_the_docs(tmp_path):
-    context = _t3_setup(tmp_path, settings={**_T3_COMPLETE, "projectSettingsFolded": True}, t3_json=True)
-    assert "the t3.json scripts are not imported" in context
-    assert "orchestrators/t3.md#setup" in context
-    assert "--fix" not in context
-
-
-def test_an_unfinished_setup_with_named_script_gaps_skips_the_guess(tmp_path):
-    setup, finish, studio = _T3_SCRIPTS
-    settings = _t3_project({k: v for k, v in setup.items() if k != "async"}, finish, studio)
-    context = _t3_setup(tmp_path, settings=settings, t3_json=True, venv=False)
-    assert "did not finish within 0 s; then run `python3 scripts/worktree_setup.py`" in context
-    assert "most likely" not in context
 
 
 def test_the_lead_thread_is_checked_too(tmp_path):
@@ -403,12 +363,6 @@ def test_the_lead_thread_is_checked_too(tmp_path):
     )
     assert "lacks the t3.json script *Finish merged task* [fix]" in context
     assert "worktree setup did not finish" not in context
-
-
-def test_an_unreadable_t3_settings_file_points_to_the_docs(tmp_path):
-    output = _t3_output(tmp_path, settings="{not json")
-    assert "could not read T3's settings file" in output["systemMessage"]
-    assert "orchestrators/t3.md#setup" in output["hookSpecificOutput"]["additionalContext"]
 
 
 def test_the_main_folder_needs_no_worktree_setup(tmp_path):
