@@ -60,7 +60,9 @@ def check(repo: Path) -> tuple[dict, list[dict], list[str], list[str]]:
         setup = next((w["command"] for w in wanted if w.get("runOnWorktreeCreate")), None)
         if setup is None:
             return settings, [], [], manual
-        lists = [e["defaultProjectScripts"] for e in settings["projectSettingsOverrides"].values()]
+        # Other projects' overrides may hold no scripts (only a model, say), or not be objects.
+        overrides = settings["projectSettingsOverrides"].values()
+        lists = [e.get("defaultProjectScripts") or [] for e in overrides if isinstance(e, dict)]
         scripts = next((s for s in lists if any(x.get("command") == setup for x in s)), None)
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return {}, [], [], [UNCHECKED]

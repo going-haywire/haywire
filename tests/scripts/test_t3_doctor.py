@@ -84,6 +84,14 @@ def test_cleanup_and_naming_are_left_to_the_user(t3):
     assert _backups(t3.path) == []
 
 
+def test_another_project_without_scripts_is_skipped(t3):
+    settings = _settings(IMPORTED_SETUP)
+    settings["projectSettingsOverrides"]["model-only"] = {"defaultModel": "x"}
+    out = t3("--check", settings=settings)
+    assert "*Worktree setup* lacks `async: false`" in out
+    assert "could not check" not in out
+
+
 def test_scripts_not_imported_point_to_the_import(t3):
     out = t3("--fix", settings=_settings())
     assert "the t3.json scripts are not imported" in out
