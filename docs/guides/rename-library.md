@@ -3,6 +3,7 @@ status: draft
 doc_template: guide
 scope: Renaming a project-local haybale library with the `haywire rename` CLI, and confirming the result with `haywire verify`
 see-also:
+  - ./rename-components.md
   - ../haybale/haybale-canon.md
   - ./sharing-libraries.md
   - ../reference/files/haybale-toml.md
@@ -278,6 +279,9 @@ per library.
 
 ## 7. Reading on
 
+- **Renaming components** (a node, type or widget class) instead of the
+  whole library: [rename-components](./rename-components.md), with
+  `haywire rename --map`.
 - **Library naming conventions**, and why `hay-` exists as a separate
   namespace:
   [haybale-canon §5](../haybale/haybale-canon.md#5-naming-and-versioning).
