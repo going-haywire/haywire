@@ -1,6 +1,6 @@
-# Gray image
+# Gray Image
 
-`haybale-image:type:IMAGE_GRAY` · kind: type
+`haybale-image:type:GRAY_IMAGE` · kind: type
 
 A one-channel picture.
 

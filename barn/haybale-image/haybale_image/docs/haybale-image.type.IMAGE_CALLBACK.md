@@ -1,6 +1,6 @@
-# Callback Image
+# Image Callback
 
-`haybale-image:type:CALLBACK_IMAGE` · kind: type
+`haybale-image:type:IMAGE_CALLBACK` · kind: type
 
 Subscription for emitters that deliver single images
 
@@ -15,7 +15,7 @@ Subscription value: the callback name a listener registers under.
 
 A `BaseType` on `CallbackWire`, deliberately not a subclass of the core `CALLBACK`
 (or of any other callback type): only an emitter whose pooled inlet is
-`PooledType[CALLBACK_IMAGE]` connects to an Image Event node.
+`PooledType[IMAGE_CALLBACK]` connects to an Image Event node.
 
 The emitter's payload for each image:
 `{"image": ImageValue, "timestamp": float, "frame_number": int}`.

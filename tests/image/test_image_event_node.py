@@ -1,4 +1,4 @@
-"""Image Event: publishes its listener name on CALLBACK_IMAGE and unpacks the emitter's payload."""
+"""Image Event: publishes its listener name on IMAGE_CALLBACK and unpacks the emitter's payload."""
 
 import importlib
 from typing import Any
@@ -22,7 +22,7 @@ def _event(graph: Any) -> Any:
 def test_listen_outlet_publishes_node_id(graph_with_library_system):
     node = _event(graph_with_library_system)
     value = node.ports["listen_callback"].get_value()
-    cb = importlib.import_module("haybale_image.types.callback").CALLBACK_IMAGE
+    cb = importlib.import_module("haybale_image.types.callback").IMAGE_CALLBACK
     assert isinstance(value, cb), "a dict here breaks the emitter's pooled inlet"
     assert value.name == node.node_id
 
@@ -49,5 +49,5 @@ def test_worker_ignores_payload_without_image(graph_with_library_system):
 def test_image_callback_is_independent_of_core_callback():
     from haywire.barn.builtin.types import CALLBACK
 
-    cb = importlib.import_module("haybale_image.types.callback").CALLBACK_IMAGE
+    cb = importlib.import_module("haybale_image.types.callback").IMAGE_CALLBACK
     assert not issubclass(cb, CALLBACK)

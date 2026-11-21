@@ -1,4 +1,4 @@
-"""IMAGE and its layout-fixed variants IMAGE_GRAY, IMAGE_RGB and IMAGE_RGBA."""
+"""IMAGE and its layout-fixed variants GRAY_IMAGE, RGB_IMAGE and RGBA_IMAGE."""
 
 from typing import Any, ClassVar, cast
 
@@ -74,13 +74,13 @@ IMAGE.field_class = IMAGEField
 
 @type_decorator(
     wire_type=DataWire,
-    label="Gray image",
+    label="Gray Image",
     description="A one-channel picture.",
     color=_COLOR,
     store_strategy=StoreStrategy.NEVER,
     default=_empty_default(Layout.GRAY),
 )
-class IMAGE_GRAY(IMAGE):
+class GRAY_IMAGE(IMAGE):
     """A one-channel picture."""
 
     LAYOUT: ClassVar[Layout | None] = Layout.GRAY
@@ -88,13 +88,13 @@ class IMAGE_GRAY(IMAGE):
 
 @type_decorator(
     wire_type=DataWire,
-    label="RGB image",
+    label="RGB Image",
     description="A three-channel picture.",
     color=_COLOR,
     store_strategy=StoreStrategy.NEVER,
     default=_empty_default(Layout.RGB),
 )
-class IMAGE_RGB(IMAGE):
+class RGB_IMAGE(IMAGE):
     """A three-channel picture."""
 
     LAYOUT: ClassVar[Layout | None] = Layout.RGB
@@ -102,13 +102,13 @@ class IMAGE_RGB(IMAGE):
 
 @type_decorator(
     wire_type=DataWire,
-    label="RGBA image",
+    label="RGBA Image",
     description="A picture with three colour channels and transparency.",
     color=_COLOR,
     store_strategy=StoreStrategy.NEVER,
     default=_empty_default(Layout.RGBA),
 )
-class IMAGE_RGBA(IMAGE):
+class RGBA_IMAGE(IMAGE):
     """A picture with three colour channels and transparency."""
 
     LAYOUT: ClassVar[Layout | None] = Layout.RGBA
