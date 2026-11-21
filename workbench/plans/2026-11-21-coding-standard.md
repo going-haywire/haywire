@@ -101,15 +101,15 @@ redesigning DI.
 
 | Slice | State | Commit / date / deviations |
 |---|---|---|
-| R0 | pending | |
-| R1 | PR open | `.claude/rules/python-docs.md` renamed `coding-standards.md` (pointer); `docstring-cleanup-notes.md` kept: it holds design reasoning no ADR covers |
-| R2 | pending | |
-| R3 | pending | |
-| R4 | pending | |
-| R5 | pending | |
-| R6 | pending | |
-| R7 | pending | |
-| R8 | pending | |
-| R9 | pending | |
-| R10 | pending | |
-| R11 | pending | |
+| R0 | done | tracking #182, sub-issues #183–#192 (R2–R11), 2026-11-21 |
+| R1 | PR open (#181) | `.claude/rules/python-docs.md` renamed `coding-standards.md` (pointer); `docstring-cleanup-notes.md` kept: it holds design reasoning no ADR covers |
+| R2 | pending (#183) | |
+| R3 | pending (#184) | |
+| R4 | pending (#185) | |
+| R5 | pending (#186) | |
+| R6 | pending (#187) | |
+| R7 | pending (#188) | |
+| R8 | pending (#189) | |
+| R9 | pending (#190) | |
+| R10 | pending (#191) | |
+| R11 | pending (#192) | |
