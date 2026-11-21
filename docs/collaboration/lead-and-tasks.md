@@ -40,9 +40,8 @@ sequenceDiagram
 
 | Step | Who | Where the rule or command lives |
 |---|---|---|
-| ① Start a task (event *created*) | lead | [The workflow skill: lead and tasks](https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/SKILL.md#lead-and-tasks), `worktree_setup.py`, the [orchestrator's page](orchestrators/index.md) |
+| ① Start a task (event *created*); reports and names (event *message the lead*) | lead, task | [The workflow skill: lead and tasks](https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/SKILL.md#lead-and-tasks), `worktree_setup.py`, the [orchestrator's page](orchestrators/index.md) |
 | Worktrees and their rules | lead, task | [The workflow skill: parallel sessions](https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/SKILL.md#parallel-sessions) |
-| Reports and names (event *message the lead*) | task, lead | [The workflow skill: lead and tasks](https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/SKILL.md#lead-and-tasks) |
 | ② Decisions | you | [The workflow skill: asking the user for a decision](https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/SKILL.md#asking-the-user-for-a-decision) |
 | Merge, watch master, finish (event *merged*) | lead, task | [The workflow skill: finishing as the maintainer](https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/SKILL.md#finishing-as-the-maintainer) |
 | The task view (event *viewed*) | lead | `tasks.py` in the workflow skill's folder |

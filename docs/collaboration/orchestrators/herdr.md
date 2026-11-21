@@ -26,10 +26,8 @@ the agents use it is in the workflow skill's
 1. Install herdr and `hc` ([the guide](https://herdr.dev/guide/)), and `jq`.
 2. Open a space on the main folder. Right-click it → *New worktree* creates a task's
    worktree and space; the agent runs `python3 scripts/worktree_setup.py` there first.
-3. At session start the agent learns its address and how to reach the others; a worktree
-   tab still called by its number is renamed to the branch.
-4. After a merge and `finish`, right-click the task's space → *Remove worktree*.
-5. A second machine: herdr there too, added under *Settings → Machines* on the first.
+3. After a merge and `finish`, right-click the task's space → *Remove worktree*.
+4. A second machine: herdr there too, added under *Settings → Machines* on the first.
 
 ## Starting the studio
 

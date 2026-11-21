@@ -59,7 +59,5 @@ ssh -N -L 8125:127.0.0.1:8125 <linux-host>     # then open http://localhost:8125
 
 Use the port the worktree's studio runs on (`.haywire/settings.json`, `network.port`).
 
-Opening the studio to the network instead takes, in this order, since exposure refuses
-without login and TLS (`docs/adr/0026-studio-network-exposure.md`): an admin user
-(`haywire user add`), `haywire auth enable`, `haywire ssl setup`, then
-`haywire network expose --ranges <cidr>`. `haywire security status` shows the result.
+To open the studio to the network instead, follow
+[docs/guides/security.md](https://github.com/going-haywire/haywire/blob/master/docs/guides/security.md).

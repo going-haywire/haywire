@@ -38,19 +38,15 @@ Every file of a slot is optional:
 
 | File | What it does |
 |---|---|
-| `plugins/haywire-dev/orchestrators/<tool>/session.sh` | At session start, prints a paragraph for the agent when its tool runs the session (where it runs, how to message the lead), nothing otherwise; lines starting with `user: ` are for you, the developer |
+| `plugins/haywire-dev/orchestrators/<tool>/session.sh` | At session start, prints a paragraph for the agent when its tool runs the session (where it runs, how to message the lead), nothing otherwise; lines starting with `user: ` are shown to you, the developer, for something only you can fix (a slot that uses them tells the agent too, for tools that do not show them) |
 | `plugins/haywire-dev/orchestrators/<tool>/agents.py` | Prints the tool's live sessions, `{"agents": [{"cwd", "address", "status"}]}`, for the task view |
 | `plugins/haywire-dev/skills/haywire-workflow/orchestrators/<tool>.md` | The agent's how-to: the four events in this tool |
 | `docs/collaboration/orchestrators/<tool>.md` | Your setup: what to install, which settings to choose, and how to start the studio from it |
 | A file the tool reads at the repository root | Only calls the neutral scripts; [`t3.json`](https://github.com/going-haywire/haywire/blob/master/t3.json) is one |
 
 The hook `session-place.sh` runs every slot's `session.sh`, and `tasks.py` every slot's
-`agents.py`. The hook passes a slot's lines to the agent, except those starting with
-`user: `: it strips the prefix and shows them to the developer at session start (the hook's
-`systemMessage`), for something only the developer can fix, such as a missing setting. A slot
-that uses them tells the agent the same, so the agent can relay it where the tool does not
-show the message. The `haywire-dev` plugin carries the slots, so the organisation's libraries
-get them too.
+`agents.py`. The `haywire-dev` plugin carries the slots, so the organisation's libraries get
+them too.
 
 ## Adding a tool
 
