@@ -1026,17 +1026,17 @@
     },
     "MathOP_cdb83482": {
       "node_id": "MathOP_cdb83482",
-      "registry_key": "haybale-example:node:MathOP",
+      "registry_key": "haybale-example:node:MathOperationNode",
       "node_data": {
         "node_id": "MathOP_cdb83482",
         "ports": {
           "operator": {
             "kwargs": {
-              "registry_id": "MathOPSelector",
-              "registry_key": "haybale-example:type:MathOPSelector",
+              "registry_id": "MATH_OPERATION",
+              "registry_key": "haybale-example:type:MATH_OPERATION",
               "label": "Operator",
               "description": "Simple mathematical operations for one or two float values",
-              "class_name": "MathOPSelector",
+              "class_name": "MATH_OPERATION",
               "module": "haybale_example.types.math",
               "default": {
                 "value": "add"
@@ -1058,7 +1058,7 @@
               "port_type": "inlet"
             },
             "recipe": {
-              "registry_key": "haybale-example:type:MathOPSelector"
+              "registry_key": "haybale-example:type:MATH_OPERATION"
             },
             "field_data": {
               "value": "add"
@@ -1163,14 +1163,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "MathOP",
-          "registry_key": "haybale-example:node:MathOP",
+          "registry_id": "MathOperationNode",
+          "registry_key": "haybale-example:node:MathOperationNode",
           "label": "Math Operation",
           "description": "Node that outputs a constant value.",
           "deprecation_warning": "This node will be moved to the math library",
           "hidden": false,
-          "class_name": "MathOP",
-          "module": "haybale_example.nodes.math_op",
+          "class_name": "MathOperationNode",
+          "module": "haybale_example.nodes.math_operation",
           "tags": [],
           "search_tags": [
             "math",
