@@ -25,7 +25,7 @@ class TestDefaultRejectedAtDeclaration:
             INT.as_outlet("toppings", default="default value")
 
     def test_float_inlet_with_text_default_raises(self):
-        with pytest.raises(TypeError, match="not a valid FLOAT"):
+        with pytest.raises(TypeError, match="FLOAT"):
             FLOAT.as_inlet("ratio", default="half")
 
     @pytest.mark.parametrize(

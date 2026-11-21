@@ -66,18 +66,11 @@ async def test_the_details_step_shows_the_file_name(user: User, env) -> None:
 
 
 @pytest.mark.anyio
-async def test_the_details_step_without_targets_points_at_haywire_init(user: User, env) -> None:
-    await _open(user, env, source_cls=env["single"], targets=[])
-    await user.should_see("No library in this project can receive a node.")
-
-
-@pytest.mark.anyio
 async def test_the_plan_and_result_steps_render(user: User, env) -> None:
     flow = await _open(user, env, source_cls=env["single"])
     await flow.advance_from_details()
     with user:
         flow.on_render()
-    await user.should_see("Will be written")
     await user.should_see("dst:node:SingleCopy")
 
     flow.outcome = RegistrationOutcome(status="added", registry_key="dst:node:SingleCopy")

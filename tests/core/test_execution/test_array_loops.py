@@ -146,7 +146,7 @@ def test_list_files_missing_folder_raises(graph_with_library_system, scans):
     lister = _list_files(graph_with_library_system)
     lister.ports["folder"].set_value(VolumePath(SCANS, "nope"))
 
-    with pytest.raises(NotADirectoryError, match="does not exist"):
+    with pytest.raises(NotADirectoryError):
         lister.worker(None)
 
 

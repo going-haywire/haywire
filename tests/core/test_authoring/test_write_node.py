@@ -6,6 +6,7 @@ watcher does, so the registration path under test is the shipped one.
 """
 
 import asyncio
+import re
 import threading
 import time
 from pathlib import Path
@@ -69,7 +70,7 @@ def test_the_write_puts_the_planned_source_on_disk(src_modules, target, librarie
 def test_a_refused_plan_is_never_written(src_modules, target, libraries, dst_library):
     single, _multi = src_modules
     plan = plan_node(single.SingleNode, _fields(class_name="1Bad"), target, libraries)
-    with pytest.raises(ValueError, match="cannot be written"):
+    with pytest.raises(ValueError, match=re.escape(str(plan.refusal))):
         write_node(plan, dst_library)
 
 
@@ -240,7 +241,7 @@ def test_nothing_arriving_is_reported_as_a_timeout(dst_identity):
 
 
 def test_a_watch_needs_something_to_match():
-    with pytest.raises(ValueError, match="needs a module_name"):
+    with pytest.raises(ValueError, match="module_name"):
         RegistrationWatch(NodeRegistry(), ErrorLedger(), None, None)
 
 

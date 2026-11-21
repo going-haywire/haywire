@@ -376,7 +376,7 @@ class TestNodeDirectBinding:
     def test_conflict_raises_at_decoration(self):
         from haywire.core.node import BaseNode, node
 
-        with pytest.raises(ValueError, match="conflicts with"):
+        with pytest.raises(ValueError, match="_ConflictNode"):
 
             @node(label="Conflict Node")
             class _ConflictNode(BaseNode):
@@ -497,7 +497,7 @@ class TestValidatorSetting:
         assert bag.strength == -999.0
 
     def test_invalid_default_raises_at_definition_time(self):
-        with pytest.raises(ValueError, match="fails validation"):
+        with pytest.raises(ValueError, match=r"\b3\b"):
 
             class BadSettings(Settings):
                 bad = setting[INT](3, validator=lambda v: v % 2 == 0)

@@ -59,7 +59,7 @@ def make_package(tmp_path: Path) -> Iterator:
 @pytest.mark.unit
 def test_component_imported_above_library_raises(make_package) -> None:
     make_package(_IMPORT_STATE + _LIBRARY)
-    with pytest.raises(ImportError, match=rf"{_PACKAGE}\.probe_state\.ProbeState was decorated before"):
+    with pytest.raises(ImportError, match=rf"{_PACKAGE}\.probe_state\.ProbeState"):
         importlib.import_module(_PACKAGE)
 
 

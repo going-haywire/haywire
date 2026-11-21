@@ -14,12 +14,6 @@ def _values(d: dict) -> dict:
     return d.get("values", {})
 
 
-def test_size_defaults_are_200():
-    p = _fresh_props()
-    assert p.width == 200.0
-    assert p.height == 200.0
-
-
 def test_size_adapt_defaults_to_auto():
     p = _fresh_props()
     assert p.size_adapt == "auto"

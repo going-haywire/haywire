@@ -4,6 +4,7 @@ import hashlib
 from pathlib import Path
 
 import pytest
+from haybale_models.editors.assisted_dialog import NO_DIGEST_NOTICE
 from playwright.sync_api import Page, expect
 
 from tests.ui.harness.nav import goto_ready
@@ -54,7 +55,7 @@ def test_wrong_size_is_refused_before_the_body(page: Page, harness: str, tmp_pat
 
 def test_no_digest_shows_the_notice_and_accepts(page: Page, harness: str, tmp_path: Path) -> None:
     _open(page, harness, sha="", size=None)
-    expect(page.get_by_text("this file can't be verified")).to_be_visible()
+    expect(page.get_by_text(NO_DIGEST_NOTICE)).to_be_visible()
     _drop(page, _file(tmp_path, "any.pth", b"any bytes"))
     expect(page.get_by_text("✓ stored as any.pth")).to_be_visible()
 

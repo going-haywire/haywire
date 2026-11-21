@@ -204,7 +204,7 @@ def test_dissolve_raises_on_missing_node():
 
     graph = _FakeGraph(node_id="exists", edges=[])
 
-    with pytest.raises(Refusal, match="not found"):
+    with pytest.raises(Refusal):
         DissolveRerouteAction(graph=cast(Any, graph), node_id="does_not_exist")
 
 

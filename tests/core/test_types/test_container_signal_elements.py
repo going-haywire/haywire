@@ -70,5 +70,5 @@ def test_a_pool_of_exec_stays_refused(graph_with_library_system):
         graph_with_library_system, ArrayExecProbeNode.class_identity.registry_key, position=(0, 0)
     ).node
 
-    with pytest.raises(ValueError, match="never fired"):
+    with pytest.raises(ValueError, match="PooledType"):
         node.add(PooledType[EXEC].as_inlet("pooled_exec_in"))

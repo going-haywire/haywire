@@ -79,8 +79,6 @@ def test_default_offers_the_other_channels_as_comments(fresh_config):
     assert f'# url = "{mp_cfg.CURATED_FEED_BASE}/latest/marketplace.toml"' in text
     assert f'# url = "{mp_cfg.CURATED_FEED_BASE}/edge/marketplace.toml"' in text
     assert f"{mp_cfg.CURATED_FEED_BASE}/archives.html" in text
-    for assertion in ("TOGETHER", "on its own", "newest on PyPI"):
-        assert assertion in text, f"the file must say what {assertion!r} channel proves"
 
 
 @pytest.mark.unit

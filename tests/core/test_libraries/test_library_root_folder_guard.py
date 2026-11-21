@@ -57,7 +57,7 @@ def library(tmp_path: Path) -> _Lib:
 @pytest.mark.unit
 @pytest.mark.core
 def test_registering_the_library_root_raises(library: _Lib, tmp_path: Path) -> None:
-    with pytest.raises(ValueError, match="cannot register the library root"):
+    with pytest.raises(ValueError, match="_Registry"):
         library.add_folder_to_registry(str(tmp_path), _Registry)
 
 
@@ -65,7 +65,7 @@ def test_registering_the_library_root_raises(library: _Lib, tmp_path: Path) -> N
 @pytest.mark.core
 def test_the_root_is_recognised_through_a_non_normalised_path(library: _Lib, tmp_path: Path) -> None:
     """`base_path / "nodes" / ".."` is still the root."""
-    with pytest.raises(ValueError, match="cannot register the library root"):
+    with pytest.raises(ValueError, match="_Registry"):
         library.add_folder_to_registry(str(tmp_path / "nodes" / ".."), _Registry)
 
 

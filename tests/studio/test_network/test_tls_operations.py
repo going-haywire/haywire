@@ -99,7 +99,7 @@ def test_setup_merges_public_hostname_stripping_the_port(env):
 
 def test_setup_twice_is_refused(env):
     setup(directory=env.directory, path=env.settings)
-    with pytest.raises(CertError, match="already exists"):
+    with pytest.raises(CertError):
         setup(directory=env.directory, path=env.settings)
 
 

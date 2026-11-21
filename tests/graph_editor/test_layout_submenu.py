@@ -65,13 +65,13 @@ _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
 )
 
 _ARRANGE: list[tuple[type[BasePanel], str, ArrangeScope]] = [
-    (ArrangeFlowMenuPanel, "Arrange Flow", ArrangeScope.FLOW),
-    (ArrangeDownstreamMenuPanel, "Arrange Downstream", ArrangeScope.DOWNSTREAM),
-    (ArrangeUpstreamMenuPanel, "Arrange Upstream", ArrangeScope.UPSTREAM),
+    (ArrangeFlowMenuPanel, ArrangeFlowMenuPanel.row_label, ArrangeScope.FLOW),
+    (ArrangeDownstreamMenuPanel, ArrangeDownstreamMenuPanel.row_label, ArrangeScope.DOWNSTREAM),
+    (ArrangeUpstreamMenuPanel, ArrangeUpstreamMenuPanel.row_label, ArrangeScope.UPSTREAM),
 ]
 _SELECT: list[tuple[type[BasePanel], str, ArrangeScope]] = [
-    (SelectDownstreamMenuPanel, "Select Downstream", ArrangeScope.DOWNSTREAM),
-    (SelectUpstreamMenuPanel, "Select Upstream", ArrangeScope.UPSTREAM),
+    (SelectDownstreamMenuPanel, SelectDownstreamMenuPanel.row_label, ArrangeScope.DOWNSTREAM),
+    (SelectUpstreamMenuPanel, SelectUpstreamMenuPanel.row_label, ArrangeScope.UPSTREAM),
 ]
 
 
@@ -145,7 +145,10 @@ async def _render(user: User, host, nodes: set[str], stub: Any, *, disabled: boo
 @pytest.mark.anyio
 @pytest.mark.parametrize(
     ("host", "label", "leaves"),
-    [(LayoutSelectionMenuPanel, "Layout", _ARRANGE), (SelectFlowSelectionMenuPanel, "Select", _SELECT)],
+    [
+        (LayoutSelectionMenuPanel, LayoutSelectionMenuPanel.row_label, _ARRANGE),
+        (SelectFlowSelectionMenuPanel, SelectFlowSelectionMenuPanel.row_label, _SELECT),
+    ],
 )
 async def test_each_host_shows_its_verbs_for_one_node(user: User, host, label, leaves) -> None:
     layout = await _render(user, host, {"n1"}, stub_for(SelectionActions))
@@ -187,10 +190,10 @@ async def test_with_two_nodes_only_arrange_flow_stays_live(user: User) -> None:
         for row in layout.container.descendants()
         if "hw-menu-row" in row._classes and _labels(row)
     }
-    assert rows["Arrange Flow"] is False
-    assert rows["Arrange Downstream"] is True
-    assert rows["Arrange Upstream"] is True
-    _click_row(layout.container, "Arrange Flow")
+    assert rows[ArrangeFlowMenuPanel.row_label] is False
+    assert rows[ArrangeDownstreamMenuPanel.row_label] is True
+    assert rows[ArrangeUpstreamMenuPanel.row_label] is True
+    _click_row(layout.container, ArrangeFlowMenuPanel.row_label)
     assert [c for c in stub.calls if c[0] == "arrange_from"] == [
         ("arrange_from", (["n1", "n2"], ArrangeScope.FLOW))
     ]
@@ -205,7 +208,7 @@ async def test_the_select_row_greys_for_two_nodes(user: User) -> None:
     rows = [c for c in layout.container.descendants() if "hw-flyout-row" in c._classes]
     assert rows
     assert "hw-disabled" in rows[0]._classes
-    assert "Select Downstream" not in _labels(layout.container)
+    assert SelectDownstreamMenuPanel.row_label not in _labels(layout.container)
 
 
 @pytest.mark.anyio
@@ -441,6 +444,6 @@ async def test_a_rotate_row_leaves_the_menu_open(user: User) -> None:
             panel_obj.draw(_ctx({"n1", "n2"}), captured["layout"])
 
     await user.open("/")
-    _click_row(captured["layout"].container, "Rotate Clockwise")
+    _click_row(captured["layout"].container, RotateClockwiseMenuPanel.row_label)
 
     assert calls == ["rotate True"]

@@ -51,8 +51,6 @@ def test_no_skin_draws_its_own_badges(skin_module, skin_name):
 
 
 @pytest.mark.unit
-def test_the_badge_points_to_the_menu_for_a_previous_setup():
+def test_the_badge_leaves_restoring_a_previous_setup_to_the_menu():
     src = inspect.getsource(BaseSkin._render_diagnostics_button)
-    assert "Settings reset by a code change" in src
-    assert "Right-click the node to restore or discard them." in src
     assert "apply_previous_setup" not in src

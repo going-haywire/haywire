@@ -129,10 +129,14 @@ class TestTypeChoices:
         assert choices["lib-a:type:ONLY"].label == "Only"
 
     def test_the_tip_text_lists_description_library_and_whether_it_can_be_saved(self):
-        with_description = TypeChoice("Integer", "INT", "lib-a", "Whole number", True)
-        assert with_description.tip_text == "Whole number\nLibrary: lib-a\nCan be saved in image files"
-        without = TypeChoice("Integer", "INT", "lib-a", "", False)
-        assert without.tip_text == "Library: lib-a\nNot saved in files"
+        with_lines = TypeChoice("Integer", "INT", "lib-a", "Whole number", True).tip_text.splitlines()
+        without_lines = TypeChoice("Integer", "INT", "lib-a", "", False).tip_text.splitlines()
+        assert len(with_lines) == 3
+        assert with_lines[0] == "Whole number"
+        assert len(without_lines) == 2  # no description, no description line
+        assert "lib-a" in with_lines[1]
+        assert "lib-a" in without_lines[0]
+        assert with_lines[-1] != without_lines[-1]  # the saving line follows saved_in_files
 
     def test_a_type_declared_never_is_not_saved_in_files(self):
         choices = type_choices(self._registry({"a:type:KEEP": ("Keep", ""), "a:type:NOSAVE": ("No", "")}))

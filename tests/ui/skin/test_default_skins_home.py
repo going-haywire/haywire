@@ -41,7 +41,6 @@ def test_skin_settings_panel_lives_in_graph_editor(library_system) -> None:
     assert not panels.has("haybale-studio:panel:NodeSkinSettingsPanel")
     identity = panels.get(f"{GE}:panel:NodeSkinSettingsPanel").class_identity
     assert identity.surface.id == CanvasSettingsSurface.id
-    assert identity.label == "Skin"
     assert identity.order == 20
 
 

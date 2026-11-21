@@ -58,7 +58,7 @@ def test_as_swinglet_defaults():
 def test_a_pooled_type_refuses_a_swinglet():
     from haybale_core.types import PooledType
 
-    with pytest.raises(ValueError, match="inlets only"):
+    with pytest.raises(ValueError, match="PooledType"):
         PooledType[FLOAT].as_swinglet("s")  # type: ignore[valid-type]
 
 

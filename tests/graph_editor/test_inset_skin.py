@@ -26,7 +26,6 @@ pytestmark = pytest.mark.integration
 
 _ADD = "haybale-testing:node:TestAddFloatNode"
 _CARD = "haywire-core:node:GraphNode"
-_PLACEHOLDER = "Nothing on stage — Enter to arrange"
 
 
 def _noop_page() -> None:
@@ -154,7 +153,9 @@ def test_an_empty_stage_shows_the_placeholder(library_system, group) -> None:
     ui_node = _draw(library_system, graph, card, PATCH)
     (body,) = _bodies(ui_node)
 
-    assert _labels(list(body.descendants())) == [_PLACEHOLDER]
+    labels = _labels(list(body.descendants()))
+    assert len(labels) == 1
+    assert (staged.node.props.label or staged.node.identity.label) not in labels
     ui_node.teardown_subscriptions()
 
 

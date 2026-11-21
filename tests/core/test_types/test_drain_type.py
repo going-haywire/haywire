@@ -78,7 +78,7 @@ class TestTheQueue:
         assert f.take() == []
 
     def test_refuses_a_write_without_a_source(self):
-        with pytest.raises(ValueError, match="only from its edge"):
+        with pytest.raises(ValueError, match="DrainField"):
             _field().set_value(1.0)
 
     def test_reset_and_remove_source_empty_it(self):
@@ -111,7 +111,7 @@ class TestTheLimit:
         assert _field(3).max_len == 3
 
     def test_refuses_a_max_len_below_one(self):
-        with pytest.raises(ValueError, match="at least 1"):
+        with pytest.raises(ValueError, match="max_len"):
             _field(0)
 
     def test_drops_the_oldest_and_counts_it(self):
@@ -183,12 +183,12 @@ class TestThePort:
         assert spec["kwargs"]["store_strategy"] is StoreStrategy.NEVER
 
     def test_refuses_an_outlet(self):
-        with pytest.raises(ValueError, match="inlets only"):
+        with pytest.raises(ValueError, match="DRAIN"):
             DRAIN[FLOAT].as_outlet("q")
 
     @pytest.mark.parametrize("element", [EXEC, CALLBACK])
     def test_refuses_an_element_that_carries_no_values(self, element):
-        with pytest.raises(ValueError, match="carries values"):
+        with pytest.raises(ValueError, match=element.__name__):
             DRAIN._configure_port(_port(DRAIN[element]))  # type: ignore[valid-type]
 
 

@@ -96,7 +96,7 @@ class TestDeepInheritanceBlocked:
         class DirectGS(FrameworkSettings, namespace="deep.gs"):
             x = setting[INT](0)
 
-        with pytest.raises(TypeError, match="Subclassing a FrameworkSettings subclass"):
+        with pytest.raises(TypeError, match="FrameworkSettings"):
 
             class DeepGS(DirectGS):
                 y = setting[INT](1)
@@ -115,7 +115,7 @@ class TestDeepInheritanceBlocked:
         class DirectLS(LibrarySettings):
             x = setting[INT](0)
 
-        with pytest.raises(TypeError, match="Subclassing a LibrarySettings subclass"):
+        with pytest.raises(TypeError, match="LibrarySettings"):
 
             class DeepLS(DirectLS):
                 y = setting[INT](1)

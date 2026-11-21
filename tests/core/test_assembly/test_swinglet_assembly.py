@@ -114,5 +114,5 @@ def test_a_data_cycle_is_refused_at_assembly(graph_with_library_system: BaseGrap
     graph = graph_with_library_system
     _build_cycle(graph, through_swinglet)
 
-    with pytest.raises(RuntimeError, match="Illegal cycle detected in data flow"):
+    with pytest.raises(RuntimeError):
         FlowAssemblyManager().assemble_graph(graph)

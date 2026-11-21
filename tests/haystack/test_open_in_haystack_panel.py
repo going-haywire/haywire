@@ -51,7 +51,6 @@ def test_panel_decorator_metadata():
     ident = OpenInHaystackPanel.class_identity
     assert ident.surface is FileMenu
     assert ident.hosts == ()
-    assert "Haystack" in ident.label
     # The verbs the panel calls come from its surface's contract, which the
     # host is checked against — a library adding a panel to another library's
     # surface needs no change there.

@@ -143,12 +143,13 @@ def test_node_quality_overrides_library_default(graph_with_library_system, scans
 def test_library_default_reaches_node(graph_with_library_system):
     image_settings = importlib.import_module("haybale_image.settings.image_settings").ImageSettings()
     node = _save(graph_with_library_system)
-    assert node.jpeg.quality == 95
-    image_settings.jpeg_quality = 40
+    default = image_settings.jpeg_quality
+    assert node.jpeg.quality == default
+    image_settings.jpeg_quality = 40 if default != 40 else 41
     try:
-        assert node.jpeg.quality == 40
+        assert node.jpeg.quality == image_settings.jpeg_quality
     finally:
-        image_settings.jpeg_quality = 95
+        image_settings.jpeg_quality = default
 
 
 _BAGS = ("png", "jpeg", "webp", "tiff", "avif")

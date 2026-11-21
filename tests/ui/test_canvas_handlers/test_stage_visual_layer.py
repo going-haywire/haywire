@@ -276,7 +276,7 @@ def test_each_canvas_applies_only_its_own_extent(graph):
     p.assert_not_called()
 
 
-_REFUSED = "This connection would not show on the stage. Make it in the patch view."
+_REFUSED = vl_module.STAGE_EDGE_REFUSED
 
 
 def _with_ports(graph, ports: dict[str, dict[str, bool]]) -> None:

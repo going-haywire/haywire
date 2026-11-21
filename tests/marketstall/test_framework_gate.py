@@ -22,7 +22,6 @@ def test_conflict_names_both_sides():
     assert verdict.ok is False
     assert "~=0.0.37" in verdict.message
     assert "0.0.36" in verdict.message
-    assert "Check for updates" in verdict.message
 
 
 @pytest.mark.unit

@@ -149,7 +149,7 @@ def test_same_bag_mirror_raises_value_error():
     sibling (never registry.define()'d) used to be silently made to work via
     _in_bag_mirror_adapters — that machinery had zero production usage and is
     deleted; the input is now rejected at declaration time instead."""
-    with pytest.raises(ValueError, match="same bag"):
+    with pytest.raises(ValueError, match="SameBagBag"):
 
         class SameBagBag(Settings):
             plain = setting[FLOAT](0.5)

@@ -21,7 +21,7 @@ def test_a_failing_lambda_is_named_not_its_enclosing_def():
 
     report = _report_from(draw())
     assert report.highlighted_item == "<lambda>"
-    assert f"Check the <lambda> on line {report.line_number}" in report.suggestions
+    assert any("<lambda>" in s and str(report.line_number) in s for s in report.suggestions)
     assert not any("'draw'" in s for s in report.suggestions)
 
 
@@ -31,4 +31,4 @@ def test_a_failing_def_is_still_named():
 
     report = _report_from(on_click)
     assert report.highlighted_item == "on_click"
-    assert "Check the 'on_click' function definition" in report.suggestions
+    assert any("'on_click'" in s for s in report.suggestions)

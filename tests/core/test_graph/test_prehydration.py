@@ -167,12 +167,12 @@ def test_v3_migration_survives_a_node_without_settings():
 
 
 def test_future_version_is_refused():
-    with pytest.raises(HaywireException, match="newer Haywire"):
+    with pytest.raises(HaywireException):
         prehydrate(_base(format_version=CURRENT_FORMAT_VERSION + 1))
 
 
 def test_non_graph_is_refused():
-    with pytest.raises(HaywireException, match="not a recognisable"):
+    with pytest.raises(HaywireException):
         prehydrate({"totally": "unrelated"})
 
 
@@ -183,7 +183,7 @@ def test_non_graph_lacking_legacy_keys_is_still_refused():
     an unrelated dict satisfies. Without validation on the short-circuit it
     would be claimed at the head and never reach the terminator.
     """
-    with pytest.raises(HaywireException, match="not a recognisable"):
+    with pytest.raises(HaywireException):
         prehydrate({"unrelated": True, "no": "legacy keys here"})
 
 

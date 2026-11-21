@@ -1,5 +1,7 @@
 """Key-combo normalization and display formatting."""
 
+import re
+
 import pytest
 
 from haywire.core.signals.keys import RESERVED_COMBOS, format_combo, normalize_combo
@@ -19,7 +21,7 @@ def test_normalize_keeps_named_key_spelling():
 
 @pytest.mark.parametrize("bad", ["", "Mod+", "Hyper+A", "+"])
 def test_normalize_rejects_malformed_combos(bad):
-    with pytest.raises(ValueError, match="key combo"):
+    with pytest.raises(ValueError, match=re.escape(repr(bad))):
         normalize_combo(bad)
 
 
@@ -55,5 +57,5 @@ def test_normalize_named_key_is_case_insensitive():
 
 @pytest.mark.parametrize("bad", ["Hyper", "Mod+Hyper", "F0", "F25", "Mod+Foo"])
 def test_normalize_rejects_unknown_named_keys(bad):
-    with pytest.raises(ValueError, match="key combo"):
+    with pytest.raises(ValueError, match=re.escape(repr(bad))):
         normalize_combo(bad)

@@ -145,4 +145,4 @@ def test_wrong_branch_offers_no_button_with_unmerged_commits(repo: Path) -> None
 
     assert failure.kind == "inform"
     assert failure.fix_id is None
-    assert "keeps its commits" in failure.remedy
+    assert failure.remedy

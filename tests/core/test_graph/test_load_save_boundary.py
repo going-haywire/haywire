@@ -59,7 +59,7 @@ def test_unreadable_file_is_recorded(library_system, ledger, tmp_path):
     assert len(entries) == 1
     assert entries[0].operation == "Load graph"
     assert entries[0].details["path"] == str(bad)
-    assert entries[0].message == "Could not load graph 'bad.haywire'"
+    assert "bad.haywire" in entries[0].message
     assert f"Path      : {bad}" in entries[0].format_detailed()
     _assert_points_at_haywire_frame(entries[0])
 
@@ -145,4 +145,4 @@ def test_a_saved_previous_setup_reopens_with_its_warning_and_row(library_system,
     assert [w.kind for w in reopened.state.warnings] == ["previous_setup"]
     (entry,) = ledger.query().entries
     assert (entry.operation, entry.node_id) == ("Load graph", a.node_id)
-    assert "holds a previous setup" in entry.message
+    assert a.node_id in entry.message

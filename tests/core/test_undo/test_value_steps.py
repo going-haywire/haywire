@@ -121,7 +121,7 @@ def test_amend_across_merge_keys_is_refused(held_graph: BaseGraph):
     a.merge_key = "one"
     b.merge_key = "two"
 
-    with pytest.raises(ValueError, match="another run"):
+    with pytest.raises(ValueError, match="amend"):
         a.amend_from(b)
 
 

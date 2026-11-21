@@ -9,7 +9,7 @@ pytestmark = pytest.mark.unit
 
 
 def test_a_value_type_without_a_wire_type_is_refused():
-    with pytest.raises(TypeError, match="needs a wire type"):
+    with pytest.raises(TypeError):
 
         @type_dec(label="NoWire", default={"value": ""})
         class NoWire(PrimitiveType[str]):

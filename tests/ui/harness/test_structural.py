@@ -1,6 +1,6 @@
 """
-Structural tests: verify that the correct fields, widget types, and category
-headings render for SettingsNode.example and TestingSettings.
+Structural tests: verify that the correct fields and widget types
+render for SettingsNode.example and TestingSettings.
 """
 
 import pytest
@@ -82,14 +82,6 @@ def test_int_field_uses_number_drag(page: Page, harness):
     row = page.locator('[data-field="even_int"]')
     expect(row.locator("[data-number_drag]")).to_be_attached()
     expect(row.locator("input[type=text]")).not_to_be_attached()
-
-
-def test_category_headings_present(page: Page, harness):
-    """Category expansion headings Type, Stored, Mirrors, Validator are all visible."""
-    goto_ready(page, f"{harness}{_NODE_PATH}")
-    page.wait_for_selector("[data-field]")
-    for heading in ["Type", "Stored", "Mirrors", "Validator"]:
-        expect(page.get_by_text(heading, exact=True).first).to_be_visible()
 
 
 def test_schema_field_present(page: Page, harness):

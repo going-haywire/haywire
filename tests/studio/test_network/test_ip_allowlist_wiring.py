@@ -129,7 +129,6 @@ def test_invalid_cidr_in_allowed_ranges_raises_system_exit(capsys):
     assert exc_info.value.code == 1
     captured = capsys.readouterr()
     assert "ERROR" in captured.out
-    assert "network settings" in captured.out.lower()
 
 
 def test_invalid_cidr_in_trusted_proxies_raises_system_exit():

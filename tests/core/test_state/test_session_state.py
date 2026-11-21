@@ -47,7 +47,7 @@ class TestSessionStateLibrarySettingsProhibition:
         class MySettings(LibrarySettings):
             pass
 
-        with pytest.raises(TypeError, match="LibrarySettings cannot be composed"):
+        with pytest.raises(TypeError, match="LibrarySettings"):
 
             class BadState(SessionState):
                 config: MySettings
@@ -58,7 +58,7 @@ class TestSessionStateLibrarySettingsProhibition:
         class MySettings(LibrarySettings):
             pass
 
-        with pytest.raises(TypeError, match="LibrarySettings cannot be composed"):
+        with pytest.raises(TypeError, match="LibrarySettings"):
 
             class BadState(SessionState):
                 config: MySettings | None = None
@@ -69,7 +69,7 @@ class TestSessionStateLibrarySettingsProhibition:
         class MySettings(LibrarySettings):
             pass
 
-        with pytest.raises(TypeError, match="LibrarySettings cannot be composed"):
+        with pytest.raises(TypeError, match="LibrarySettings"):
 
             class BadState(SessionState):
                 config: int | MySettings

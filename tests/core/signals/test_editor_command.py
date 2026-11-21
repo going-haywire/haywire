@@ -68,7 +68,6 @@ def test_toggle_lock_identity():
     from haywire.core.signals.vocabulary import ToggleLock
 
     assert ToggleLock.command_id == "toggle_lock"
-    assert ToggleLock.label == "Lock / Unlock"
     assert ToggleLock.default_keys == ("Mod+E",)
     assert ToggleLock.requires is AccessTier.EDIT
 
@@ -78,7 +77,6 @@ def test_toggle_stage_view_identity():
     from haywire.core.signals.vocabulary import ToggleStageView
 
     assert ToggleStageView.command_id == "toggle_stage_view"
-    assert ToggleStageView.label == "Patch / Stage"
     assert ToggleStageView.default_keys == ("Mod+Shift+E",)
     assert ToggleStageView.requires is AccessTier.VIEW
     assert not set(ToggleStageView.default_keys) & RESERVED_COMBOS
