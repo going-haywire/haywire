@@ -24,7 +24,7 @@ class ADDField(DataField):
     def get_stored_type(self) -> "builtins.type[IType]":
         element = getattr(self.type_cls, "element_type_cls", None)
         if element is not None and element is not self.type_cls:
-            return element  # type: ignore[no-any-return]
+            return element
         return self.type_cls
 
     def accepts_own_value(self) -> bool:

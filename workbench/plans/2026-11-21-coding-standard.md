@@ -102,9 +102,9 @@ redesigning DI.
 | Slice | State | Commit / date / deviations |
 |---|---|---|
 | R0 | done | tracking #182, sub-issues #183–#192 (R2–R11), 2026-11-21 |
-| R1 | PR open (#181) | `.claude/rules/python-docs.md` renamed `coding-standards.md` (pointer); `docstring-cleanup-notes.md` kept: it holds design reasoning no ADR covers |
-| R2 | pending (#183) | |
-| R3 | pending (#184) | |
+| R1 | done (#181, 9433968d2, 2026-11-21) | `.claude/rules/python-docs.md` renamed `coding-standards.md` (pointer); `docstring-cleanup-notes.md` kept: it holds design reasoning no ADR covers |
+| R2 | done (#193, 247315661, 2026-11-21) | |
+| R3 | PR open | 155 unused ignores (one fewer than counted); `LogEditor._flush` now skips a cleared log element |
 | R4 | pending (#185) | |
 | R5 | pending (#186) | |
 | R6 | pending (#187) | |

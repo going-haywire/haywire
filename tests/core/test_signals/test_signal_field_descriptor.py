@@ -106,7 +106,7 @@ def test_shadowing_rejected_at_class_definition():
     with pytest.raises(TypeError) as ei:
 
         class Sub(Base):
-            x: int = signal_field(99)  # type: ignore[assignment]
+            x: int = signal_field(99)
 
     assert "shadow" in str(ei.value).lower() or "redeclare" in str(ei.value).lower()
 

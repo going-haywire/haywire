@@ -36,7 +36,7 @@ def _setup(tier: AccessTier, monkeypatch: pytest.MonkeyPatch) -> tuple[HaystackE
     context.principal = "someone"
     app_data = MagicMock()
     app_data.__getitem__.return_value = haystack
-    context.app_data = app_data  # type: ignore[assignment]
+    context.app_data = app_data
     dialog = MagicMock()
     monkeypatch.setattr(haystack_editor_module, "open_graph_save_as_dialog", dialog)
     monkeypatch.setattr(haystack_editor_module.ui, "notify", MagicMock())

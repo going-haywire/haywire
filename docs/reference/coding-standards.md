@@ -258,8 +258,8 @@ Every parameter and the return value, `-> None` included. Private helpers and UI
 callbacks may omit annotations; a signature is never half annotated.
 **Why**: a half-typed signature looks checked and isn't; mypy skips the body of an
 unannotated function.
-**Enforced by**: mypy `check_untyped_defs` and `disallow_incomplete_defs` (planned) for
-half-annotated signatures; review for the public surface. **Scope**: repo.
+**Enforced by**: mypy `check_untyped_defs` for the bodies, `disallow_incomplete_defs`
+(planned) for half-annotated signatures; review for the public surface. **Scope**: repo.
 
 ### CS-T5 · Every escape hatch names its code and its reason
 
@@ -271,7 +271,7 @@ longer suppresses anything is deleted.
 
 **Why**: an unexplained suppression is never removed, and a stale one hides the next real
 error on that line.
-**Enforced by**: mypy `ignore-without-code` and `warn_unused_ignores`, ruff `PGH004` and
+**Enforced by**: mypy `ignore-without-code` and `warn_unused_ignores`; ruff `PGH004` and
 `RUF100` (planned); review for the reason. **Scope**: repo.
 
 ### CS-T6 · `Any` only where the type is unknowable

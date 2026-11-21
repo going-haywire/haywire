@@ -127,7 +127,7 @@ class _Harness:
     def retarget(self, binding_id: str | None) -> None:
         """Change the target editor and dispatch the change the way the session bus does."""
         self.ctx.target_binding_id = binding_id
-        self.editor._on_target(self.ctx, None)  # type: ignore[arg-type]
+        self.editor._on_target(self.ctx, None)
 
     def descendants(self) -> list[ui.element]:
         assert self.container is not None

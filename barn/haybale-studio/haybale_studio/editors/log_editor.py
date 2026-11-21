@@ -174,15 +174,16 @@ class LogEditor(BaseEditor):
             self._pending.append(msg)
 
     def _flush(self) -> None:
+        log_element = self._log_element
         with self._lock:
-            if not self._pending:
+            if not self._pending or log_element is None:
                 return
             batch = self._pending
             self._pending = []
 
         try:
             for msg in batch:
-                self._log_element.push(msg)
+                log_element.push(msg)
         except Exception:
             pass
 

@@ -157,7 +157,7 @@ def test_edit_instance_needs_edit(monkeypatch):
 def test_a_stale_confirm_without_edit_detaches_nothing(monkeypatch):
     editor, context, key = _placement_level(AccessTier.OPERATE)
     level = editor._levels[key]
-    host = level.container.host  # type: ignore[attr-defined]
+    host = level.container.host
     assert editor._edit_instance(context, level) is False
     host.editor.detach_placement_from_macro.assert_not_called()
     assert level.locked is True

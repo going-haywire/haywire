@@ -56,7 +56,7 @@ class _FrameEndNode(_Node):
         super().__init__(node_id, ran, work)
         self.frame_ends = 0
 
-    def on_frame_end(self, context):  # type: ignore[override]
+    def on_frame_end(self, context):
         self.frame_ends += 1
 
 
@@ -65,7 +65,7 @@ class _ShutdownNode(_Node):
         super().__init__(node_id, ran, work)
         self.shutdowns = 0
 
-    def on_shutdown(self, context):  # type: ignore[override]
+    def on_shutdown(self, context):
         self.shutdowns += 1
 
 
@@ -85,7 +85,7 @@ class _SharedDataNode(_Node):
             self.block.wait(30.0)
         return None
 
-    def on_shutdown(self, context):  # type: ignore[override]
+    def on_shutdown(self, context):
         self.shutdowns += 1
 
 

@@ -211,7 +211,7 @@ class TestDescending:
     def test_a_macro_placement_is_entered_locked(self):
         editor, context, _document = _editor()
         definition = _definition(key="macro_card_1")
-        definition.template_key = "lib:macro:Blur"  # type: ignore[attr-defined]
+        definition.template_key = "lib:macro:Blur"
         entry = editor._levels[editor._active_level].container
         graph = entry.editor.graph
         graph.node_wrappers["MacroNode_1"] = _placement_card(definition)

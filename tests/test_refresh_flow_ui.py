@@ -231,7 +231,7 @@ async def test_newly_stale_surfaces_as_a_warning(tmp_path: Path) -> None:
 async def test_no_project_path_reports_instead_of_advancing(tmp_path: Path) -> None:
     """A workspace-less session gets a message, not a traceback."""
     flow = _flow(tmp_path)
-    flow.state.fetch_sources = lambda: None  # type: ignore[method-assign]
+    flow.state.fetch_sources = lambda: None
 
     await flow.advance_from_sources()
 

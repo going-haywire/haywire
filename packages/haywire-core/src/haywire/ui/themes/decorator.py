@@ -67,7 +67,7 @@ def theme(*, theme_type: str, **kwargs: Any) -> Callable[[type[T]], type[T]]:
     def decorator(inner_cls: type[T]) -> type[T]:
         from haywire.ui.themes.workbench import BaseTheme
 
-        if not issubclass(inner_cls, BaseTheme):  # type: ignore[arg-type]
+        if not issubclass(inner_cls, BaseTheme):
             raise TypeError(f"@theme can only be applied to BaseTheme subclasses, got {inner_cls}")
 
         identity_kwargs = dict(kwargs)
@@ -79,7 +79,7 @@ def theme(*, theme_type: str, **kwargs: Any) -> Callable[[type[T]], type[T]]:
 
         # Remaining keys (description, deprecation_warning, hidden, …) splat
         # straight into the identity; an unknown key surfaces as a TypeError.
-        inner_cls.class_identity = ThemeClassIdentity(  # type: ignore[attr-defined]
+        inner_cls.class_identity = ThemeClassIdentity(
             registry_id=_registry_id,
             theme_type=theme_type,
             registry_key=_registry_key,
@@ -88,7 +88,7 @@ def theme(*, theme_type: str, **kwargs: Any) -> Callable[[type[T]], type[T]]:
             module=inner_cls.__module__,
             **identity_kwargs,
         )
-        inner_cls.class_library = library_identity  # type: ignore[attr-defined]
+        inner_cls.class_library = library_identity
         return inner_cls
 
     return decorator

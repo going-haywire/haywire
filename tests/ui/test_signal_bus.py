@@ -164,7 +164,7 @@ def test_bus_double_unsubscribe_is_noop():
 def test_bus_subscribe_rejects_non_signal_type():
     bus = SignalBus()
     with pytest.raises(TypeError):
-        bus.subscribe(cast(Any, str), lambda e: None)  # type: ignore[arg-type]
+        bus.subscribe(cast(Any, str), lambda e: None)
 
 
 def test_bus_subscribe_rejects_instance_instead_of_class():

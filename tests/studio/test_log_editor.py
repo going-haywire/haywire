@@ -48,11 +48,13 @@ async def test_a_record_logged_after_draw_reaches_the_panel(user: User) -> None:
 
     await user.open("/")
     editor = editor_box["editor"]
+    assert editor._log_element is not None
+    log_element = editor._log_element
     try:
         logging.getLogger("tests.log_editor").warning("a record for the panel")
 
         def shown() -> bool:
-            return any("a record for the panel" in line for line in _lines(editor._log_element))
+            return any("a record for the panel" in line for line in _lines(log_element))
 
         await eventually(shown, timeout_s=10)
         assert shown()

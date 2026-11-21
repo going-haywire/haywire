@@ -59,7 +59,7 @@ def test_unpromoted_read_does_not_touch_ports(make_node_with_setting):  # noqa: 
     node = make_node_with_setting(accessor="filter", field="threshold")
 
     class _RaiseOnGet(dict):
-        def get(self, *a, **k):  # type: ignore[override]
+        def get(self, *a, **k):
             raise AssertionError("unpromoted read must not consult node.ports")
 
     node.ports = _RaiseOnGet()

@@ -183,7 +183,7 @@ class _Harness:
 
     def marked(self, mark: str) -> list[ui.element]:
         assert self.container is not None
-        return [el for el in self.container.descendants() if mark in el._markers]  # type: ignore[attr-defined]
+        return [el for el in self.container.descendants() if mark in el._markers]
 
 
 @pytest.fixture
@@ -1267,7 +1267,7 @@ def _layout(user: User) -> ui.element:
 
 
 def _page_marked(user: User, mark: str) -> list[ui.element]:
-    return [el for el in _layout(user).descendants() if mark in el._markers]  # type: ignore[attr-defined]
+    return [el for el in _layout(user).descendants() if mark in el._markers]
 
 
 @pytest.mark.anyio

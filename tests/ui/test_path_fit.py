@@ -102,7 +102,7 @@ async def test_the_script_is_sent_once_per_page_however_many_lines(user: User) -
         client = ui.context.client
         original = client.run_javascript
 
-        def spy(code: str, **kwargs):  # type: ignore[no-untyped-def]
+        def spy(code: str, **kwargs):
             if "hwPathFit" in code:
                 sent.append(code)
             return original(code, **kwargs)

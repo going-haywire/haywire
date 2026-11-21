@@ -50,11 +50,11 @@ class _LifecycleNode(_Node):
         self.events = events
         self.threads: List[str] = []
 
-    def on_startup(self, context):  # type: ignore[override]
+    def on_startup(self, context):
         self.events.append("startup")
         self.threads.append(threading.current_thread().name)
 
-    def on_shutdown(self, context):  # type: ignore[override]
+    def on_shutdown(self, context):
         self.events.append("shutdown")
         self.threads.append(threading.current_thread().name)
 
@@ -110,7 +110,7 @@ class _Flow:
 
 
 class _Vm(HaywireVM):
-    def execute_control_flow(self, flow, trigger, frame_number=0, cancel=None):  # type: ignore[override]
+    def execute_control_flow(self, flow, trigger, frame_number=0, cancel=None):
         flow.frame(self, trigger)
         return 1
 
@@ -262,7 +262,7 @@ def test_emit_from_own_runner_never_blocks():
     a = _Flow("A", frame=frame_a)
     for flow, size in ((a, 100), (b, 1)):
         flow.queue = FlowQueue(flow, vm, max_queue_size=size)  # type: ignore[arg-type]
-    group = ExecutionGroup("g", [a, b], vm)  # type: ignore[arg-type, list-item]
+    group = ExecutionGroup("g", [a, b], vm)  # type: ignore[list-item]
     for flow in (a, b):
         assert flow.queue is not None
         flow.queue.group = group

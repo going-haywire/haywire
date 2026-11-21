@@ -72,7 +72,7 @@ def setup(monkeypatch):
     context.principal = "someone"
     app_data = MagicMock()
     app_data.__getitem__.side_effect = lambda key: {HaystackState: hs, GraphAppState: gas}[key]
-    context.app_data = app_data  # type: ignore[assignment]
+    context.app_data = app_data
     context.data[EditState].active_graph = None
     editor = HaystackEditor(cast(EditorWrapper, object()))
     return editor, context, gas

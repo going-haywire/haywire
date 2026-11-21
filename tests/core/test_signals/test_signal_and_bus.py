@@ -97,4 +97,4 @@ def test_signal_bus_handler_error_isolated():
 def test_signal_bus_subscribe_rejects_non_signal():
     bus = SignalBus()
     with pytest.raises(TypeError):
-        bus.subscribe(cast(Any, int), lambda x: None)  # type: ignore[arg-type]
+        bus.subscribe(cast(Any, int), lambda x: None)

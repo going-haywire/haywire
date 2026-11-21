@@ -340,7 +340,7 @@ def discover_handlers(cls: type) -> Dict[type[Signal], List[HandlerBinding]]:
     """
     cached = cls.__dict__.get(_HANDLER_INDEX_ATTR)
     if cached is not None:
-        return cached  # type: ignore[no-any-return]
+        return cached
 
     seen_names: set[str] = set()
     index: Dict[type[Signal], List[HandlerBinding]] = {}

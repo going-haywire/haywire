@@ -132,7 +132,7 @@ async def test_edges_emit_one_batched_event(handler, graph):
     edge = MagicMock(style=None)
     graph.edge_wrappers = {f"e{i}": edge for i in range(4)}
     graph.get_edge_wrapper.return_value = edge
-    handler._register_edge_visual = MagicMock(return_value={"id": "e"})  # type: ignore[method-assign]
+    handler._register_edge_visual = MagicMock(return_value={"id": "e"})
 
     await handler.sync_with_graph_chunked()
 
@@ -156,7 +156,7 @@ async def test_waits_for_the_client_to_draw_the_edges(handler, graph):
     """
     graph.edge_wrappers = {"e0": MagicMock(style=None)}
     graph.get_edge_wrapper.return_value = MagicMock(style=None)
-    handler._register_edge_visual = MagicMock(return_value={"id": "e"})  # type: ignore[method-assign]
+    handler._register_edge_visual = MagicMock(return_value={"id": "e"})
 
     order: list[str] = []
     handler.canvas_vue.emit_sync_event.side_effect = lambda *_: order.append("emit")
@@ -164,7 +164,7 @@ async def test_waits_for_the_client_to_draw_the_edges(handler, graph):
     async def _confirm(edge_count):
         order.append("confirm")
 
-    handler._await_client_drawn = _confirm  # type: ignore[method-assign]
+    handler._await_client_drawn = _confirm
 
     await handler.sync_with_graph_chunked()
 
@@ -180,7 +180,7 @@ async def test_no_client_wait_when_there_are_no_edges(handler, graph):
     async def _confirm(edge_count):
         seen.append(edge_count)
 
-    handler._await_client_drawn = _confirm  # type: ignore[method-assign]
+    handler._await_client_drawn = _confirm
 
     await handler.sync_with_graph_chunked()
 
@@ -196,7 +196,7 @@ async def test_client_confirmation_failure_does_not_strand_the_load(handler, gra
     """
     graph.edge_wrappers = {"e0": MagicMock(style=None)}
     graph.get_edge_wrapper.return_value = MagicMock(style=None)
-    handler._register_edge_visual = MagicMock(return_value={"id": "e"})  # type: ignore[method-assign]
+    handler._register_edge_visual = MagicMock(return_value={"id": "e"})
     handler.canvas_vue.client.run_javascript = MagicMock(side_effect=RuntimeError("client gone"))
 
     await handler.sync_with_graph_chunked()  # must not raise
@@ -438,8 +438,8 @@ def _with_edges(handler, graph, ids) -> None:
         handler.edge_states[wrapper.edge_id] = MagicMock()
         return {"id": wrapper.edge_id}
 
-    handler._register_edge_visual = MagicMock(side_effect=_register)  # type: ignore[method-assign]
-    handler._await_client_drawn = _noop_confirm  # type: ignore[method-assign]
+    handler._register_edge_visual = MagicMock(side_effect=_register)
+    handler._await_client_drawn = _noop_confirm
 
 
 class TestEdgesWaitForTheNodes:
@@ -520,7 +520,7 @@ class TestEdgesWaitForTheNodes:
         async def _confirm(edge_count):
             waited.append(edge_count)
 
-        handler._await_client_drawn = _confirm  # type: ignore[method-assign]
+        handler._await_client_drawn = _confirm
 
         def _progress(mounted: int, _total: int) -> None:
             if mounted == 2:

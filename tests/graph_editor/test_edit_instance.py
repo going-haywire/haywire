@@ -25,7 +25,7 @@ def _open_real_placement(graph, library_system) -> tuple[Editor, Any, GraphEdito
     document = _FakeDocument()
     document.editor = real_editor
     editor, context, _ = _editor(document)
-    editor._project_state = SimpleNamespace(node_factory=library_system.get_node_factory())  # type: ignore[assignment]
+    editor._project_state = SimpleNamespace(node_factory=library_system.get_node_factory())
     assert editor.descend_into(context, placement_id) is True
     return real_editor, document, editor, context, placement_id
 
@@ -129,8 +129,8 @@ def test_the_menu_route_refreshes_the_lock_and_undo_buttons_after_unlocking(
     def _record(name):
         return lambda *_: seen.append((name, editor._levels[editor._active_level].locked))
 
-    editor._update_lock_button = MagicMock(side_effect=_record("lock"))  # type: ignore[method-assign]
-    editor._update_undo_redo_buttons = MagicMock(side_effect=_record("undo"))  # type: ignore[method-assign]
+    editor._update_lock_button = MagicMock(side_effect=_record("lock"))
+    editor._update_undo_redo_buttons = MagicMock(side_effect=_record("undo"))
     editor._on_subgraph_navigation(
         context, SubgraphNavigation(graph_id=graph.graph_id, node_id=card_id, unlocked=True)
     )
@@ -159,7 +159,7 @@ def test_the_menu_route_unlocks_a_freshly_opened_level(
     document = _FakeDocument()
     document.editor = real_editor
     editor, context, _ = _editor(document)
-    editor._project_state = SimpleNamespace(node_factory=library_system.get_node_factory())  # type: ignore[assignment]
+    editor._project_state = SimpleNamespace(node_factory=library_system.get_node_factory())
     new_level = GraphEditor._new_level
 
     def _locked_level(self, context, key, container):

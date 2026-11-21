@@ -53,7 +53,7 @@ def preference_for(node: BaseNode, port_id: str) -> Preference:
     """
     hook = getattr(node, "model_preference", None)
     if callable(hook):
-        return hook(port_id)  # type: ignore[no-any-return]
+        return hook(port_id)
     prefer = node.ports[port_id].widget_config.get("properties", {}).get("prefer")
     return list(prefer) if prefer else [{}]
 

@@ -102,7 +102,7 @@ def test_row_by_dist_name_finds_successor_in_catalog():
     from haybale_marketplace.editors.library_overview_editor import LibraryOverviewEditor
     from haybale_marketplace.states.marketplace_state import MarketplaceState
 
-    editor = LibraryOverviewEditor(wrapper=None)  # type: ignore[arg-type]
+    editor = LibraryOverviewEditor(wrapper=None)
     successor_row = Haybale(name="haybale-y", version="2.0.0")
     state = Mock(spec=MarketplaceState)
     state.get_project_haybales.return_value = [successor_row]
@@ -118,7 +118,7 @@ def test_row_by_dist_name_none_when_not_in_catalog():
     from haybale_marketplace.editors.library_overview_editor import LibraryOverviewEditor
     from haybale_marketplace.states.marketplace_state import MarketplaceState
 
-    editor = LibraryOverviewEditor(wrapper=None)  # type: ignore[arg-type]
+    editor = LibraryOverviewEditor(wrapper=None)
     state = Mock(spec=MarketplaceState)
     state.get_project_haybales.return_value = []
     context = Mock()
@@ -131,7 +131,7 @@ def test_row_by_dist_name_none_when_not_in_catalog():
 def test_row_by_dist_name_none_when_no_marketplace_state():
     from haybale_marketplace.editors.library_overview_editor import LibraryOverviewEditor
 
-    editor = LibraryOverviewEditor(wrapper=None)  # type: ignore[arg-type]
+    editor = LibraryOverviewEditor(wrapper=None)
     context = Mock()
     context.app_data = {}
 
@@ -142,7 +142,7 @@ def test_row_by_dist_name_none_when_no_marketplace_state():
 def test_row_by_dist_name_none_when_name_empty():
     from haybale_marketplace.editors.library_overview_editor import LibraryOverviewEditor
 
-    editor = LibraryOverviewEditor(wrapper=None)  # type: ignore[arg-type]
+    editor = LibraryOverviewEditor(wrapper=None)
     context = Mock()
 
     assert editor._row_by_dist_name("", context) is None

@@ -40,14 +40,14 @@ def test_agent_signals_name_their_principal(cls):
 def test_agent_signals_are_keyword_only(cls):
     """Matches the kw_only convention of the rest of the vocabulary."""
     with pytest.raises(TypeError):
-        cls("scout")  # type: ignore[misc]
+        cls("scout")
 
 
 @pytest.mark.parametrize("cls", [AgentConnected, AgentDisconnected])
 def test_agent_signals_are_frozen(cls):
     signal = cls(principal="a")
     with pytest.raises(FrozenInstanceError):
-        signal.principal = "b"  # type: ignore[misc]
+        signal.principal = "b"
 
 
 def test_roster_changed_is_frozen():

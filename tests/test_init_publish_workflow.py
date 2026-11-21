@@ -277,7 +277,7 @@ def test_the_tag_job_runs_between_build_and_publish() -> None:
 
 
 def test_the_smoke_job_installs_every_wheel_in_one_clean_environment() -> None:
-    import yaml  # type: ignore[import-untyped]
+    import yaml
 
     smoke = yaml.safe_load(render_publish_workflow())["jobs"]["smoke"]
     assert smoke["needs"] == ["guard", "build"]
@@ -290,7 +290,7 @@ def test_the_smoke_job_installs_every_wheel_in_one_clean_environment() -> None:
 
 
 def _load_script() -> str:
-    import yaml  # type: ignore[import-untyped]
+    import yaml
 
     steps = yaml.safe_load(render_publish_workflow())["jobs"]["smoke"]["steps"]
     run = next(step for step in steps if step.get("name") == "Load every library as the studio does")["run"]
@@ -317,7 +317,7 @@ def test_the_smoke_job_fails_for_a_wheel_without_a_library_entry_point() -> None
 
 
 def test_the_workflow_also_triggers_on_the_default_branches() -> None:
-    import yaml  # type: ignore[import-untyped]
+    import yaml
 
     triggers = yaml.safe_load(render_publish_workflow())[True]
     assert triggers["push"]["branches"] == ["main", "master"]

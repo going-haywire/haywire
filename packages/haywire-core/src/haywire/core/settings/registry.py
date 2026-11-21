@@ -343,7 +343,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         that cannot be weakly referenced.
         """
         try:
-            ref: weakref.ref = weakref.WeakMethod(callback)  # type: ignore[arg-type]
+            ref: weakref.ref = weakref.WeakMethod(callback)
         except TypeError:
             ref = weakref.ref(callback)
         bucket = self._subscribers.setdefault(key, [])
