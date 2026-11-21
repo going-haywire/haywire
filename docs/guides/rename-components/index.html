@@ -5228,7 +5228,7 @@
 
 <h1 id="renaming-components-author-guide">Renaming components — Author guide<a class="headerlink" href="#renaming-components-author-guide" title="Permanent link">&para;</a></h1>
 <p>Every saved graph records each component it uses by its <strong>registry key</strong>,
-<code>&lt;dist&gt;:&lt;kind&gt;:&lt;ClassName&gt;</code> (<code>haybale-core:node:BeginPlayNode</code>). On load, the
+<code>&lt;dist&gt;:&lt;kind&gt;:&lt;ClassName&gt;</code> (<code>haybale-core:node:BeginPlayEventNode</code>). On load, the
 graph loader looks a component up by that key and nothing else. If you rename a
 node, type or widget class, its key changes too, so every graph that still holds
 the old key stops loading. Nothing maps old keys to new ones at runtime.</p>

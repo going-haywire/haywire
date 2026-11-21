@@ -5708,7 +5708,7 @@
 </tr>
 </tbody>
 </table>
-<p>A container's role is its element's. <code>PooledType</code> refuses a control element and an outlet; <code>DRAIN</code> refuses an outlet and any element that is not on a <code>DEPENDENT</code> wire; <code>ArrayType</code> of control and callback elements is allowed.</p>
+<p>A container's role is its element's. <code>POOLED</code> refuses a control element and an outlet; <code>DRAIN</code> refuses an outlet and any element that is not on a <code>DEPENDENT</code> wire; <code>ARRAY</code> of control and callback elements is allowed.</p>
 <p>Two pins connect when their wire keys match: equal wire-type ids, or a bare <code>ADD</code> slot's wildcard <code>*</code> (<code>wires_match</code>, mirrored on the canvas). Connections across wire types (e.g. EXEC→DATA) are rejected in <code>_formal_validation()</code>. A failing edge is never rewritten; while it fails, its wire type comes from whichever end resolves, for drawing only. See <a href="../../../../adr/0042-wire-types-replace-flowtype/">ADR 0042</a>. Same-direction connections (outlet→outlet, inlet→inlet) are also rejected there.</p>
 <h3 id="24-edgewrapper-lifecycle-methods">2.4 EdgeWrapper lifecycle methods<a class="headerlink" href="#24-edgewrapper-lifecycle-methods" title="Permanent link">&para;</a></h3>
 <p>Three methods own the lifecycle (all on <code>EdgeWrapper</code>, not on the graph):</p>
@@ -5738,7 +5738,7 @@
 <p>Chain is built right-to-left: <code>AdapterA(child=AdapterB(child=ReturnAdapter()))</code>.</p>
 </li>
 <li>
-<p><strong>Same compound structure</strong> (e.g. <code>ArrayType[X] → ArrayType[Y]</code>): <code>_create_element_chain()</code>:</p>
+<p><strong>Same compound structure</strong> (e.g. <code>ARRAY[X] → ARRAY[Y]</code>): <code>_create_element_chain()</code>:</p>
 </li>
 <li>
 <p>Finds container adapter (e.g. <code>ArrayArrayAdapter</code>) via registry.</p>

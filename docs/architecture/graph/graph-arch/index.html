@@ -5431,7 +5431,7 @@ outlets by their <em>inner</em> source. <code>CollapseToGraphNodeAction</code> a
 <code>ExpandGraphNodeAction</code> are inverses, each undoable on its own.</p>
 <p>Each interface port takes the <strong>wire type</strong> of the interior port that names it
 (<code>DataPort.stored_type</code>, from <code>get_stored_type()</code>), not its declared type. An
-interior <code>PooledType[CALLBACK]</code> inlet therefore mints a scalar <code>CALLBACK</code>
+interior <code>POOLED[CALLBACK]</code> inlet therefore mints a scalar <code>CALLBACK</code>
 interface port, and a promoted <code>OPTIONAL[INT]</code> setting mints an <code>INT</code> one.</p>
 <h3 id="macros">Macros<a class="headerlink" href="#macros" title="Permanent link">&para;</a></h3>
 <p>A macro is a <code>.hwm</code> document registered as a component kind, <code>MacroNode</code> is the

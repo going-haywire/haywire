@@ -5460,28 +5460,28 @@
 </span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="c1"># adapter is needed for TEST_BOOL → TEST_STRING.</span>
 </span></code></pre></div>
 <p>from: <code>FloatToStringAdapter</code> — registry_key: <code>haybale-testing:adapter:FloatToStringAdapter</code></p>
-<p><strong>Compound type adapter</strong> — <code>MapsStringType → ArrayType</code> from <code>barn/haybale-example/haybale_example/adapters/compound_adapters.py:MapsStringArrayAdapter</code>. Demonstrates a cross-category conversion with <code>get_test_value()</code> delegating to the chain and <code>get_test_repetitions()</code> set above 1:</p>
+<p><strong>Compound type adapter</strong> — <code>MapsStringType → ARRAY</code> from <code>barn/haybale-example/haybale_example/adapters/compound_adapters.py:MapsStringArrayAdapter</code>. Demonstrates a cross-category conversion with <code>get_test_value()</code> delegating to the chain and <code>get_test_repetitions()</code> set above 1:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nd">@adapter</span><span class="p">(</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;MapsString to Array&quot;</span><span class="p">,</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Transform MapsString elements (MapsStringType[str, X] → ArrayType[Y])&quot;</span><span class="p">,</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Transform MapsString elements (MapsStringType[str, X] → ARRAY[Y])&quot;</span><span class="p">,</span>
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">converts_from</span><span class="o">=</span><span class="n">MapsStringType</span><span class="p">,</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">converts_to</span><span class="o">=</span><span class="n">ArrayType</span><span class="p">,</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">converts_to</span><span class="o">=</span><span class="n">ARRAY</span><span class="p">,</span>
 </span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">priority</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
 </span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="p">)</span>
 </span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">MapsStringArrayAdapter</span><span class="p">(</span><span class="n">BaseAdapter</span><span class="p">):</span>
 </span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="sd">    Transforms MapsStringType[str, X] → ArrayType[Y].</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="sd">    Transforms MapsStringType[str, X] → ARRAY[Y].</span>
 </span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
 </span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="sd">    Uses internal adapter chain for element transformation.</span>
 </span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="sd">    Always skips None values to prevent chain failures.</span>
 </span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>
 </span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="sd">    Examples:</span>
-</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="sd">        # MapsStringType[FLOAT] → ArrayType[FLOAT] (no element transformation)</span>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="sd">        # MapsStringType[FLOAT] → ARRAY[FLOAT] (no element transformation)</span>
 </span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="sd">        adapter = MapsStringArrayAdapter()</span>
 </span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="sd">        result = adapter.convert({&quot;a&quot;: 1.0, &quot;b&quot;: 2.0, &quot;c&quot;: 3.0})</span>
 </span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="sd">        # → [1.0, 2.0, 3.0]</span>
 </span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>
-</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a><span class="sd">        # MapsStringType[FLOAT] → ArrayType[STRING] (with element transformation)</span>
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a><span class="sd">        # MapsStringType[FLOAT] → ARRAY[STRING] (with element transformation)</span>
 </span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="sd">        float_to_str = FloatToStringAdapter()</span>
 </span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="sd">        adapter = MapsStringArrayAdapter(_chain=float_to_str)</span>
 </span><span id="__span-5-24"><a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a><span class="sd">        result = adapter.convert({&quot;a&quot;: 1.5, &quot;b&quot;: None, &quot;c&quot;: 2.7})</span>
