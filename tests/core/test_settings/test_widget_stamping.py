@@ -17,7 +17,7 @@ def test_widget_key_stamped_from_itype():
 
 def test_choices_type_carries_select_and_options():
     d = Bag.__dict__["picked"]
-    assert d.widget_key == widget_keys.SELECT_WIDGET
+    assert d.widget_key == widget_keys.MENU_WIDGET
     assert d.widget_config["properties"]["options"] == ["fast", "precise"]
 
 

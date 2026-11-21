@@ -1,4 +1,4 @@
-# File path
+# File Path
 
 `haywire-core:type:FILE_PATH` · kind: type
 

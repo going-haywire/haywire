@@ -1,4 +1,4 @@
-# Folder path
+# Folder Path
 
 `haywire-core:type:FOLDER_PATH` · kind: type
 

@@ -265,7 +265,7 @@ def test_an_annotation_on_stage_draws_its_text_pins_and_slots_but_no_control_pin
     from haywire.barn.builtin.nodes.annotation import AnnotationNode
     from haywire.barn.builtin.skins.annotation_skin import AnnotationSkin
     from haywire.barn.builtin.types import ADD
-    from haywire.barn.builtin.widgets.note_text_widget import _HINT
+    from haywire.barn.builtin.widgets.annotation_text_widget import _HINT
 
     _skin_factory, graph = ctx
     key = AnnotationNode.class_identity.registry_key

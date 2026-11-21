@@ -524,7 +524,7 @@ def _wrapped_identity(wrapper_identity: Any, element_type_cls: type[IType]) -> A
     resolves back to it and its own widget renders the row. The element
     contributes ``color`` and its declared widget properties, which the
     wrapper's own properties override, so ``OPTIONAL[VEC3F]`` reaches
-    ``VecWidget`` with the ``vec_meta`` it needs and an optional int keeps
+    ``VectorWidget`` with the ``vec_meta`` it needs and an optional int keeps
     INT's hue. Returns *wrapper_identity* unchanged when the element has no
     identity.
     """

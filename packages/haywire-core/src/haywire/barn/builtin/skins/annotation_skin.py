@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, Any
 from nicegui import ui
 
 from haywire.core.skin.fonts import FONT_STACKS
-from haywire.barn.builtin.widget_keys import NOTE_TEXT_WIDGET
+from haywire.barn.builtin.widget_keys import ANNOTATION_TEXT_WIDGET
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types.enums import LayoutDirection
 from haywire.ui.skin.base import BaseSkin
@@ -163,7 +163,7 @@ class AnnotationSkin(BaseSkin):
             with ui.element("div").style(
                 "flex: 1 1 auto; width: 100%; display: flex; flex-direction: column; " + _text_style(bag)
             ):
-                self.render_setting_widget(bag, "text", wrapper.node_id, widget_key=NOTE_TEXT_WIDGET)
+                self.render_setting_widget(bag, "text", wrapper.node_id, widget_key=ANNOTATION_TEXT_WIDGET)
 
         pins = self._pins_by_side(wrapper, on_stage=on_stage)
         for side in _SIDES:

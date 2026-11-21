@@ -49,8 +49,8 @@ def _ensure_editor_css() -> None:
         client._hw_note_editor_css = True  # type: ignore[attr-defined]
 
 
-@widget(description="Note text")
-class NoteTextWidget(BaseWidget):
+@widget(description="Annotation text")
+class AnnotationTextWidget(BaseWidget):
     """Shows a note's text on its card; double-click it to edit.
 
     While editing, Tab types a tab and Shift+Tab leaves the editor. Press

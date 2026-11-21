@@ -76,7 +76,7 @@ PATH.field_class = PATHField
 
 @type_decorator(
     wire_type=DataWire,
-    label="File path",
+    label="File Path",
     description="A file inside a named volume such as the project folder or `models`.",
     color="#c9a66b",
     default={"value": {"volume": PROJECT_KEY, "relative": ""}},
@@ -89,7 +89,7 @@ class FILE_PATH(PATH):
 
 @type_decorator(
     wire_type=DataWire,
-    label="Folder path",
+    label="Folder Path",
     description="A folder inside a named volume such as the project folder or `models`.",
     color="#c9a66b",
     default={"value": {"volume": PROJECT_KEY, "relative": ""}},

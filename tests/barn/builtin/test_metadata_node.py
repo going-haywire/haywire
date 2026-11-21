@@ -11,7 +11,7 @@ import numpy as np
 
 from haywire.barn.builtin.carrier import BundleValue
 from haywire.barn.builtin.nodes import metadata as mdn
-from haywire.barn.builtin.nodes.metadata import MetadataNode, MetadataNodeBase
+from haywire.barn.builtin.nodes.metadata import MetadataNode, BaseMetadataNode
 from haywire.barn.builtin.types import BUNDLE, FIELD_LIST, FLOAT, INT, STRING
 from haywire.core.node import NodeType, node
 from tests.core.test_types.test_add_type import _make_link_node
@@ -173,7 +173,7 @@ def test_nothing_connected_gives_an_empty_carrier(graph_with_library_system, lib
 
 
 @node(label="Metadata Library Probe", menu="testing/testbed", node_type=NodeType.DATA)
-class _LibraryNode(MetadataNodeBase):
+class _LibraryNode(BaseMetadataNode):
     """A library's own node, with its fields declared on the class."""
 
     READ_FIELDS = FIELD_LIST().with_added("camera_timestamp", FLOAT)

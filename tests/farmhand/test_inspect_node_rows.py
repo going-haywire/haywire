@@ -165,14 +165,14 @@ def test_unmatched_is_keyed_per_axis_and_ignores_and_exclusion():
 
 
 def test_constraints_resolve_callable_options():
-    """A live callable in widget_config is resolved like SelectWidget.build() does."""
+    """A live callable in widget_config is resolved like MenuWidget.build() does."""
     t = _tools()
     resolved = t._constraints({"properties": {"options": lambda: ["a", "b"]}})
     assert resolved["options"] == ["a", "b"]
 
 
 def test_constraints_hand_the_bag_to_a_one_argument_options_callable():
-    """Same contract as SelectWidget: a one-argument callable reads the field's bag."""
+    """Same contract as MenuWidget: a one-argument callable reads the field's bag."""
     t = _tools()
     bag = type("Bag", (), {"backend": "syphon"})()
     resolved = t._constraints({"properties": {"options": lambda b: [b.backend]}}, bag)

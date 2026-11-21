@@ -1,4 +1,4 @@
-"""SelectWidget with ``new_value_mode``: typed values are kept, the declared options never change."""
+"""MenuWidget with ``new_value_mode``: typed values are kept, the declared options never change."""
 
 from typing import Any, cast
 
@@ -6,7 +6,7 @@ import pytest
 from nicegui import Client, events
 
 from haywire.barn.builtin.types import STRING
-from haywire.barn.builtin.widgets.basic_widgets import SelectWidget
+from haywire.barn.builtin.widgets.basic_widgets import MenuWidget
 from haywire.ui.panel.setting_widget_model import SettingWidgetModel
 
 pytestmark = pytest.mark.integration
@@ -19,7 +19,7 @@ def _noop_page() -> None:  # registration target for a headless Client
 
 
 def _rendered(properties: dict[str, Any], value: str = "auto"):
-    """A SelectWidget on a STRING cell whose edits land in the cell; returns widget, cell, config, client."""
+    """A MenuWidget on a STRING cell whose edits land in the cell; returns widget, cell, config, client."""
     cell = STRING.create_field(default_override={"value": value})
 
     def on_edit(new: Any) -> None:
@@ -27,7 +27,7 @@ def _rendered(properties: dict[str, Any], value: str = "auto"):
 
     config = {"properties": properties}
     model = SettingWidgetModel(field_id="choice", widget_config=config, cell=cell, on_edit=on_edit)
-    widget = SelectWidget(model)
+    widget = MenuWidget(model)
     client = Client(cast(Any, _noop_page), request=None)
     with client:
         widget.render()

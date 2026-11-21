@@ -113,7 +113,7 @@ class TestIdentity:
 
     def test_element_widget_properties_are_inherited(self):
         # VEC3F declares vec_meta on its identity, not per-declaration. Without
-        # this merge, VecWidget cannot render an optional vector at all.
+        # this merge, VectorWidget cannot render an optional vector at all.
         props = OPTIONAL[VEC3F].class_identity.widget_config["properties"]
         assert props["vec_meta"] == {"length": 3, "labels": ["X", "Y", "Z"]}
 

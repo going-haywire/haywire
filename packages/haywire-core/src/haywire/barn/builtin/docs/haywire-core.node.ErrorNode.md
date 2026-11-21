@@ -1,4 +1,4 @@
-# Core Error Node
+# Error
 
 `haywire-core:node:ErrorNode` · kind: node
 

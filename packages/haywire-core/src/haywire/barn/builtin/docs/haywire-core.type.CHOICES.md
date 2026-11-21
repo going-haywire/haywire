@@ -8,7 +8,7 @@ A string constrained to a set of options (options live per-use in widget_config)
 
 - **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': ''}`
-- **widget_key**: `haywire-core:widget:SelectWidget`
+- **widget_key**: `haywire-core:widget:MenuWidget`
 - **color**: `#ffd54f`
 
 ## Notes

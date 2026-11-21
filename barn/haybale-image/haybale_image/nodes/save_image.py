@@ -14,7 +14,7 @@ from haywire.api import (
     NodeType,
     PathWidget,
     ProgressSettings,
-    SelectWidget,
+    MenuWidget,
     UiState,
     VolumePath,
     bag,
@@ -164,7 +164,7 @@ class SaveImageNode(BaseNode):
                 "if_exists",
                 default=IfExists.OVERWRITE.value,
                 label="If Exists",
-                widget=SelectWidget.config(properties={"options": [m.value for m in IfExists]}),
+                widget=MenuWidget.config(properties={"options": [m.value for m in IfExists]}),
                 description="When the file exists: overwrite, skip, or unique-suffix (adds a number)",
             )
         )
@@ -173,7 +173,7 @@ class SaveImageNode(BaseNode):
                 "depth",
                 default="source",
                 label="Depth",
-                widget=SelectWidget.config(properties={"options": list(DEPTH_CHOICES)}),
+                widget=MenuWidget.config(properties={"options": list(DEPTH_CHOICES)}),
                 description="Bits per channel: source keeps the image's own, or 8, 16, 32",
             )
         )

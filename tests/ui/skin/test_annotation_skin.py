@@ -34,7 +34,7 @@ def test_the_card_has_no_editor_of_its_own(library_system, nicegui_slot_context)
     from nicegui import ui
 
     from haywire.barn.builtin.nodes.annotation import AnnotationNode
-    from haywire.barn.builtin.widgets.note_text_widget import NoteTextWidget
+    from haywire.barn.builtin.widgets.annotation_text_widget import AnnotationTextWidget
     from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.scheduler import SyncScheduler
     from haywire.ui.skin.factory import SkinFactory
@@ -52,7 +52,7 @@ def test_the_card_has_no_editor_of_its_own(library_system, nicegui_slot_context)
 
         assert not any(lis.type == "dblclick" for lis in card._event_listeners.values())
         widgets = list(node_card.widget_instances.values())
-        assert [type(w) for w in widgets] == [NoteTextWidget]
+        assert [type(w) for w in widgets] == [AnnotationTextWidget]
         note_root = widgets[0].ui_element
         textareas = [e for e in card.descendants() if isinstance(e, ui.textarea)]
         assert len(textareas) == 1

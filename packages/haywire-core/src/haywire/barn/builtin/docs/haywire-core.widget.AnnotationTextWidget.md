@@ -1,8 +1,8 @@
-# NoteTextWidget
+# AnnotationTextWidget
 
-`haywire-core:widget:NoteTextWidget` · kind: widget
+`haywire-core:widget:AnnotationTextWidget` · kind: widget
 
-Note text
+Annotation text
 
 ## Details
 

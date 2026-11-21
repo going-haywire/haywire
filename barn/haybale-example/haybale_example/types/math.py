@@ -21,7 +21,7 @@ class MathOPs(Enum):
 @type(
     label="Simple Operations",
     description="Simple mathematical operations for one or two float values",
-    widget_key="haywire-core:widget:SelectWidget",
+    widget_key="haywire-core:widget:MenuWidget",
     widget_config={"properties": {"options": MathOPs.values()}},
     default=MathOPs.ADD.value,
 )

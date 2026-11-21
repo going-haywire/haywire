@@ -208,7 +208,7 @@ inner_cls = WIDGET_REGISTRY.get(element.class_identity.widget_key)
 
 A stand-in state should be **framed like the widget it replaces** — `hw-optional-none` reuses the same `--hw-compact-field-h` height and input framing as `NumberDrag`, so the value column doesn't jump when a field is cleared, and differs only in muted italic text plus an always-visible action icon — hover-revealing that icon would hide the only signal the cell is a control. And don't add a control the Setting-row menu already offers: `OptionalWidget` has no clear button because clearing is reset-shaped, and the menu owns those verbs.
 
-This doesn't breach the stamped-widget contract of [ADR 0017](../../adr/0017-widget-selection-port-contract.md): the row's `widget_key` is still stamped once (to `OptionalWidget`). Only the *inner* class is resolved at build time, from another stamped key — the same thing `SelectWidget` already does with callable `options`.
+This doesn't breach the stamped-widget contract of [ADR 0017](../../adr/0017-widget-selection-port-contract.md): the row's `widget_key` is still stamped once (to `OptionalWidget`). Only the *inner* class is resolved at build time, from another stamped key — the same thing `MenuWidget` already does with callable `options`.
 
 ### Delegating per item: `ArrayWidget`
 

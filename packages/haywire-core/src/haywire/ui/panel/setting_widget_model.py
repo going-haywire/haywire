@@ -49,7 +49,7 @@ class SettingWidgetModel:
                 can ask its node (``_wrapper`` on a ``DataPort``); ``None`` for a
                 settings field.
             settings: The ``Settings`` bag that owns the field, so a widget can read the
-                field's siblings (``SelectWidget`` hands it to a one-argument ``options``
+                field's siblings (``MenuWidget`` hands it to a one-argument ``options``
                 callable); ``None`` when the model stands for no bag field.
         """
         self.id = field_id

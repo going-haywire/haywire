@@ -7,7 +7,7 @@ Framework-owned primitive types and adapters
 - **Annotation** — A box of text for diagrams; links to other annotations with styled arrows
 
 ### Core
-- **Core Error Node** — Placeholder for node that could not be loaded
+- **Error** — Placeholder for node that could not be loaded
 - **Metadata** — Stamps fields on an image or bundle, and reads them back
 - **Metadata Info** — Lists the fields an image or bundle carries
 - **New Bundle** — Starts an empty bundle, for Metadata nodes to stamp values on
@@ -20,9 +20,9 @@ Framework-owned primitive types and adapters
 - **Callback Signal** — Signal for callback execution between nodes
 - **Color** — Hex or rgba color string
 - **Execution Signal** — Signal for controlling execution flow between nodes
-- **File path** — A file inside a named volume such as the project folder or `models`.
+- **File Path** — A file inside a named volume such as the project folder or `models`.
 - **Float** — Decimal number
-- **Folder path** — A folder inside a named volume such as the project folder or `models`.
+- **Folder Path** — A folder inside a named volume such as the project folder or `models`.
 - **Integer** — Whole number
 - **Matrix 3x3** — 3x3 matrix: a 2D transform, a homography, a camera matrix or a 3D rotation
 - **Matrix 4x4** — 4x4 matrix: a 3D transform, a view or a projection
@@ -45,24 +45,24 @@ Framework-owned primitive types and adapters
 - **StringToChoicesAdapter** — String into a choices slot
 
 ## Widgets
+- **AnnotationTextWidget** — Annotation text
 - **ArrowHeadWidget** — Arrow head picker
 - **ButtonWidget** — button widget
 - **CheckboxWidget** — checkbox widget
 - **ColorWidget** — Color picker widget
 - **FieldListWidget** — List of fields, each a key and a type
 - **FoldWidget** — Fold header
+- **LabelWidget** — Label for display only
 - **MatrixWidget** — Matrix editor widget, one number per cell
-- **NoteTextWidget** — Note text
+- **MenuWidget** — menu widget
 - **NumberWidget** — Fast number input widget
 - **OptionalWidget** — Optional value — the wrapped type's widget, plus an absence state
 - **PathWidget** — Pick a file or folder inside a volume
 - **ProgressWidget** — Progress bar
-- **SelectWidget** — select widget
-- **SimpleLabelWidget** — Simple label for display only
 - **SliderWidget** — slider widget
-- **SwitchWidget** — switch widget
 - **TextWidget** — Fast text input widget
-- **VecWidget** — Vector component editor widget
+- **ToggleWidget** — toggle widget
+- **VectorWidget** — Vector component editor widget
 
 ## Settings
 - **arrange** — 

@@ -115,7 +115,7 @@ class setting(SettingDescriptor, Generic[T]):
         max: Upper bound, same rules as ``min``.
         widget: Explicit widget contract built via ``WidgetCls.config(...)``
             (see ``IWidget.config``), e.g.
-            ``widget=SelectWidget.config(properties={"options": [...]})``. It
+            ``widget=MenuWidget.config(properties={"options": [...]})``. It
             wins outright over the field IType's declared default widget.
             ``None`` takes the IType's declared ``widget_key``.
         widget_config: Config overrides layered on top of the IType's default

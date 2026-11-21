@@ -185,7 +185,7 @@
               },
               "store_strategy": 4,
               "color": "#ffc107",
-              "widget_key": "haywire-core:widget:SelectWidget",
+              "widget_key": "haywire-core:widget:MenuWidget",
               "widget_config": {
                 "properties": {
                   "options": [
@@ -703,7 +703,7 @@
               },
               "store_strategy": 4,
               "color": "#ffc107",
-              "widget_key": "haywire-core:widget:SelectWidget",
+              "widget_key": "haywire-core:widget:MenuWidget",
               "widget_config": {
                 "properties": {
                   "options": [
@@ -1010,7 +1010,7 @@
               },
               "store_strategy": 4,
               "color": "#ffc107",
-              "widget_key": "haywire-core:widget:SelectWidget",
+              "widget_key": "haywire-core:widget:MenuWidget",
               "widget_config": {
                 "properties": {
                   "options": [
@@ -1528,7 +1528,7 @@
               },
               "store_strategy": 4,
               "color": "#ffc107",
-              "widget_key": "haywire-core:widget:SelectWidget",
+              "widget_key": "haywire-core:widget:MenuWidget",
               "widget_config": {
                 "properties": {
                   "options": [
@@ -1996,7 +1996,7 @@
               },
               "store_strategy": 4,
               "color": "#ffc107",
-              "widget_key": "haywire-core:widget:SelectWidget",
+              "widget_key": "haywire-core:widget:MenuWidget",
               "widget_config": {
                 "properties": {
                   "options": [
@@ -2595,7 +2595,7 @@
               },
               "store_strategy": 4,
               "color": "#ffc107",
-              "widget_key": "haywire-core:widget:SelectWidget",
+              "widget_key": "haywire-core:widget:MenuWidget",
               "widget_config": {
                 "properties": {
                   "options": [
@@ -2787,7 +2787,7 @@
               },
               "store_strategy": 4,
               "color": "#ffc107",
-              "widget_key": "haywire-core:widget:SelectWidget",
+              "widget_key": "haywire-core:widget:MenuWidget",
               "widget_config": {
                 "properties": {
                   "options": [

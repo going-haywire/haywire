@@ -56,7 +56,7 @@ Adapters live in [components/adapters](../adapters/adapter-canon.md); how the ch
 
 **Custom field for type coercion.** If incoming values may need casting (e.g. an int arriving where you want a guaranteed float), define a `PrimitiveField` subclass that overrides `_set_own()` — the hook that checks, coerces and stores a field's own value, which the framework also runs for an edge's value — and assign it as `MyType.field_class = MyTypeField` *after* both classes exist. The built-in `FLOAT`/`INT`/`BOOL` types use this pattern.
 
-**Widget binding.** Set `widget_key=` and `widget_config=` on the type when **every port** of this type should use the same widget. **Discouraged for general use** — the codebase's `@type` docstring marks `widget_key`/`widget_config` as `NOT RECOMMENDED`. Prefer per-port widget overrides via `as_inlet(widget_key=...)` unless you have a specific reason (e.g. a fixed `MathOperation` enum where a `SelectWidget` is the only sensible UI).
+**Widget binding.** Set `widget_key=` and `widget_config=` on the type when **every port** of this type should use the same widget. **Discouraged for general use** — the codebase's `@type` docstring marks `widget_key`/`widget_config` as `NOT RECOMMENDED`. Prefer per-port widget overrides via `as_inlet(widget_key=...)` unless you have a specific reason (e.g. a fixed `MathOperation` enum where a `MenuWidget` is the only sensible UI).
 
 **`store_strategy`.** Enum (`StoreStrategy`) on `DataTypeIdentity` controlling when field values persist on save. Default is `NONE`. Older docs may refer to a `store_data: bool` parameter — that name is out of date; the current code uses `store_strategy: StoreStrategy`.
 
@@ -79,7 +79,7 @@ Two rules worth knowing before you add a type:
 
 **`CompoundType` means "container", and code acts on that.** `AdapterFactory` builds element-wise adapter chains for compounds, and `pin_render` gives them collection iconography. A type holding zero-or-one that inherited `CompoundType` for the parameterisation machinery would get both behaviours silently and wrongly. That is why `WrapperType` exists as a separate family rather than as a `CompoundType` subclass — see [ADR 0033](../../adr/0033-absence-is-a-type.md).
 
-**Parameterised identity differs between the two.** A `CompoundType[T]` **shares** its parent's `class_identity`, so every `ArrayType[*]` reports one colour and one widget key and differs only in its element. A `WrapperType[T]` stamps a **per-parameterisation** identity instead: it keeps the wrapper's `registry_key` and `widget_key` (a graph must resolve back to the wrapper, and the wrapper's own widget renders the row) but takes the element's colour and declared widget properties — without which `OPTIONAL[VEC3F]` would reach `VecWidget` with no `vec_meta` and be unrenderable.
+**Parameterised identity differs between the two.** A `CompoundType[T]` **shares** its parent's `class_identity`, so every `ArrayType[*]` reports one colour and one widget key and differs only in its element. A `WrapperType[T]` stamps a **per-parameterisation** identity instead: it keeps the wrapper's `registry_key` and `widget_key` (a graph must resolve back to the wrapper, and the wrapper's own widget renders the row) but takes the element's colour and declared widget properties — without which `OPTIONAL[VEC3F]` would reach `VectorWidget` with no `vec_meta` and be unrenderable.
 
 ## 4. Live examples from the codebase
 
@@ -93,7 +93,7 @@ Source: [`barn/haybale-example/haybale_example/types/`](../../../barn/haybale-ex
 
 from: `Temperature` — registry_key: `haybale-example:type:Temperature`
 
-**Derived type with widget and enum choices** — `MathOPSelector` extends `STRING` and pins a `SelectWidget` with a fixed option list at the type level:
+**Derived type with widget and enum choices** — `MathOPSelector` extends `STRING` and pins a `MenuWidget` with a fixed option list at the type level:
 
 ```python
 --8<-- "barn/haybale-example/haybale_example/types/math.py:21:33"

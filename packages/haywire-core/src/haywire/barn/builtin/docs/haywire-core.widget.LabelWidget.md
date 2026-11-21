@@ -1,8 +1,8 @@
-# SimpleLabelWidget
+# LabelWidget
 
-`haywire-core:widget:SimpleLabelWidget` · kind: widget
+`haywire-core:widget:LabelWidget` · kind: widget
 
-Simple label for display only
+Label for display only
 
 ## Details
 
@@ -16,4 +16,4 @@ its text form (`scans:in/a.png`). No configuration options.
 
 Example::
 
-    SimpleLabelWidget.config()
+    LabelWidget.config()

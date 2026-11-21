@@ -105,7 +105,7 @@ Both ports and settings keep their UI constraints in the **same** place —
 | `options` | `CHOICES` fields | list, `{value: label}` dict, **or a zero-arg callable** |
 | `vec_meta` | `VEC*` fields | `{length, labels}` |
 
-A callable `options` is resolved fresh by `SelectWidget.build()` on every
+A callable `options` is resolved fresh by `MenuWidget.build()` on every
 build. It can only reach a **promoted** port — `DataPort.__post_init__` raises
 for a non-serializable `widget_config` on a plain port, but skips the check
 when `promoted` is True (ADR 0018). Anything serializing a port's

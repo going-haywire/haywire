@@ -3,7 +3,7 @@
 from typing import Any, Optional
 
 from haybale_core.array_ports import array_element_type, array_of
-from haywire.api import ADD, EXEC, INT, STRING, BaseNode, ExecutionContext, NodeType, SelectWidget, node
+from haywire.api import ADD, EXEC, INT, STRING, BaseNode, ExecutionContext, NodeType, MenuWidget, node
 
 MODES = ("once", "loop", "palindrome")
 
@@ -64,7 +64,7 @@ class StepArrayNode(BaseNode):
                 "mode",
                 label="Mode",
                 default="once",
-                widget=SelectWidget.config(properties={"options": list(MODES)}),
+                widget=MenuWidget.config(properties={"options": list(MODES)}),
                 description="At the end: once stops, loop starts over, palindrome turns back",
             )
         )

@@ -1,6 +1,6 @@
 """Settings shared by the loop nodes that record failed iterations (For Each File, Loop Array)."""
 
-from haywire.api import STRING, NodeSettings, Promotable, SelectWidget, setting
+from haywire.api import STRING, NodeSettings, Promotable, MenuWidget, setting
 
 __all__ = ["ON_ERROR", "LoopErrors"]
 
@@ -18,6 +18,6 @@ class LoopErrors(NodeSettings):
         "continue",
         label="On Error",
         description="After a failed iteration: continue with the next one, or stop",
-        widget=SelectWidget.config(properties={"options": list(ON_ERROR)}),
+        widget=MenuWidget.config(properties={"options": list(ON_ERROR)}),
         promotable=Promotable.INLET | Promotable.CONFIG,
     )

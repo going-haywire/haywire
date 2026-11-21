@@ -1,8 +1,8 @@
 """FillWidget — kind + angle + colour-stop editor for FILL ports.
 
-Like :class:`VecWidget`, this edits a value whose parts change independently,
+Like :class:`VectorWidget`, this edits a value whose parts change independently,
 so it talks to the model through ``get_value()``/``set_value()`` rather than
-``bind()``. Unlike VecWidget the value is a ``BaseType`` instance, and
+``bind()``. Unlike VectorWidget the value is a ``BaseType`` instance, and
 ``BaseField.set_value`` fires ``on_changed`` only when handed a *different*
 instance — mutating the held FILL in place would update nothing. Every edit
 therefore builds a new FILL (see ``_emit``).

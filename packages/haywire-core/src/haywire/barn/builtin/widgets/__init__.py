@@ -1,41 +1,41 @@
+from .annotation_text_widget import AnnotationTextWidget
 from .arrow_head_widget import ArrowHeadWidget
 from .basic_widgets import (
     ButtonWidget,
     CheckboxWidget,
+    LabelWidget,
+    MenuWidget,
     NumberWidget,
-    SelectWidget,
-    SimpleLabelWidget,
     SliderWidget,
-    SwitchWidget,
     TextWidget,
+    ToggleWidget,
 )
 from .color_widget import ColorWidget
 from .field_list_widget import FieldListWidget
 from .fold_widget import FoldWidget
-from .note_text_widget import NoteTextWidget
 from .optional_widget import OptionalWidget
 from .path_widget import PathWidget
 from .progress_widget import ProgressWidget
 from .matrix_widget import MatrixWidget
-from .vec_widget import VecWidget
+from .vector_widget import VectorWidget
 
 __all__ = [
     "NumberWidget",
     "FieldListWidget",
     "TextWidget",
     "CheckboxWidget",
-    "SwitchWidget",
+    "ToggleWidget",
     "ButtonWidget",
     "SliderWidget",
-    "SelectWidget",
-    "SimpleLabelWidget",
+    "MenuWidget",
+    "LabelWidget",
     "MatrixWidget",
-    "VecWidget",
+    "VectorWidget",
     "ColorWidget",
     "OptionalWidget",
     "ArrowHeadWidget",
     "FoldWidget",
-    "NoteTextWidget",
+    "AnnotationTextWidget",
     "ProgressWidget",
     "PathWidget",
 ]

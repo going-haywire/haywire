@@ -1,7 +1,7 @@
 """Toggle."""
 
 from haybale_core.nodes.widgets.base import WidgetNode
-from haywire.api import BOOL, SWITCH_WIDGET, NodeType, node
+from haywire.api import BOOL, TOGGLE_WIDGET, NodeType, node
 
 
 @node(
@@ -20,5 +20,5 @@ class ToggleNode(WidgetNode):
     """
 
     value_type = BOOL
-    widget_key = SWITCH_WIDGET
+    widget_key = TOGGLE_WIDGET
     default_value = False

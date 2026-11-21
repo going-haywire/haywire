@@ -16,7 +16,7 @@ from haywire.api import (
     NodeType,
     PortOrigin,
     Promotable,
-    SimpleLabelWidget,
+    LabelWidget,
     bag,
     node,
     setting,
@@ -95,9 +95,7 @@ class AudioMixerNode(BaseNode):
 
         self.add(EXEC_AUDIO.as_inlet("tick", label="Tick"))
         self.add(ADD[AUDIO].as_inlet(id=f"{_PREFIX}0", label="In 0", on_connect="hb_resolve"))
-        self.add(
-            STRING.as_config("status", default="Idle", label="Status", widget=SimpleLabelWidget.config())
-        )
+        self.add(STRING.as_config("status", default="Idle", label="Status", widget=LabelWidget.config()))
         self.add(EXEC_AUDIO.as_outlet("next", label="Next"))
         self.add(AUDIO.as_outlet("mixed", label="Mixed"))
 

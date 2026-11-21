@@ -123,7 +123,7 @@ def _node_row(wrapper, detail: bool = False) -> dict:
 # widget_config["properties"] (min/max folded in at setting.__set_name__ time,
 # options for CHOICES, vec_meta for vectors) — so one extraction helper serves
 # both kinds. widget_config may legitimately hold a live callable at
-# properties["options"] (resolved by SelectWidget at every build(), and only
+# properties["options"] (resolved by MenuWidget at every build(), and only
 # reachable here on a PROMOTED port — DataPort.__post_init__ rejects a
 # non-serializable widget_config on a plain port). We resolve it the same way
 # the widget does, and drop anything else that can't cross a JSON boundary
@@ -187,7 +187,7 @@ def _constraints(widget_config, settings=None) -> dict:
         if key in _RESERVED_ROW_KEYS:
             continue
         if key == "options" and callable(value):
-            # Same contract as SelectWidget.build(): resolve at read time so
+            # Same contract as MenuWidget.build(): resolve at read time so
             # the agent sees the live valid set. A probe against absent
             # hardware must not fail the whole inspection.
             try:

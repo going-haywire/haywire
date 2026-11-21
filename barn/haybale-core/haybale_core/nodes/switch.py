@@ -15,7 +15,7 @@ from haywire.api import (
     ExecutionContext,
     NodeType,
     NumberWidget,
-    SelectWidget,
+    MenuWidget,
     node,
 )
 
@@ -52,7 +52,7 @@ class ControlSwitch(BaseNode):
                 "DataType",
                 label="Data Type",
                 description="",
-                widget=SelectWidget.config(properties={"options": ["int", "float", "string"]}),
+                widget=MenuWidget.config(properties={"options": ["int", "float", "string"]}),
                 default="int",
                 on_change="hb_change",
             )
@@ -74,9 +74,7 @@ class ControlSwitch(BaseNode):
                         "condition",
                         label="Condition",
                         description="set form of comparison",
-                        widget=SelectWidget.config(
-                            properties={"options": [">", ">=", "==", "<", "<=", "!="]}
-                        ),
+                        widget=MenuWidget.config(properties={"options": [">", ">=", "==", "<", "<=", "!="]}),
                         default="==",
                     )
                 )
@@ -88,9 +86,7 @@ class ControlSwitch(BaseNode):
                         "condition",
                         label="Condition",
                         description="set form of comparison",
-                        widget=SelectWidget.config(
-                            properties={"options": [">", ">=", "==", "<", "<=", "!="]}
-                        ),
+                        widget=MenuWidget.config(properties={"options": [">", ">=", "==", "<", "<=", "!="]}),
                         default="==",
                     )
                 )
@@ -101,7 +97,7 @@ class ControlSwitch(BaseNode):
                     STRING.as_config(
                         "condition",
                         label="Condition",
-                        widget=SelectWidget.config(properties={"options": ["==", "!="]}),
+                        widget=MenuWidget.config(properties={"options": ["==", "!="]}),
                         default="==",
                     )
                 )

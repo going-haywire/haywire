@@ -8,7 +8,7 @@ from haywire.api import (
     ExecutionContext,
     NodeType,
     QueueMode,
-    SelectWidget,
+    MenuWidget,
     TextWidget,
     node,
 )
@@ -40,7 +40,7 @@ class TestCustomCallbackNode(BaseNode):
                 "thread_mode",
                 default="single",
                 label="Thread Mode",
-                widget=SelectWidget.config(properties={"options": ["single", "multi"]}),
+                widget=MenuWidget.config(properties={"options": ["single", "multi"]}),
             )
         )
 
@@ -52,7 +52,7 @@ class TestCustomCallbackNode(BaseNode):
                 "queue_mode",
                 default="block",
                 label="Queue Mode",
-                widget=SelectWidget.config(properties={"options": ["block", "drop"]}),
+                widget=MenuWidget.config(properties={"options": ["block", "drop"]}),
             )
         )
 

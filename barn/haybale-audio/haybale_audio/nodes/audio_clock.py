@@ -9,7 +9,7 @@ from haywire.api import (
     NodeSettings,
     NodeType,
     Promotable,
-    SimpleLabelWidget,
+    LabelWidget,
     bag,
     node,
     setting,
@@ -90,9 +90,7 @@ class AudioClockNode(BaseNode):
                 "callbacks", label="Subscribers", description="Connect to an Audio Event node."
             )
         )
-        self.add(
-            STRING.as_config("status", default="Idle", label="Status", widget=SimpleLabelWidget.config())
-        )
+        self.add(STRING.as_config("status", default="Idle", label="Status", widget=LabelWidget.config()))
         self.add(EXEC.as_outlet("started", label="Started"))
         self.add(EXEC.as_outlet("stopped", label="Stopped"))
 

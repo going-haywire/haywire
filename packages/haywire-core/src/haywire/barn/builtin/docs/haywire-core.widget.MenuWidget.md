@@ -1,8 +1,8 @@
-# SelectWidget
+# MenuWidget
 
-`haywire-core:widget:SelectWidget` · kind: widget
+`haywire-core:widget:MenuWidget` · kind: widget
 
-select widget
+menu widget
 
 ## Details
 
@@ -11,7 +11,7 @@ select widget
 
 Dropdown select widget for int and string ports.
 
-Config options (via ``SelectWidget.config(properties={...})``):
+Config options (via ``MenuWidget.config(properties={...})``):
 
 - ``options`` (list, ``{value: label}`` dict, or callable returning either):
   List of selectable values (required). A callable is invoked at ``build()``
@@ -37,12 +37,12 @@ Config options (via ``SelectWidget.config(properties={...})``):
 
 Example::
 
-    SelectWidget.config(properties={'options': ['Low', 'Medium', 'High']})
-    SelectWidget.config(properties={'options': {0: 'Off', 1: 'On'}, 'clearable': True})
-    SelectWidget.config(properties={'options': lambda: list_available_skins()})
+    MenuWidget.config(properties={'options': ['Low', 'Medium', 'High']})
+    MenuWidget.config(properties={'options': {0: 'Off', 1: 'On'}, 'clearable': True})
+    MenuWidget.config(properties={'options': lambda: list_available_skins()})
     # Depends on a sibling setting of the same bag:
-    SelectWidget.config(properties={'options': lambda bag: list_sources(bag.backend)})
+    MenuWidget.config(properties={'options': lambda bag: list_sources(bag.backend)})
     # A slow query, run when the user clicks refresh:
-    SelectWidget.config(properties={'options': known_sources, 'refresh': find_sources})
+    MenuWidget.config(properties={'options': known_sources, 'refresh': find_sources})
     # Suggestions, plus any typed value:
-    SelectWidget.config(properties={'options': ['auto', 'cpu'], 'new_value_mode': 'add-unique'})
+    MenuWidget.config(properties={'options': ['auto', 'cpu'], 'new_value_mode': 'add-unique'})

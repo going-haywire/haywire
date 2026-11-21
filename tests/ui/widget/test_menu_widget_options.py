@@ -3,7 +3,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from haywire.barn.builtin.widgets import basic_widgets
-from haywire.barn.builtin.widgets.basic_widgets import SelectWidget
+from haywire.barn.builtin.widgets.basic_widgets import MenuWidget
 from haywire.core.types.port import DataPort
 from haywire.core.types.enums import PortOrigin, PortType
 from haywire.barn.builtin.types import STRING
@@ -34,8 +34,8 @@ def make_string_port_with_config(widget_config: dict[str, Any], port_id: str = "
     return port
 
 
-def test_select_widget_resolves_callable_options():
-    """SelectWidget should resolve callable options at build time."""
+def test_menu_widget_resolves_callable_options():
+    """MenuWidget should resolve callable options at build time."""
 
     # Create a callable that returns a list of options
     def options_callable() -> list[str]:
@@ -44,7 +44,7 @@ def test_select_widget_resolves_callable_options():
     config = {"properties": {"options": options_callable}}
 
     port = make_string_port_with_config(config)
-    widget = SelectWidget(port)
+    widget = MenuWidget(port)
 
     # Mock ui.select to capture the options passed to it
     with patch.object(basic_widgets.ui, "select") as mock_select:
@@ -61,8 +61,8 @@ def test_select_widget_resolves_callable_options():
         assert call_kwargs["options"] == ["a", "b", "c"]
 
 
-def test_select_widget_resolves_callable_options_dict():
-    """SelectWidget should resolve callable that returns a dict of options."""
+def test_menu_widget_resolves_callable_options_dict():
+    """MenuWidget should resolve callable that returns a dict of options."""
 
     def options_callable() -> dict[str, str]:
         return {"1": "One", "2": "Two", "3": "Three"}
@@ -70,7 +70,7 @@ def test_select_widget_resolves_callable_options_dict():
     config = {"properties": {"options": options_callable}}
 
     port = make_string_port_with_config(config)
-    widget = SelectWidget(port)
+    widget = MenuWidget(port)
 
     with patch.object(basic_widgets.ui, "select") as mock_select:
         mock_element = MagicMock()
@@ -83,12 +83,12 @@ def test_select_widget_resolves_callable_options_dict():
         assert call_kwargs["options"] == {"1": "One", "2": "Two", "3": "Three"}
 
 
-def test_select_widget_handles_list_options():
-    """SelectWidget should still work with static list options."""
+def test_menu_widget_handles_list_options():
+    """MenuWidget should still work with static list options."""
     config = {"properties": {"options": ["Low", "Medium", "High"]}}
 
     port = make_string_port_with_config(config)
-    widget = SelectWidget(port)
+    widget = MenuWidget(port)
 
     with patch.object(basic_widgets.ui, "select") as mock_select:
         mock_element = MagicMock()
@@ -101,12 +101,12 @@ def test_select_widget_handles_list_options():
         assert call_kwargs["options"] == ["Low", "Medium", "High"]
 
 
-def test_select_widget_handles_dict_options():
-    """SelectWidget should still work with static dict options."""
+def test_menu_widget_handles_dict_options():
+    """MenuWidget should still work with static dict options."""
     config = {"properties": {"options": {0: "Off", 1: "On"}}}
 
     port = make_string_port_with_config(config)
-    widget = SelectWidget(port)
+    widget = MenuWidget(port)
 
     with patch.object(basic_widgets.ui, "select") as mock_select:
         mock_element = MagicMock()
@@ -119,12 +119,12 @@ def test_select_widget_handles_dict_options():
         assert call_kwargs["options"] == {0: "Off", 1: "On"}
 
 
-def test_select_widget_empty_options():
-    """SelectWidget should handle missing options gracefully."""
+def test_menu_widget_empty_options():
+    """MenuWidget should handle missing options gracefully."""
     config: dict = {"properties": {}}
 
     port = make_string_port_with_config(config)
-    widget = SelectWidget(port)
+    widget = MenuWidget(port)
 
     with patch.object(basic_widgets.ui, "select") as mock_select:
         mock_element = MagicMock()
@@ -137,7 +137,7 @@ def test_select_widget_empty_options():
         assert call_kwargs["options"] == []
 
 
-def test_select_widget_callable_invoked_at_build_time():
+def test_menu_widget_callable_invoked_at_build_time():
     """Verify that callable options are invoked at build time, not at config time."""
     call_count = 0
 
@@ -149,7 +149,7 @@ def test_select_widget_callable_invoked_at_build_time():
     config = {"properties": {"options": options_callable}}
 
     port = make_string_port_with_config(config)
-    widget = SelectWidget(port)
+    widget = MenuWidget(port)
 
     # At this point the callable has not been invoked yet
     assert call_count == 0

@@ -81,7 +81,7 @@ def test_an_inlet_fold_still_draws_no_pin(graph_with_library_system) -> None:
 
 
 def test_a_fold_carries_the_fold_widget_and_its_label(graph_with_library_system) -> None:
-    """The header is the fold's widget, so FOLD overrides the SWITCH_WIDGET it
+    """The header is the fold's widget, so FOLD overrides the TOGGLE_WIDGET it
     would otherwise inherit from BOOL, and the widget learns the label from its config."""
     from haywire.barn.builtin.widget_keys import FOLD_WIDGET
 

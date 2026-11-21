@@ -367,7 +367,9 @@ class BaseSkin(ABC):
         Example::
 
             # The note's text, drawn by a widget of the skin's choosing.
-            self.render_setting_widget(node.annotation, "text", wrapper.node_id, widget_key=NOTE_TEXT_WIDGET)
+            self.render_setting_widget(
+                node.annotation, "text", wrapper.node_id, widget_key=ANNOTATION_TEXT_WIDGET
+            )
         """
         from haywire.ui.widget.factory import setting_widget_model
 

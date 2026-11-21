@@ -1,4 +1,4 @@
-# Field list
+# Field List
 
 `haywire-core:type:FIELD_LIST` · kind: type
 
