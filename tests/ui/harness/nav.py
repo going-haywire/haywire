@@ -23,20 +23,24 @@ def goto_ready(page: Page, url: str) -> None:
     page.wait_for_function("() => document.body.dataset.hwSynced === '1'")
 
 
-def wait_for_canvas_settled(page: Page, timeout: int = 5000) -> None:
-    """Wait until the canvas pan/zoom transform stops changing.
+def wait_for_canvas_settled(page: Page, timeout: int = 10_000) -> None:
+    """Wait until the canvas has centred itself and its pan/zoom transform stops changing.
 
     ``goto_ready`` returns once the server's messages are applied, but the
     canvas then centres itself (``ZoomPan.center_on_content`` →
     ``fitToContent``), which moves every pin. Geometry read before that
     settles is read mid-flight.
 
-    There is no "centred" stamp to wait on, so this watches the thing that
-    actually moves: ``.zoom-pan-content``'s transform, held equal across two
-    animation frames. Returns immediately on a page with no canvas.
+    The centring is a round trip through the server, so it can land any time
+    after ``goto_ready``. A harness canvas marks it (``routes._centre_when_ready``):
+    while a ``data-hw-fit-pending`` container lacks ``data-hw-fit-done``, this
+    keeps waiting. Then it watches ``.zoom-pan-content``'s transform, held equal
+    across two animation frames. Returns immediately on a page with no canvas.
     """
     page.wait_for_function(
         """() => {
+            const pending = [...document.querySelectorAll('[data-hw-fit-pending]')];
+            if (pending.some(e => !e.dataset.hwFitDone)) return false;
             const el = document.querySelector('.zoom-pan-content');
             if (!el) return true;
             const now = getComputedStyle(el).transform;
@@ -45,6 +49,23 @@ def wait_for_canvas_settled(page: Page, timeout: int = 5000) -> None:
             return settled;
         }""",
         timeout=timeout,
+    )
+
+
+def next_frames(page: Page, frames: int = 2) -> None:
+    """Return after the browser has run *frames* animation frames.
+
+    For work the page defers to ``requestAnimationFrame`` (an edge repaint, a cull
+    pass): a callback the page queued before this call runs before it returns,
+    whatever the machine's load, because frame callbacks run in the order queued.
+    Each extra frame covers one more hop of rAF-scheduling-rAF.
+    """
+    page.evaluate(
+        """(n) => new Promise(done => {
+            const step = (left) => left ? requestAnimationFrame(() => step(left - 1)) : done();
+            step(n);
+        })""",
+        frames,
     )
 
 

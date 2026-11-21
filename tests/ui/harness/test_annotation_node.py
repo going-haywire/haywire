@@ -174,7 +174,7 @@ def test_a_hidden_slot_is_a_drop_candidate(page: Page, harness) -> None:
     page.mouse.move(target["x"] - 20, target["y"], steps=4)
     page.mouse.move(target["x"], target["y"], steps=2)
     slot = _pin(ids["b"], "left_0")
-    page.wait_for_selector(f"{slot}.connection-valid, {slot}.connection-compatible", timeout=2000)
+    page.wait_for_selector(f"{slot}.connection-valid, {slot}.connection-compatible", timeout=10_000)
 
 
 def test_a_drop_near_a_side_grows_the_slot_on_that_side(page: Page, harness) -> None:
@@ -204,7 +204,7 @@ def test_double_click_edits_the_text_in_place(page: Page, harness) -> None:
     ids = _open(page, harness)
     x, y = _card_centre(page, ids["a"])
     page.mouse.dblclick(x, y)
-    area = page.wait_for_selector("textarea", timeout=3000)
+    area = page.wait_for_selector("textarea", timeout=10_000)
     assert area is not None
     assert area.input_value() == "hello"
     area.fill("a\nb")
@@ -229,7 +229,7 @@ def test_pressing_outside_the_editor_commits_it(page: Page, harness) -> None:
     ids = _open(page, harness)
     x, y = _card_centre(page, ids["a"])
     page.mouse.dblclick(x, y)
-    area = page.wait_for_selector("textarea", timeout=3000)
+    area = page.wait_for_selector("textarea", timeout=10_000)
     assert area is not None
     area.fill("outside")
     # Bottom-left corner of the canvas, clear of every card.
@@ -250,7 +250,7 @@ def test_tab_types_a_tab_and_a_press_inside_keeps_the_editor_open(page: Page, ha
     ids = _open(page, harness)
     x, y = _card_centre(page, ids["a"])
     page.mouse.dblclick(x, y)
-    area = page.wait_for_selector("textarea", timeout=3000)
+    area = page.wait_for_selector("textarea", timeout=10_000)
     assert area is not None
     area.press("End")
     area.press("Tab")

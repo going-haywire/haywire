@@ -68,6 +68,8 @@ def test_selecting_one_styled_edge_shows_the_toolbar_with_style(page: Page, harn
 def test_a_styled_and_an_unstyled_edge_grey_style_with_a_reason(page: Page, harness) -> None:
     _open(page, harness)
     _click(page, _STYLED)
+    # The shift-click extends a selection the server has acknowledged, not one still in flight.
+    _assert_style(page, "live")
     _click(page, _COMPUTED, shift=True)
     _assert_style(page, "greyed")
 

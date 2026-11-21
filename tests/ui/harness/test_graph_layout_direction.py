@@ -327,7 +327,14 @@ def test_vertical_pin_keeps_its_rotation_while_hovered(page: Page, harness) -> N
     )
     assert box  # keep the helper's assertion path exercised
     page.mouse.move(centre["x"], centre["y"])
-    page.wait_for_timeout(300)
+    # Read the transform once the :hover rule applies and any transition on it has finished.
+    page.wait_for_function(
+        """() => {
+            const pin = [...document.querySelectorAll('.connection-pin')]
+                .find(e => e.id.includes('TestBeginPlayNode') && e.dataset.pinId === 'exec');
+            return pin.matches(':hover') && pin.getAnimations().length === 0;
+        }"""
+    )
 
     assert abs(rotation_of()) == 90, (
         "hovering must not un-rotate the pin — the :hover scale has to compose "

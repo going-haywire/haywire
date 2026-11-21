@@ -16,7 +16,7 @@ and until now it had no DOM coverage at all. Two defects it shipped with:
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 
 _PATH = "/graph-error-skin"
 
@@ -27,7 +27,7 @@ def _open(page: Page, harness) -> None:
     goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-node-id]")
     page.wait_for_selector(".connection-pin")
-    page.wait_for_timeout(1000)
+    wait_for_canvas_settled(page)
 
 
 def _pin_ids(page: Page) -> list[str]:

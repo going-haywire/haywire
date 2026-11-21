@@ -10,7 +10,7 @@ from __future__ import annotations
 import pytest
 from playwright.sync_api import FloatRect, Locator, Page, expect
 
-from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
+from tests.ui.harness.nav import goto_ready, next_frames, wait_for_canvas_settled
 from tests.ui.harness.probe import attr
 
 _PATH = "/graph-inset"
@@ -78,6 +78,7 @@ def test_a_view_session_cannot_move_the_inset_slider(page: Page, harness):
     before = page.locator('[data-testid="echo-inset-value"]').inner_text()
 
     _drag_slider_right(page)
+    # A negative: nothing marks a write that did not happen, so give a stray one time to arrive.
     page.wait_for_timeout(500)
 
     expect(page.locator('[data-testid="echo-inset-value"]')).to_have_text(before)
@@ -191,6 +192,7 @@ def test_a_view_session_neither_drags_nor_enters_the_inset(page: Page, harness):
 
     _drag_body(page)
     page.mouse.dblclick(*_body_point(page))
+    # A negative: nothing marks a move or an Enter that did not happen, so give a stray one time to arrive.
     page.wait_for_timeout(500)
 
     expect(page.locator('[data-testid="echo-position"]')).to_have_text(before)
@@ -228,7 +230,9 @@ def test_culling_keeps_an_inset_s_interior_drawn(page: Page, harness):
     wait_for_canvas_settled(page)
 
     page.locator('[data-testid="enable-culling"]').click()
-    page.wait_for_timeout(500)
+    # The slider is visible before the click too: wait until culling is on and has had a frame to run.
+    expect(page.locator('[data-testid="echo-culling"]')).to_have_text("on")
+    next_frames(page)
 
     # The host card is in view, so what it draws stays drawn.
     expect(_slider(page)).to_be_visible()

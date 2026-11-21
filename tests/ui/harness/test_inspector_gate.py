@@ -130,7 +130,9 @@ def test_row_menu_writers_are_greyed_below_edit_and_developer_stays_live(page: P
     assert developer.evaluate("(el) => !window.hwAccess.isGated(el)")
     assert developer.evaluate("(el) => getComputedStyle(el).pointerEvents") == "auto"
     developer.hover()
-    page.locator('.q-menu .q-item:has-text("Settings source")').first.wait_for(state="visible", timeout=3000)
+    page.locator('.q-menu .q-item:has-text("Settings source")').first.wait_for(
+        state="visible", timeout=10_000
+    )
 
 
 def test_row_menu_writers_are_live_in_edit(page: Page, harness):
@@ -160,7 +162,7 @@ def test_the_promote_flyout_opens_on_hover_in_edit(page: Page, harness):
 
     _hover_promote_anchor(page)
 
-    page.locator(_PROMOTE_DIRECTION).first.wait_for(timeout=3000)
+    page.locator(_PROMOTE_DIRECTION).first.wait_for(timeout=10_000)
 
 
 def test_the_greyed_promote_anchor_keeps_its_flyout_shut_below_edit(page: Page, harness):

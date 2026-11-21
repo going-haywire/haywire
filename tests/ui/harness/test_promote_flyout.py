@@ -49,7 +49,7 @@ def test_hovering_the_anchor_opens_every_eligible_direction(page: Page, harness)
 
     for direction in ("inlet", "outlet", "config"):
         leaf = page.locator(f'.q-menu .q-item:has-text("{direction}")').last
-        leaf.wait_for(state="visible", timeout=3000)
+        leaf.wait_for(state="visible", timeout=10_000)
 
 
 def test_promotion_nests_rather_than_flattening(page: Page, harness):

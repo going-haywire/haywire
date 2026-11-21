@@ -26,9 +26,10 @@ _PATH = "/graph-chunked-load"
 
 pytestmark = pytest.mark.ui
 
-#: The overlay's own deadline is 20 s. Anything at or past it is the bug; this
-#: fixture draws in well under a second, so the margin is wide either way.
-_MAX_OVERLAY_SECONDS = 12.0
+#: The overlay's own deadline (``_await_client_drawn``). Its clock starts after the
+#: navigation this test times from, so an overlay gone in less than this was released
+#: by its condition and never by the deadline, however loaded the machine.
+_OVERLAY_DEADLINE_S = 20.0
 
 _OVERLAY = "text=The canvas is locked until the graph is fully drawn."
 
@@ -49,7 +50,7 @@ def test_the_canvas_is_handed_back_promptly(page: Page, harness):
     page.wait_for_selector(_OVERLAY, state="detached", timeout=25_000)
     elapsed = time.monotonic() - started
 
-    assert elapsed < _MAX_OVERLAY_SECONDS, (
+    assert elapsed < _OVERLAY_DEADLINE_S, (
         f"the load overlay stayed up {elapsed:.1f}s — it is waiting out its deadline, "
         "not waiting for the edges"
     )

@@ -15,7 +15,7 @@ import json
 import pytest
 from playwright.sync_api import Page, WebSocket, expect
 
-from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled, wait_until
 
 _PATH = "/graph-swinglet"
 _PROBES = ("v1", "v2", "v3", "p1", "p2", "add")
@@ -227,7 +227,7 @@ def _canvas_menu_pending_dir(page: Page, harness, held: str) -> str:
     )
     page.mouse.move(empty["x"], empty["y"])
     page.mouse.click(empty["x"], empty["y"], button="right")
-    page.wait_for_timeout(500)  # a sent frame has no signal to await
+    wait_until(page, lambda: any("contextMenuCanvas" in f for f in sent))
     events = [json.loads(json.loads(f[2:])[1]["args"][0]) for f in sent if "contextMenuCanvas" in f]
     assert events, "no contextMenuCanvas frame was sent"
     return events[-1]["data"]["pendingPinDir"]

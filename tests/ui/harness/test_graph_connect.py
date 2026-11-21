@@ -21,7 +21,7 @@ import re
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled, wait_until
+from tests.ui.harness.nav import goto_ready, next_frames, wait_for_canvas_settled, wait_until
 from tests.ui.harness.pin_edge import PIN_EDGE_JS
 
 _PATH = "/graph-connect"
@@ -93,7 +93,7 @@ def _click_pin(page: Page, id_fragment: str) -> dict:
     pos = _pin_center(page, id_fragment)
     page.mouse.move(pos["x"], pos["y"])  # register hover before the commit click
     page.mouse.click(pos["x"], pos["y"])
-    page.wait_for_timeout(250)
+    next_frames(page)  # the canvas handles the click at once; anything it defers runs within a frame
     return pos
 
 

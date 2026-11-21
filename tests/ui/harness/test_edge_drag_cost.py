@@ -22,7 +22,7 @@ unmistakable — it goes from a handful to a multiple of the pin count.
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready, wait_until
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled, wait_until
 
 _PATH = "/graph-dynamic"
 
@@ -70,7 +70,7 @@ def test_an_open_edge_drag_does_not_measure_every_pin_per_move(page: Page, harne
     goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-node-id]")
     page.wait_for_selector("path[data-edge-id]")
-    page.wait_for_timeout(1200)
+    wait_for_canvas_settled(page)
 
     pin_count = page.evaluate(COUNTER)
     assert pin_count > 4, f"fixture has only {pin_count} pins — cannot tell O(pins) from O(1)"

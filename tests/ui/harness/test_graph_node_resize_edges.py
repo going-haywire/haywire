@@ -15,7 +15,7 @@ Reuses the ``/graph-detail`` fixture: ``int_inlet`` is the only wired pin.
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
+from tests.ui.harness.nav import goto_ready, next_frames, wait_for_canvas_settled, wait_until
 from tests.ui.harness.test_graph_node_detail import _edge_end, _pin
 
 _PATH = "/graph-detail"
@@ -47,7 +47,10 @@ def _grow_above(page: Page, pin_id: str, height: int) -> None:
         }""",
         [pin_id, height],
     )
-    page.wait_for_timeout(300)  # ResizeObserver, then one rAF
+    # The ResizeObserver runs after the frame's rAF callbacks and queues the repaint for
+    # the next frame, so the third frame runs after the repaint.
+    wait_until(page, lambda: page.evaluate("() => window.__hwMeasureStats.edgeRelayouts") >= 1)
+    next_frames(page, 3)
 
 
 def _make_manual(page: Page, pin_id: str) -> None:
@@ -67,7 +70,8 @@ def _make_manual(page: Page, pin_id: str) -> None:
         }""",
         pin_id,
     )
-    page.wait_for_timeout(300)
+    # Let the switch's own ResizeObserver pass and repaint land before the count restarts.
+    next_frames(page, 3)
     page.evaluate("() => { window.__hwMeasureStats.edgeRelayouts = 0; }")
 
 
@@ -104,7 +108,7 @@ def test_hovering_the_cards_queues_no_edge_repaint(page: Page, harness) -> None:
     for _ in range(5):
         for box in boxes:
             page.mouse.move(box["x"], box["y"], steps=4)
-            page.wait_for_timeout(120)
+            page.wait_for_timeout(120)  # hover churn is the load; a repaint it queued would count
         page.mouse.move(5, 5, steps=4)
         page.wait_for_timeout(120)
 
