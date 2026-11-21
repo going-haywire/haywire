@@ -20,6 +20,8 @@ from haywire.core.execution.vm import HaywireVM
 from haywire.core.node.base import BaseNode
 from haywire.core.node.node_wrapper import NodeWrapper
 
+from tests.wait import wait_until
+
 
 def _wrapper() -> NodeWrapper:
     wrapper = NodeWrapper.__new__(NodeWrapper)
@@ -80,7 +82,7 @@ class _SharedDataNode(_Node):
     def _execute(self, context) -> None:
         if context.trigger.source_key == self.park_on:
             self.inside.set()
-            self.block.wait(10.0)
+            self.block.wait(30.0)
         return None
 
     def on_shutdown(self, context):  # type: ignore[override]
@@ -124,7 +126,8 @@ def test_kill_ends_frame_at_next_control_node():
 
     def park(context):
         third.set()
-        time.sleep(0.2)
+        # n3 is still running when the kill comes, whenever this thread gets there.
+        assert group.cancel.wait(30.0)
 
     nodes: List[_Node] = [_FrameEndNode("n1", ran)]
     nodes += [_Node(f"n{i}", ran, park if i == 3 else None) for i in range(2, 11)]
@@ -132,8 +135,8 @@ def test_kill_ends_frame_at_next_control_node():
     group = _group(flow, HaywireVM(), "g")
     group.start()
     assert _enqueue(flow, "t")
-    assert third.wait(2.0)
-    assert group.kill(2.0) is True
+    assert third.wait(10.0)
+    assert group.kill(10.0) is True
     assert ran == ["n1", "n2", "n3"]
     first = nodes[0]
     assert isinstance(first, _FrameEndNode)
@@ -151,15 +154,13 @@ def test_stop_timeout_escalates_to_kill():
     group.start()
     assert _enqueue(flow, "t")
     assert _enqueue(flow, "queued")
-    while not ran:
-        time.sleep(0.01)
-    start = time.monotonic()
-    assert group.stop(0.2) is True
-    assert time.monotonic() - start < 0.2 + 2.0
+    assert wait_until(lambda: ran)
+    # True only when the kill ended the run within stop()'s two timeouts.
+    assert group.stop(0.2, kill_timeout_s=10.0) is True
     assert group.is_abandoned is False
     assert first.shutdowns == 1
     assert flow.queue is not None
-    assert flow.queue.wait_for_completion(0.1)  # the queued trigger was discarded, not left pending
+    assert flow.queue.wait_for_completion(10.0)  # the queued trigger was discarded, not left pending
 
 
 @pytest.mark.unit
@@ -169,7 +170,7 @@ def test_stuck_worker_is_abandoned():
 
     def block(context):
         entered.set()
-        stuck.wait(10.0)
+        stuck.wait(30.0)
 
     flow = _flow("stuck", [_Node("n1", [], block)])
     group = _group(flow, HaywireVM(), "g")
@@ -178,13 +179,13 @@ def test_stuck_worker_is_abandoned():
     group.start()
     try:
         assert _enqueue(flow, "t")
-        assert entered.wait(2.0)
+        assert entered.wait(10.0)
         assert group.kill(0.2) is False
         assert group.is_abandoned is True
         assert interpreter.has_abandoned_runners() is True
     finally:
         stuck.set()
-        assert group._exited.wait(2.0)
+        assert group._exited.wait(10.0)
     assert group.is_abandoned is False
     assert interpreter.has_abandoned_runners() is False
 
@@ -206,20 +207,19 @@ def test_stop_frees_group_waiting_on_shared_data_node():
         _enqueue(flow_b, "warm_b")
         assert flow_a.queue is not None
         assert flow_b.queue is not None
-        assert flow_a.queue.wait_for_completion(2.0)
-        assert flow_b.queue.wait_for_completion(2.0)
+        assert flow_a.queue.wait_for_completion(10.0)
+        assert flow_b.queue.wait_for_completion(10.0)
 
         _enqueue(flow_a, "a")
-        assert s.inside.wait(2.0)
+        assert s.inside.wait(10.0)
         _enqueue(flow_b, "b")
-        time.sleep(0.2)  # B's frame now waits for s
-        assert flow_b.queue.is_busy()
+        assert wait_until(flow_b.queue.is_busy)  # B's frame now waits for s
 
         assert ga.stop(0.2, kill_timeout_s=0.2) is False
-        assert gb.stop(0.2, kill_timeout_s=1.0) is True
+        assert gb.stop(0.2, kill_timeout_s=10.0) is True
         assert ga.is_abandoned is True
         assert interpreter.has_abandoned_runners() is True
         assert s.shutdowns == 0
     finally:
         s.block.set()
-        assert ga._exited.wait(2.0)
+        assert ga._exited.wait(10.0)

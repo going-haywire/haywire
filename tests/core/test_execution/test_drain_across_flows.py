@@ -6,9 +6,8 @@ through ``HaywireVM.emit_callback``, so the two run on separate threads and
 interleave freely.
 """
 
-import time
 from functools import partial
-from typing import Any, Callable
+from typing import Any
 
 import pytest
 
@@ -16,17 +15,9 @@ from haywire.core.execution.interpreter import Interpreter
 from haywire.core.graph.base import BaseGraph
 
 from tests.conftest import make_edge, make_node
+from tests.wait import wait_until
 
 WRITES = 300
-
-
-def _wait_until(cond: Callable[[], bool], timeout: float = 10.0) -> None:
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        if cond():
-            return
-        time.sleep(0.01)
-    raise AssertionError("condition not reached")
 
 
 def _settled(producer: Any, consumer: Any, written: int, takes: int) -> bool:
@@ -70,10 +61,10 @@ class TestADrainInletAcrossFlows:
                     # Midway, once the first half is written and every take so far has run,
                     # one more take empties the queue: values are taken before the second
                     # half is written, whatever order the two threads ran in.
-                    _wait_until(partial(_settled, producer, consumer, WRITES // 2, takes))
+                    assert wait_until(partial(_settled, producer, consumer, WRITES // 2, takes))
                     interpreter.vm.emit_callback(c_event.node_id)
                     takes += 1
-                    _wait_until(partial(_settled, producer, consumer, WRITES // 2, takes))
+                    assert wait_until(partial(_settled, producer, consumer, WRITES // 2, takes))
                     taken_midway = len(consumer.taken)
                 interpreter.vm.emit_callback(p_event.node_id)
                 if i % 7 == 0:

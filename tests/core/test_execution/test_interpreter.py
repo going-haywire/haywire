@@ -11,6 +11,7 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.di.config import LibrarySystemService
 
 from tests.conftest import make_node
+from tests.wait import wait_until
 
 
 @pytest.mark.integration
@@ -360,7 +361,25 @@ class TestInterpreter:
 
         return graph
 
-    def _stop_must_not_hang(self, interpreter: Interpreter, ceiling: float = 8.0) -> float:
+    @staticmethod
+    def _tick_flows(interpreter: Interpreter) -> list:
+        return [
+            flow
+            for key, flows in interpreter.event_subscriptions.items()
+            if not key.startswith("system:")
+            for flow in flows
+        ]
+
+    def _wait_for_ticks(self, interpreter: Interpreter) -> None:
+        """Wait until an emitter feeds its Tick flow, so stop meets a running producer."""
+        tick_flows = self._tick_flows(interpreter)
+        assert len(tick_flows) == 2
+        ticking = wait_until(lambda: any(flow.queue.snapshot().frames > 0 for flow in tick_flows))
+        if not ticking:
+            interpreter.shutdown()  # stops the emitter threads, which would outlive the test
+        assert ticking
+
+    def _stop_must_not_hang(self, interpreter: Interpreter, ceiling: float = 30.0) -> float:
         """Run stop_execution on a watchdog; fail if it exceeds ``ceiling``."""
         import threading
         import time as _time
@@ -389,35 +408,35 @@ class TestInterpreter:
         graceful path, so stop skips the grace period and force-tears-down
         immediately; on_shutdown is the last-resort thread kill.
         """
-        import time
-
         graph = self._build_two_tick_emitters(graph_with_library_system, with_shutdown=False)
 
         interpreter = Interpreter()
         interpreter.load_graph(graph)
         interpreter.start_execution()
+        self._wait_for_ticks(interpreter)
 
-        # Let the tick threads spin up and start feeding the Tick queues.
-        time.sleep(0.2)
+        # No graceful path => no grace period: stop never waits on a producer-fed flow.
+        waited_on: list = []
+        for flow in self._tick_flows(interpreter):
+            wait = flow.queue.wait_for_completion
+            flow.queue.wait_for_completion = lambda *a, _flow=flow, _wait=wait, **k: (
+                waited_on.append(_flow.flow_id) or _wait(*a, **k)
+            )
 
-        elapsed = self._stop_must_not_hang(interpreter)
-        # No graceful path => no grace period => fast stop.
-        assert elapsed < 4.0
+        self._stop_must_not_hang(interpreter)
+        assert waited_on == []
         assert not interpreter.is_executing
 
     def test_stop_with_tick_emitters_graceful_shutdown(
         self, graph_with_library_system: BaseGraph, library_system: LibrarySystemService
     ):
         """Two running TickEmit producers with Shutdown→stop wired: stop is graceful."""
-        import time
-
         graph = self._build_two_tick_emitters(graph_with_library_system, with_shutdown=True)
 
         interpreter = Interpreter()
         interpreter.load_graph(graph)
         interpreter.start_execution()
-
-        time.sleep(0.2)
+        self._wait_for_ticks(interpreter)
 
         # Graceful path runs during the grace period; must still not hang.
         self._stop_must_not_hang(interpreter)

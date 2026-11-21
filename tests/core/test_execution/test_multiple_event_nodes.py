@@ -73,7 +73,7 @@ class TestMultipleEventNodes:
             assert len(interpreter.event_subscriptions[key]) == 2
             assert len(interpreter.groups) == 2
             interpreter.start_execution()
-            interpreter.wait_all(timeout=2.0)
+            interpreter.wait_all(timeout=10.0)
         finally:
             interpreter.shutdown()
 
@@ -99,7 +99,7 @@ class TestMultipleEventNodes:
         try:
             assert len(interpreter.groups) == 1
             interpreter.start_execution()
-            interpreter.wait_all(timeout=2.0)
+            interpreter.wait_all(timeout=10.0)
         finally:
             interpreter.shutdown()
 
@@ -121,7 +121,7 @@ class TestMultipleEventNodes:
         interpreter.load_graph(graph)
         try:
             interpreter.start_execution()
-            interpreter.stop_execution(timeout=2.0)
+            interpreter.stop_execution(timeout=10.0)
         finally:
             interpreter.shutdown()
 
@@ -155,7 +155,7 @@ class TestMultipleEventNodes:
             assert len(interpreter.event_subscriptions["callback:shared_name"]) == 2
             # The testbed listener writes the whole payload to a FLOAT outlet.
             interpreter.vm.emit_callback("shared_name", 1.0)  # type: ignore[arg-type]
-            interpreter.wait_all(timeout=2.0)
+            interpreter.wait_all(timeout=10.0)
         finally:
             interpreter.shutdown()
 
@@ -180,7 +180,8 @@ def test_shutdown_grace_is_one_deadline_for_all_shutdown_flows():
     interpreter.event_subscriptions = flows  # type: ignore[assignment]
     interpreter.dispatch_system_event = lambda *args, **kwargs: 0  # type: ignore[method-assign]
 
-    start = time.monotonic()
     interpreter.stop_execution(timeout=0.3)
-    assert time.monotonic() - start < 0.6
-    assert sum(waits) <= 0.3 + 0.05
+    # The first stuck flow spends the whole deadline; the others find none left.
+    assert len(waits) == 3
+    assert waits[0] <= 0.3
+    assert waits[1:] == [0.0, 0.0]

@@ -39,6 +39,8 @@ def test_a_subgraph_batch_waits_while_its_host_validates(graph_with_library_syst
 
     with graph._validation.lock:
         worker.start()
+        # Nothing marks the worker blocked on the lock; the sleep gives a worker that
+        # does not block the time to finish.
         time.sleep(0.2)
         assert worker.is_alive(), "the Subgraph marked itself dirty while its host held the lock"
     worker.join(timeout=10)

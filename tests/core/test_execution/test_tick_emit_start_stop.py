@@ -44,7 +44,7 @@ def _together(n: int, fn) -> List[BaseException]:
     for t in threads:
         t.start()
     for t in threads:
-        t.join(5.0)
+        t.join(30.0)
     return errors
 
 

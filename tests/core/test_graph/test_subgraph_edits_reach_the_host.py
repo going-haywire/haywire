@@ -24,6 +24,7 @@ from haywire.core.graph.subgraph import SubgraphDefinition
 from haywire.core.graph.types import ChangeReason
 
 from tests.conftest import make_node
+from tests.wait import wait_until
 
 if TYPE_CHECKING:
     from haywire.barn.builtin.nodes.graph_node import GraphNode
@@ -34,9 +35,9 @@ _ADD_FLOAT = "haybale-testing:node:TestAddFloatNode"
 _OUTPUT = "haywire-core:node:SubgraphOutputNode"
 _CARD = "haywire-core:node:GraphNode"
 
-#: Long enough for both debounce windows (50ms each, host after Subgraph) to
-#: close on a loaded machine. Real time, because a real background timer is
-#: what the cascade rides on.
+#: How long a test that expects nothing gives both debounce windows (50ms each,
+#: host after Subgraph) to close. Real time, because a real background timer is
+#: what the cascade rides on, and nothing marks the cascade as not coming.
 _SETTLE_S = 0.3
 
 
@@ -94,9 +95,8 @@ def test_moving_a_node_inside_reports_to_the_host(card_over_a_subgraph):
     seen = _record(graph)
 
     definition.move_node(interior.node_id, 123.0, 456.0)
-    time.sleep(_SETTLE_S)
 
-    assert any(result.requires_save() for result in seen)
+    assert wait_until(lambda: any(result.requires_save() for result in seen))
 
 
 def test_growing_an_interface_reaches_the_card(card_over_a_subgraph):
@@ -111,8 +111,10 @@ def test_growing_an_interface_reaches_the_card(card_over_a_subgraph):
         producer.node.add(FLOAT.as_outlet("score", label="Match Score", default=0.6))
     slot_id = _slot(output_node.node)
     definition.create_edge_wrapper(producer.node_id, "score", output_node.node_id, slot_id)
-    time.sleep(_SETTLE_S)
 
+    assert wait_until(
+        lambda: f"out_{slot_id}" in card.node.ports and any(result.requires_save() for result in seen)
+    )
     assert f"out_{slot_id}" in card.node.ports
     assert any(result.requires_save() for result in seen)
 

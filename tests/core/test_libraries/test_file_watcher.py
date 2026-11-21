@@ -17,6 +17,7 @@ Covers:
 
 import threading
 import time
+from types import SimpleNamespace
 
 import pytest
 from watchdog.events import (
@@ -27,6 +28,7 @@ from watchdog.events import (
     DirCreatedEvent,
 )
 
+from haywire.core.library import file_watcher
 from haywire.core.library.file_watcher import LibraryFileHandler
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.base import (
@@ -35,6 +37,8 @@ from haywire.core.registry.base import (
     FileEventType,
     HotReloadRegistry,
 )
+
+from tests.wait import wait_until
 
 
 # ---------------------------------------------------------------------------
@@ -63,19 +67,13 @@ class RecordingRegistry(HotReloadRegistry):
         self.events.append(event)
         self._event.set()
 
-    def wait_for_event(self, timeout: float = 2.0) -> bool:
+    def wait_for_event(self, timeout: float = 10.0) -> bool:
         """Wait until at least one event arrives. Returns True if event received."""
         return self._event.wait(timeout)
 
-    def wait_for_n_events(self, n: int, timeout: float = 2.0) -> bool:
+    def wait_for_n_events(self, n: int, timeout: float = 10.0) -> bool:
         """Wait until n events have arrived."""
-        deadline = time.monotonic() + timeout
-        while len(self.events) < n:
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                return False
-            time.sleep(0.01)
-        return True
+        return wait_until(lambda: len(self.events) >= n, timeout_s=timeout)
 
     def clear(self):
         self.events.clear()
@@ -115,13 +113,54 @@ class _RejectingRegistry(BaseRegistry):
     def _on_delete(self, module_name, library_identity):
         self.deleted.append(module_name)
 
-    def wait_for_n_events(self, n: int, timeout: float = 2.0) -> bool:
-        deadline = time.monotonic() + timeout
-        while len(self.events) < n:
-            if time.monotonic() >= deadline:
-                return False
-            time.sleep(0.01)
-        return True
+    def wait_for_n_events(self, n: int, timeout: float = 10.0) -> bool:
+        return wait_until(lambda: len(self.events) >= n, timeout_s=timeout)
+
+
+class _ManualTimer:
+    """A ``threading.Timer`` stand-in that fires only when the test says so."""
+
+    def __init__(self, timers: "_ManualTimers", interval: float, function, args=None):
+        self.interval = interval
+        self.function = function
+        self.args = args or []
+        self.cancelled = False
+        self.fired = False
+        timers.started.append(self)
+
+    def start(self) -> None:
+        pass
+
+    def cancel(self) -> None:
+        self.cancelled = True
+
+
+class _ManualTimers:
+    """The debounce timers a handler started, fired by hand: what a debounce window coalesces
+    no longer depends on how fast this thread issues its events."""
+
+    def __init__(self):
+        self.started: list[_ManualTimer] = []
+
+    def make(self, interval: float, function, args=None) -> _ManualTimer:
+        return _ManualTimer(self, interval, function, args)
+
+    def pending(self) -> list[_ManualTimer]:
+        return [t for t in self.started if not t.cancelled and not t.fired]
+
+    def fire(self) -> None:
+        """Let every debounce window still open run out, on this thread."""
+        for timer in self.pending():
+            timer.fired = True
+            timer.function(*timer.args)
+
+
+@pytest.fixture
+def timers(monkeypatch) -> _ManualTimers:
+    """Replace the handler's debounce timers with ones the test fires itself."""
+    manual = _ManualTimers()
+    monkeypatch.setattr(file_watcher, "threading", SimpleNamespace(Timer=manual.make, Lock=threading.Lock))
+    return manual
 
 
 @pytest.fixture
@@ -223,17 +262,17 @@ class TestFiltering:
         assert registry.created == []
         assert registry.deleted == []
 
-    def test_directory_events_ignored(self, wired_handler, identity, registry):
+    def test_directory_events_ignored(self, timers, wired_handler, identity, registry):
         """Directory events should be silently dropped."""
         wired_handler.on_created(DirCreatedEvent(f"{identity.folder_path}/subdir"))
-        time.sleep(0.1)
+        assert timers.started == [], "a dropped event schedules no dispatch"
         assert len(registry.events) == 0
 
-    def test_file_outside_watched_folder_ignored(self, handler, registry, identity):
+    def test_file_outside_watched_folder_ignored(self, timers, handler, registry, identity):
         """Events for files outside all watched folders should be dropped."""
         handler.add_folder_mapping(identity.folder_path, identity, registry, debounce_delay=0.05)
         handler.on_created(FileCreatedEvent("/completely/other/path/module.py"))
-        time.sleep(0.1)
+        assert timers.started == [], "a dropped event schedules no dispatch"
         assert len(registry.events) == 0
 
 
@@ -269,20 +308,22 @@ class TestAtomicWrites:
         assert registry.events[0].event_type == FileEventType.MODIFIED
         assert registry.events[0].file_path == f"{base}/haybale.toml"
 
-    def test_atomic_write_suppresses_spurious_delete(self, wired_handler, identity, registry):
+    def test_atomic_write_suppresses_spurious_delete(self, timers, wired_handler, identity, registry):
         """
         After an atomic write (MOVE), the OS may deliver a spurious DELETE
         for the destination file.  The watcher should suppress it.
         """
         base = identity.folder_path
         wired_handler.on_moved(FileMovedEvent(f"{base}/module.py.tmp.12345", f"{base}/module.py"))
-        assert registry.wait_for_event()
+        timers.fire()
+        assert len(registry.events) == 1
         registry.clear()
 
         # Spurious DELETE arrives shortly after
         wired_handler.on_deleted(FileDeletedEvent(f"{base}/module.py"))
-        time.sleep(0.1)
-        assert len(registry.events) == 0, "DELETE after atomic write should be suppressed"
+        assert timers.pending() == [], "DELETE after atomic write should be suppressed"
+        timers.fire()
+        assert len(registry.events) == 0
 
     def test_delete_suppression_expires(self, wired_handler, identity, registry):
         """
@@ -323,20 +364,19 @@ class TestTrueRenames:
         assert (f"{base}/existing.py", FileEventType.DELETED) in types
         assert (f"{base}/bar.py", FileEventType.CREATED) in types
 
-    def test_moving_an_untracked_file_is_an_atomic_write(self, wired_handler, identity, registry):
+    def test_moving_an_untracked_file_is_an_atomic_write(self, timers, wired_handler, identity, registry):
         """A source nobody ever saw is a scratch file, whatever it is named."""
         base = identity.folder_path
         assert f"{base}/foo.py" not in wired_handler._known_files
 
         wired_handler.on_moved(FileMovedEvent(f"{base}/foo.py", f"{base}/bar.py"))
-        assert registry.wait_for_event()
-        time.sleep(0.1)
+        timers.fire()
         assert len(registry.events) == 1
         assert registry.events[0].event_type == FileEventType.MODIFIED
         assert registry.events[0].file_path == f"{base}/bar.py"
 
     def test_atomic_write_from_a_tracked_temp_file_in_the_watched_folder(
-        self, wired_handler, identity, registry
+        self, timers, wired_handler, identity, registry
     ):
         """A temp file written *inside* the watched folder is still an atomic write.
 
@@ -350,12 +390,12 @@ class TestTrueRenames:
         # _known_files via its own CREATE — the condition that used to make the
         # following move look like a rename. Let that event drain first.
         wired_handler.on_created(FileCreatedEvent(f"{base}/existing.py.tmp"))
-        assert registry.wait_for_event()
+        timers.fire()
+        assert len(registry.events) == 1
         registry.clear()
 
         wired_handler.on_moved(FileMovedEvent(f"{base}/existing.py.tmp", f"{base}/existing.py"))
-        assert registry.wait_for_event()
-        time.sleep(0.1)
+        timers.fire()
 
         assert [e.event_type for e in registry.events] == [FileEventType.MODIFIED]
         assert registry.events[0].file_path == f"{base}/existing.py"
@@ -363,7 +403,7 @@ class TestTrueRenames:
         assert f"{base}/existing.py.tmp" not in wired_handler._known_files
 
     def test_spurious_delete_after_tracked_temp_atomic_write_is_suppressed(
-        self, wired_handler, identity, registry
+        self, timers, wired_handler, identity, registry
     ):
         """The suppression window must arm on this path too.
 
@@ -374,11 +414,13 @@ class TestTrueRenames:
         base = identity.folder_path
         wired_handler.on_created(FileCreatedEvent(f"{base}/existing.py.tmp"))
         wired_handler.on_moved(FileMovedEvent(f"{base}/existing.py.tmp", f"{base}/existing.py"))
-        assert registry.wait_for_n_events(2)
+        timers.fire()
+        assert len(registry.events) == 2
         registry.clear()
 
         wired_handler.on_deleted(FileDeletedEvent(f"{base}/existing.py"))
-        time.sleep(0.15)
+        assert timers.pending() == []
+        timers.fire()
         assert registry.events == []
 
 
@@ -390,36 +432,37 @@ class TestTrueRenames:
 @pytest.mark.unit
 @pytest.mark.core
 class TestDebounceCoalescing:
-    """Rapid events for the same file should be coalesced by the debounce timer."""
+    """Rapid events for the same file should be coalesced by the debounce timer.
 
-    def test_rapid_modifications_coalesce(self, wired_handler, identity, registry):
+    "Rapid" means within one debounce window; the windows are closed by hand
+    (``timers.fire()``), so a slow test thread cannot split them.
+    """
+
+    def test_rapid_modifications_coalesce(self, timers, wired_handler, identity, registry):
         """Multiple rapid MODIFIEDs should produce only one dispatched event."""
         path = f"{identity.folder_path}/module.py"
         for _ in range(5):
             wired_handler.on_modified(FileModifiedEvent(path))
-        assert registry.wait_for_event()
-        # Wait a bit more to confirm no extra events
-        time.sleep(0.15)
+        assert [t.interval for t in timers.pending()] == [0.05]
+        timers.fire()
         assert len(registry.events) == 1
         assert registry.events[0].event_type == FileEventType.MODIFIED
 
-    def test_create_then_modify_coalesces_to_latest(self, wired_handler, identity, registry):
+    def test_create_then_modify_coalesces_to_latest(self, timers, wired_handler, identity, registry):
         """A CREATE followed quickly by MODIFIED should coalesce to MODIFIED."""
         path = f"{identity.folder_path}/module.py"
         wired_handler.on_created(FileCreatedEvent(path))
         wired_handler.on_modified(FileModifiedEvent(path))
-        assert registry.wait_for_event()
-        time.sleep(0.15)
+        timers.fire()
         assert len(registry.events) == 1
         assert registry.events[0].event_type == FileEventType.MODIFIED
 
-    def test_modify_then_delete_coalesces_to_deleted(self, wired_handler, identity, registry):
+    def test_modify_then_delete_coalesces_to_deleted(self, timers, wired_handler, identity, registry):
         """A MODIFIED followed quickly by DELETED should coalesce to DELETED."""
         path = f"{identity.folder_path}/module.py"
         wired_handler.on_modified(FileModifiedEvent(path))
         wired_handler.on_deleted(FileDeletedEvent(path))
-        assert registry.wait_for_event()
-        time.sleep(0.15)
+        timers.fire()
         assert len(registry.events) == 1
         assert registry.events[0].event_type == FileEventType.DELETED
 
@@ -452,7 +495,7 @@ class TestMultipleRegistries:
         assert len(reg_a.events) == 1
         assert len(reg_b.events) == 1
 
-    def test_event_only_routed_to_matching_registry(self, handler, tmp_path):
+    def test_event_only_routed_to_matching_registry(self, timers, handler, tmp_path):
         """An event should only reach registries whose folder prefix matches."""
         lib_a = tmp_path / "lib_a"
         lib_b = tmp_path / "lib_b"
@@ -469,8 +512,7 @@ class TestMultipleRegistries:
         handler.add_folder_mapping(str(lib_b), id_b, reg_b, debounce_delay=0.05)
 
         handler.on_modified(FileModifiedEvent(f"{lib_a}/module.py"))
-        assert reg_a.wait_for_event()
-        time.sleep(0.1)
+        timers.fire()
         assert len(reg_a.events) == 1
         assert len(reg_b.events) == 0
 
@@ -594,14 +636,13 @@ class TestAtomicWriteRaceCondition:
     for a file that is being atomically overwritten.  It should see MODIFIED.
     """
 
-    def test_create_before_move_should_emit_modified(self, handler, identity):
+    def test_create_before_move_should_emit_modified(self, timers, handler, identity):
         """
         Simulate the race: OS delivers CREATE for dest.py, then later the
         MOVE (tmp → dest.py).  The debounce should coalesce them so only
         MODIFIED reaches the registry.
 
-        This test uses a longer debounce to ensure the MOVE arrives before
-        the CREATE timer fires.
+        The MOVE arrives before the CREATE's debounce window closes.
         """
         registry = RecordingRegistry()
         handler.add_folder_mapping(identity.folder_path, identity, registry, debounce_delay=0.2)
@@ -613,8 +654,7 @@ class TestAtomicWriteRaceCondition:
         # Step 2: Shortly after, OS fires MOVE (tmp → .py) — the real event
         handler.on_moved(FileMovedEvent(f"{base}/existing.py.tmp.99999", f"{base}/existing.py"))
 
-        assert registry.wait_for_event()
-        time.sleep(0.3)
+        timers.fire()
         assert len(registry.events) == 1, (
             f"Expected exactly 1 event, got {len(registry.events)}: "
             f"{[(e.event_type, e.file_path) for e in registry.events]}"
@@ -625,7 +665,7 @@ class TestAtomicWriteRaceCondition:
         )
 
     def test_create_dispatched_before_move_arrives(
-        self, handler: LibraryFileHandler, identity: LibraryIdentity
+        self, timers: _ManualTimers, handler: LibraryFileHandler, identity: LibraryIdentity
     ):
         """
         Simulate the worst-case race: the CREATE event's debounce timer
@@ -643,14 +683,13 @@ class TestAtomicWriteRaceCondition:
         # Step 1: OS fires CREATE for the destination (existing file)
         handler.on_created(FileCreatedEvent(f"{base}/existing.py"))
 
-        # Step 2: Wait long enough for the CREATE debounce to fire
-        time.sleep(0.08)
+        # Step 2: the CREATE's debounce window closes and it is dispatched
+        timers.fire()
+        assert len(registry.events) == 1
 
         # Step 3: MOVE arrives late
         handler.on_moved(FileMovedEvent(f"{base}/existing.py.tmp.99999", f"{base}/existing.py"))
-
-        assert registry.wait_for_n_events(1)
-        time.sleep(0.1)
+        timers.fire()
 
         event_types = [e.event_type for e in registry.events]
 

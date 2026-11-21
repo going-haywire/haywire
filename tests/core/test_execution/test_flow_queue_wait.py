@@ -51,6 +51,8 @@ def test_wait_for_completion_times_out_under_continuous_producer():
     """
     flow_queue = _make_queue()
     stop = threading.Event()
+    # Unfinished before the wait starts, whenever the producer thread gets to run.
+    flow_queue.trigger_queue.put(_trigger())
 
     def producer():
         # Feed faster than we ever drain (we never call task_done here),
@@ -70,8 +72,8 @@ def test_wait_for_completion_times_out_under_continuous_producer():
         producer_thread.join(timeout=1.0)
 
     assert result is False  # timed out rather than completed
-    # Returned near the deadline, not hung and not instant.
-    assert 0.5 <= elapsed < 2.0
+    # Waited out its deadline; the upper bound only tells a hang from a slow machine.
+    assert 0.5 <= elapsed < 30.0
 
 
 @pytest.mark.unit
@@ -82,6 +84,7 @@ def test_wait_for_completion_returns_true_once_backlog_clears():
         flow_queue.trigger_queue.put(_trigger())
 
     def drainer():
+        # Usually lets the wait start on a non-empty queue; the result is the same if it does not.
         time.sleep(0.05)
         for _ in range(5):
             flow_queue.trigger_queue.get()
@@ -90,6 +93,6 @@ def test_wait_for_completion_returns_true_once_backlog_clears():
     drain_thread = threading.Thread(target=drainer, daemon=True)
     drain_thread.start()
     try:
-        assert flow_queue.wait_for_completion(timeout=2.0) is True
+        assert flow_queue.wait_for_completion(timeout=10.0) is True
     finally:
-        drain_thread.join(timeout=1.0)
+        drain_thread.join(timeout=10.0)

@@ -22,6 +22,8 @@ from haywire.core.graph.base import BaseGraph
 from tests.conftest import make_edge, make_node
 
 BARRIER_TIMEOUT_S = 0.5
+#: Bounds only a failing run: a flow that drains returns at once.
+WAIT_TIMEOUT_S = 30.0
 
 
 class _OverlapProbe:
@@ -122,7 +124,7 @@ class TestSharedNodeConcurrentExecution:
         try:
             assert len(_flows_containing(interpreter, x.node_id)) == 2
             interpreter.start_execution()
-            interpreter.wait_all(timeout=6 * BARRIER_TIMEOUT_S)
+            interpreter.wait_all(timeout=WAIT_TIMEOUT_S)
         finally:
             interpreter.shutdown()
 
@@ -181,9 +183,9 @@ class TestSharedNodeConcurrentExecution:
         interpreter.load_graph(graph)
         try:
             interpreter.vm.emit_callback(a.node_id)
-            assert probe.first_inside.wait(5.0), "flow A never reached X"
+            assert probe.first_inside.wait(WAIT_TIMEOUT_S), "flow A never reached X"
             interpreter.vm.emit_callback(b.node_id)
-            interpreter.wait_all(timeout=6 * BARRIER_TIMEOUT_S)
+            interpreter.wait_all(timeout=WAIT_TIMEOUT_S)
         finally:
             interpreter.shutdown()
 
@@ -245,7 +247,7 @@ class TestSharedNodeConcurrentExecution:
             assert len(gate) == 1
             interpreter.vm.emit_callback(a.node_id)
             interpreter.vm.emit_callback(b.node_id)
-            interpreter.wait_all(timeout=6 * BARRIER_TIMEOUT_S)
+            interpreter.wait_all(timeout=WAIT_TIMEOUT_S)
         finally:
             interpreter.shutdown()
 
@@ -301,8 +303,8 @@ class TestSharedNodeConcurrentExecution:
         try:
             interpreter.load_graph(graph)
             interpreter.start_execution()
-            assert probe.first_inside.wait(5.0), "BeginPlay flow never reached X"
-            interpreter.stop_execution(timeout=6 * BARRIER_TIMEOUT_S)
+            assert probe.first_inside.wait(WAIT_TIMEOUT_S), "BeginPlay flow never reached X"
+            interpreter.stop_execution(timeout=WAIT_TIMEOUT_S)
         finally:
             interpreter.shutdown()
             mp.undo()
@@ -354,10 +356,10 @@ class TestSharedNodeConcurrentExecution:
             assert len(interpreter.groups) == 2
             d.node.ports["value_a"].set_value(1.0)  # widget-style own write: marks D dirty
             interpreter.vm.emit_callback(a.node_id)
-            assert probe.first_inside.wait(5.0), "flow A never evaluated D"
+            assert probe.first_inside.wait(WAIT_TIMEOUT_S), "flow A never evaluated D"
             d.node.ports["value_a"].set_value(2.0)
             interpreter.vm.emit_callback(b.node_id)
-            interpreter.wait_all(timeout=6 * BARRIER_TIMEOUT_S)
+            interpreter.wait_all(timeout=WAIT_TIMEOUT_S)
         finally:
             interpreter.shutdown()
 

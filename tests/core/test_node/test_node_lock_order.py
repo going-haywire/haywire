@@ -33,7 +33,9 @@ def _node_lock_is_free_while_the_worker_waits(wrapper, action: Callable[[], Any]
     with wrapper.graph._validation.lock:
         worker = threading.Thread(target=run, daemon=True)
         worker.start()
-        time.sleep(0.2)  # let the worker reach the validation lock
+        # Nothing marks the worker blocked on the validation lock. A worker slower than this
+        # sleep makes the check pass without testing, never fail.
+        time.sleep(0.2)
         free = wrapper._lock.acquire(timeout=1.0)
         if free:
             wrapper._lock.release()

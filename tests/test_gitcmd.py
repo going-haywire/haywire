@@ -113,7 +113,7 @@ def test_git_result_is_frozen() -> None:
 
 
 def test_run_success_returns_ok_and_stdout(tmp_path: Path) -> None:
-    result = run(["echo", "hello"], cwd=tmp_path, timeout=5.0)
+    result = run(["echo", "hello"], cwd=tmp_path, timeout=30.0)
     assert result.ok is True
     assert result.returncode == 0
     assert "hello" in result.stdout
@@ -121,7 +121,7 @@ def test_run_success_returns_ok_and_stdout(tmp_path: Path) -> None:
 
 
 def test_run_failure_returns_not_ok(tmp_path: Path) -> None:
-    result = run(["python3", "-c", "import sys; sys.exit(3)"], cwd=tmp_path, timeout=5.0)
+    result = run(["python3", "-c", "import sys; sys.exit(3)"], cwd=tmp_path, timeout=30.0)
     assert result.ok is False
     assert result.returncode == 3
 

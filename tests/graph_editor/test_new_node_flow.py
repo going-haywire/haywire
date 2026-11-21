@@ -20,6 +20,7 @@ from haywire.core.node.registry import NodeRegistry
 from haywire.core.registry.base import FileChangeEvent, FileEventType
 
 from tests.core.test_authoring import conftest as authoring
+from tests.wait import wait_until
 
 # The authoring fixtures, shared with tests/core/test_authoring.
 packages = authoring.packages
@@ -99,7 +100,7 @@ def _flow(env, **kwargs):
         resolve=lambda key: env["classes"].get(key)
         or (env["templated"] if key == env["templated"].class_identity.registry_key else None),
         menu_paths=["a/b"],
-        timeout_s=kwargs.pop("timeout_s", 5.0),
+        timeout_s=kwargs.pop("timeout_s", 30.0),
         **kwargs,
     )
 
@@ -116,9 +117,7 @@ def _watch_for(registry, identity, plan) -> threading.Thread:
             return False
 
     def _run():
-        deadline = time.monotonic() + 5
-        while not _written() and time.monotonic() < deadline:
-            time.sleep(0.01)
+        wait_until(_written, timeout_s=30.0)
         registry.event_dispatcher(FileChangeEvent(str(path), FileEventType.CREATED, identity, time.time()))
 
     thread = threading.Thread(target=_run)

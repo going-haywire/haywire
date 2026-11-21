@@ -18,6 +18,7 @@ from haywire.core.graph.scheduler import ThreadingTimerScheduler
 from haywire.core.graph.types import ChangeReason
 
 from tests.conftest import make_edge, make_node
+from tests.wait import wait_until
 
 pytestmark = pytest.mark.integration
 
@@ -43,7 +44,7 @@ class _Rig:
         def on_validate(context: Any) -> None:
             self.frames += 1
             self.inside.set()
-            self.gate.wait(5.0)
+            self.gate.wait(30.0)
             self.order.append("frame_end")
 
         self.x.node.on_validate = on_validate  # type: ignore[method-assign]
@@ -59,31 +60,26 @@ class _Rig:
         self.gate.clear()
         self.inside.clear()
         self.trigger()
-        assert self.inside.wait(2.0)
+        assert self.inside.wait(10.0)
 
     def validation_count(self) -> int:
         return self.graph._validation.get_statistics()["validation_count"]
 
 
-def _wait_until(predicate, timeout_s: float = 2.0) -> bool:
-    deadline = time.monotonic() + timeout_s
-    while time.monotonic() < deadline:
-        if predicate():
-            return True
-        time.sleep(0.01)
-    return predicate()
-
-
 def test_structural_batch_waits_for_running_frame(graph_with_library_system: BaseGraph, library_system):
     rig = _Rig(graph_with_library_system)
     rig.x._housekeeping = lambda: rig.order.append("housekeeping")  # type: ignore[method-assign]
+    # The batch gives up on a frame after 2 s; this one is parked for as long as the test needs.
+    hold_for_batch = rig.interpreter.hold_for_batch
+    rig.interpreter.hold_for_batch = lambda timeout_s=2.0: hold_for_batch(timeout_s=30.0)  # type: ignore[method-assign]
     try:
         rig.park_frame()
         rig.graph._validation.mark_node_dirty(rig.x.node_id, ChangeReason.NODE_VALIDATION_REQUESTED)
-        time.sleep(0.3)  # well past the debounce
+        # The batch is waiting at the frame barrier once it has set the hold.
+        assert wait_until(lambda: all(group._held for group in rig.interpreter.groups))
         assert "housekeeping" not in rig.order
         rig.gate.set()
-        assert _wait_until(lambda: "housekeeping" in rig.order)
+        assert wait_until(lambda: "housekeeping" in rig.order)
     finally:
         rig.gate.set()
         rig.interpreter.shutdown()
@@ -97,7 +93,7 @@ def test_value_batch_does_not_hold(graph_with_library_system: BaseGraph, library
         before = rig.validation_count()
         rig.park_frame()
         rig.graph._validation.mark_node_dirty(rig.x.node_id, ChangeReason.NODE_VALUE_CHANGED)
-        assert _wait_until(lambda: rig.validation_count() > before)
+        assert wait_until(lambda: rig.validation_count() > before)
         assert "frame_end" not in rig.order  # the frame is still parked
     finally:
         rig.gate.set()
@@ -109,9 +105,10 @@ def test_reassembly_batch_leaves_groups_held(graph_with_library_system: BaseGrap
     try:
         before = rig.validation_count()
         rig.graph._validation.mark_edge_dirty("edge_that_was_added", ChangeReason.EDGE_ADDED)
-        assert _wait_until(lambda: rig.validation_count() > before)
+        assert wait_until(lambda: rig.validation_count() > before)
         frames = rig.frames
         rig.trigger()
+        # Nothing marks the runner parked at the barrier; the sleep gives a frame the time to run.
         time.sleep(0.2)
         assert rig.frames == frames  # parked at the frame barrier
         assert all(group.stop() for group in rig.interpreter.groups)
@@ -135,10 +132,10 @@ def test_hold_from_runner_thread_is_noop(graph_with_library_system: BaseGraph, l
     rig.x.node._executor = None
     try:
         rig.trigger()
-        assert validated.wait(2.0), "the frame deadlocked on its own hold"
+        assert validated.wait(10.0), "the frame deadlocked on its own hold"
         flow = rig.interpreter.event_subscriptions[f"callback:{rig.a.node_id}"][0]
         assert flow.queue is not None
-        assert flow.queue.wait_for_completion(2.0)
+        assert flow.queue.wait_for_completion(10.0)
     finally:
         rig.interpreter.shutdown()
 
@@ -156,8 +153,8 @@ def test_stop_while_held_for_reassembly_skips_shutdown_grace(
     rig.interpreter.start_execution()
     before = rig.validation_count()
     rig.graph._validation.mark_edge_dirty("edge_that_was_added", ChangeReason.EDGE_ADDED)
-    assert _wait_until(lambda: rig.validation_count() > before)
+    assert wait_until(lambda: rig.validation_count() > before)
     start = time.monotonic()
-    rig.interpreter.stop_execution(timeout=2.0)
-    assert time.monotonic() - start < 1.0
+    rig.interpreter.stop_execution(timeout=30.0)
+    assert time.monotonic() - start < 15.0  # the grace would wait out all 30 s
     assert rig.interpreter.is_executing is False
