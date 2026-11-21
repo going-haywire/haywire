@@ -10,7 +10,7 @@
   "nodes": {
     "SettingsNode_fbf021": {
       "node_id": "SettingsNode_fbf021",
-      "registry_key": "haybale-testing:node:SettingsNode",
+      "registry_key": "haybale-testing:node:SettingsProbeNode",
       "node_data": {
         "node_id": "SettingsNode_fbf021",
         "ports": {
@@ -65,14 +65,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "SettingsNode",
-          "registry_key": "haybale-testing:node:SettingsNode",
+          "registry_id": "SettingsProbeNode",
+          "registry_key": "haybale-testing:node:SettingsProbeNode",
           "label": "Settings Test Node",
           "description": "Test the Settings for debugging",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "SettingsNode",
-          "module": "haybale_testing.nodes.testbed.settings_node",
+          "class_name": "SettingsProbeNode",
+          "module": "haybale_testing.nodes.testbed.settings_probe",
           "tags": [],
           "search_tags": [
             "settings",
@@ -107,7 +107,7 @@
     },
     "SettingsNode_bd8b7f": {
       "node_id": "SettingsNode_bd8b7f",
-      "registry_key": "haybale-testing:node:SettingsNode",
+      "registry_key": "haybale-testing:node:SettingsProbeNode",
       "node_data": {
         "node_id": "SettingsNode_bd8b7f",
         "ports": {
@@ -162,14 +162,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "SettingsNode",
-          "registry_key": "haybale-testing:node:SettingsNode",
+          "registry_id": "SettingsProbeNode",
+          "registry_key": "haybale-testing:node:SettingsProbeNode",
           "label": "Settings Test Node",
           "description": "Test the Settings for debugging",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "SettingsNode",
-          "module": "haybale_testing.nodes.testbed.settings_node",
+          "class_name": "SettingsProbeNode",
+          "module": "haybale_testing.nodes.testbed.settings_probe",
           "tags": [],
           "search_tags": [
             "settings",
@@ -204,7 +204,7 @@
     },
     "AddPortTestNode_43a781": {
       "node_id": "AddPortTestNode_43a781",
-      "registry_key": "haybale-testing:node:AddPortTestNode",
+      "registry_key": "haybale-testing:node:AddPortProbeNode",
       "node_data": {
         "node_id": "AddPortTestNode_43a781",
         "ports": {
@@ -388,14 +388,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "AddPortTestNode",
-          "registry_key": "haybale-testing:node:AddPortTestNode",
+          "registry_id": "AddPortProbeNode",
+          "registry_key": "haybale-testing:node:AddPortProbeNode",
           "label": "Add Port TestNode",
           "description": "",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "AddPortTestNode",
-          "module": "haybale_testing.nodes.testbed.add_port_test",
+          "class_name": "AddPortProbeNode",
+          "module": "haybale_testing.nodes.testbed.add_port_probe",
           "tags": [],
           "search_tags": [
             "testing",
@@ -431,7 +431,7 @@
     },
     "EdgeLinkTestNode_c57a95": {
       "node_id": "EdgeLinkTestNode_c57a95",
-      "registry_key": "haybale-testing:node:EdgeLinkTestNode",
+      "registry_key": "haybale-testing:node:EdgeLinkProbeNode",
       "node_data": {
         "node_id": "EdgeLinkTestNode_c57a95",
         "ports": {
@@ -1056,14 +1056,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "EdgeLinkTestNode",
-          "registry_key": "haybale-testing:node:EdgeLinkTestNode",
+          "registry_id": "EdgeLinkProbeNode",
+          "registry_key": "haybale-testing:node:EdgeLinkProbeNode",
           "label": "Edge Link TestNode",
           "description": "",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "EdgeLinkTestNode",
-          "module": "haybale_testing.nodes.testbed.edge_link_test",
+          "class_name": "EdgeLinkProbeNode",
+          "module": "haybale_testing.nodes.testbed.edge_link_probe",
           "tags": [],
           "search_tags": [
             "testing",
@@ -1101,7 +1101,7 @@
     },
     "PerformanceTester_9da7f8": {
       "node_id": "PerformanceTester_9da7f8",
-      "registry_key": "haybale-testing:node:PerformanceTester",
+      "registry_key": "haybale-testing:node:PerformanceProbeNode",
       "node_data": {
         "node_id": "PerformanceTester_9da7f8",
         "ports": {
@@ -1307,14 +1307,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "PerformanceTester",
-          "registry_key": "haybale-testing:node:PerformanceTester",
+          "registry_id": "PerformanceProbeNode",
+          "registry_key": "haybale-testing:node:PerformanceProbeNode",
           "label": "Performance Testing Node",
           "description": "Helps test performance of execution system",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "PerformanceTester",
-          "module": "haybale_testing.nodes.testbed.test_performance",
+          "class_name": "PerformanceProbeNode",
+          "module": "haybale_testing.nodes.testbed.performance_probe",
           "tags": [],
           "search_tags": [
             "performance",
@@ -1349,7 +1349,7 @@
     },
     "PerformanceTester_83bc9c": {
       "node_id": "PerformanceTester_83bc9c",
-      "registry_key": "haybale-testing:node:PerformanceTester",
+      "registry_key": "haybale-testing:node:PerformanceProbeNode",
       "node_data": {
         "node_id": "PerformanceTester_83bc9c",
         "ports": {
@@ -1555,14 +1555,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "PerformanceTester",
-          "registry_key": "haybale-testing:node:PerformanceTester",
+          "registry_id": "PerformanceProbeNode",
+          "registry_key": "haybale-testing:node:PerformanceProbeNode",
           "label": "Performance Testing Node",
           "description": "Helps test performance of execution system",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "PerformanceTester",
-          "module": "haybale_testing.nodes.testbed.test_performance",
+          "class_name": "PerformanceProbeNode",
+          "module": "haybale_testing.nodes.testbed.performance_probe",
           "tags": [],
           "search_tags": [
             "performance",

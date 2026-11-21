@@ -9,7 +9,7 @@
   "nodes": {
     "SettingsNode_1db88375": {
       "node_id": "SettingsNode_1db88375",
-      "registry_key": "haybale-testing:node:SettingsNode",
+      "registry_key": "haybale-testing:node:SettingsProbeNode",
       "position": [
         3114.703137525242,
         3614.817583062898
@@ -71,14 +71,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "SettingsNode",
-          "registry_key": "haybale-testing:node:SettingsNode",
+          "registry_id": "SettingsProbeNode",
+          "registry_key": "haybale-testing:node:SettingsProbeNode",
           "label": "Settings Test Node",
           "description": "Test the Settings for debugging",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "SettingsNode",
-          "module": "haybale_testing.nodes.testbed.settings_node",
+          "class_name": "SettingsProbeNode",
+          "module": "haybale_testing.nodes.testbed.settings_probe",
           "search_tags": [
             "settings",
             "debug",
