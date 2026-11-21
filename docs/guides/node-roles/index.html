@@ -5342,16 +5342,16 @@
 <p><strong>Role-specific:</strong> <code>event_subscription = SystemEvent(SystemEventType.BEGIN_PLAY)</code> in <code>post_init()</code>. No EXEC inlet — the framework dispatches the event source instead. Worker returns the outlet ID <code>"exec"</code> to trigger control flow.</p>
 <h3 id="callback-event-pair-listener-emitter">Callback event pair (listener + emitter)<a class="headerlink" href="#callback-event-pair-listener-emitter" title="Permanent link">&para;</a></h3>
 <p><code>event_subscription</code> also accepts <code>CallbackEvent(event_name=...)</code>, which lets one node trigger another by name. A callback listener needs a matching emitter, so we show the pair together.</p>
-<p><strong>Listener</strong> — source: <code>barn/haybale-example/haybale_example/nodes/emits/custom_callback.py</code></p>
-<p><code>CustomCallbackNode</code> listens for named callbacks from other flows. It broadcasts its own ID via a <code>CALLBACK</code> outlet so emitters can wire to it, and updates its <code>event_subscription</code> dynamically when the config changes:</p>
+<p><strong>Listener</strong> — source: <code>barn/haybale-example/haybale_example/nodes/emits/callback_event.py</code></p>
+<p><code>CallbackEventNode</code> listens for named callbacks from other flows. It broadcasts its own ID via a <code>CALLBACK</code> outlet so emitters can wire to it, and updates its <code>event_subscription</code> dynamically when the config changes:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nd">@node</span><span class="p">(</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Custom Callback&quot;</span><span class="p">,</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Callback Event&quot;</span><span class="p">,</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Listens for custom callbacks from other flows&quot;</span><span class="p">,</span>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">menu</span><span class="o">=</span><span class="s2">&quot;examples/event/callback&quot;</span><span class="p">,</span>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">search_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;callback&quot;</span><span class="p">,</span> <span class="s2">&quot;listen&quot;</span><span class="p">,</span> <span class="s2">&quot;event&quot;</span><span class="p">,</span> <span class="s2">&quot;custom&quot;</span><span class="p">],</span>
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">node_type</span><span class="o">=</span><span class="n">NodeType</span><span class="o">.</span><span class="n">EVENT</span><span class="p">,</span>
 </span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">)</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">CustomCallbackNode</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">CallbackEventNode</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
 </span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="sd">    Listens for custom callbacks from other flows.</span>
 </span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
@@ -5425,17 +5425,17 @@
 </span><span id="__span-3-79"><a id="__codelineno-3-79" name="__codelineno-3-79" href="#__codelineno-3-79"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="s2">&quot;payload&quot;</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>
 </span><span id="__span-3-80"><a id="__codelineno-3-80" name="__codelineno-3-80" href="#__codelineno-3-80"></a>        <span class="k">return</span> <span class="s2">&quot;triggered&quot;</span>
 </span></code></pre></div>
-<p>from: <code>CustomCallbackNode</code> — registry_key: <code>haybale-example:node:CustomCallbackNode</code></p>
-<p><strong>Emitter</strong> — source: <code>barn/haybale-example/haybale_example/nodes/emits/emit_callback.py</code></p>
-<p><code>EmitCallbackNode</code> is the CONTROL counterpart: it has an EXEC inlet, reads connected listener IDs via <code>POOLED[CALLBACK]</code>, and emits to them via <code>context.emit_callback</code>:</p>
+<p>from: <code>CallbackEventNode</code> — registry_key: <code>haybale-example:node:CallbackEventNode</code></p>
+<p><strong>Emitter</strong> — source: <code>barn/haybale-example/haybale_example/nodes/emits/callback_emit.py</code></p>
+<p><code>CallbackEmitNode</code> is the CONTROL counterpart: it has an EXEC inlet, reads connected listener IDs via <code>POOLED[CALLBACK]</code>, and emits to them via <code>context.emit_callback</code>:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nd">@node</span><span class="p">(</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Emit Callback&quot;</span><span class="p">,</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Callback Emit&quot;</span><span class="p">,</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Emits a callback to trigger event nodes in other flows&quot;</span><span class="p">,</span>
 </span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">menu</span><span class="o">=</span><span class="s2">&quot;examples/emit/callback&quot;</span><span class="p">,</span>
 </span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">search_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;callback&quot;</span><span class="p">,</span> <span class="s2">&quot;emit&quot;</span><span class="p">,</span> <span class="s2">&quot;trigger&quot;</span><span class="p">,</span> <span class="s2">&quot;event&quot;</span><span class="p">],</span>
 </span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">node_type</span><span class="o">=</span><span class="n">NodeType</span><span class="o">.</span><span class="n">CONTROL</span><span class="p">,</span>
 </span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="p">)</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">EmitCallbackNode</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">CallbackEmitNode</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
 </span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="sd">    Emits a callback to trigger event nodes in other flows.</span>
 </span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
@@ -5519,7 +5519,7 @@
 </span><span id="__span-4-89"><a id="__codelineno-4-89" name="__codelineno-4-89" href="#__codelineno-4-89"></a>
 </span><span id="__span-4-90"><a id="__codelineno-4-90" name="__codelineno-4-90" href="#__codelineno-4-90"></a>        <span class="k">return</span> <span class="s2">&quot;exec&quot;</span>
 </span></code></pre></div>
-<p>from: <code>EmitCallbackNode</code> — registry_key: <code>haybale-example:node:EmitCallbackNode</code></p>
+<p>from: <code>CallbackEmitNode</code> — registry_key: <code>haybale-example:node:CallbackEmitNode</code></p>
 <p><strong>What the pair shows:</strong></p>
 <ul>
 <li><strong>One listener, many emitters:</strong> a <code>CALLBACK</code> outlet fans out by its link ceiling, so a listener needs no flag to target several emitters (port detail in <a href="../ports/">guides/ports</a>).</li>

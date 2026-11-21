@@ -5381,13 +5381,13 @@
 <p><strong>Line-range form</strong>, <code>path:start:end</code> (1-indexed !!!, inclusive):</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>@node(
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    label=&quot;Math Operation&quot;,
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    description=&quot;Node that outputs a constant value.&quot;,
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    description=&quot;Applies the chosen operation (add, subtract, multiply, divide) to two float values.&quot;,
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    search_tags=[&quot;math&quot;, &quot;value&quot;, &quot;single&quot;, &quot;basic&quot;, &quot;operation&quot;],
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    deprecation_warning=&quot;This node will be moved to the math library&quot;,
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    menu=&quot;examples/math/basic&quot;,
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    node_type=NodeType.DATA,
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>)
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>class MathOP(BaseNode):
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>class MathOperationNode(BaseNode):
 </span></code></pre></div>
 <p>No markup needed in the source file — just point at the lines. Because a barn example can still be edited later, re-check the range after any edit to the source file (see §3d) — nothing fails the build if the numbers drift, it will just silently embed the wrong lines.</p>
 <p><strong>Tag form</strong>, <code>path:tag</code> — mark a region in the source file with matched start/end tags:</p>
@@ -5429,9 +5429,9 @@
 <p>A library component isn't just its source location — at runtime it's addressed by its <strong>registry key</strong>, <code>&lt;library_name&gt;:&lt;component_type&gt;:&lt;registry_id&gt;</code> (built by <code>reg_key()</code>; see <code>reference/glossary.md</code>). </p>
 <blockquote>
 <p><strong>Worked example — linking to a node's source</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="o">--</span><span class="mi">8</span><span class="o">&lt;--</span> <span class="s2">&quot;barn/haybale-example/haybale_example/nodes/math_op.py:11:19&quot;</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="o">--</span><span class="mi">8</span><span class="o">&lt;--</span> <span class="s2">&quot;barn/haybale-example/haybale_example/nodes/math_operation.py:11:19&quot;</span>
 </span></code></pre></div>
-<p>from: <code>MathOP</code> — registry_key: <code>haybale-example:node:MathOP</code></p>
+<p>from: <code>MathOperationNode</code> — registry_key: <code>haybale-example:node:MathOperationNode</code></p>
 </blockquote>
 <p>which renders as:</p>
 <blockquote>
@@ -5442,9 +5442,9 @@
 </span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">menu</span><span class="o">=</span><span class="s2">&quot;examples/math/basic&quot;</span><span class="p">,</span>
 </span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">node_type</span><span class="o">=</span><span class="n">NodeType</span><span class="o">.</span><span class="n">DATA</span><span class="p">,</span>
 </span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="p">)</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">MathOP</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">MathOperationNode</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
 </span></code></pre></div>
-<p>from <code>MathOP</code> — registry_key: <code>haybale-example:node:MathOP</code></p>
+<p>from <code>MathOperationNode</code> — registry_key: <code>haybale-example:node:MathOperationNode</code></p>
 </blockquote>
 <p>Assemble the key from source:<code>&lt;library_name&gt;:&lt;component_type&gt;:&lt;class_name&gt;</code>, unless the component's decorator sets an explicit <code>registry_id</code>/<code>id</code>, in which case that replaces <code>&lt;class_name&gt;</code>:</p>
 <ol>

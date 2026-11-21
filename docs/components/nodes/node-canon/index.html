@@ -5588,21 +5588,21 @@ a node is placed, loaded or hot-reloaded; you never create one yourself.</p>
 <h2 id="3-a-complete-node">3. A complete node<a class="headerlink" href="#3-a-complete-node" title="Permanent link">&para;</a></h2>
 <p><div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@node</span><span class="p">(</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Math Operation&quot;</span><span class="p">,</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Node that outputs a constant value.&quot;</span><span class="p">,</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Applies the chosen operation (add, subtract, multiply, divide) to two float values.&quot;</span><span class="p">,</span>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">search_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;math&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="s2">&quot;single&quot;</span><span class="p">,</span> <span class="s2">&quot;basic&quot;</span><span class="p">,</span> <span class="s2">&quot;operation&quot;</span><span class="p">],</span>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">deprecation_warning</span><span class="o">=</span><span class="s2">&quot;This node will be moved to the math library&quot;</span><span class="p">,</span>
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">menu</span><span class="o">=</span><span class="s2">&quot;examples/math/basic&quot;</span><span class="p">,</span>
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">node_type</span><span class="o">=</span><span class="n">NodeType</span><span class="o">.</span><span class="n">DATA</span><span class="p">,</span>
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">)</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="k">class</span><span class="w"> </span><span class="nc">MathOP</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Node that outputs a constant value&quot;&quot;&quot;</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="k">class</span><span class="w"> </span><span class="nc">MathOperationNode</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Applies the chosen operation to Value A and Value B; division by zero gives 0.0.&quot;&quot;&quot;</span>
 </span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>
 </span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        <span class="kn">from</span><span class="w"> </span><span class="nn">haybale_example.types.math</span><span class="w"> </span><span class="kn">import</span> <span class="n">MathOPSelector</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        <span class="kn">from</span><span class="w"> </span><span class="nn">haybale_example.types.math</span><span class="w"> </span><span class="kn">import</span> <span class="n">MATH_OPERATION</span>
 </span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>
 </span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>        <span class="c1"># Add inlets with different widget types</span>
 </span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
-</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>            <span class="n">MathOPSelector</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>            <span class="n">MATH_OPERATION</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span>
 </span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>                <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;operator&quot;</span><span class="p">,</span>
 </span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>                <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Operator&quot;</span><span class="p">,</span>
 </span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>            <span class="p">)</span>
@@ -5631,7 +5631,7 @@ a node is placed, loaded or hot-reloaded; you never create one yourself.</p>
 </span><span id="__span-1-43"><a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="s2">&quot;result&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
 </span><span id="__span-1-44"><a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a>        <span class="k">return</span> <span class="kc">None</span>
 </span></code></pre></div>
-from: <code>MathOP</code> — registry_key: <code>haybale-example:node:MathOP</code></p>
+from: <code>MathOperationNode</code> — registry_key: <code>haybale-example:node:MathOperationNode</code></p>
 <p><strong>The decorator — <code>@node(...)</code>.</strong> <code>label</code>, <code>description</code>, <code>menu</code> (the canvas
 menu path), <code>search_tags</code>, <code>node_type</code>. Section 4 explains <code>node_type</code>.</p>
 <p><strong>The ports — <code>init()</code>.</strong> Each <code>self.add(...)</code> adds one port. <code>FLOAT</code> is a
@@ -5676,7 +5676,7 @@ port and anyone connected can read it.</p>
 <p><strong>Control ports carry the moment to run.</strong> Their type is <code>EXEC</code>. An edge
 between two control ports says "when this one finishes, run that one next".</p>
 <p>Every node is one of two kinds, chosen by its ports:</p>
-<p><strong>A DATA node has only data ports.</strong> It computes outputs from inputs. <code>MathOP</code>
+<p><strong>A DATA node has only data ports.</strong> It computes outputs from inputs. <code>MathOperationNode</code>
 is one. DATA nodes are <em>pulled, not pushed</em>: one runs only when a node
 downstream needs its output, and if none of its inputs changed since its last
 run, it skips its worker — the answer would be the same. Its worker returns
@@ -6380,11 +6380,11 @@ applies to you; if you are changing how a Group runs, see
 </tr>
 <tr>
 <td><code>worker()</code> with named inlet params</td>
-<td><code>MathOP</code> — <code>value_a</code>, <code>value_b</code>, <code>operator</code></td>
+<td><code>MathOperationNode</code> — <code>value_a</code>, <code>value_b</code>, <code>operator</code></td>
 </tr>
 <tr>
 <td><code>self.out('id', value)</code> to write outlets</td>
-<td><code>MathOP</code> — <code>self.out("result", result)</code></td>
+<td><code>MathOperationNode</code> — <code>self.out("result", result)</code></td>
 </tr>
 <tr>
 <td><code>on_change='hb_reconfigure'</code> on a config port</td>
