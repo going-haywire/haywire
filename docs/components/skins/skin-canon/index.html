@@ -5990,7 +5990,7 @@ graph unsaved and records the undo step (see
 <li><strong>A setting's widget:</strong> <code>BaseSkin.render_setting_widget(bag, name, node_id, *, widget_key=None,
   classes="")</code> draws the widget of a settings field on the card, through the same routed
   model. <code>widget_key</code> picks a widget other than the field's own: the annotation skin draws
-  <code>NoteTextWidget</code> on <code>annotation.text</code>, so the Properties panel keeps the plain text widget.
+  <code>AnnotationTextWidget</code> on <code>annotation.text</code>, so the Properties panel keeps the plain text widget.
   The skin keeps the look by wrapping the widget in an element whose CSS the widget inherits.</li>
 <li><strong>Operable or not:</strong> both calls stamp <code>data-hw-requires</code> on the widget (below), from the route's
   <code>required_mode</code>. A port or field declared <code>operable=False</code> is stamped <code>edit</code>, and the route

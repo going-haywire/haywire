@@ -6194,9 +6194,9 @@ string <code>widget=</code> hints, ad-hoc type inference) that preceded it. See
 <a href="../../../adr/0017-widget-selection-port-contract/">ADR 0017</a> for the full
 rationale and the alternatives it rejects.</p>
 <p><code>CHOICES(STRING)</code> is the one builtin IType whose declared identity points at
-a dropdown (<code>widget_key=SELECT_WIDGET</code>) while carrying zero options itself —
+a dropdown (<code>widget_key=MENU_WIDGET</code>) while carrying zero options itself —
 every declaration site supplies its own via <code>widget_config={"options": [...]
-| {value: label} | callable}</code>. <code>SelectWidget.build()</code> resolves a callable
+| {value: label} | callable}</code>. <code>MenuWidget.build()</code> resolves a callable
 option-list at build time, so a dynamic list (e.g. sourced from a live
 registry) still refreshes on every widget instance build even though nothing
 about option resolution happens at stamp time.</p>
