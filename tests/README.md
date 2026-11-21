@@ -1,8 +1,8 @@
-# Running the test suite
+# Writing and running tests
 
-Commands live in [docs/guides/development.md](../docs/guides/development.md). This file is the why behind them — read it when a
-run behaves oddly, when you are changing test infrastructure, or when you are
-about to write off a failure as flakiness.
+Commands live in [docs/guides/development.md](../docs/guides/development.md). This file is the why behind them — read it before
+writing a test, when a run behaves oddly, when you are changing test infrastructure, or
+when you are about to write off a failure as flakiness.
 
 ## Tiers
 

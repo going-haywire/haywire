@@ -79,6 +79,8 @@ Optional:
      one file; other files link to it instead of repeating it.
    - **Plans and handoffs go in `workbench/plans/`**, never in `docs/`, which holds only
      published documentation. Permanent files (code, docs, skills) never link to a plan.
+   - **Tests never pin wording.** A test checks what a message carries, not how it is
+     phrased: [Text in tests](tests/README.md#text-in-tests).
    - **Never change a version number** (`pyproject.toml`, `haybale.toml`, `>=` pins).
      Releases are lockstep across all packages and only the maintainer cuts them.
    - **Files that steer agents or CI** (`CLAUDE.md`, `AGENTS.md`, `.claude/`, `.github/`, `plugins/`)
