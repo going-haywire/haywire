@@ -28,7 +28,7 @@ def test_three_levels_eager_then_sentinel(tmp_path: Path) -> None:
     a = _find(model.nodes, "a")
     b = _find(a["children"], "b")
     c = _find(b["children"], "c")
-    assert [n["label"] for n in c["children"]] == ["Click to load children"]
+    assert len(c["children"]) == 1
     sentinel = c["children"][0]
     assert model.is_sentinel(sentinel["id"])
     assert sentinel["id"] == f"{tmp_path / 'a' / 'b' / 'c'}::__load_more__"

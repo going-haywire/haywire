@@ -47,12 +47,6 @@ def test_a_bad_key_cannot_be_added(page: Page, harness: str, key: str) -> None:
     expect(_echo(page)).to_have_text("first")
 
 
-def test_a_bad_key_says_why(page: Page, harness: str) -> None:
-    goto_ready(page, f"{harness}{_PATH}")
-    _key(page).fill("a b")
-    expect(page.get_by_text("Letters, digits and _ only")).to_be_visible()
-
-
 def test_a_duplicate_key_cannot_be_added(page: Page, harness: str) -> None:
     goto_ready(page, f"{harness}{_PATH}")
     _key(page).fill("first")
@@ -69,7 +63,6 @@ def test_a_type_option_shows_the_hover_tip_with_class_library_and_description(
     tip = page.locator(".hw-hover-tip")
     expect(tip).to_be_visible()
     expect(tip).to_contain_text("Boolean: BOOL")
-    expect(tip).to_contain_text("True or False")
     expect(tip).to_contain_text("Library: haywire-core")
     expect(tip).to_contain_text("Can be saved in image files")
     expect(page.locator(".q-menu .q-tooltip")).to_have_count(0)

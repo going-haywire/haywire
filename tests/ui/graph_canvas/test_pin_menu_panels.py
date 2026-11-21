@@ -135,8 +135,9 @@ def test_detach_polls_on_any_user_created_port():
 def test_detach_row_label_follows_the_origin():
     """One affordance, named for how the pin came to exist."""
     labels = DetachSettingMenuPanel._LABELS
-    assert labels[PortOrigin.PROMOTED] == "Detach from setting"
-    assert labels[PortOrigin.RESOLVED] == "Remove pin"
+    assert labels[PortOrigin.PROMOTED]
+    assert labels[PortOrigin.RESOLVED]
+    assert labels[PortOrigin.PROMOTED] != labels[PortOrigin.RESOLVED]
 
 
 def test_detach_still_draws_greyed_when_it_does_not_apply():

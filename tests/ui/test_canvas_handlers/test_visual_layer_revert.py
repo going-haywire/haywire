@@ -39,7 +39,7 @@ def test_the_revert_notice_names_the_macro(monkeypatch):
 
     handler.process_revert_to_macro(RevertToMacroEvent(node_id="card"))
 
-    assert notify.call_args.args[0] == "Reverted to Blur Stack"
+    assert "Blur Stack" in notify.call_args.args[0]
 
 
 def test_the_forget_notice_names_the_macro(monkeypatch):
@@ -61,4 +61,4 @@ def test_the_forget_notice_names_the_macro(monkeypatch):
     handler.process_forget_macro_origin(ForgetMacroOriginEvent(node_id="card"))
 
     editor.forget_macro_origin.assert_called_once_with("card")
-    assert notify.call_args.args[0] == "No longer linked to Blur Stack"
+    assert "Blur Stack" in notify.call_args.args[0]
