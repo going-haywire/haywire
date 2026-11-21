@@ -8,7 +8,7 @@ Triggered for each image a connected image emitter delivers
 
 | id | direction | type | description |
 |---|---|---|---|
-| `listen_callback` | outlet | `haybale-image:type:CALLBACK_IMAGE` | Subscription for emitters that deliver single images |
+| `listen_callback` | outlet | `haybale-image:type:IMAGE_CALLBACK` | Subscription for emitters that deliver single images |
 | `frame_ready` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `image` | outlet | `haybale-image:type:IMAGE` | A picture of any channel layout. Pixels are kept as made and converted on demand. |
 | `timestamp` | outlet | `haywire-core:type:FLOAT` | Decimal number |

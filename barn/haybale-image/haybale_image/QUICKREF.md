@@ -8,12 +8,12 @@
 - `haybale-image:node:ViewImageNode` — View Image — Shows an image on the node, as a live stream or as a still picture  _tags: image, view, show, preview, display, viewer, stream_
 
 ## type
-- `haybale-image:type:CALLBACK_IMAGE` — Callback Image — Subscription for emitters that deliver single images
-- `haybale-image:type:DEPTH` — Depth — A depth map, one value per pixel in millimetres.
+- `haybale-image:type:DEPTH_BUFFER` — Depth Buffer — A depth buffer, one value per pixel in millimetres.
+- `haybale-image:type:GRAY_IMAGE` — Gray Image — A one-channel picture.
 - `haybale-image:type:IMAGE` — Image — A picture of any channel layout. Pixels are kept as made and converted on demand.
-- `haybale-image:type:IMAGE_GRAY` — Gray image — A one-channel picture.
-- `haybale-image:type:IMAGE_RGB` — RGB image — A three-channel picture.
-- `haybale-image:type:IMAGE_RGBA` — RGBA image — A picture with three colour channels and transparency.
+- `haybale-image:type:IMAGE_CALLBACK` — Image Callback — Subscription for emitters that deliver single images
+- `haybale-image:type:RGBA_IMAGE` — RGBA Image — A picture with three colour channels and transparency.
+- `haybale-image:type:RGB_IMAGE` — RGB Image — A three-channel picture.
 
 ## adapter
 - `haybale-image:adapter:ImageToGrayAdapter` — ImageToGrayAdapter — Convert an image to gray

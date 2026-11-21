@@ -7,7 +7,7 @@ Convert an image to RGB
 ## Details
 
 - **converts_from**: `haybale-image:type:IMAGE`
-- **converts_to**: `haybale-image:type:IMAGE_RGB`
+- **converts_to**: `haybale-image:type:RGB_IMAGE`
 - **priority**: `0`
 
 ## Notes
