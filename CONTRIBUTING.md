@@ -75,6 +75,8 @@ Optional:
    one confirmation in the running studio once everything else passes; its results go
    in the pull request.
 4. Keep these rules:
+   - **Python follows the [coding standards](docs/reference/coding-standards.md).** Review
+     cites a rule by its ID (`CS-E2`).
    - **One home per piece of information.** Every rule, command and fact lives in exactly
      one file; other files link to it instead of repeating it.
    - **Plans and handoffs go in `workbench/plans/`**, never in `docs/`, which holds only

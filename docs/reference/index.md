@@ -5,6 +5,7 @@
 - [Glossary](glossary.md)
 - [Component naming](component-naming.md)
 - [Design guide](design-guide.md)
+- [Coding standards](coding-standards.md)
 - [Writing a doc page](doc-authoring.md)
 - [Publishing releases](publish_releases.md)
 - API reference (auto-generated, future)

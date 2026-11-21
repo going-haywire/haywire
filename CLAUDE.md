@@ -26,6 +26,7 @@ When looking up how a system works (API, parameters, behaviour), check `docs/` f
 
 - `docs/reference/doc-authoring.md` — how to write a page in this docs site: front matter, nav wiring, and linking to live source.
 - `docs/reference/glossary.md` — canonical vocabulary, including the five distinct meanings of "library".
+- `docs/reference/coding-standards.md` — the rules Python code is written and reviewed by (docstrings, typing, errors, imports, DI, logging), each with a citable `CS-` ID.
 - `docs/reference/design-guide.md` — contains guidelines for UI design / UX rules and design tokens. Follow these when implementing new UI features or refactoring existing ones.
 
 Plans, designs and handoffs go in `workbench/plans/` (dated file names), experiments in `workbench/playground/`, whatever a skill's default says.
