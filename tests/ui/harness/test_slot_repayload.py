@@ -96,7 +96,9 @@ def test_save_as_keeps_every_edge_on_its_pins_and_the_viewport(page: Page, harne
     canvas_before = page.evaluate("() => document.querySelector('.graph-canvas').id")
 
     page.click('[data-testid="slot-repayload"]')
-    page.wait_for_timeout(1000)
+    # The re-keyed panel is the server's answer; a remount would come in the same update.
+    page.wait_for_selector('[data-hw-binding$="::graph::slot-after"]', state="attached")
+    wait_for_canvas_settled(page)
 
     assert page.evaluate("() => document.querySelector('.graph-canvas').id") == canvas_before, (
         "the canvas was re-mounted"

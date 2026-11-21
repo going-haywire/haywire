@@ -12,8 +12,16 @@ pytestmark = pytest.mark.ui
 def _open(page: Page, harness) -> tuple[str, str]:
     goto_ready(page, f"{harness}/graph-path-demo")
     page.wait_for_selector("[data-node-id] .ui-node-slot")
-    page.wait_for_timeout(800)
-    return attr(page, "#path-node-id", "data-node"), page.inner_text("#path-full")
+    full = page.inner_text("#path-full")
+    # Measure once the status line holds the path and has cropped it.
+    page.wait_for_function(
+        """full => {
+            const line = [...document.querySelectorAll('.hw-path-fit')].find(l => l.title === full);
+            return line && line.textContent.includes('..');
+        }""",
+        arg=full,
+    )
+    return attr(page, "#path-node-id", "data-node"), full
 
 
 def _floor_width(page: Page, node_id: str) -> int:

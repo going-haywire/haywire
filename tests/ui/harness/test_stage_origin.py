@@ -53,6 +53,8 @@ def test_dragging_a_stage_node_up_and_left_stops_at_the_origin(page: Page, harne
     page.mouse.down()
     page.mouse.move(sx - 400, sy - 400, steps=10)
     page.mouse.up()
+    # The node starts at the origin, so the right end state is the start state: the wait gives
+    # a commit past the origin time to show.
     page.wait_for_timeout(200)
     mx, my = _top_left(page, _MARKER)
     ex, ey = _top_left(page, f'[data-node-id="{node_id}"]')
@@ -76,6 +78,8 @@ def test_resizing_a_stage_node_from_its_top_left_stops_at_the_origin(page: Page,
     page.mouse.down()
     page.mouse.move(gx - 150, gy - 150, steps=10)
     page.mouse.up()
+    # The node starts at the origin, so the right end state is the start state: the wait gives
+    # a commit past the origin time to show.
     page.wait_for_timeout(500)
 
     mx, my = _top_left(page, _MARKER)

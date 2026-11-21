@@ -19,7 +19,7 @@ observable outcome of the whole write-back path.
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled, wait_until
 from tests.ui.harness.probe import attr, box as probe_box
 
 _PATH = "/graph-size"
@@ -85,6 +85,19 @@ def _wait_slot_style(page: Page, fragment: str, timeout: int = 5000) -> None:
         arg=fragment,
         timeout=timeout,
     )
+
+
+#: Whether the canvas hands a grip's hit area to a pin under the pointer now: no pan burst is under
+#: way (``_syncGripPassthrough`` skips one, and the burst lapses 150 ms after the canvas last moved).
+_GRIPS_HAND_OVER = """() => {
+    for (let i = 0; i < 5000; i++) {
+        const c = getElement(i);
+        if (c && typeof c._syncGripPassthrough === 'function') {
+            return performance.now() >= (c._panBurstUntil || 0);
+        }
+    }
+    throw new Error('no graph canvas');
+}"""
 
 
 def _open(page: Page, harness) -> None:
@@ -202,7 +215,11 @@ def test_gadget_follows_node_drag(page: Page, harness):
     page.mouse.down()
     page.mouse.move(box["sx"] + 30 + 80, box["sy"] + 14 + 50, steps=6)
     page.mouse.up()
-    page.wait_for_timeout(400)
+    wait_until(
+        page,
+        lambda: _slot_box(page, nid)["sx"] > n_before["sx"] + 40
+        and abs((gadget_box()["x"] - g_before["x"]) - (_slot_box(page, nid)["sx"] - n_before["sx"])) < 3.0,
+    )
 
     n_after = _slot_box(page, nid)
     assert n_after["sx"] > n_before["sx"] + 40, f"node did not move: {n_before} -> {n_after}"
@@ -233,7 +250,12 @@ def test_drag_right_grip_sets_width_minimum(page: Page, harness):
     page.mouse.down()
     page.mouse.move(gx + 60, gy, steps=5)
     page.mouse.up()
-    page.wait_for_timeout(500)  # commit → set_property → subscriber restyles slot
+    # commit → set_property → subscriber restyles slot
+    wait_until(
+        page,
+        lambda: "min-width" in _slot_style(page, nid)
+        and _slot_box(page, nid)["width"] > before["width"] + 20,
+    )
 
     after = _slot_box(page, nid)
     assert after["width"] > before["width"] + 20, (
@@ -280,7 +302,6 @@ def test_pins_stay_clickable_under_the_resize_grips(page: Page, harness):
 
     box = _slot_box(page, nid)
     page.mouse.click(box["sx"] + 30, box["sy"] + 14)
-    page.wait_for_timeout(500)
     page.wait_for_selector('.hw-resize-grip[data-handle="right"]')
 
     # Record what each mousedown actually lands on, at the document level.
@@ -306,10 +327,10 @@ def test_pins_stay_clickable_under_the_resize_grips(page: Page, harness):
     assert pins, "fixture node exposes no real pins — nothing to overlap"
 
     for pin in pins:
+        page.wait_for_function(_GRIPS_HAND_OVER)
         page.mouse.move(pin["x"], pin["y"])  # hover first: the handover is on mousemove
         page.mouse.down()
         page.mouse.up()
-        page.wait_for_timeout(120)
 
     seen = page.evaluate("() => window.__hwSeen")
     assert seen, f"no mousedown reached any target for pins {[p['id'] for p in pins]}"

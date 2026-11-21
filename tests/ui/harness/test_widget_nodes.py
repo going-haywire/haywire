@@ -171,6 +171,7 @@ def test_an_edit_widget_keeps_its_press_in_edit(page: Page, harness):
     before = _box(card)
 
     _press_and_drag(page, card.locator(".q-slider").first, 60)
+    # Nothing to wait for when nothing should happen: the wait gives a wrong card drag time to show.
     page.wait_for_timeout(300)
 
     after = _box(card)

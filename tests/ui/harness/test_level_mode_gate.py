@@ -122,13 +122,33 @@ def test_operate_fold_header_toggles(page: Page, harness):
     )
 
 
+def _dblclick_emitting(page: Page, x: float, y: float) -> list[str]:
+    """Double-click at ``(x, y)``; return the canvas events it emitted to the server.
+
+    Enter is decided in the browser (``handleDoubleClick``): an Enter that is not emitted
+    cannot reach the server, so this needs no wait on the server.
+    """
+    events = _canvas_events(page)
+    page.evaluate(
+        "() => { window.__hwDblclick = false; document.addEventListener('dblclick', "
+        "() => { window.__hwDblclick = true; }, { once: true }); }"
+    )
+    page.mouse.dblclick(x, y)
+    # The document listener runs after the canvas's; console messages arrive in order,
+    # so the fence arriving means every line the double-click logged has.
+    page.wait_for_function("() => window.__hwDblclick")
+    with page.expect_console_message(lambda msg: msg.text == "hw-fence"):
+        page.evaluate("() => console.log('hw-fence')")
+    return events
+
+
 def test_view_double_click_does_not_enter(page: Page, harness):
     card_id, _ = _open(page, harness, "view")
     x, y = _centre(_title(page, card_id), "card title")
 
-    page.mouse.dblclick(x, y)
-    page.wait_for_timeout(600)
+    events = _dblclick_emitting(page, x, y)
 
+    assert not [line for line in events if "enterGroup" in line]
     assert _log(page) == ""
 
 
@@ -137,9 +157,9 @@ def test_operate_double_click_on_a_widget_does_not_enter(page: Page, harness):
     card_id, _ = _open(page, harness, "operate")
     x, y = _centre(_widget(page, card_id), "number widget")
 
-    page.mouse.dblclick(x, y)
-    page.wait_for_timeout(600)
+    events = _dblclick_emitting(page, x, y)
 
+    assert not [line for line in events if "enterGroup" in line]
     assert _log(page) == ""
 
     tx, ty = _centre(_title(page, card_id), "card title")
@@ -296,6 +316,7 @@ def test_operate_click_on_a_widget_does_not_select(page: Page, harness):
     card_id, _ = _open(page, harness, "operate")
     x, y = _centre(_widget(page, card_id), "number widget")
     page.mouse.click(x, y)
+    # Nothing to wait for when nothing should happen: the wait gives a wrong selection time to show.
     page.wait_for_timeout(400)
     assert not _selected(page, card_id)
 
@@ -328,6 +349,7 @@ def test_view_fold_header_does_not_toggle(page: Page, harness):
 
     x, y = _centre(header, "fold header")
     page.mouse.click(x, y)
+    # Nothing to wait for when nothing should happen: the wait gives a wrong toggle time to show.
     page.wait_for_timeout(600)
     wait_for_canvas_settled(page)
 
@@ -373,6 +395,7 @@ def test_operate_annotation_double_click_opens_no_editor(page: Page, harness):
 
     assert _hit(page, label, "note text", "!el.matches('.ui-node-slot *')")
     page.mouse.dblclick(x, y)
+    # Nothing to wait for when nothing should happen: the wait gives a wrong editor time to open.
     page.wait_for_timeout(600)
 
     assert _note_editor(page, note_id).is_hidden()

@@ -28,7 +28,7 @@ from haybale_testing.widgets.oversized_content_widget import (
     BOX_WIDTH,
     CONTENT_WIDTH,
 )
-from tests.ui.harness.nav import goto_ready, wait_until
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled, wait_until
 from tests.ui.harness.probe import attr
 
 _PATH = "/graph-widget-box"
@@ -112,7 +112,6 @@ def _set_attr(page: Page, node_id: str, name: str, present: bool) -> None:
         }""",
         [node_id, name, present],
     )
-    page.wait_for_timeout(150)
 
 
 def _is_selected(page: Page, node_id: str) -> bool:
@@ -126,14 +125,24 @@ def _is_selected(page: Page, node_id: str) -> bool:
 def _select(page: Page, node_id: str) -> None:
     box = _slot_box(page, node_id)
     page.mouse.click(box["sx"] + 30, box["sy"] + 14)  # node header
-    page.wait_for_timeout(500)
+    page.wait_for_function(
+        "(nid) => document.querySelector(`[data-node-id=\"${nid}\"]`).classList.contains('node-selected')",
+        arg=node_id,
+    )
 
 
 def _open(page: Page, harness) -> None:
     goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-node-id]")
     page.wait_for_selector(".ui-node-slot")
-    page.wait_for_timeout(800)
+    # The floors are the images' natural size: measure once all three have decoded.
+    page.wait_for_function(
+        """() => {
+            const imgs = [...document.querySelectorAll('[data-testid="oversized-content"]')];
+            return imgs.length === 3 && imgs.every((i) => i.complete && i.naturalWidth > 0);
+        }"""
+    )
+    wait_for_canvas_settled(page)
 
 
 # ---------------------------------------------------------------------------
@@ -278,11 +287,9 @@ def test_fixed_box_widget_widens_but_keeps_its_declared_height(page: Page, harne
     _select(page, nid)
 
     before = _widget_box(page, nid)
-    page.click('[data-testid="fixed-grow"]')
-    wait_until(
-        page,
-        lambda: not _is_selected(page, nid) or _widget_box(page, nid)["width"] > before["width"] + 50,
-    )
+    page.click('[data-testid="fixed-grow"]')  # size_adapt=manual, 520x420
+    # On the slot, not the widget: the click can drop the selection before the resize lands.
+    wait_until(page, lambda: _slot_box(page, nid)["width"] >= 518.0)
     if not _is_selected(page, nid):
         _select(page, nid)
 

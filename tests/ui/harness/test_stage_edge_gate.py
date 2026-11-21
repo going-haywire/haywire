@@ -69,6 +69,7 @@ def test_a_pin_off_the_stage_wires_starts_no_drag_on_stage(page: Page, harness) 
     page.mouse.move(*_card_centre(page, ids["a"], "right_0"))
     page.mouse.click(pos["x"], pos["y"])
     page.mouse.move(pos["x"] + 60, pos["y"] + 10)
+    # Nothing to wait for when nothing should happen: the wait gives a wrong drag or edge time to show.
     page.wait_for_timeout(300)
 
     assert page.locator(".graph-canvas.edge-dragging").count() == 0

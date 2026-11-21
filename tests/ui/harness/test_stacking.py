@@ -74,7 +74,7 @@ def test_hover_lifts_a_back_card_in_the_patch_only(page: Page, harness, channel:
     point = _overlap_centre(page, back, front)
     b = _box(page, back)
     page.mouse.move(b["x"] + 12, b["y"] + 12)  # back's exposed upper left
-    page.wait_for_timeout(100)
+    # The lift is CSS :hover, applied with the move itself; no wait.
     assert _card_at(page, *point) == {"back": back, "front": front}[on_top]
 
 
@@ -87,6 +87,9 @@ def test_a_stage_drag_keeps_the_stacking_order(page: Page, harness):
     page.mouse.move(sx + 10, sy + 10, steps=5)
     page.mouse.up()
     page.mouse.move(5, 5)
+    page.wait_for_selector(".dragging-node", state="detached")
+    # The drag's commit keeps the order, so the right end state is the start state: the wait
+    # gives a commit that reorders time to show.
     page.wait_for_timeout(200)
     assert _card_at(page, *_overlap_centre(page, back, front)) == front
 
@@ -99,7 +102,7 @@ def test_a_dragged_back_card_lifts_in_the_patch_only(page: Page, harness, channe
     page.mouse.move(sx, sy)
     page.mouse.down()
     page.mouse.move(sx + 10, sy + 10, steps=5)
-    page.wait_for_timeout(100)
+    page.wait_for_selector(f'[data-node-id="{back}"].dragging-node')
     try:
         assert _card_at(page, *_overlap_centre(page, back, front)) == {"back": back, "front": front}[on_top]
     finally:
