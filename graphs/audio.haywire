@@ -231,7 +231,7 @@
             "recipe": {
               "registry_key": "haybale-core:type:PooledType",
               "element_type": {
-                "registry_key": "haybale-audio:type:CALLBACK_AUDIO"
+                "registry_key": "haybale-audio:type:AUDIO_CALLBACK"
               }
             }
           },
@@ -387,11 +387,11 @@
         "ports": {
           "listen_callback": {
             "kwargs": {
-              "registry_id": "CALLBACK_AUDIO",
-              "registry_key": "haybale-audio:type:CALLBACK_AUDIO",
+              "registry_id": "AUDIO_CALLBACK",
+              "registry_key": "haybale-audio:type:AUDIO_CALLBACK",
               "label": "Listen",
               "description": "Subscription for emitters that deliver audio blocks",
-              "class_name": "CALLBACK_AUDIO",
+              "class_name": "AUDIO_CALLBACK",
               "module": "haybale_audio.types.callback",
               "default": {
                 "name": "AudioEventNode_f5917691"
@@ -403,7 +403,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haybale-audio:type:CALLBACK_AUDIO"
+              "registry_key": "haybale-audio:type:AUDIO_CALLBACK"
             },
             "field_data": {
               "name": "AudioEventNode_f5917691"
@@ -411,12 +411,12 @@
           },
           "block_ready": {
             "kwargs": {
-              "registry_id": "EXEC_AUDIO",
-              "registry_key": "haybale-audio:type:EXEC_AUDIO",
+              "registry_id": "AUDIO_EXEC",
+              "registry_key": "haybale-audio:type:AUDIO_EXEC",
               "label": "Block Ready",
               "description": "Signal for sequencing the nodes of an audio flow",
-              "class_name": "EXEC_AUDIO",
-              "module": "haybale_audio.types.exec_audio",
+              "class_name": "AUDIO_EXEC",
+              "module": "haybale_audio.types.audio_exec",
               "default": {
                 "value": {}
               },
@@ -428,7 +428,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haybale-audio:type:EXEC_AUDIO"
+              "registry_key": "haybale-audio:type:AUDIO_EXEC"
             }
           },
           "audio": {
@@ -580,12 +580,12 @@
         "ports": {
           "write": {
             "kwargs": {
-              "registry_id": "EXEC_AUDIO",
-              "registry_key": "haybale-audio:type:EXEC_AUDIO",
+              "registry_id": "AUDIO_EXEC",
+              "registry_key": "haybale-audio:type:AUDIO_EXEC",
               "label": "Write",
               "description": "Signal for sequencing the nodes of an audio flow",
-              "class_name": "EXEC_AUDIO",
-              "module": "haybale_audio.types.exec_audio",
+              "class_name": "AUDIO_EXEC",
+              "module": "haybale_audio.types.audio_exec",
               "default": {
                 "value": {}
               },
@@ -595,7 +595,7 @@
               "port_type": "inlet"
             },
             "recipe": {
-              "registry_key": "haybale-audio:type:EXEC_AUDIO"
+              "registry_key": "haybale-audio:type:AUDIO_EXEC"
             }
           },
           "stop": {
@@ -668,12 +668,12 @@
           },
           "next": {
             "kwargs": {
-              "registry_id": "EXEC_AUDIO",
-              "registry_key": "haybale-audio:type:EXEC_AUDIO",
+              "registry_id": "AUDIO_EXEC",
+              "registry_key": "haybale-audio:type:AUDIO_EXEC",
               "label": "Next",
               "description": "Signal for sequencing the nodes of an audio flow",
-              "class_name": "EXEC_AUDIO",
-              "module": "haybale_audio.types.exec_audio",
+              "class_name": "AUDIO_EXEC",
+              "module": "haybale_audio.types.audio_exec",
               "default": {
                 "value": {}
               },
@@ -685,7 +685,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haybale-audio:type:EXEC_AUDIO"
+              "registry_key": "haybale-audio:type:AUDIO_EXEC"
             }
           },
           "depth": {
@@ -894,7 +894,7 @@
             "recipe": {
               "registry_key": "haybale-core:type:PooledType",
               "element_type": {
-                "registry_key": "haybale-audio:type:CALLBACK_AUDIO"
+                "registry_key": "haybale-audio:type:AUDIO_CALLBACK"
               }
             }
           },
@@ -1050,11 +1050,11 @@
         "ports": {
           "listen_callback": {
             "kwargs": {
-              "registry_id": "CALLBACK_AUDIO",
-              "registry_key": "haybale-audio:type:CALLBACK_AUDIO",
+              "registry_id": "AUDIO_CALLBACK",
+              "registry_key": "haybale-audio:type:AUDIO_CALLBACK",
               "label": "Listen",
               "description": "Subscription for emitters that deliver audio blocks",
-              "class_name": "CALLBACK_AUDIO",
+              "class_name": "AUDIO_CALLBACK",
               "module": "haybale_audio.types.callback",
               "default": {
                 "name": "AudioEventNode_1017a6a1"
@@ -1066,7 +1066,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haybale-audio:type:CALLBACK_AUDIO"
+              "registry_key": "haybale-audio:type:AUDIO_CALLBACK"
             },
             "field_data": {
               "name": "AudioEventNode_1017a6a1"
@@ -1074,12 +1074,12 @@
           },
           "block_ready": {
             "kwargs": {
-              "registry_id": "EXEC_AUDIO",
-              "registry_key": "haybale-audio:type:EXEC_AUDIO",
+              "registry_id": "AUDIO_EXEC",
+              "registry_key": "haybale-audio:type:AUDIO_EXEC",
               "label": "Block Ready",
               "description": "Signal for sequencing the nodes of an audio flow",
-              "class_name": "EXEC_AUDIO",
-              "module": "haybale_audio.types.exec_audio",
+              "class_name": "AUDIO_EXEC",
+              "module": "haybale_audio.types.audio_exec",
               "default": {
                 "value": {}
               },
@@ -1091,7 +1091,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haybale-audio:type:EXEC_AUDIO"
+              "registry_key": "haybale-audio:type:AUDIO_EXEC"
             }
           },
           "audio": {
@@ -1302,7 +1302,7 @@
             "recipe": {
               "registry_key": "haybale-core:type:PooledType",
               "element_type": {
-                "registry_key": "haybale-audio:type:CALLBACK_AUDIO"
+                "registry_key": "haybale-audio:type:AUDIO_CALLBACK"
               }
             }
           },
@@ -1451,11 +1451,11 @@
         "ports": {
           "listen_callback": {
             "kwargs": {
-              "registry_id": "CALLBACK_AUDIO",
-              "registry_key": "haybale-audio:type:CALLBACK_AUDIO",
+              "registry_id": "AUDIO_CALLBACK",
+              "registry_key": "haybale-audio:type:AUDIO_CALLBACK",
               "label": "Listen",
               "description": "Subscription for emitters that deliver audio blocks",
-              "class_name": "CALLBACK_AUDIO",
+              "class_name": "AUDIO_CALLBACK",
               "module": "haybale_audio.types.callback",
               "default": {
                 "name": "AudioEventNode_f2d97224"
@@ -1467,7 +1467,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haybale-audio:type:CALLBACK_AUDIO"
+              "registry_key": "haybale-audio:type:AUDIO_CALLBACK"
             },
             "field_data": {
               "name": "AudioEventNode_f2d97224"
@@ -1475,12 +1475,12 @@
           },
           "block_ready": {
             "kwargs": {
-              "registry_id": "EXEC_AUDIO",
-              "registry_key": "haybale-audio:type:EXEC_AUDIO",
+              "registry_id": "AUDIO_EXEC",
+              "registry_key": "haybale-audio:type:AUDIO_EXEC",
               "label": "Block Ready",
               "description": "Signal for sequencing the nodes of an audio flow",
-              "class_name": "EXEC_AUDIO",
-              "module": "haybale_audio.types.exec_audio",
+              "class_name": "AUDIO_EXEC",
+              "module": "haybale_audio.types.audio_exec",
               "default": {
                 "value": {}
               },
@@ -1492,7 +1492,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haybale-audio:type:EXEC_AUDIO"
+              "registry_key": "haybale-audio:type:AUDIO_EXEC"
             }
           },
           "audio": {
@@ -1644,12 +1644,12 @@
         "ports": {
           "tick": {
             "kwargs": {
-              "registry_id": "EXEC_AUDIO",
-              "registry_key": "haybale-audio:type:EXEC_AUDIO",
+              "registry_id": "AUDIO_EXEC",
+              "registry_key": "haybale-audio:type:AUDIO_EXEC",
               "label": "Tick",
               "description": "Signal for sequencing the nodes of an audio flow",
-              "class_name": "EXEC_AUDIO",
-              "module": "haybale_audio.types.exec_audio",
+              "class_name": "AUDIO_EXEC",
+              "module": "haybale_audio.types.audio_exec",
               "default": {
                 "value": {}
               },
@@ -1659,7 +1659,7 @@
               "port_type": "inlet"
             },
             "recipe": {
-              "registry_key": "haybale-audio:type:EXEC_AUDIO"
+              "registry_key": "haybale-audio:type:AUDIO_EXEC"
             }
           },
           "in_0": {
@@ -1712,12 +1712,12 @@
           },
           "next": {
             "kwargs": {
-              "registry_id": "EXEC_AUDIO",
-              "registry_key": "haybale-audio:type:EXEC_AUDIO",
+              "registry_id": "AUDIO_EXEC",
+              "registry_key": "haybale-audio:type:AUDIO_EXEC",
               "label": "Next",
               "description": "Signal for sequencing the nodes of an audio flow",
-              "class_name": "EXEC_AUDIO",
-              "module": "haybale_audio.types.exec_audio",
+              "class_name": "AUDIO_EXEC",
+              "module": "haybale_audio.types.audio_exec",
               "default": {
                 "value": {}
               },
@@ -1729,7 +1729,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haybale-audio:type:EXEC_AUDIO"
+              "registry_key": "haybale-audio:type:AUDIO_EXEC"
             }
           },
           "mixed": {

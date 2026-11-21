@@ -91,12 +91,12 @@ class AudioMixerNode(BaseNode):
 
     def init(self) -> None:
         from haybale_audio.types.audio import AUDIO
-        from haybale_audio.types.exec_audio import EXEC_AUDIO
+        from haybale_audio.types.audio_exec import AUDIO_EXEC
 
-        self.add(EXEC_AUDIO.as_inlet("tick", label="Tick"))
+        self.add(AUDIO_EXEC.as_inlet("tick", label="Tick"))
         self.add(ADD[AUDIO].as_inlet(id=f"{_PREFIX}0", label="In 0", on_connect="hb_resolve"))
         self.add(STRING.as_config("status", default="Idle", label="Status", widget=LabelWidget.config()))
-        self.add(EXEC_AUDIO.as_outlet("next", label="Next"))
+        self.add(AUDIO_EXEC.as_outlet("next", label="Next"))
         self.add(AUDIO.as_outlet("mixed", label="Mixed"))
 
     def post_init(self) -> None:

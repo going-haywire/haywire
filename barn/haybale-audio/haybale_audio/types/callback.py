@@ -1,4 +1,4 @@
-"""CALLBACK_AUDIO — the subscription between an audio emitter and an Audio Event node."""
+"""AUDIO_CALLBACK — the subscription between an audio emitter and an Audio Event node."""
 
 from dataclasses import dataclass
 
@@ -6,18 +6,18 @@ from haywire.api import BaseType, CallbackWire, type
 
 
 @type(
-    label="Callback Audio",
+    label="Audio Callback",
     description="Subscription for emitters that deliver audio blocks",
     wire_type=CallbackWire,
     default=None,
     color="#4ab0d9",
 )
 @dataclass
-class CALLBACK_AUDIO(BaseType):
+class AUDIO_CALLBACK(BaseType):
     """Subscription value: the callback name a listener registers under.
 
     A `BaseType` on `CallbackWire`, independent of the core `CALLBACK` and of every other callback
-    type: only an emitter whose pooled inlet is `PooledType[CALLBACK_AUDIO]` connects to an
+    type: only an emitter whose pooled inlet is `PooledType[AUDIO_CALLBACK]` connects to an
     Audio Event node.
 
     The emitter's payload for each block:

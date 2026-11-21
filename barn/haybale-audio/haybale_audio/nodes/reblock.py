@@ -67,7 +67,7 @@ class ReblockNode(BaseNode):
     Inputs:
         write: Add the block on `audio`
         audio: The block to add
-        callbacks: Pooled CALLBACK_AUDIO subscriptions from Audio Event nodes
+        callbacks: Pooled AUDIO_CALLBACK subscriptions from Audio Event nodes
 
     Outputs:
         next: Control flow after the block is taken in
@@ -78,18 +78,18 @@ class ReblockNode(BaseNode):
     def init(self) -> None:
         from haybale_core.types import PooledType
         from haybale_audio.types.audio import AUDIO
-        from haybale_audio.types.callback import CALLBACK_AUDIO
-        from haybale_audio.types.exec_audio import EXEC_AUDIO
+        from haybale_audio.types.callback import AUDIO_CALLBACK
+        from haybale_audio.types.audio_exec import AUDIO_EXEC
 
-        self.add(EXEC_AUDIO.as_inlet("write", label="Write"))
+        self.add(AUDIO_EXEC.as_inlet("write", label="Write"))
         self.add(AUDIO.as_inlet("audio", label="Audio", description="Block to add"))
         self.add(
-            PooledType[CALLBACK_AUDIO].as_inlet(
+            PooledType[AUDIO_CALLBACK].as_inlet(
                 "callbacks", label="Subscribers", description="Connect to an Audio Event node."
             )
         )
         self.add(STRING.as_config("status", default="Idle", label="Status", widget=LabelWidget.config()))
-        self.add(EXEC_AUDIO.as_outlet("next", label="Next"))
+        self.add(AUDIO_EXEC.as_outlet("next", label="Next"))
 
     def post_init(self) -> None:
         self.hb_reblocker: Reblocker | None = None

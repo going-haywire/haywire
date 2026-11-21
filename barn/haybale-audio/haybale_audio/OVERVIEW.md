@@ -7,17 +7,17 @@ Audio blocks, events and routing shared by speech and streaming libraries
 - **Audio Clock** — Emits a silent audio block at a steady rate
 - **Audio Event** — Triggered for each audio block a connected audio emitter delivers
 - **Audio Mixer** — Sums several audio sources into one block per clock tick
-- **Channel Merge** — Stacks audio blocks into one block with all their channels
-- **Channel Select** — Picks, reorders or repeats the channels of an audio block
-- **Channel Split** — Gives each channel of an audio block its own output
 - **Device Out** — Plays audio blocks on a sound device
 - **File Player** — Plays an audio file as audio blocks, in real time
+- **Merge Channels** — Stacks audio blocks into one block with all their channels
 - **Mix to Mono** — Averages all channels of an audio block into one
 - **Reblock** — Re-cuts audio blocks to a fixed size and delivers them to Audio Event nodes
 - **Recorder** — Writes audio blocks to a file
 - **Resample** — Converts audio blocks to another sample rate and delivers them to Audio Event nodes
+- **Select Channel** — Picks, reorders or repeats the channels of an audio block
+- **Split Channels** — Gives each channel of an audio block its own output
 
 ## Types
 - **Audio** — A block of audio samples. Never saved with the graph.
+- **Audio Callback** — Subscription for emitters that deliver audio blocks
 - **Audio Execution Signal** — Signal for sequencing the nodes of an audio flow
-- **Callback Audio** — Subscription for emitters that deliver audio blocks

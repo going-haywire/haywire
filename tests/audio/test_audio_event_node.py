@@ -1,4 +1,4 @@
-"""Audio Event: publishes its listener name on CALLBACK_AUDIO and unpacks the emitter's payload."""
+"""Audio Event: publishes its listener name on AUDIO_CALLBACK and unpacks the emitter's payload."""
 
 import importlib
 from typing import Any
@@ -21,7 +21,7 @@ def _event(graph: Any) -> Any:
 def test_listen_outlet_publishes_node_id(graph_with_library_system):
     node = _event(graph_with_library_system)
     value = node.ports["listen_callback"].get_value()
-    cb = importlib.import_module("haybale_audio.types.callback").CALLBACK_AUDIO
+    cb = importlib.import_module("haybale_audio.types.callback").AUDIO_CALLBACK
     assert isinstance(value, cb), "a dict here breaks the emitter's pooled inlet"
     assert value.name == node.node_id
 
