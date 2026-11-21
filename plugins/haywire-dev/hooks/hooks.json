@@ -9,7 +9,8 @@
           },
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/session-place.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/session-place.sh",
+            "timeout": 330
           }
         ]
       }

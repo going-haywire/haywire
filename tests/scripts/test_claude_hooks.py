@@ -4,6 +4,8 @@ import json
 import os
 import shutil
 import subprocess
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -18,7 +20,7 @@ def _fake_bin(tmp_path: Path, gh_script: str | None) -> Path:
     """A bin folder holding jq and perl, and a stand-in gh running ``gh_script`` if given."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
-    for tool in ("jq", "perl", "grep", "sed", "cat", "touch", "mkdir"):
+    for tool in ("jq", "perl", "grep", "sed", "cat", "touch", "mkdir", "sleep"):
         found = shutil.which(tool)
         if found and not (bin_dir / tool).exists():
             (bin_dir / tool).symlink_to(found)
@@ -35,7 +37,13 @@ def _run(hook: str, payload: dict, bin_dir: Path, tmp_path: Path, **env: str) ->
         input=json.dumps(payload),
         capture_output=True,
         text=True,
-        env={"PATH": str(bin_dir), "TMPDIR": str(tmp_path), "CLAUDE_PROJECT_DIR": str(tmp_path), **env},
+        env={
+            "PATH": str(bin_dir),
+            "TMPDIR": str(tmp_path),
+            "CLAUDE_PROJECT_DIR": str(tmp_path),
+            "HAYWIRE_T3_SETUP_WAIT": "0",
+            **env,
+        },
         check=False,
     )
 
@@ -282,6 +290,22 @@ def test_a_worktree_without_its_setup_asks_for_the_import(tmp_path, missing):
     assert "t3_project_update" in context
     assert "only on your yes" in context
     assert "python3 scripts/worktree_setup.py" in context
+
+
+def test_the_slot_waits_for_a_setup_still_running(tmp_path):
+    def finish_setup():
+        work = tmp_path / "work"
+        while not (work / ".venv").is_dir():
+            time.sleep(0.05)
+        time.sleep(1.5)
+        (work / ".haywire").mkdir()
+        (work / ".haywire" / "settings.json").write_text(json.dumps({"network": {"port": {"value": 8125}}}))
+
+    setup = threading.Thread(target=finish_setup)
+    setup.start()
+    context = _t3_setup(tmp_path, settings=_T3_COMPLETE, port=False, HAYWIRE_T3_SETUP_WAIT="30")
+    setup.join()
+    assert "T3 setup is incomplete" not in context
 
 
 @pytest.mark.parametrize(
