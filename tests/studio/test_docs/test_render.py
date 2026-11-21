@@ -224,7 +224,7 @@ def test_coverage_flags_missing_description():
     assert any("lib:type:x" in line for line in report)
 
 
-def _named(kind, class_name, label="", node_bases=None):
+def _named(kind, class_name, label="", node_bases=None, template=False):
     return ComponentRecord(
         registry_key=f"lib:{kind}:{class_name}",
         kind=kind,
@@ -233,6 +233,7 @@ def _named(kind, class_name, label="", node_bases=None):
         description="d",
         deprecation="",
         hidden=False,
+        template=template,
         class_name=class_name,
         node_bases=node_bases or [],
     )
@@ -287,6 +288,10 @@ def test_naming_reports_a_misnamed_base_once_per_library():
         _named("node", "ToggleNode", "Toggle", node_bases=["WidgetNode"]),
         _named("node", "MenuNode", "Menu", node_bases=["WidgetNode"]),
     ) == ["lib: naming: N7 base class `WidgetNode` (of ToggleNode, MenuNode) is not `Base<X>Node`"]
+
+
+def test_naming_skips_a_node_template():
+    assert _naming(_named("node", "DataNodeTemplate", "Data Node", template=True)) == []
 
 
 def test_naming_skips_a_record_without_class_name():

@@ -118,6 +118,7 @@ def _record_from_class(kind: str, key: str, cls: Any) -> ComponentRecord:
         ports=[],
         settings=[],
         extra=_extra_for_kind(kind, cls, identity),
+        template=bool(getattr(identity, "template", False)),
         class_name=getattr(cls, "__name__", ""),
     )
 
@@ -169,6 +170,7 @@ def _node_record(
         ports=ports,
         settings=settings,
         extra={},
+        template=base.template,
         class_name=base.class_name,
         node_bases=_node_bases(cls, library_folder)
         if library_folder is not None and isinstance(cls, type)

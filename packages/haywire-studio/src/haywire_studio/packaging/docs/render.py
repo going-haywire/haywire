@@ -158,7 +158,7 @@ def _label_letters(text: str) -> str:
 def _naming_problems(c: ComponentRecord) -> list[str]:
     problems: list[str] = []
     name = c.class_name
-    if not name:
+    if not name or c.template:
         return problems
     if c.kind == "node":
         if not name.endswith("Node"):
@@ -180,7 +180,8 @@ def naming_report(doc: LibraryDoc) -> list[str]:
     Checks node, widget and type class names against the rules N1, N7, N9, W1
     and T1 of ``docs/reference/component-naming.md``: one line per component,
     then one per misnamed node base class, keyed by the library id. Report
-    only: a line never fails a run. A record without ``class_name`` is skipped.
+    only: a line never fails a run. A node template, and a record without
+    ``class_name``, is skipped.
     """
     report: list[str] = []
     subclasses: dict[str, list[str]] = {}

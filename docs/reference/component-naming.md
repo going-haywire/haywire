@@ -34,6 +34,7 @@ graph that holds the old key (see [node canon](../components/nodes/node-canon.md
 | N7 | An abstract base is `Base<X>Node` | `BaseEstimatorNode` |
 | N8 | No implementation detail (`Numpy`) or library name, unless it tells two palette entries apart | `LoadSpandrelModelNode` keeps "Spandrel" |
 | N9 | In haybale-testing: `<X>ProbeNode`, benchmarks `Bench<X>Node`, never a `Test` prefix. pytest collects `Test*` classes, and test modules import these nodes | `FoldProbeNode`, `BenchSinkNode` |
+| N10 | A node template (`@node(template=True)`, hidden, cloned and never placed; see *Node template* in the [glossary](glossary.md)) is `<Kind>NodeTemplate`, its label the template kind | `DataNodeTemplate` / "Data Node" |
 
 ## T — data types
 
@@ -64,12 +65,21 @@ graph that holds the old key (see [node canon](../components/nodes/node-canon.md
 
 Adapters already follow `<From>To<To>Adapter` and are not covered here.
 
+## Accepted exceptions
+
+| Component | Breaks | Why it stays |
+|---|---|---|
+| `haywire-core:node:GraphNode`, label "Group" | N1 | It is the Graph-node base that `MacroNode` extends. Splitting out a `GroupNode` is an architecture change, not a rename |
+
+The check still reports an accepted exception.
+
 ## What `haywire docs` checks
 
 The coverage report at the end of every `haywire docs` run (see
 [haybale canon](../haybale/haybale-canon.md), §10) also lists naming lines for
 the rules a program can check. They are reports only and never fail a run.
 Libraries in `[tool.haywire.docs].coverage_exempt` still get their naming lines.
+Node templates (N10) are not checked.
 
 | Rule | Line reported when |
 |---|---|

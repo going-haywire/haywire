@@ -1,6 +1,6 @@
 # Component naming scheme: review and rename plan
 
-Date: 2026-11-21 · Status: decided — D1 A, D2 A, D3 A, D4 A, D5 A, D6 B(b), D7 A, D8 A
+Date: 2026-11-21 · Status: decided — D1 A, D2 A, D3 A, D4 A, D5 A, D6 B(b), D7 A (revised: `DEPTH_BUFFER`), D8 A
 
 ## 1. What was reviewed
 
@@ -69,6 +69,7 @@ classes are their label in CapWords plus `Node`.
 | N7 | Abstract base: `Base<X>Node` | `BaseEstimatorNode` |
 | N8 | No implementation detail (`Numpy`) or library name, unless it tells two palette entries apart | `LoadSpandrelModelNode` keeps "Spandrel" |
 | N9 | haybale-testing: `<X>ProbeNode`, benchmarks `Bench<X>Node`, never a `Test` prefix (pytest collects `Test*` classes, and test modules import 40+ of them) | `FoldProbeNode`, `BenchSinkNode` |
+| N10 | Node template (`@node(template=True)`, hidden, cloned and never placed): `<Kind>NodeTemplate`, label = the template kind | `DataNodeTemplate` / "Data Node" |
 
 ### T — data types
 
@@ -116,7 +117,9 @@ Counts are approximate occurrences: `py` = non-test source, `test`, `graph` =
 
 `GraphNode` (label "Group") stays. It is the documented Graph-node base that
 `MacroNode` extends, and splitting out a `GroupNode` is an architecture change,
-not a rename.
+not a rename. It is an accepted exception to N1, recorded on the naming page;
+the check reports it until S5's allow-list. `DataNodeTemplate` stays too: it
+conforms to N10, and the check skips templates.
 
 ### haybale-core
 
@@ -126,6 +129,7 @@ not a rename.
 | `ShutdownNode` | `ShutdownEventNode` | N5 | 5 | 12 | 44 | 2 |
 | `TickEventNode` label "Tick" | label "Tick Event" | N1 | – | – | – | – |
 | `ControlSwitch` | `ControlSwitchNode` | N1 | 10 | 1 | 8 | 2 |
+| `WidgetNode` (unregistered base of the widget nodes) | `BaseWidgetNode` | N7 | – | – | 0 | – |
 | `ArrayType` | `ARRAY` | T1 | 109 | 37 | 114 | 80 |
 | `PooledType` | `POOLED` | T1 | 63 | 28 | 146 | 60 |
 
@@ -148,7 +152,7 @@ not a rename.
 | `IMAGE_RGBA` | `RGBA_IMAGE` | T2 | 6 | 7 | 2 | 8 |
 | `CALLBACK_IMAGE` | `IMAGE_CALLBACK` | T4 | 13 | 3 | 29 | 7 |
 
-| `DEPTH` | `DEPTH_MAP` ("Depth Map") | T2; the docstring already says "a depth map" | 4 | 12 | 0 | 5 |
+| `DEPTH` | `DEPTH_BUFFER` ("Depth Buffer") | T2; the glossary calls the raw millimetre data the depth buffer, and a depth map its colourized view | 4 | 12 | 0 | 5 |
 
 Labels change to "Gray Image", "RGB Image", "RGBA Image", "Image Callback" (X2).
 
@@ -160,7 +164,7 @@ Labels change to "Gray Image", "RGB Image", "RGBA Image", "Image Callback" (X2).
 | Rename: case (T1) | `ArrayType` `PooledType` `MapsStringType` `MathOPSelector` `Temperature` `TestData` |
 | Rename: order (T2/T4) | `IMAGE_GRAY` `IMAGE_RGB` `IMAGE_RGBA` `CALLBACK_IMAGE` `CALLBACK_AUDIO` `CALLBACK_MULTIFRAME` `EXEC_AUDIO` |
 | Rename: base (T3) | `MODEL_BASE` |
-| Rename (D7) | `DEPTH` → `DEPTH_MAP` |
+| Rename (D7) | `DEPTH` → `DEPTH_BUFFER` |
 | Label only (D8) | `LIST` → label "Untyped List", docstring says how it differs from `ARRAY` |
 | Label only (D3) | "File path", "Folder path", "Field list", "Image model", "Inpainting model", "Gray/RGB/RGBA image"; vague docstrings on `BYTES`, `LIST`, `DICT`, `FOLD` ("Fold data type") |
 
@@ -251,7 +255,7 @@ sequenceDiagram
 | **S2** | One PR per library: builtin, haybale-core, audio, image, example + TEST_A, testing. Each PR renames the class and its module, the `widget_keys` constant and the label, then runs `/check-rename`, migrates graphs with S1, runs `haywire docs --all` and the docs bake, then `haywire verify` | CI green, `verify` clean |
 | **S3** | `/haywire-release` with a minor bump to 0.6.0, and release notes that list the map | Tag published |
 | **S4** | visiongraph, spandrel, protokol, stream, comfyui: raise `haywire-core>=0.6`, run `haywire rename --map` (the core map plus the lib's own), apply the lib's own renames from §3, regenerate docs, publish. Libraries ship no rename map of their own (decided 2026-11-21): their graphs are migrated once with the core map plus a throwaway entry list; nothing ships. | Each lib's `verify` and CI green |
-| **S5** | The naming check fails CI for in-repo libs. For external libs it stays a coverage line | – |
+| **S5** | The naming check fails CI for in-repo libs, with an allow-list for accepted exceptions (`GraphNode`). For external libs it stays a coverage line | – |
 
 No runtime key aliases. Per your call, graphs get migrated once and the
 loader stays as it is.
@@ -266,5 +270,5 @@ loader stays as it is.
 | D4 | haybale-testing renames | **A** included, as their own PR |
 | D5 | Migration tool | **A** `haywire rename --map <file>` reuses the rename package's graph walker; the map ships in haywire-core |
 | D6 | Widget-node vocabulary | **B(b)** widgets follow the nodes: `SwitchWidget`→`ToggleWidget`, `SelectWidget`→`MenuWidget`, `GateSelectWidget`→`GateMenuWidget` |
-| D7 | `DEPTH` | **A** → `DEPTH_MAP` ("Depth Map") |
+| D7 | `DEPTH` | **A, revised** → `DEPTH_BUFFER` ("Depth Buffer"), which keeps the glossary's depth map/buffer entry true. S2 also changes that entry's `DEPTH` mention to `DEPTH_BUFFER` |
 | D8 | `LIST` beside `ARRAY` | **A** keep both; `LIST` labelled "Untyped List" |

@@ -22,6 +22,8 @@ class ComponentRecord:
     ports: list[PortInfo] = field(default_factory=list)
     settings: list[SettingInfo] = field(default_factory=list)
     extra: dict[str, Any] = field(default_factory=dict)
+    #: Declared with ``@node(template=True)``: cloned by the New Node wizard, never placed.
+    template: bool = False
     #: The registered class's own name, which the naming check reads.
     class_name: str = ""
     #: Unregistered public node classes of the same library that a node

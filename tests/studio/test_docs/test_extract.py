@@ -190,3 +190,6 @@ def test_extract_records_node_bases(service):
     metadata = next(r for r in doc.components if r.registry_key == "haywire-core:node:MetadataNode")
     assert metadata.class_name == "MetadataNode"
     assert metadata.node_bases == ["MetadataNodeBase"]
+    template = next(r for r in doc.components if r.registry_key == "haywire-core:node:DataNodeTemplate")
+    assert template.template
+    assert not metadata.template
