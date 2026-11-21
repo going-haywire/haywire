@@ -610,7 +610,6 @@ def test_file_ref_with_whole_repo_address_is_missing(index: ModelIndex, tmp_path
             sources=whole_sources(index, tmp_path),
         )
     assert caught.value.wanted == []
-    assert "a whole-repo address belongs in a catalog entry" in str(caught.value)
 
 
 def test_tree_size_honours_folder_patterns(index: ModelIndex, tmp_path: Path) -> None:

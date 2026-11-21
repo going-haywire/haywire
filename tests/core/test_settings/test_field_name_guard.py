@@ -20,7 +20,7 @@ pytestmark = [pytest.mark.unit, pytest.mark.core]
 
 
 def test_underscore_prefixed_field_is_rejected_at_class_definition():
-    with pytest.raises(TypeError, match=r"may not start with '_'"):
+    with pytest.raises(TypeError, match=r"_hidden"):
 
         class Bad(NodeSettings):
             _hidden = setting[INT](7, label="Hidden")
@@ -44,7 +44,7 @@ def test_the_error_suggests_a_fix():
 def test_a_field_colliding_with_internal_state_is_rejected():
     """`_set_keys` is a data descriptor collision that used to blow up with
     `AttributeError: 'int' object has no attribute 'add'` at construction."""
-    with pytest.raises(TypeError, match=r"may not start with '_'"):
+    with pytest.raises(TypeError, match=r"_set_keys"):
 
         class Bad4(NodeSettings):
             _set_keys = setting[INT](3)

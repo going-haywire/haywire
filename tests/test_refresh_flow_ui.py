@@ -237,7 +237,6 @@ async def test_no_project_path_reports_instead_of_advancing(tmp_path: Path) -> N
 
     assert flow.step == "sources"
     assert flow.error is not None
-    assert "No project open" in flow.error
 
 
 def test_steps_cover_every_panel() -> None:

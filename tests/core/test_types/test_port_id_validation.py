@@ -14,7 +14,7 @@ from haywire.core.types.utils import create_port_spec
 
 @pytest.mark.parametrize("factory", ["as_inlet", "as_outlet", "as_config"])
 def test_dotted_author_port_id_is_rejected(factory):
-    with pytest.raises(ValueError, match="reserved for promoted settings"):
+    with pytest.raises(ValueError, match=r"props\.skin"):
         getattr(FLOAT, factory)("props.skin")
 
 
@@ -32,5 +32,5 @@ def test_promotion_may_use_a_dotted_id():
 
 def test_promoted_flag_is_required_for_the_dotted_form():
     """The reservation is not bypassable by a plain dotted id."""
-    with pytest.raises(ValueError, match="reserved for promoted settings"):
+    with pytest.raises(ValueError, match=r"filter\.strength"):
         create_port_spec(FLOAT, PortType.INLET, "filter.strength")

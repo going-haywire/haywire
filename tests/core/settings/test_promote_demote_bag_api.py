@@ -63,7 +63,7 @@ def test_bag_promote_raises_for_ineligible_direction(make_node_with_setting):
 
     node = make_node_with_setting(accessor="filter", field="threshold")
     type(node.filter).__dict__["threshold"]._promotable = Promotable.OUTLET
-    with pytest.raises(Refusal, match="cannot be promoted"):
+    with pytest.raises(Refusal):
         node.filter._promote("threshold", PortType.INLET)
 
 

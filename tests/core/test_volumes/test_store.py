@@ -76,7 +76,7 @@ def test_duplicate_add_and_unknown_update_are_refused(tmp_path, volume_store):
     volume_store.add(MODELS, label="M", description="", location=tmp_path)
     with pytest.raises(ValueError, match="exists"):
         volume_store.add(MODELS, label="M", description="", location=tmp_path)
-    with pytest.raises(ValueError, match="no volume"):
+    with pytest.raises(ValueError, match="user:volume:nope"):
         volume_store.update("user:volume:nope", label="x")
 
 
@@ -125,13 +125,13 @@ def test_reset_writes_the_suggestion_back(tmp_path, volume_store):
 
 def test_reset_is_refused_without_a_suggestion(tmp_path, volume_store):
     volume_store.add(MODELS, label="M", description="", location=tmp_path)
-    with pytest.raises(ValueError, match="no suggested location"):
+    with pytest.raises(ValueError, match=MODELS):
         volume_store.reset(MODELS)
     key = user_volume_key("scans")
     volume_store.add(key, label="S", description="", location=tmp_path)
-    with pytest.raises(ValueError, match="user volume"):
+    with pytest.raises(ValueError, match=key):
         volume_store.reset(key)
-    with pytest.raises(ValueError, match="no volume"):
+    with pytest.raises(ValueError, match="lib:volume:nope"):
         volume_store.reset("lib:volume:nope")
     with pytest.raises(ValueError, match="project"):
         volume_store.reset(PROJECT_KEY)
@@ -281,5 +281,5 @@ def test_write_leaves_no_temp_file(tmp_path, volume_store):
 
 def test_user_volume_key():
     assert user_volume_key("scans") == "user:volume:scans"
-    with pytest.raises(ValueError, match="Invalid volume name"):
+    with pytest.raises(ValueError, match="Bad Name"):
         user_volume_key("Bad Name")

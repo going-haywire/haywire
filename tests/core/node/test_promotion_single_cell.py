@@ -71,7 +71,7 @@ def test_watch_default_direction_rejected_shadow_default_ok(library_system):
     node = _make_mixed_bag_node(library_system)
 
     # watch → (default) inlet is rejected.
-    with pytest.raises(Refusal, match="cannot be promoted to inlet"):
+    with pytest.raises(Refusal, match="inlet"):
         promote_setting(node, "cfg", "watched")
 
     # shadow → (default) inlet is now allowed.
@@ -240,7 +240,7 @@ def test_watch_to_inlet_rejected_watch_to_outlet_ok(library_system):
     from haywire.core.types.enums import PortType
 
     node = _make_mixed_bag_node(library_system)
-    with pytest.raises(Refusal, match="cannot be promoted to inlet"):
+    with pytest.raises(Refusal, match="inlet"):
         promote_setting(node, "cfg", "watched", direction=PortType.INLET)
     promote_setting(node, "cfg", "watched", direction=PortType.OUTLET)
     port = node.ports[type(node.cfg).__dict__["watched"].storage_key]

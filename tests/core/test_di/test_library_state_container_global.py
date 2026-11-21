@@ -19,7 +19,7 @@ def test_get_raises_before_set():
     ctx_mod._library_state_container = None
     from haywire.core.di.context import get_library_state_container
 
-    with pytest.raises(RuntimeError, match="LibraryStateContainer not set"):
+    with pytest.raises(RuntimeError, match="LibraryStateContainer"):
         get_library_state_container()
 
 

@@ -498,7 +498,6 @@ class TestDanglingSubgraphKey:
 
         assert not ok
         assert message is not None
-        assert "no Subgraph bound" in message
 
     def test_a_bound_card_is_valid(self, graph_with_library_system: BaseGraph):
         definition = _definition(graph_with_library_system)

@@ -155,7 +155,7 @@ class TestLockedModes:
     def test_a_callback_edge_refuses_a_choice(self, callback_edge):
         _event, edge = callback_edge
 
-        with pytest.raises(ValueError, match="cannot take"):
+        with pytest.raises(ValueError, match=Propagation.LAZY.value):
             edge.propagation = Propagation.LAZY
 
     def test_an_edge_out_of_a_promoted_outlet_is_locked_lazy(self, promoted_outlet_edge):

@@ -218,7 +218,7 @@ def test_open_macro_with_refuses_an_unsaved_entry(haystack, macro_file, graph_wi
     entry.unsaved = True
     before = set(entry.graph.node_wrappers)
 
-    with pytest.raises(ValueError, match="unsaved edits"):
+    with pytest.raises(ValueError, match="Blur"):
         haystack.open_macro_with(path, _document(graph_with_library_system))
 
     assert set(entry.graph.node_wrappers) == before
@@ -238,7 +238,7 @@ def test_a_failed_load_into_an_open_macro_restores_it(haystack, macro_file, grap
 
     with (
         patch.object(entry.graph, "load_from_dict", side_effect=_fail_on_the_document),
-        pytest.raises(ValueError, match="could not be loaded"),
+        pytest.raises(ValueError, match="Blur"),
     ):
         haystack.open_macro_with(path, document)
 
@@ -264,7 +264,7 @@ def test_a_failed_load_into_an_open_macro_discards_its_history(
 
     with (
         patch.object(entry.graph, "load_from_dict", side_effect=_fail_on_the_document),
-        pytest.raises(ValueError, match="could not be loaded"),
+        pytest.raises(ValueError, match="Blur"),
     ):
         haystack.open_macro_with(path, document)
 
@@ -299,7 +299,7 @@ def test_a_failed_load_whose_file_is_gone_closes_the_open_macro(
     path.unlink()
     with (
         patch.object(entry.graph, "load_from_dict", side_effect=_fail_on_the_document),
-        pytest.raises(ValueError, match="was closed"),
+        pytest.raises(ValueError, match="Blur"),
     ):
         haystack.open_macro_with(path, document)
 
@@ -314,7 +314,7 @@ def test_a_failed_load_into_a_new_entry_registers_nothing(haystack, macro_file, 
 
     with (
         patch.object(BaseGraph, "load_from_dict", return_value=False),
-        pytest.raises(ValueError, match="could not be loaded"),
+        pytest.raises(ValueError, match="Blur"),
     ):
         haystack.open_macro_with(path, document)
 

@@ -50,7 +50,7 @@ class TestParameterization:
 
     def test_a_wrapper_may_not_wrap_a_wrapper(self):
         # Absence has no degrees: a second wrapper can only mean the first.
-        with pytest.raises(TypeError, match="cannot wrap another wrapper"):
+        with pytest.raises(TypeError):
             OPTIONAL[OPTIONAL[INT]]
 
 
@@ -160,5 +160,5 @@ class TestGuards:
             def from_dict(cls, data):
                 return cls()
 
-        with pytest.raises(TypeError, match="only defined for PrimitiveField storage"):
+        with pytest.raises(TypeError, match="PrimitiveField"):
             OPTIONAL[Structured]

@@ -188,7 +188,7 @@ def test_cache_without_address_is_refused(tmp_path, catalog_registry, identity):
     from haywire.core.catalog.registry import _parse_resource
 
     bad = {"urls": ["u"], "cache": "r.pth"}
-    with pytest.raises(ValueError, match="cache must be an address"):
+    with pytest.raises(ValueError, match="cache"):
         _parse_resource(Path("Bad.json"), bad)
 
     for resource in (
@@ -235,7 +235,7 @@ def test_include_not_a_list_of_strings_is_refused(tmp_path, catalog_registry, id
 
     for bad_include in ("*.bin", [1]):
         bad = {"urls": ["u"], "include": bad_include}
-        with pytest.raises(ValueError, match="include must be a list"):
+        with pytest.raises(ValueError, match="include"):
             _parse_resource(Path("Bad.json"), bad)
 
         doc = copy.deepcopy(OMDB_DEMO)

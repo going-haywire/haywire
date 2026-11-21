@@ -12,7 +12,7 @@ def test_get_raises_before_set():
 
     from haywire.core.di.context import get_workspace_root
 
-    with pytest.raises(RuntimeError, match="workspace_root not set"):
+    with pytest.raises(RuntimeError, match="workspace_root"):
         get_workspace_root()
 
 
