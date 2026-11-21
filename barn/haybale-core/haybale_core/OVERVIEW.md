@@ -4,7 +4,7 @@ Fundamental components for haywire graphs
 
 ## Nodes
 ### Core
-- **Begin Player** — Triggered once when execution starts
+- **Begin Play Event** — Triggered once when execution starts
 - **Control Switch** — Switches control flow based on condition
 - **Create Folder** — Creates a folder inside a volume, including any folders above it
 - **Float Number** — A number box that sends a decimal number, and shows the one it is fed
@@ -22,12 +22,12 @@ Fundamental components for haywire graphs
 - **Print** — Print to the haywire UI console
 - **Resolve Path** — Gives the absolute location of a path on this machine, as text
 - **Run Button** — A button on the card that triggers connected Tick Event flows while the graph runs
-- **Shutdown** — Triggered when execution is shutting down
+- **Shutdown Event** — Triggered when execution is shutting down
 - **Split Path** — Splits a path into its volume, base, subfolder, stem and extension
 - **Step Array** — Goes through an array one item at a time, each time Next runs
 - **Text** — A text field that sends its text on Enter, and shows the text it is fed
-- **Tick** — Triggered by a connected emitter (Tick Emit, Run Button)
 - **Tick Emit** — Emits tick callbacks at a configurable framerate
+- **Tick Event** — Triggered by a connected emitter (Tick Emit, Run Button)
 - **Toggle** — An on/off switch that sends true or false, and shows the value it is fed
 
 ## Types
@@ -35,8 +35,8 @@ Fundamental components for haywire graphs
 - **Bytes** — Binary data
 - **Dictionary** — Key-value pairs
 - **Drain** — Every value its edge delivers, queued until the node takes them
-- **List** — Ordered collection
 - **Pooled** — Multi-source aggregation
+- **Untyped List** — Ordered collection of values of any type
 
 ## Adapters
 - **Array to Array** — Transform array elements (ARRAY[X] → ARRAY[Y])

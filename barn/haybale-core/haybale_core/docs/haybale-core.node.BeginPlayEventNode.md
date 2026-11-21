@@ -1,4 +1,4 @@
-# Begin Player
+# Begin Play Event
 
 `haybale-core:node:BeginPlayEventNode` · kind: node
 

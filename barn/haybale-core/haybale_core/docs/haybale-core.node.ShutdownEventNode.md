@@ -1,4 +1,4 @@
-# Shutdown
+# Shutdown Event
 
 `haybale-core:node:ShutdownEventNode` · kind: node
 
