@@ -1,0 +1,125 @@
+# Key renames of haybale-testing in release 0.6 (rule N9: <X>ProbeNode, never a Test prefix).
+#
+# Apply to a project's graphs with:
+#   uv run haywire rename --map <this file> --apply
+# The rules behind the names: docs/reference/component-naming.md.
+
+[[rename]]
+old = "haybale-testing:node:TestBeginPlayNode"
+new = "haybale-testing:node:BeginPlayProbeNode"
+old_module = "haybale_testing.nodes.testbed.begin_play_node"
+new_module = "haybale_testing.nodes.testbed.begin_play_probe"
+
+[[rename]]
+old = "haybale-testing:node:TestPrintNode"
+new = "haybale-testing:node:PrintProbeNode"
+old_module = "haybale_testing.nodes.testbed.print_node"
+new_module = "haybale_testing.nodes.testbed.print_probe"
+
+[[rename]]
+old = "haybale-testing:node:TestAddFloatNode"
+new = "haybale-testing:node:AddFloatProbeNode"
+old_module = "haybale_testing.nodes.testbed.math_op_node"
+new_module = "haybale_testing.nodes.testbed.add_float_probe"
+
+[[rename]]
+old = "haybale-testing:node:TestCustomCallbackNode"
+new = "haybale-testing:node:CallbackEventProbeNode"
+old_module = "haybale_testing.nodes.testbed.custom_callback_node"
+new_module = "haybale_testing.nodes.testbed.callback_event_probe"
+
+[[rename]]
+old = "haybale-testing:node:TestEmitCallbackNode"
+new = "haybale-testing:node:CallbackEmitProbeNode"
+old_module = "haybale_testing.nodes.testbed.emit_callback_node"
+new_module = "haybale_testing.nodes.testbed.callback_emit_probe"
+
+[[rename]]
+old = "haybale-testing:node:TestRecordEventNode"
+new = "haybale-testing:node:RecordEventProbeNode"
+old_module = "haybale_testing.nodes.testbed.record_callback_nodes"
+new_module = "haybale_testing.nodes.testbed.record_callback_probes"
+
+[[rename]]
+old = "haybale-testing:node:TestRecordEmitNode"
+new = "haybale-testing:node:RecordEmitProbeNode"
+old_module = "haybale_testing.nodes.testbed.record_callback_nodes"
+new_module = "haybale_testing.nodes.testbed.record_callback_probes"
+
+[[rename]]
+old = "haybale-testing:node:AddPortTestNode"
+new = "haybale-testing:node:AddPortProbeNode"
+old_module = "haybale_testing.nodes.testbed.add_port_test"
+new_module = "haybale_testing.nodes.testbed.add_port_probe"
+
+[[rename]]
+old = "haybale-testing:node:ControlPayloadTestNode"
+new = "haybale-testing:node:ControlPayloadProbeNode"
+old_module = "haybale_testing.nodes.testbed.control_payload_node"
+new_module = "haybale_testing.nodes.testbed.control_payload_probe"
+
+[[rename]]
+old = "haybale-testing:node:DynamicPortTestNode"
+new = "haybale-testing:node:DynamicPortProbeNode"
+old_module = "haybale_testing.nodes.testbed.dynamic_port_test"
+new_module = "haybale_testing.nodes.testbed.dynamic_port_probe"
+
+[[rename]]
+old = "haybale-testing:node:EdgeLinkTestNode"
+new = "haybale-testing:node:EdgeLinkProbeNode"
+old_module = "haybale_testing.nodes.testbed.edge_link_test"
+new_module = "haybale_testing.nodes.testbed.edge_link_probe"
+
+[[rename]]
+old = "haybale-testing:node:PerformanceTester"
+new = "haybale-testing:node:PerformanceProbeNode"
+old_module = "haybale_testing.nodes.testbed.test_performance"
+new_module = "haybale_testing.nodes.testbed.performance_probe"
+
+[[rename]]
+old = "haybale-testing:node:SettingsNode"
+new = "haybale-testing:node:SettingsProbeNode"
+old_module = "haybale_testing.nodes.testbed.settings_node"
+new_module = "haybale_testing.nodes.testbed.settings_probe"
+
+[[rename]]
+old = "haybale-testing:node:DisplayNode"
+new = "haybale-testing:node:DisplayProbeNode"
+old_module = "haybale_testing.nodes.testbed.display_node"
+new_module = "haybale_testing.nodes.testbed.display_probe"
+
+[[rename]]
+old = "haybale-testing:node:EmptyFoldNode"
+new = "haybale-testing:node:EmptyFoldProbeNode"
+old_module = "haybale_testing.nodes.testbed.empty_fold"
+new_module = "haybale_testing.nodes.testbed.empty_fold_probe"
+
+[[rename]]
+old = "haybale-testing:node:MixedFoldNode"
+new = "haybale-testing:node:MixedFoldProbeNode"
+old_module = "haybale_testing.nodes.testbed.mixed_fold"
+new_module = "haybale_testing.nodes.testbed.mixed_fold_probe"
+
+[[rename]]
+old = "haybale-testing:node:NestedFoldNode"
+new = "haybale-testing:node:NestedFoldProbeNode"
+old_module = "haybale_testing.nodes.testbed.nested_fold"
+new_module = "haybale_testing.nodes.testbed.nested_fold_probe"
+
+[[rename]]
+old = "haybale-testing:node:SizeBoxContentNode"
+new = "haybale-testing:node:SizeBoxContentProbeNode"
+old_module = "haybale_testing.nodes.testbed.size_box_node"
+new_module = "haybale_testing.nodes.testbed.size_box_probes"
+
+[[rename]]
+old = "haybale-testing:node:SizeBoxAspectNode"
+new = "haybale-testing:node:SizeBoxAspectProbeNode"
+old_module = "haybale_testing.nodes.testbed.size_box_node"
+new_module = "haybale_testing.nodes.testbed.size_box_probes"
+
+[[rename]]
+old = "haybale-testing:node:SizeBoxFixedNode"
+new = "haybale-testing:node:SizeBoxFixedProbeNode"
+old_module = "haybale_testing.nodes.testbed.size_box_node"
+new_module = "haybale_testing.nodes.testbed.size_box_probes"
