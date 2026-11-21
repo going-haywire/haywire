@@ -2,8 +2,8 @@
 Type Decorators - Decorators for defining Haywire data types.
 
 This module provides decorators for creating Haywire data types:
-- @primitive_type: For primitive type wrappers (FLOAT, INT, etc.) and their variants (Temperature)
-- @compound_type: For custom data structures with serialization (MeshData, TestData)
+- @primitive_type: For primitive type wrappers (FLOAT, INT, etc.) and their variants (TEMPERATURE)
+- @compound_type: For custom data structures with serialization (MeshData, TEST_DATA)
 - @type_: Legacy decorator (deprecated, use @primitive_type or @compound_type instead)
 """
 
@@ -26,7 +26,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
 
     Use this for:
     - Base primitive types that wrap Python built-ins (FLOAT wraps float, INT wraps int)
-    - Derived type variants that inherit from primitives (Temperature extends FLOAT)
+    - Derived type variants that inherit from primitives (TEMPERATURE extends FLOAT)
     - Complex types with multiple fields (MeshData, Color, etc.)
 
     Examples:
@@ -47,7 +47,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
             default={'value': 20.0},  # Override default
             ui={'properties': {'unit': '°C'}}
         )
-        class Temperature(FLOAT):
+        class TEMPERATURE(FLOAT):
             pass
 
         # Complex type:

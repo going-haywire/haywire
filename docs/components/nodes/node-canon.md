@@ -70,9 +70,9 @@ a node is placed, loaded or hot-reloaded; you never create one yourself.
 ## 3. A complete node
 
 ```python
---8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:11:55"
+--8<-- "barn/haybale-example/haybale_example/nodes/math_operation.py:11:55"
 ```
-from: `MathOP` — registry_key: `haybale-example:node:MathOP`
+from: `MathOperationNode` — registry_key: `haybale-example:node:MathOperationNode`
 
 **The decorator — `@node(...)`.** `label`, `description`, `menu` (the canvas
 menu path), `search_tags`, `node_type`. Section 4 explains `node_type`.
@@ -130,7 +130,7 @@ between two control ports says "when this one finishes, run that one next".
 
 Every node is one of two kinds, chosen by its ports:
 
-**A DATA node has only data ports.** It computes outputs from inputs. `MathOP`
+**A DATA node has only data ports.** It computes outputs from inputs. `MathOperationNode`
 is one. DATA nodes are *pulled, not pushed*: one runs only when a node
 downstream needs its output, and if none of its inputs changed since its last
 run, it skips its worker — the answer would be the same. Its worker returns
@@ -606,8 +606,8 @@ What the two embedded examples exercise:
 |---|---|
 | `@node(node_type=NodeType.DATA)` | both nodes |
 | `init()` declaring ports with `self.add(...)` | both nodes |
-| `worker()` with named inlet params | `MathOP` — `value_a`, `value_b`, `operator` |
-| `self.out('id', value)` to write outlets | `MathOP` — `self.out("result", result)` |
+| `worker()` with named inlet params | `MathOperationNode` — `value_a`, `value_b`, `operator` |
+| `self.out('id', value)` to write outlets | `MathOperationNode` — `self.out("result", result)` |
 | `on_change='hb_reconfigure'` on a config port | `DynamicPortProbeNode` — `port_count` |
 | `with self.rejig(include=r'^dynamic_')` | `DynamicPortProbeNode` — regex-matched replacement |
 | `hb_*` prefix for custom helpers | `DynamicPortProbeNode` — `hb_reconfigure` |

@@ -43,9 +43,9 @@ def test_defaults_are_empty_of_their_layout(graph_with_library_system):
     t, v = _types(), _value()
     for cls, layout in (
         (t.IMAGE, v.Layout.GRAY),
-        (t.IMAGE_GRAY, v.Layout.GRAY),
-        (t.IMAGE_RGB, v.Layout.RGB),
-        (t.IMAGE_RGBA, v.Layout.RGBA),
+        (t.GRAY_IMAGE, v.Layout.GRAY),
+        (t.RGB_IMAGE, v.Layout.RGB),
+        (t.RGBA_IMAGE, v.Layout.RGBA),
     ):
         value = cls()._value
         assert value.layout is layout
@@ -55,33 +55,33 @@ def test_defaults_are_empty_of_their_layout(graph_with_library_system):
 
 def test_to_dict_is_descriptive_and_from_dict_is_empty(graph_with_library_system):
     t, v = _types(), _value()
-    assert t.IMAGE_RGB().to_dict() == {"value": {"width": 0, "height": 0, "layout": v.Layout.RGB.value}}
-    restored = t.IMAGE_RGBA.from_dict({"value": {}})
+    assert t.RGB_IMAGE().to_dict() == {"value": {"width": 0, "height": 0, "layout": v.Layout.RGB.value}}
+    restored = t.RGBA_IMAGE.from_dict({"value": {}})
     assert restored.is_empty
     assert restored.layout is v.Layout.RGBA
     assert t.IMAGE.from_dict({}).layout is v.Layout.GRAY
 
 
-@pytest.mark.parametrize("name", ["IMAGE", "IMAGE_GRAY", "IMAGE_RGB", "IMAGE_RGBA"])
+@pytest.mark.parametrize("name", ["IMAGE", "GRAY_IMAGE", "RGB_IMAGE", "RGBA_IMAGE"])
 def test_image_never_stored(graph_with_library_system, name):
     assert getattr(_types(), name).class_identity.store_strategy is StoreStrategy.NEVER
 
 
 def test_derived_to_image_is_passthrough(graph_with_library_system, library_system):
     t = _types()
-    assert _named(_chain(library_system, t.IMAGE_RGB, t.IMAGE)) == []
+    assert _named(_chain(library_system, t.RGB_IMAGE, t.IMAGE)) == []
 
 
 def test_gray_to_rgb_chains_via_image(graph_with_library_system, library_system):
     t, v = _types(), _value()
-    adapter = _chain(library_system, t.IMAGE_GRAY, t.IMAGE_RGB)
+    adapter = _chain(library_system, t.GRAY_IMAGE, t.RGB_IMAGE)
     assert _named(adapter) == ["ImageToRgbAdapter"]
     assert adapter.convert(_img(v.Layout.GRAY)).layout is v.Layout.RGB
 
 
 def test_rgba_to_rgb_drops_alpha(graph_with_library_system, library_system):
     t, v = _types(), _value()
-    adapter = _chain(library_system, t.IMAGE_RGBA, t.IMAGE_RGB)
+    adapter = _chain(library_system, t.RGBA_IMAGE, t.RGB_IMAGE)
     out = adapter.convert(_img(v.Layout.RGBA, 4))
     assert out.layout is v.Layout.RGB
     assert out.array(np.uint8).shape == (2, 3, 3)
@@ -89,7 +89,7 @@ def test_rgba_to_rgb_drops_alpha(graph_with_library_system, library_system):
 
 def test_image_to_gray_and_rgba(graph_with_library_system, library_system):
     t, v = _types(), _value()
-    gray = _chain(library_system, t.IMAGE, t.IMAGE_GRAY).convert(_img(v.Layout.RGB, 3))
-    rgba = _chain(library_system, t.IMAGE, t.IMAGE_RGBA).convert(_img(v.Layout.RGB, 3))
+    gray = _chain(library_system, t.IMAGE, t.GRAY_IMAGE).convert(_img(v.Layout.RGB, 3))
+    rgba = _chain(library_system, t.IMAGE, t.RGBA_IMAGE).convert(_img(v.Layout.RGB, 3))
     assert gray.layout is v.Layout.GRAY
     assert rgba.layout is v.Layout.RGBA

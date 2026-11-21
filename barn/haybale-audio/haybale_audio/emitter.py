@@ -79,7 +79,7 @@ def deliver_to_subscribers(
     number: int,
     seconds: float,
 ) -> None:
-    """Send ``block`` to every Audio Event subscribed on the emitter's ``CALLBACK_AUDIO`` inlet."""
+    """Send ``block`` to every Audio Event subscribed on the emitter's ``AUDIO_CALLBACK`` inlet."""
     payload = {"audio": block, "timestamp": seconds, "block_number": number}
     for sub in (subscribers or {}).values():
         name = getattr(sub, "name", None)

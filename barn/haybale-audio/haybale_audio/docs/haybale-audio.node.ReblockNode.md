@@ -8,11 +8,11 @@ Re-cuts audio blocks to a fixed size and delivers them to Audio Event nodes
 
 | id | direction | type | description |
 |---|---|---|---|
-| `write` | inlet | `haybale-audio:type:EXEC_AUDIO` | Signal for sequencing the nodes of an audio flow |
+| `write` | inlet | `haybale-audio:type:AUDIO_EXEC` | Signal for sequencing the nodes of an audio flow |
 | `audio` | inlet | `haybale-audio:type:AUDIO` | Block to add |
 | `callbacks` | inlet | `haybale-core:type:POOLED` | Connect to an Audio Event node. |
 | `status` | config | `haywire-core:type:STRING` | Text data |
-| `next` | outlet | `haybale-audio:type:EXEC_AUDIO` | Signal for sequencing the nodes of an audio flow |
+| `next` | outlet | `haybale-audio:type:AUDIO_EXEC` | Signal for sequencing the nodes of an audio flow |
 
 ## Settings
 
@@ -48,7 +48,7 @@ it delivers. An Audio Mixer and a Device Out take any block size, so neither nee
 Inputs:
     write: Add the block on `audio`
     audio: The block to add
-    callbacks: Pooled CALLBACK_AUDIO subscriptions from Audio Event nodes
+    callbacks: Pooled AUDIO_CALLBACK subscriptions from Audio Event nodes
 
 Outputs:
     next: Control flow after the block is taken in

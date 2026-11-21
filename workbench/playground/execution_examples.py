@@ -16,7 +16,7 @@ from haywire.core.execution.event_source import SystemEventType
 
 def _create_graph_with_math(graph: BaseGraph) -> BaseGraph:
     """
-    Create graph: BeginPlay → PrintMessage with MathOP data flow
+    Create graph: BeginPlay → PrintMessage with MathOperationNode data flow
 
     Args:
         graph: The graph to populate
@@ -26,7 +26,7 @@ def _create_graph_with_math(graph: BaseGraph) -> BaseGraph:
     """
     from haybale_core.nodes import BeginPlayEventNode
     from haybale_core.nodes import LoggerNode
-    from haybale_example.nodes import MathOP
+    from haybale_example.nodes import MathOperationNode
 
     begin_play = graph.create_node_wrapper(
         BeginPlayEventNode.class_identity.registry_key, position=(100, 100)
@@ -34,7 +34,7 @@ def _create_graph_with_math(graph: BaseGraph) -> BaseGraph:
 
     print_msg = graph.create_node_wrapper(LoggerNode.class_identity.registry_key, position=(300, 100))
 
-    math_op = graph.create_node_wrapper(MathOP.class_identity.registry_key, position=(200, 100))
+    math_op = graph.create_node_wrapper(MathOperationNode.class_identity.registry_key, position=(200, 100))
 
     graph.create_edge_wrapper(begin_play.node_id, "exec", print_msg.node_id, "exec")
     graph.create_edge_wrapper(begin_play.node_id, "timestamp", math_op.node_id, "value_a")
@@ -194,8 +194,8 @@ def example_callback_string_based():
     No callback edge - connection happens via string matching.
     """
     from haybale_core.nodes.events.begin_play_event import BeginPlayEventNode
-    from haybale_example.nodes.emits.custom_callback import CustomCallbackNode
-    from haybale_example.nodes.emits.emit_callback import EmitCallbackNode
+    from haybale_example.nodes.emits.callback_event import CallbackEventNode
+    from haybale_example.nodes.emits.callback_emit import CallbackEmitNode
     from haybale_test_a.nodes.print_node import PrintMessageNode
 
     # Create graph
@@ -207,7 +207,7 @@ def example_callback_string_based():
     )
 
     emit_callback = graph.create_node_wrapper(
-        EmitCallbackNode.class_identity.registry_key, position=(300, 100)
+        CallbackEmitNode.class_identity.registry_key, position=(300, 100)
     )
 
     # Configure emitter to use custom name mode
@@ -218,7 +218,7 @@ def example_callback_string_based():
 
     # Flow 2: Listener flow
     callback_listener = graph.create_node_wrapper(
-        CustomCallbackNode.class_identity.registry_key, position=(100, 300)
+        CallbackEventNode.class_identity.registry_key, position=(100, 300)
     )
 
     # Configure listener to use custom name mode
@@ -278,8 +278,8 @@ def example_callback_edge_based():
     via the pipe mechanism.
     """
     from haybale_core.nodes.events.begin_play_event import BeginPlayEventNode
-    from haybale_example.nodes.emits.custom_callback import CustomCallbackNode
-    from haybale_example.nodes.emits.emit_callback import EmitCallbackNode
+    from haybale_example.nodes.emits.callback_event import CallbackEventNode
+    from haybale_example.nodes.emits.callback_emit import CallbackEmitNode
     from haybale_test_a.nodes.print_node import PrintMessageNode
 
     # Create graph
@@ -291,7 +291,7 @@ def example_callback_edge_based():
     )
 
     emit_callback = graph.create_node_wrapper(
-        EmitCallbackNode.class_identity.registry_key, position=(300, 100)
+        CallbackEmitNode.class_identity.registry_key, position=(300, 100)
     )
 
     # Leave custom_name=False (default) for edge-based mode
@@ -300,7 +300,7 @@ def example_callback_edge_based():
 
     # Flow 2: Listener flow
     callback_listener = graph.create_node_wrapper(
-        CustomCallbackNode.class_identity.registry_key, position=(100, 300)
+        CallbackEventNode.class_identity.registry_key, position=(100, 300)
     )
 
     # Leave custom_name=False (default) for edge-based mode

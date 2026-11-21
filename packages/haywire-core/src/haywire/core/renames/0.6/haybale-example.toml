@@ -1,0 +1,43 @@
+# Key renames of haybale-example in release 0.6.
+#
+# Apply to a project's graphs with:
+#   uv run haywire rename --map <this file> --apply
+# The rules behind the names: docs/reference/component-naming.md.
+
+[[rename]]
+old = "haybale-example:node:MathOP"
+new = "haybale-example:node:MathOperationNode"
+old_module = "haybale_example.nodes.math_op"
+new_module = "haybale_example.nodes.math_operation"
+
+[[rename]]
+old = "haybale-example:type:MathOPSelector"
+new = "haybale-example:type:MATH_OPERATION"
+
+[[rename]]
+old = "haybale-example:type:MapsStringType"
+new = "haybale-example:type:STRING_MAP"
+old_module = "haybale_example.types.maps_string_type"
+new_module = "haybale_example.types.string_map"
+
+[[rename]]
+old = "haybale-example:type:Temperature"
+new = "haybale-example:type:TEMPERATURE"
+
+[[rename]]
+old = "haybale-example:node:CustomCallbackNode"
+new = "haybale-example:node:CallbackEventNode"
+old_module = "haybale_example.nodes.emits.custom_callback"
+new_module = "haybale_example.nodes.emits.callback_event"
+
+[[rename]]
+old = "haybale-example:node:EmitCallbackNode"
+new = "haybale-example:node:CallbackEmitNode"
+old_module = "haybale_example.nodes.emits.emit_callback"
+new_module = "haybale_example.nodes.emits.callback_emit"
+
+[[rename]]
+old = "haybale-example:node:MergeCallbackNode"
+new = "haybale-example:node:MergedCallbackEventNode"
+old_module = "haybale_example.nodes.emits.merge_callback"
+new_module = "haybale_example.nodes.emits.merged_callback_event"

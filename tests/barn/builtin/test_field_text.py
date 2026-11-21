@@ -5,7 +5,7 @@ import json
 import pytest
 import numpy as np
 from haybale_core.types.specs import LIST
-from haybale_image.types.image import IMAGE_RGB
+from haybale_image.types.image import RGB_IMAGE
 from haybale_image.value import ImageValue
 
 from haywire.barn.builtin.carrier import BundleValue
@@ -55,14 +55,14 @@ def test_every_bad_field_is_named_with_why():
     carrier = (
         BundleValue()
         .stamped("good", 1, INT)
-        .stamped("preview", image, IMAGE_RGB)
+        .stamped("preview", image, RGB_IMAGE)
         .stamped("lut", [np.zeros(2)], LIST)
         .stamped("crooked", [[1.0]], MAT3)
     )
     with pytest.raises(ValueError, match="Cannot write fields") as caught:
         fields_to_text(carrier.fields)
     text = str(caught.value)
-    assert "preview (IMAGE_RGB, this type is not saved)" in text
+    assert "preview (RGB_IMAGE, this type is not saved)" in text
     assert "lut (LIST" in text
     assert "crooked (MAT3" in text
     assert "good" not in text
@@ -93,7 +93,7 @@ def test_a_type_not_installed_is_left_out_and_named():
 
 
 def test_a_file_cannot_ask_for_a_type_that_is_never_saved():
-    key = IMAGE_RGB.class_identity.registry_key
+    key = RGB_IMAGE.class_identity.registry_key
     text = json.dumps({"version": 1, "fields": {"x": {"type": key, "data": {"value": {}}}}})
     fields, problems = fields_from_text(text)
     assert fields == {}
@@ -143,4 +143,4 @@ def test_an_invalid_key_is_left_out():
 def test_what_can_be_saved_comes_from_the_type():
     assert can_be_saved(FLOAT.class_identity)
     assert can_be_saved(MAT3.class_identity)
-    assert not can_be_saved(IMAGE_RGB.class_identity)
+    assert not can_be_saved(RGB_IMAGE.class_identity)

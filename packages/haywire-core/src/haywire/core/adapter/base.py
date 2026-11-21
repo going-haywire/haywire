@@ -51,7 +51,7 @@ def adapter(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         # Common customization
         @adapter(
             description="Temperature to float conversion",
-            converts_from=Temperature,
+            converts_from=TEMPERATURE,
             converts_to=FLOAT,
         )
         class MyAdapter(BaseAdapter): ...
@@ -59,7 +59,7 @@ def adapter(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         # Full customization with IType classes
         @adapter(
             description="Convert Temperature (Celsius) to FLOAT",
-            converts_from=Temperature,
+            converts_from=TEMPERATURE,
             converts_to=FLOAT,
             priority=5
         )
@@ -67,7 +67,7 @@ def adapter(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
 
         # Multi-hop chain example
         @adapter(
-            converts_from=Temperature,
+            converts_from=TEMPERATURE,
             converts_to=Kelvin,
             priority=10,
             description="Celsius to Kelvin"
@@ -109,7 +109,7 @@ class AdapterIdentity(BaseIdentity):
     IType-based: converts_from and converts_to are IType classes.
     """
 
-    converts_from: type["IType"]  # Source IType (FLOAT, Temperature, etc.)
+    converts_from: type["IType"]  # Source IType (FLOAT, TEMPERATURE, etc.)
     converts_to: type["IType"]  # Target IType (INT, MeshData, etc.)
     priority: int = 0  # Priority (higher = preferred)
 
@@ -234,7 +234,7 @@ class BaseAdapter(IAdapter):
     Example:
         # Register with type classes
         registry.register_adapter(
-            source=Temperature,  # IType class
+            source=TEMPERATURE,  # IType class
             target=FLOAT,        # IType class
             adapter=TemperatureToFloatAdapter
         )

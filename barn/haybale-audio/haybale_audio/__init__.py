@@ -5,7 +5,7 @@ Provides:
     sample rate, passed between nodes by reference and never mutated.
 
 Component folders (registered in ``register_components``):
-  - ``types``, ``nodes``: the AUDIO and CALLBACK_AUDIO types and the Audio Event node.
+  - ``types``, ``nodes``: the AUDIO and AUDIO_CALLBACK types and the Audio Event node.
 """
 
 from pathlib import Path

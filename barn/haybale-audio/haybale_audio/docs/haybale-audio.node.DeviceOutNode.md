@@ -8,11 +8,11 @@ Plays audio blocks on a sound device
 
 | id | direction | type | description |
 |---|---|---|---|
-| `write` | inlet | `haybale-audio:type:EXEC_AUDIO` | Signal for sequencing the nodes of an audio flow |
+| `write` | inlet | `haybale-audio:type:AUDIO_EXEC` | Signal for sequencing the nodes of an audio flow |
 | `stop` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `audio` | inlet | `haybale-audio:type:AUDIO` | Block to play |
 | `status` | config | `haywire-core:type:STRING` | Text data |
-| `next` | outlet | `haybale-audio:type:EXEC_AUDIO` | Signal for sequencing the nodes of an audio flow |
+| `next` | outlet | `haybale-audio:type:AUDIO_EXEC` | Signal for sequencing the nodes of an audio flow |
 | `depth` | outlet | `haywire-core:type:INT` | Whole number |
 
 ## Settings

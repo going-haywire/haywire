@@ -1,6 +1,6 @@
-# Channel Merge
+# Merge Channels
 
-`haybale-audio:node:ChannelMergeNode` · kind: node
+`haybale-audio:node:MergeChannelsNode` · kind: node
 
 Stacks audio blocks into one block with all their channels
 

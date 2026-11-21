@@ -6,8 +6,8 @@ from haywire.core.errors import Refusal
 
 pytestmark = pytest.mark.integration  # needs library_system for builtin types/nodes
 
-# A node with plain data inlets (example:node:MathOP has FLOAT inlets value_a/value_b).
-PORT_NODE_KEY = "haybale-example:node:MathOP"
+# A node with plain data inlets (example:node:MathOperationNode has FLOAT inlets value_a/value_b).
+PORT_NODE_KEY = "haybale-example:node:MathOperationNode"
 # A node carrying a settings bag (testing:node:SettingsProbeNode -> bag 'example').
 SETTINGS_NODE_KEY = "haybale-testing:node:SettingsProbeNode"
 

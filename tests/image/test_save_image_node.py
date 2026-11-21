@@ -251,12 +251,12 @@ def test_write_fields_applies_to_png_only(graph_with_library_system, scans):
 
 
 def test_an_unstorable_field_fails_loudly_and_writes_no_file(graph_with_library_system, scans):
-    from haybale_image.types.image import IMAGE_RGB
+    from haybale_image.types.image import RGB_IMAGE
 
     node = _save(graph_with_library_system)
     node.png.write_fields = True
-    image = _bundle_stamps(_image()).stamped("preview", _image(), IMAGE_RGB)
-    with pytest.raises(ValueError, match=r"preview \(IMAGE_RGB, this type is not saved\)"):
+    image = _bundle_stamps(_image()).stamped("preview", _image(), RGB_IMAGE)
+    with pytest.raises(ValueError, match=r"preview \(RGB_IMAGE, this type is not saved\)"):
         _run(node, "out.png", image, if_exists="unique-suffix")
     assert list(scans.glob("out*")) == []
 

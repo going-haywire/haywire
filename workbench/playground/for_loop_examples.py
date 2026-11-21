@@ -260,7 +260,7 @@ def example_loop_with_math():
     """
     from haybale_core.nodes import BeginPlayEventNode
     from haybale_core.nodes import LoggerNode
-    from haybale_example.nodes import MathOP
+    from haybale_example.nodes import MathOperationNode
     from haybale_core.nodes import ForLoopNode
 
     graph = BaseGraph(graph_id="loop_math", name="Loop with Math Example")
@@ -277,7 +277,9 @@ def example_loop_with_math():
     for_loop.node.ports["step"].set_value(1)
 
     # Square the index (multiply by itself)
-    math_square = graph.create_node_wrapper(MathOP.class_identity.registry_key, position=(500, 100))
+    math_square = graph.create_node_wrapper(
+        MathOperationNode.class_identity.registry_key, position=(500, 100)
+    )
     math_square.node.ports["operator"].set_value("multiply")
 
     print_result = graph.create_node_wrapper(LoggerNode.class_identity.registry_key, position=(700, 100))

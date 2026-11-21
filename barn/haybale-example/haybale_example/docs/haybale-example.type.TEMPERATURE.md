@@ -1,6 +1,6 @@
 # Temperature
 
-`haybale-example:type:Temperature` · kind: type
+`haybale-example:type:TEMPERATURE` · kind: type
 
 Temperature data types
 
@@ -25,8 +25,8 @@ a custom widget for temperature input/display.
 **widget_config** = {'properties': {'unit': '°D'}} - Display unit for temperature values
 
 Usage:
-    Temperature.as_inlet('temp', default=25.0)
-    Temperature.as_outlet('result')
+    TEMPERATURE.as_inlet('temp', default=25.0)
+    TEMPERATURE.as_outlet('result')
 
 Note: This class inherits the 'value: float' field from FLOAT.
 No need to redefine it - the decorator auto-extracts cls=float from FLOAT.

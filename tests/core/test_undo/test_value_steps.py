@@ -25,7 +25,7 @@ from tests.conftest import make_node
 pytestmark = pytest.mark.integration
 
 _SETTINGS_NODE = "haybale-testing:node:SettingsProbeNode"
-_PORT_NODE = "haybale-example:node:MathOP"
+_PORT_NODE = "haybale-example:node:MathOperationNode"
 _FIELD = "persistent_value"
 
 

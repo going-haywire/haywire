@@ -1,4 +1,4 @@
-"""The DEPTH type and DepthValue."""
+"""The DEPTH_BUFFER type and DepthValue."""
 
 import numpy as np
 import pytest
@@ -7,8 +7,8 @@ from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
 from haywire.barn.builtin.carrier import CarrierValue
 from haywire.barn.builtin.types import CARRIER, FLOAT
 
-from haybale_image.types.depth import DEPTH
-from haybale_image.types.image import IMAGE, IMAGE_RGB
+from haybale_image.types.depth import DEPTH_BUFFER
+from haybale_image.types.image import IMAGE, RGB_IMAGE
 from haybale_image.value import DepthValue
 
 
@@ -34,16 +34,16 @@ class TestDepthValue:
         assert not DepthValue.from_array(np.zeros((1, 1), np.uint16)).is_empty
 
     def test_type_is_a_visible_unsaved_carrier(self):
-        assert issubclass(DEPTH, CARRIER)
-        assert not issubclass(DEPTH, IMAGE)
-        assert DEPTH.element_type_cls is DepthValue
-        assert DEPTH.class_identity.hidden is False
-        assert isinstance(DEPTH.create_field().get_value(), DepthValue)
+        assert issubclass(DEPTH_BUFFER, CARRIER)
+        assert not issubclass(DEPTH_BUFFER, IMAGE)
+        assert DEPTH_BUFFER.element_type_cls is DepthValue
+        assert DEPTH_BUFFER.class_identity.hidden is False
+        assert isinstance(DEPTH_BUFFER.create_field().get_value(), DepthValue)
 
 
 @pytest.mark.integration
 @pytest.mark.parametrize(
-    ("inlet_type", "connects"), [(CARRIER, True), (DEPTH, True), (IMAGE, False), (IMAGE_RGB, False)]
+    ("inlet_type", "connects"), [(CARRIER, True), (DEPTH_BUFFER, True), (IMAGE, False), (RGB_IMAGE, False)]
 )
 def test_depth_reaches_a_carrier_inlet_but_not_an_image_inlet(
     graph_with_library_system, library_system, inlet_type, connects
@@ -52,7 +52,7 @@ def test_depth_reaches_a_carrier_inlet_but_not_an_image_inlet(
     key = EdgeLinkProbeNode.class_identity.registry_key
     source = graph.create_node_wrapper(key, position=(0, 0))
     sink = graph.create_node_wrapper(key, position=(300, 0))
-    source.node.add(DEPTH.as_outlet("depth_src"))
+    source.node.add(DEPTH_BUFFER.as_outlet("depth_src"))
     sink.node.add(inlet_type.as_inlet("target"))
     edge = graph.create_edge_wrapper(source.node_id, "depth_src", sink.node_id, "target")
     graph._validation.force_immediate_validation()

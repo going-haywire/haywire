@@ -62,7 +62,7 @@ class FilePlayerNode(BaseNode):
     Inputs:
         start / stop: Begin or end playback
         path: Audio file to play
-        callbacks: Pooled CALLBACK_AUDIO subscriptions from Audio Event nodes
+        callbacks: Pooled AUDIO_CALLBACK subscriptions from Audio Event nodes
 
     Outputs:
         started / stopped: Control flow after the matching input
@@ -72,7 +72,7 @@ class FilePlayerNode(BaseNode):
 
     def init(self) -> None:
         from haybale_core.types import POOLED
-        from haybale_audio.types.callback import CALLBACK_AUDIO
+        from haybale_audio.types.callback import AUDIO_CALLBACK
 
         self.add(EXEC.as_inlet("start", label="Start"))
         self.add(EXEC.as_inlet("stop", label="Stop"))
@@ -85,7 +85,7 @@ class FilePlayerNode(BaseNode):
             )
         )
         self.add(
-            POOLED[CALLBACK_AUDIO].as_inlet(
+            POOLED[AUDIO_CALLBACK].as_inlet(
                 "callbacks", label="Subscribers", description="Connect to an Audio Event node."
             )
         )

@@ -1,6 +1,6 @@
-# RGBA image
+# RGBA Image
 
-`haybale-image:type:IMAGE_RGBA` · kind: type
+`haybale-image:type:RGBA_IMAGE` · kind: type
 
 A picture with three colour channels and transparency.
 

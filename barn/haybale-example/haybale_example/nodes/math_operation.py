@@ -1,5 +1,5 @@
 """
-Basic core node implementations
+Math operation node: applies a basic operation to two float values
 """
 
 # Import the node system base class
@@ -10,21 +10,21 @@ from haybale_example.types.math import MathOPs
 
 @node(
     label="Math Operation",
-    description="Node that outputs a constant value.",
+    description="Applies the chosen operation (add, subtract, multiply, divide) to two float values.",
     search_tags=["math", "value", "single", "basic", "operation"],
     deprecation_warning="This node will be moved to the math library",
     menu="examples/math/basic",
     node_type=NodeType.DATA,
 )
-class MathOP(BaseNode):
-    """Node that outputs a constant value"""
+class MathOperationNode(BaseNode):
+    """Applies the chosen operation to Value A and Value B; division by zero gives 0.0."""
 
     def init(self):
-        from haybale_example.types.math import MathOPSelector
+        from haybale_example.types.math import MATH_OPERATION
 
         # Add inlets with different widget types
         self.add(
-            MathOPSelector.as_inlet(
+            MATH_OPERATION.as_inlet(
                 id="operator",
                 label="Operator",
             )

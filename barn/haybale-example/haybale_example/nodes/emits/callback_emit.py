@@ -14,13 +14,13 @@ from haywire.api import (
 
 
 @node(
-    label="Emit Callback",
+    label="Callback Emit",
     description="Emits a callback to trigger event nodes in other flows",
     menu="examples/emit/callback",
     search_tags=["callback", "emit", "trigger", "event"],
     node_type=NodeType.CONTROL,
 )
-class EmitCallbackNode(BaseNode):
+class CallbackEmitNode(BaseNode):
     """
     Emits a callback to trigger event nodes in other flows.
 

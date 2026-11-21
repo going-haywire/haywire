@@ -1,6 +1,6 @@
-# Channel Split
+# Split Channels
 
-`haybale-audio:node:ChannelSplitNode` · kind: node
+`haybale-audio:node:SplitChannelsNode` · kind: node
 
 Gives each channel of an audio block its own output
 

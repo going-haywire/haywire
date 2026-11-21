@@ -8,7 +8,7 @@ from tests.farmhand.conftest import call_tool_json
 
 pytestmark = pytest.mark.integration
 
-NODE_KEY = "haybale-example:node:MathOP"  # a registered node with FLOAT data inlets
+NODE_KEY = "haybale-example:node:MathOperationNode"  # a registered node with FLOAT data inlets
 CALLBACK_NODE_KEY = "haybale-testing:node:EdgeLinkProbeNode"  # has callback_outlet + callback_inlet
 
 
@@ -543,7 +543,7 @@ def test_inspect_ports_grouped_by_direction(farmhand_call):
         node_id = _add(farmhand_call, bid, NODE_KEY)
         info = _inspect(farmhand_call, bid, node_id, ["ports"])["ports"]
         assert set(info) <= {"inlets", "outlets", "configs"}
-        assert info["inlets"], "MathOP should declare inlets"
+        assert info["inlets"], "MathOperationNode should declare inlets"
         # info depth: authoring intent, no direction key (the group IS the direction).
         first = info["inlets"][0]
         assert "direction" not in first

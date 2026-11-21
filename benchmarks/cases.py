@@ -31,11 +31,11 @@ _LOOP_EDGES: list[tuple[str, str, str, str]] = [
     ("TickEvent", "listen_callback", "TickEmit", "callback_names"),
     ("TickEvent", "exec", "ForLoop", "execute"),
     ("ForLoop", "loop_body", "ControlSwitchNode", "exec"),
-    ("ForLoop", "index", "MathOP", "value_a"),
-    ("ForLoop", "index", "MathOP", "value_b"),
-    ("MathOP", "result", "ControlSwitchNode", "with"),
+    ("ForLoop", "index", "MathOperationNode", "value_a"),
+    ("ForLoop", "index", "MathOperationNode", "value_b"),
+    ("MathOperationNode", "result", "ControlSwitchNode", "with"),
     ("Shutdown", "exec", "TickEmit", "stop"),
-    ("MathOP", "result", "Print", "message"),
+    ("MathOperationNode", "result", "Print", "message"),
     ("ControlSwitchNode", "true", "Print", "exec"),
 ]
 
@@ -56,7 +56,7 @@ def _build_loop_graph():
     from haybale_core.nodes.for_loop import ForLoopNode
     from haybale_core.nodes.logger import LoggerNode
     from haybale_core.nodes.control_switch import ControlSwitchNode
-    from haybale_example.nodes.math_op import MathOP
+    from haybale_example.nodes.math_operation import MathOperationNode
 
     from haywire.core.graph.base import BaseGraph
 
@@ -68,7 +68,7 @@ def _build_loop_graph():
         "TickEvent": TickEventNode,
         "ForLoop": ForLoopNode,
         "ControlSwitchNode": ControlSwitchNode,
-        "MathOP": MathOP,
+        "MathOperationNode": MathOperationNode,
         "Print": LoggerNode,
         "Shutdown": ShutdownEventNode,
     }

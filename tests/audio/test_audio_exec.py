@@ -1,4 +1,4 @@
-"""EXEC_AUDIO: an EXEC that audio flows drive standard control nodes with, and the reverse refused."""
+"""AUDIO_EXEC: an EXEC that audio flows drive standard control nodes with, and the reverse refused."""
 
 import importlib
 from typing import Any
@@ -10,7 +10,7 @@ from haywire.core.adapter.factory import AdapterFactory
 from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.types.wire import WireRole, wire_type_of
 
-from haybale_audio.types.exec_audio import EXEC_AUDIO
+from haybale_audio.types.audio_exec import AUDIO_EXEC
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.unit
@@ -21,35 +21,35 @@ def _chain(source: type, sink: type) -> tuple[object, str | None]:
 
 
 def test_it_is_an_exec_on_the_control_wire():
-    assert issubclass(EXEC_AUDIO, EXEC)
-    wire = wire_type_of(EXEC_AUDIO)
+    assert issubclass(AUDIO_EXEC, EXEC)
+    wire = wire_type_of(AUDIO_EXEC)
     assert wire is ControlWire
     assert wire.role is WireRole.SEQUENCE
 
 
 def test_it_is_registered_as_a_type_of_the_audio_library():
-    assert EXEC_AUDIO.class_identity.registry_key == "haybale-audio:type:EXEC_AUDIO"
+    assert AUDIO_EXEC.class_identity.registry_key == "haybale-audio:type:AUDIO_EXEC"
 
 
 def test_an_audio_flow_connects_to_an_audio_flow():
-    chain, error = _chain(EXEC_AUDIO, EXEC_AUDIO)
+    chain, error = _chain(AUDIO_EXEC, AUDIO_EXEC)
     assert (chain is not None, error) == (True, None)
 
 
 def test_an_audio_flow_can_drive_a_standard_control_node():
-    chain, error = _chain(EXEC_AUDIO, EXEC)
+    chain, error = _chain(AUDIO_EXEC, EXEC)
     assert (chain is not None, error) == (True, None)
 
 
 def test_a_standard_control_node_cannot_drive_an_audio_flow():
-    chain, error = _chain(EXEC, EXEC_AUDIO)
+    chain, error = _chain(EXEC, AUDIO_EXEC)
     assert chain is None
     assert error is not None
     assert "EXEC" in error
 
 
 def test_its_default_is_an_empty_payload():
-    assert EXEC_AUDIO.create_default().value == {}
+    assert AUDIO_EXEC.create_default().value == {}
 
 
 # --- the table, through real nodes and real edge validation ----------------------------------------
@@ -90,7 +90,7 @@ def test_a_begin_play_cannot_drive_a_recorder_in_a_graph(graph_with_library_syst
     recorder = _audio(g, "recorder", "RecorderNode")
     edge = make_edge(g, begin.node_id, "exec", recorder.node_id, "write")
     assert not edge.state.is_valid()
-    assert "No adapter chain found: EXEC → EXEC_AUDIO" in str(edge.state.error_build)
+    assert "No adapter chain found: EXEC → AUDIO_EXEC" in str(edge.state.error_build)
 
 
 @pytest.mark.integration
@@ -134,4 +134,4 @@ def test_a_group_boundary_slot_dragged_onto_an_audio_pin_becomes_an_audio_pin(gr
     definition.create_edge_wrapper(boundary.node_id, slot.id, interior.node_id, "write")
     definition.force_validation()
 
-    assert boundary.node.ports[slot.id].type_cls is EXEC_AUDIO
+    assert boundary.node.ports[slot.id].type_cls is AUDIO_EXEC

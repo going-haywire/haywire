@@ -1,4 +1,4 @@
-"""Which pins of the audio nodes carry EXEC_AUDIO (the audio flow) and which stay EXEC (start and stop)."""
+"""Which pins of the audio nodes carry AUDIO_EXEC (the audio flow) and which stay EXEC (start and stop)."""
 
 import importlib
 from typing import Any
@@ -6,19 +6,19 @@ from typing import Any
 import pytest
 from haywire.barn.builtin.types import EXEC
 
-from haybale_audio.types.exec_audio import EXEC_AUDIO
+from haybale_audio.types.audio_exec import AUDIO_EXEC
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration
 
 # module, class, {pin id: expected type}
 _NODES = [
-    ("audio_event", "AudioEventNode", {"block_ready": EXEC_AUDIO}),
-    ("reblock", "ReblockNode", {"write": EXEC_AUDIO, "next": EXEC_AUDIO}),
-    ("resample", "ResampleNode", {"write": EXEC_AUDIO, "next": EXEC_AUDIO}),
-    ("recorder", "RecorderNode", {"write": EXEC_AUDIO, "next": EXEC_AUDIO, "stop": EXEC}),
-    ("device_out", "DeviceOutNode", {"write": EXEC_AUDIO, "next": EXEC_AUDIO, "stop": EXEC}),
-    ("audio_mixer", "AudioMixerNode", {"tick": EXEC_AUDIO, "next": EXEC_AUDIO}),
+    ("audio_event", "AudioEventNode", {"block_ready": AUDIO_EXEC}),
+    ("reblock", "ReblockNode", {"write": AUDIO_EXEC, "next": AUDIO_EXEC}),
+    ("resample", "ResampleNode", {"write": AUDIO_EXEC, "next": AUDIO_EXEC}),
+    ("recorder", "RecorderNode", {"write": AUDIO_EXEC, "next": AUDIO_EXEC, "stop": EXEC}),
+    ("device_out", "DeviceOutNode", {"write": AUDIO_EXEC, "next": AUDIO_EXEC, "stop": EXEC}),
+    ("audio_mixer", "AudioMixerNode", {"tick": AUDIO_EXEC, "next": AUDIO_EXEC}),
     (
         "file_player",
         "FilePlayerNode",
