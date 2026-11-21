@@ -13,6 +13,7 @@ from haywire_studio.packaging.docs.extract import extract_library
 from haywire_studio.packaging.docs.render import (
     coverage_report,
     doc_filename,
+    naming_report,
     render_component,
     render_overview,
     render_quickref,
@@ -104,6 +105,8 @@ def _pyproject_version(module_dir: Path) -> str | None:
 def _coverage_exempt(root: Path) -> frozenset[str]:
     """Library ids listed in ``<root>/pyproject.toml``'s ``[tool.haywire.docs].coverage_exempt``.
 
+    An exempt library reports no documentation gaps; its naming lines still show.
+
     Lenient: a missing file, malformed TOML or absent key means no exemptions.
     """
     try:
@@ -120,9 +123,9 @@ def _generate_one(
     library_id: str,
     module_dir: Path,
     version: str | None = None,
-) -> list[str]:
+) -> tuple[list[str], list[str]]:
     """Extract + render + write every doc file for one library given a loaded
-    service. Returns the coverage-report lines for that library.
+    service. Returns that library's coverage-report and naming-report lines.
 
     ``version`` overrides the version rendered into the docs. The share
     pipeline passes the version it just bumped to, so the docs, the tag, and
@@ -162,7 +165,7 @@ def _generate_one(
         existing = readme_path.read_text(encoding="utf-8") if readme_path.exists() else None
         readme_path.write_text(render_readme(doc, notes, existing), encoding="utf-8")
 
-    return coverage_report(doc)
+    return coverage_report(doc), naming_report(doc)
 
 
 def generate_docs(library_path: str | None, version: str | None = None) -> list[str]:
@@ -170,6 +173,7 @@ def generate_docs(library_path: str | None, version: str | None = None) -> list[
 
     ``version``, when given, is rendered into the docs instead of the
     library's own declared version — see :func:`_generate_one`.
+    Returns the coverage-report lines followed by the naming-report lines.
     """
     lib_root = Path(library_path).resolve() if library_path else Path.cwd()
     module_dir = _module_dir(lib_root)
@@ -180,7 +184,8 @@ def generate_docs(library_path: str | None, version: str | None = None) -> list[
         watch_settings=False,
     )
     library_id = _library_id_for_path(service, lib_root)
-    return _generate_one(service, library_id, module_dir, version)
+    coverage, naming = _generate_one(service, library_id, module_dir, version)
+    return coverage + naming
 
 
 def generate_all_docs(repo_root: str | None, version: str | None = None) -> dict[str, list[str]]:
@@ -189,10 +194,11 @@ def generate_all_docs(repo_root: str | None, version: str | None = None) -> dict
     Discovers libraries via the loaded registry and keeps those whose module
     dir resolves to a path under ``repo_root`` — that is exactly ``barn/*`` plus
     ``haywire.barn.builtin``, and excludes external site-packages installs.
-    Returns {library_id: coverage_lines}, sorted by library id.
+    Returns {library_id: coverage_lines + naming_lines}, sorted by library id.
 
     Libraries listed in ``repo_root``'s ``[tool.haywire.docs].coverage_exempt``
-    still get their docs generated, but report no coverage gaps.
+    still get their docs generated and their naming lines reported, but report
+    no coverage gaps.
 
     ``version`` applies to EVERY library generated, which is correct precisely
     because the barn is versioned in lockstep — the share pipeline bumps all
@@ -212,6 +218,6 @@ def generate_all_docs(repo_root: str | None, version: str | None = None) -> dict
     for lib_id in sorted(registry.list_names()):
         module_dir = Path(registry.get_library_identity(lib_id).folder_path).resolve()
         if root == module_dir or root in module_dir.parents:
-            coverage = _generate_one(service, lib_id, module_dir, version)
-            results[lib_id] = [] if lib_id in exempt else coverage
+            coverage, naming = _generate_one(service, lib_id, module_dir, version)
+            results[lib_id] = ([] if lib_id in exempt else coverage) + naming
     return results

@@ -9,6 +9,7 @@ see-also:
   - ../../guides/node-roles.md
   - ../../architecture/execution/virtual-machine/virtual-machine-arch.md
   - ../../reference/glossary.md
+  - ../../reference/component-naming.md
 ---
 
 # Node — Canonical Example
@@ -232,7 +233,9 @@ version that carries the change
 | How a type saves its value | may fail to read the old value |
 
 **Avoid: renaming the node class or moving it to another library.** Its saved
-nodes no longer find their class and load as stand-ins.
+nodes no longer find their class and load as stand-ins. Name it by the
+[component naming](../../reference/component-naming.md) scheme from the start:
+the class is its label plus `Node`.
 
 ### Where a node keeps its state
 
