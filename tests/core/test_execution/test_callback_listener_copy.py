@@ -11,7 +11,7 @@ pytestmark = pytest.mark.integration
 LISTENERS = [
     ("haybale_core.nodes.events.tick_event", "TickEventNode"),
     ("haybale_example.nodes.emits.callback_event", "CallbackEventNode"),
-    ("haybale_testing.nodes.testbed.custom_callback_node", "TestCustomCallbackNode"),
+    ("haybale_testing.nodes.testbed.callback_event_probe", "CallbackEventProbeNode"),
 ]
 
 

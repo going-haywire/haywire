@@ -45,13 +45,13 @@ def chain(graph_with_library_system: BaseGraph) -> Callable[..., tuple[Any, ...]
     graph = graph_with_library_system
 
     def build(middle: str, lazy_in=False, lazy_out=False, with_feed=True):
-        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode
-        from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
-        from haybale_testing.nodes.testbed.print_node import TestPrintNode
+        from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
+        from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
+        from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
-        begin = make_node(graph, TestBeginPlayNode.class_identity.registry_key)
-        printer = make_node(graph, TestPrintNode.class_identity.registry_key)
-        add_key = TestAddFloatNode.class_identity.registry_key
+        begin = make_node(graph, BeginPlayProbeNode.class_identity.registry_key)
+        printer = make_node(graph, PrintProbeNode.class_identity.registry_key)
+        add_key = AddFloatProbeNode.class_identity.registry_key
         a = make_node(graph, add_key)
         p = make_node(graph, _key(middle))
         b = make_node(graph, add_key)
@@ -178,16 +178,16 @@ def test_an_outlet_refuses_on_change():
 
 
 def test_a_collapsed_swinglet_node_still_passes_its_write_on(graph_with_library_system):
-    from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
     graph = graph_with_library_system
-    begin = make_node(graph, TestBeginPlayNode.class_identity.registry_key)
-    printer = make_node(graph, TestPrintNode.class_identity.registry_key)
-    a = make_node(graph, TestAddFloatNode.class_identity.registry_key)
+    begin = make_node(graph, BeginPlayProbeNode.class_identity.registry_key)
+    printer = make_node(graph, PrintProbeNode.class_identity.registry_key)
+    a = make_node(graph, AddFloatProbeNode.class_identity.registry_key)
     p = make_node(graph, _key("SwingletPassProbeNode"))
-    b = make_node(graph, TestAddFloatNode.class_identity.registry_key)
+    b = make_node(graph, AddFloatProbeNode.class_identity.registry_key)
     a.node.ports["value_a"].set_value(1.0)
     a.node.ports["value_b"].set_value(2.0)
     b.node.ports["value_b"].set_value(100.0)

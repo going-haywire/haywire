@@ -110,14 +110,14 @@ class TestPools:
 
 class TestPorts:
     def test_an_unlinked_dataclass_callback_inlet_reads_absent(self, graph_with_library_system):
-        from haybale_testing.nodes.testbed.record_callback_nodes import (
-            TestRecordEmitNode,
-            TestRecordEventNode,
+        from haybale_testing.nodes.testbed.record_callback_probes import (
+            RecordEmitProbeNode,
+            RecordEventProbeNode,
         )
 
         graph = graph_with_library_system
-        event = make_node(graph, TestRecordEventNode.class_identity.registry_key, position=(0, 0))
-        emit = make_node(graph, TestRecordEmitNode.class_identity.registry_key, position=(400, 0))
+        event = make_node(graph, RecordEventProbeNode.class_identity.registry_key, position=(0, 0))
+        emit = make_node(graph, RecordEmitProbeNode.class_identity.registry_key, position=(400, 0))
         edge = make_edge(graph, event.node_id, "subscription", emit.node_id, "subscriptions")
         reroute_id = _split_with_reroute(graph, edge.edge_id)
         upstream = next(e for e in graph.edge_wrappers.values() if e.sink_node_id == reroute_id)

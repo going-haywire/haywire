@@ -10,7 +10,7 @@
   "nodes": {
     "TestBeginPlayNode_a6ee520d": {
       "node_id": "TestBeginPlayNode_a6ee520d",
-      "registry_key": "haybale-testing:node:TestBeginPlayNode",
+      "registry_key": "haybale-testing:node:BeginPlayProbeNode",
       "node_data": {
         "node_id": "TestBeginPlayNode_a6ee520d",
         "ports": {
@@ -74,14 +74,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "TestBeginPlayNode",
-          "registry_key": "haybale-testing:node:TestBeginPlayNode",
+          "registry_id": "BeginPlayProbeNode",
+          "registry_key": "haybale-testing:node:BeginPlayProbeNode",
           "label": "Test Begin Play",
           "description": "Test version of BeginPlay — triggered once when execution starts",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "TestBeginPlayNode",
-          "module": "haybale_testing.nodes.testbed.begin_play_node",
+          "class_name": "BeginPlayProbeNode",
+          "module": "haybale_testing.nodes.testbed.begin_play_probe",
           "tags": [],
           "search_tags": [
             "test",

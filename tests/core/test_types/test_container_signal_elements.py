@@ -22,11 +22,11 @@ def _run(graph) -> None:
 
 
 def test_an_array_of_exec_fires_its_transition_with_the_list(graph_with_library_system):
-    from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode
+    from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
     from haybale_testing.nodes.testbed.container_signal_probes import ArrayExecProbeNode
 
     graph = graph_with_library_system
-    begin = make_node(graph, TestBeginPlayNode.class_identity.registry_key, position=(0, 0))
+    begin = make_node(graph, BeginPlayProbeNode.class_identity.registry_key, position=(0, 0))
     source = make_node(graph, ArrayExecProbeNode.class_identity.registry_key, position=(200, 0))
     sink = make_node(graph, ArrayExecProbeNode.class_identity.registry_key, position=(400, 0))
     make_edge(graph, begin.node_id, "exec", source.node_id, "exec_in")

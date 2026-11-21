@@ -76,13 +76,13 @@ def _stamp_synced() -> None:
     ui.run_javascript("document.body.dataset.hwSynced = '1'")
 
 
-# Two-node control graph used by the /graph-reconnect route: a Test Begin Play
-# (event source, ``exec`` outlet) wired to a Test Print (control sink, ``exec``
+# Two-node control graph used by the /graph-reconnect route: a Begin Play Probe
+# (event source, ``exec`` outlet) wired to a Print Probe (control sink, ``exec``
 # inlet). Built programmatically and round-tripped through a .haywire file at
 # request time so the fixture can never drift from the current serialization
 # format — if save_to_file/load_from_file break, the route (and its test) fail.
-_RECONNECT_SOURCE_KEY = "haybale-testing:node:TestBeginPlayNode"
-_RECONNECT_SINK_KEY = "haybale-testing:node:TestPrintNode"
+_RECONNECT_SOURCE_KEY = "haybale-testing:node:BeginPlayProbeNode"
+_RECONNECT_SINK_KEY = "haybale-testing:node:PrintProbeNode"
 _RECONNECT_OUTLET = "exec"
 _RECONNECT_INLET = "exec"
 
@@ -112,8 +112,8 @@ def _write_reconnect_graph(node_factory, out_path) -> None:
 def _build_connect_graph(node_factory):
     """Two UNCONNECTED nodes with compatible free pins, for connect tests.
 
-    A Test Begin Play (``exec`` control outlet, ``timestamp`` float outlet) and a
-    Test Print (``exec`` control inlet, ``message`` string inlet). The exec pins
+    A Begin Play Probe (``exec`` control outlet, ``timestamp`` float outlet) and a
+    Print Probe (``exec`` control inlet, ``message`` string inlet). The exec pins
     form a valid control pair the user can wire up; leaving them unconnected lets
     the test drive the click-drag / click-click / proximity-snap entry paths.
     """
@@ -128,14 +128,14 @@ def _build_connect_graph(node_factory):
     return graph, editor
 
 
-_DYNAMIC_KEY = "haybale-testing:node:DynamicPortTestNode"
-_EDGE_LINK_KEY = "haybale-testing:node:EdgeLinkTestNode"
+_DYNAMIC_KEY = "haybale-testing:node:DynamicPortProbeNode"
+_EDGE_LINK_KEY = "haybale-testing:node:EdgeLinkProbeNode"
 _DYNAMIC_OUTLET = "dynamic_outlet_0"
 _EDGE_LINK_INLET = "int_inlet"
 
 
 def _build_dynamic_graph(node_factory):
-    """A DynamicPortTestNode wired to an EdgeLinkTestNode via a dynamic port.
+    """A DynamicPortProbeNode wired to an EdgeLinkProbeNode via a dynamic port.
 
     ``dynamic_outlet_0`` (TEST_INT, present while port_count >= 1) → ``int_inlet``.
     Lowering port_count to 0 removes the outlet; raising it restores the same id.
@@ -157,11 +157,11 @@ def _build_dynamic_graph(node_factory):
     return graph, editor, dyn
 
 
-_PERF_KEY = "haybale-testing:node:PerformanceTester"
+_PERF_KEY = "haybale-testing:node:PerformanceProbeNode"
 
 
 def _build_edge_batch_graph(node_factory, edge_count: int, wire: int | None = None):
-    """Two PerformanceTesters wired outlet_i → inlet_i, ``edge_count`` times.
+    """Two PerformanceProbeNodes wired outlet_i → inlet_i, ``edge_count`` times.
 
     ``port_count`` drives how many float pairs the node exposes, so the edge
     count varies while the NODE count stays at two. ``wire`` connects fewer
@@ -218,7 +218,7 @@ def _build_chunked_load_graph(node_factory, node_count: int):
 def _build_detail_graph(node_factory):
     """A node whose LINKED pin sits below several unlinked ones, for NodeDetail.
 
-    ``EdgeLinkTestNode`` declares ``callback_inlet``, ``execute_inlet`` and
+    ``EdgeLinkProbeNode`` declares ``callback_inlet``, ``execute_inlet`` and
     ``bool_inlet`` ahead of ``int_inlet``, and only ``int_inlet`` is wired. That
     ordering is the whole fixture: at the PINS rank the three unlinked pins
     above it are ``display: none``, so the linked pin — which stays visible —
@@ -263,10 +263,10 @@ def _build_layout_graph(node_factory):
     return graph, editor
 
 
-_ADD_FLOAT_KEY = "haybale-testing:node:TestAddFloatNode"
-_LISTENER_KEY = "haybale-testing:node:TestCustomCallbackNode"
-_EMITTER_KEY = "haybale-testing:node:TestEmitCallbackNode"
-_ADD_PORT_KEY = "haybale-testing:node:AddPortTestNode"
+_ADD_FLOAT_KEY = "haybale-testing:node:AddFloatProbeNode"
+_LISTENER_KEY = "haybale-testing:node:CallbackEventProbeNode"
+_EMITTER_KEY = "haybale-testing:node:CallbackEmitProbeNode"
+_ADD_PORT_KEY = "haybale-testing:node:AddPortProbeNode"
 
 
 def _build_edge_appearance_graph(node_factory):
@@ -394,9 +394,9 @@ def _build_swinglet_graph(node_factory):
 
     Backs test_graph_swinglet_connect.py. Returns (graph, editor, ids): *ids*
     maps "v1".."v3" to visual probes (`TEST_VISUAL` swinglet `note`), "p1" and
-    "p2" to pass probes (`FLOAT` swinglet `s`) and "add" to a `TestAddFloatNode`.
+    "p2" to pass probes (`FLOAT` swinglet `s`) and "add" to a `AddFloatProbeNode`.
     """
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
     from haybale_testing.nodes.testbed.swinglet_probe import (
         SwingletPassProbeNode,
         SwingletVisualProbeNode,
@@ -407,7 +407,7 @@ def _build_swinglet_graph(node_factory):
     editor = Editor(graph, node_factory)
     visual = SwingletVisualProbeNode.class_identity.registry_key
     passing = SwingletPassProbeNode.class_identity.registry_key
-    add = TestAddFloatNode.class_identity.registry_key
+    add = AddFloatProbeNode.class_identity.registry_key
     ids = {}
     for name, key, x, y in (
         ("v1", visual, 3600.0, 3700.0),
@@ -436,7 +436,7 @@ def _build_two_column_graph(node_factory):
     graph = _harness_graph("Two Column Fixture")
     editor = Editor(graph, node_factory)
 
-    # TestPrintNode, not TestBeginPlayNode: the test needs BOTH an inlet and an
+    # PrintProbeNode, not BeginPlayProbeNode: the test needs BOTH an inlet and an
     # outlet to compare their columns, and a source node has no inlets.
     node = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(3700.0, 3700.0))
     assert node is not None, f"could not create {_RECONNECT_SINK_KEY}"
@@ -482,7 +482,7 @@ def _build_reroute_graph(node_factory):
 def _build_size_graph(node_factory, validation_delay_ms: float = 50.0):
     """A single node, for the node-sizing gadget/measure tests.
 
-    One TestPrintNode is enough: the sizing feature is per-node and needs no
+    One PrintProbeNode is enough: the sizing feature is per-node and needs no
     edges. Returns (graph, editor, node) so the route can drive size props and
     the test can select/resize it. See test_node_size_measure / test_resize_gadget.
     ``validation_delay_ms`` is passed to ``_harness_graph``.
@@ -1431,7 +1431,7 @@ def register_routes(library_service) -> None:
     # -------------------------------------------------------------------------
     # GET /graph-dynamic
     #
-    # A DynamicPortTestNode wired to an EdgeLinkTestNode through a dynamic port,
+    # A DynamicPortProbeNode wired to an EdgeLinkProbeNode through a dynamic port,
     # with buttons to drop / restore the port via port_count. Backs the ghost-
     # fallback test: removing the linked outlet must reattach the edge to the
     # node's ghost outlet (not delete it); restoring the port reattaches it to
@@ -1456,7 +1456,7 @@ def register_routes(library_service) -> None:
     # -------------------------------------------------------------------------
     # GET /graph-detail
     #
-    # An EdgeLinkTestNode whose only wired inlet sits below three unlinked ones,
+    # An EdgeLinkProbeNode whose only wired inlet sits below three unlinked ones,
     # plus buttons flipping its NodeDetail rank. Backs test_graph_node_detail.py:
     # a rank change is a CSS filter that neither rebuilds the card nor emits a
     # sync, yet it re-lays the card out — so the canvas has to notice the
@@ -2018,7 +2018,7 @@ def register_routes(library_service) -> None:
     # -------------------------------------------------------------------------
     # GET /graph-enter?mode=view|operate|edit
     #
-    # One Group card (two TestPrintNodes collapsed) on a real GraphCanvasManager.
+    # One Group card (two PrintProbeNodes collapsed) on a real GraphCanvasManager.
     # ``enter-card-id`` carries the card's id; ``enter-log`` shows the node id of
     # the last SubgraphNavigation the session published — what the canvas asks
     # an editor to open. ``mode`` is the canvas's level mode. Backs
@@ -2291,17 +2291,19 @@ def register_routes(library_service) -> None:
         editor = Editor(graph, library_service.get_node_factory())
 
         content = graph.create_node_wrapper(
-            "haybale-testing:node:SizeBoxContentNode", position=(3600.0, 3700.0)
+            "haybale-testing:node:SizeBoxContentProbeNode", position=(3600.0, 3700.0)
         )
         aspect = graph.create_node_wrapper(
-            "haybale-testing:node:SizeBoxAspectNode", position=(4100.0, 3700.0)
+            "haybale-testing:node:SizeBoxAspectProbeNode", position=(4100.0, 3700.0)
         )
-        fixed = graph.create_node_wrapper("haybale-testing:node:SizeBoxFixedNode", position=(4600.0, 3700.0))
+        fixed = graph.create_node_wrapper(
+            "haybale-testing:node:SizeBoxFixedProbeNode", position=(4600.0, 3700.0)
+        )
         # Individually asserted so mypy narrows each one (a tuple membership
         # test does not); a failure also names the node that could not be built.
-        assert content is not None, "could not create SizeBoxContentNode"
-        assert aspect is not None, "could not create SizeBoxAspectNode"
-        assert fixed is not None, "could not create SizeBoxFixedNode"
+        assert content is not None, "could not create SizeBoxContentProbeNode"
+        assert aspect is not None, "could not create SizeBoxAspectProbeNode"
+        assert fixed is not None, "could not create SizeBoxFixedProbeNode"
 
         def _set_manual(node_id: str, width: float, height: float) -> None:
             editor.set_property(node_id, "size_adapt", "manual")
@@ -2361,7 +2363,7 @@ def register_routes(library_service) -> None:
     # -------------------------------------------------------------------------
     # GET /graph-list-widget
     #
-    # A SettingsNode on a canvas with Example String List promoted to config, so
+    # A SettingsProbeNode on a canvas with Example String List promoted to config, so
     # its ArrayWidget draws on the card. A polled echo shows the setting's value.
     # Backs the card test in test_list_widget.py.
     # -------------------------------------------------------------------------
@@ -2374,8 +2376,10 @@ def register_routes(library_service) -> None:
 
         graph = _harness_graph("List Widget Fixture")
         editor = Editor(graph, library_service.get_node_factory())
-        wrapper = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(3600.0, 3700.0))
-        assert wrapper is not None, "could not create SettingsNode"
+        wrapper = graph.create_node_wrapper(
+            "haybale-testing:node:SettingsProbeNode", position=(3600.0, 3700.0)
+        )
+        assert wrapper is not None, "could not create SettingsProbeNode"
         promote_setting(wrapper.node, "example", "example_string_list", direction=PortType.CONFIG)
 
         ui.label(wrapper.node_id).props(f'data-testid="node-id" data-node="{wrapper.node_id}"')

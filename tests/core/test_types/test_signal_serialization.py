@@ -21,11 +21,11 @@ class TestSignalSerialization:
     def test_a_node_with_signal_ports_can_be_serialized(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """The copy path. EdgeLinkTestNode carries a callback and an exec pin per direction."""
-        from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+        """The copy path. EdgeLinkProbeNode carries a callback and an exec pin per direction."""
+        from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
 
         wrapper = graph_with_library_system.create_node_wrapper(
-            EdgeLinkTestNode.class_identity.registry_key, position=(0, 0)
+            EdgeLinkProbeNode.class_identity.registry_key, position=(0, 0)
         )
         assert wrapper is not None
 
@@ -86,11 +86,11 @@ class TestSignalSerialization:
         self, graph_with_library_system: BaseGraph, library_system
     ):
         """``build_clipboard_payload`` is what the user's copy gesture reaches."""
-        from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+        from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
         from haywire.core.graph.clipboard import build_clipboard_payload
 
         graph = graph_with_library_system
-        wrapper = graph.create_node_wrapper(EdgeLinkTestNode.class_identity.registry_key, position=(0, 0))
+        wrapper = graph.create_node_wrapper(EdgeLinkProbeNode.class_identity.registry_key, position=(0, 0))
         assert wrapper is not None
 
         payload = build_clipboard_payload(graph, [wrapper.node_id], [], session_id="s")

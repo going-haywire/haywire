@@ -51,7 +51,7 @@ def _markers(card: Any) -> list[str]:
 @pytest.fixture
 def wrapper(library_system):
     graph = BaseGraph(filestem="markers", validation_scheduler=SyncScheduler())
-    return make_node(graph, "haybale-testing:node:TestAddFloatNode")
+    return make_node(graph, "haybale-testing:node:AddFloatProbeNode")
 
 
 def _draw(skin: BaseSkin, wrapper: Any, *, on_stage: bool = False) -> Any:

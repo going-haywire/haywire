@@ -30,9 +30,9 @@ def _graph() -> BaseGraph:
 
 
 def _two_linked_nodes(library_system):
-    from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+    from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
 
-    key = EdgeLinkTestNode.class_identity.registry_key
+    key = EdgeLinkProbeNode.class_identity.registry_key
     g = _graph()
     a = make_node(g, key, position=(0, 0))
     b = make_node(g, key, position=(200, 0))

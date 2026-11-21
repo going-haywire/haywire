@@ -17,9 +17,9 @@ SWAPPED = LayoutChannel(
 
 
 def _key() -> str:
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
-    return TestPrintNode.class_identity.registry_key
+    return PrintProbeNode.class_identity.registry_key
 
 
 def test_move_node_writes_the_channel_fields(graph_with_library_system):

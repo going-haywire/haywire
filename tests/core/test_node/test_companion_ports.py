@@ -17,7 +17,7 @@ def _validate(graph):
 
 @pytest.fixture
 def grown(graph_with_library_system, library_system):
-    """An Add Port TestNode whose ``str_in_0`` grew, with its note companion in a resolved fold."""
+    """An Add Port Probe whose ``str_in_0`` grew, with its note companion in a resolved fold."""
     graph = graph_with_library_system
     source = _make_link_node(graph, (0, 0))
     target = _make_add_node(graph, (300, 0))

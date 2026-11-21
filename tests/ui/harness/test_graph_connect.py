@@ -30,7 +30,7 @@ pytestmark = pytest.mark.ui
 
 # Edge between the source's exec outlet and the sink's exec inlet, oriented
 # outlet→inlet regardless of which end the user clicked first.
-_EXPECTED_EDGE_RE = r"^TestBeginPlayNode_.+\[exec\]->TestPrintNode_.+\[exec\]$"
+_EXPECTED_EDGE_RE = r"^BeginPlayProbeNode_.+\[exec\]->PrintProbeNode_.+\[exec\]$"
 
 
 def _pin_center(page: Page, id_fragment: str) -> dict:
@@ -61,8 +61,8 @@ _WIRE_ENDS_OFF_PIN_EDGES = (
         return { x: q.x * ctm.a + q.y * ctm.c + ctm.e, y: q.x * ctm.b + q.y * ctm.d + ctm.f };
     };
     const off = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-    const outlet = pinEdge(pin('exec@TestBeginPlay'), ctm);
-    const inlet = pinEdge(pin('exec@TestPrint'), ctm);
+    const outlet = pinEdge(pin('exec@BeginPlayProbe'), ctm);
+    const inlet = pinEdge(pin('exec@PrintProbe'), ctm);
     return {
         preview: off(at(preview, 0), outlet),
         suggestionStart: off(at(suggestion, 0), outlet),
@@ -100,8 +100,8 @@ def _click_pin(page: Page, id_fragment: str) -> dict:
 def test_click_click_outlet_then_inlet_creates_edge(page: Page, harness):
     """Click the outlet, then the inlet → a single correctly-oriented edge."""
     _open(page, harness)
-    _click_pin(page, "exec@TestBeginPlay")  # outlet
-    _click_pin(page, "exec@TestPrint")  # inlet
+    _click_pin(page, "exec@BeginPlayProbe")  # outlet
+    _click_pin(page, "exec@PrintProbe")  # inlet
     page.wait_for_selector("path[data-edge-id]")
 
     edges = _edge_ids(page)
@@ -116,8 +116,8 @@ def test_reverse_inlet_then_outlet_creates_oriented_edge(page: Page, harness):
     the outlet, regardless of click order).
     """
     _open(page, harness)
-    _click_pin(page, "exec@TestPrint")  # inlet first
-    _click_pin(page, "exec@TestBeginPlay")  # outlet second
+    _click_pin(page, "exec@PrintProbe")  # inlet first
+    _click_pin(page, "exec@BeginPlayProbe")  # outlet second
     page.wait_for_selector("path[data-edge-id]")
 
     edges = _edge_ids(page)
@@ -128,9 +128,9 @@ def test_reverse_inlet_then_outlet_creates_oriented_edge(page: Page, harness):
 def test_proximity_snap_commits_to_nearest_compatible_pin(page: Page, harness):
     """Click the outlet, then click empty canvas near the inlet → snaps and connects."""
     _open(page, harness)
-    _click_pin(page, "exec@TestBeginPlay")  # start the active connection
+    _click_pin(page, "exec@BeginPlayProbe")  # start the active connection
 
-    inlet = _pin_center(page, "exec@TestPrint")
+    inlet = _pin_center(page, "exec@PrintProbe")
     near_x, near_y = inlet["x"] - 25, inlet["y"] + 25  # empty canvas, within suggestion range
     page.mouse.move(near_x, near_y)
     wait_until(page, lambda: page.evaluate(_WIRE_ENDS_OFF_PIN_EDGES) is not None)
@@ -153,8 +153,8 @@ def test_outlet_to_outlet_makes_no_edge(page: Page, harness):
     canvas honors them rather than emitting a bogus edgeCreated.
     """
     _open(page, harness)
-    _click_pin(page, "exec@TestBeginPlay")  # outlet
-    _click_pin(page, "done@TestPrint")  # another outlet (EXEC.as_outlet "done")
+    _click_pin(page, "exec@BeginPlayProbe")  # outlet
+    _click_pin(page, "done@PrintProbe")  # another outlet (EXEC.as_outlet "done")
     # A negative: nothing to wait FOR, so give a wrong edge time to show up.
     page.wait_for_timeout(400)
 

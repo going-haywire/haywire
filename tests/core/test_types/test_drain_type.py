@@ -16,7 +16,7 @@ from haybale_core.types.drain_type import DEFAULT_MAX_LEN
 
 from tests.conftest import make_edge, make_node
 
-_ADD = "haybale-testing:node:TestAddFloatNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
 
 
 def _field(max_len: int | None = None):

@@ -8,8 +8,8 @@ pytestmark = pytest.mark.integration  # needs library_system for builtin types/n
 
 # A node with plain data inlets (example:node:MathOperationNode has FLOAT inlets value_a/value_b).
 PORT_NODE_KEY = "haybale-example:node:MathOperationNode"
-# A node carrying a settings bag (testing:node:SettingsNode -> bag 'example').
-SETTINGS_NODE_KEY = "haybale-testing:node:SettingsNode"
+# A node carrying a settings bag (testing:node:SettingsProbeNode -> bag 'example').
+SETTINGS_NODE_KEY = "haybale-testing:node:SettingsProbeNode"
 
 
 @pytest.fixture
@@ -122,7 +122,7 @@ def test_action_serializes(graph_and_editor):
     assert d["executed"] is True
 
 
-POOLED_NODE_KEY = "haybale-testing:node:EdgeLinkTestNode"  # has pooled_float_inlet
+POOLED_NODE_KEY = "haybale-testing:node:EdgeLinkProbeNode"  # has pooled_float_inlet
 
 
 def _history(editor) -> dict:
@@ -146,10 +146,10 @@ def test_a_pooled_inlet_refuses_a_property_write(graph_and_editor):
 
 def test_an_add_slot_refuses_a_property_write(graph_and_editor):
     graph, editor = graph_and_editor
-    from haybale_testing.nodes.testbed.add_port_test import AddPortTestNode
+    from haybale_testing.nodes.testbed.add_port_probe import AddPortProbeNode
 
-    wrapper = _add_node(editor, AddPortTestNode.class_identity.registry_key)
-    assert isinstance(wrapper.node, AddPortTestNode)
+    wrapper = _add_node(editor, AddPortProbeNode.class_identity.registry_key)
+    assert isinstance(wrapper.node, AddPortProbeNode)
     assert "add_in_0" in wrapper.node.ports
     history_before = _history(editor)
 

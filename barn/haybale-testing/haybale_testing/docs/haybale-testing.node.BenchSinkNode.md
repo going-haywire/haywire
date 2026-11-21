@@ -1,4 +1,4 @@
-# Bench Sink Node
+# Bench Sink
 
 `haybale-testing:node:BenchSinkNode` · kind: node
 

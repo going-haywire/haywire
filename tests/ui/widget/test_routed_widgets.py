@@ -61,9 +61,9 @@ def _render(library_system, port: Any, node_id: str, **kwargs: Any) -> BaseWidge
 
 
 def _add_node(graph: BaseGraph) -> Any:
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
-    return make_node(graph, TestAddFloatNode.class_identity.registry_key)
+    return make_node(graph, AddFloatProbeNode.class_identity.registry_key)
 
 
 # =============================================================================

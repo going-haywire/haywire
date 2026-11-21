@@ -37,9 +37,9 @@ def held_graph(library_system) -> Iterator[BaseGraph]:
 
 
 def _card(library_system, graph: BaseGraph, channel: LayoutChannel) -> tuple[UINode, Any]:
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
-    wrapper = make_node(graph, TestAddFloatNode.class_identity.registry_key)
+    wrapper = make_node(graph, AddFloatProbeNode.class_identity.registry_key)
     wrapper.node.props.on_stage = True
     graph._validation.force_immediate_validation()
     client = Client(cast(Any, _noop_page), request=None)

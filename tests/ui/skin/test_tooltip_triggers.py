@@ -43,9 +43,9 @@ def _graph():
 def _node(graph):
     """A node with widget-bearing inlets AND a config port, so both tooltip
     call sites in the studio skin are exercised by one render."""
-    from haybale_testing.nodes.testbed.test_performance import PerformanceTester
+    from haybale_testing.nodes.testbed.performance_probe import PerformanceProbeNode
 
-    wrapper = graph.create_node_wrapper(PerformanceTester.class_identity.registry_key, position=(0, 0))
+    wrapper = graph.create_node_wrapper(PerformanceProbeNode.class_identity.registry_key, position=(0, 0))
     assert wrapper is not None
     wrapper.node.ports["port_count"].set_value(3)
     graph.force_validation()

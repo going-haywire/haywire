@@ -31,7 +31,7 @@ from tests.ui.panel.render_ctx import make_render_ctx
 
 pytestmark = pytest.mark.integration
 
-_SETTINGS_NODE = "haybale-testing:node:SettingsNode"
+_SETTINGS_NODE = "haybale-testing:node:SettingsProbeNode"
 
 
 def _noop_page() -> None:  # registration target for a headless Client
@@ -70,7 +70,7 @@ def level(held_graph: BaseGraph, library_system) -> _Level:
 
 @pytest.fixture
 def node_bag(held_graph: BaseGraph) -> Any:
-    """The ``example`` bag of a ``SettingsNode`` in ``held_graph``, with every mark drained."""
+    """The ``example`` bag of a ``SettingsProbeNode`` in ``held_graph``, with every mark drained."""
     wrapper = make_node(held_graph, _SETTINGS_NODE)
     _drain(held_graph)
     return cast(Any, wrapper.node).example

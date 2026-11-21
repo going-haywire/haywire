@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.integration
 
-_ADD = "haybale-testing:node:TestAddFloatNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
 _CARD = "haywire-core:node:GraphNode"
 
 

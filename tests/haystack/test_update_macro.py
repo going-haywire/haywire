@@ -22,7 +22,7 @@ from tests.core.test_macro.test_macro_reload import _document as _reload_documen
 pytestmark = pytest.mark.integration
 
 _CARD = "haywire-core:node:GraphNode"
-_PRINT = "haybale-testing:node:TestPrintNode"
+_PRINT = "haybale-testing:node:PrintProbeNode"
 
 
 # ---------------------------------------------------------------------------

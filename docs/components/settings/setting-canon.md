@@ -719,15 +719,15 @@ The callback fires on any change — local writes, global writes from other plac
 
 from: `TestingSettings` — registry_key: `haybale-testing:setting:TestingSettings`
 
-**NodeSettings with every descriptor** — source: `barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py`
+**NodeSettings with every descriptor** — source: `barn/haybale-testing/haybale_testing/nodes/testbed/settings_probe.py`
 
-`SettingsNode.example` exercises every `setting()` type, `shadow()`, `watch()`, and `validator` in one inner class:
+`SettingsProbeNode.example` exercises every `setting()` type, `shadow()`, `watch()`, and `validator` in one inner class:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py:4:154"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/settings_probe.py:4:154"
 ```
 
-from: `SettingsNode` — registry_key: `haybale-testing:node:SettingsNode`
+from: `SettingsProbeNode` — registry_key: `haybale-testing:node:SettingsProbeNode`
 
 What these examples exercise:
 

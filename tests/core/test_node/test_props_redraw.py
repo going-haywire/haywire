@@ -16,9 +16,9 @@ from haywire.core.node.properties import NodeProperties
 
 
 def _add_node(graph_obj: BaseGraph):
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
-    return graph_obj.create_node_wrapper(TestPrintNode.class_identity.registry_key, position=(100, 100))
+    return graph_obj.create_node_wrapper(PrintProbeNode.class_identity.registry_key, position=(100, 100))
 
 
 def _redraw_results(results: List[ValidationResult], node_id: str) -> List[ValidationResult]:
@@ -201,9 +201,9 @@ class TestPropsChangeTriggersRedraw:
 
     def test_failed_build_still_subscribes(self, graph_with_library_system, monkeypatch):
         graph_obj = graph_with_library_system
-        print_node_mod = importlib.import_module("haybale_testing.nodes.testbed.print_node")
+        print_node_mod = importlib.import_module("haybale_testing.nodes.testbed.print_probe")
         monkeypatch.setattr(
-            print_node_mod.TestPrintNode, "on_testrun", lambda self: (False, "forced test failure")
+            print_node_mod.PrintProbeNode, "on_testrun", lambda self: (False, "forced test failure")
         )
 
         wrapper = _add_node(graph_obj)

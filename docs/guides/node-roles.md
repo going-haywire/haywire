@@ -17,15 +17,15 @@ The node authoring API — the `@node` decorator, lifecycle hooks, the worker co
 
 A CONTROL node has at least one EXEC inlet *and* outlet. When it has **multiple** EXEC inlets, the worker uses `context.control_pin` to discover which one fired and dispatch accordingly.
 
-Source: `barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py`
+Source: `barn/haybale-testing/haybale_testing/nodes/testbed/callback_emit_probe.py`
 
-`TestEmitCallbackNode` is a CONTROL node with one EXEC inlet (`execute`) and one EXEC outlet (`exec`). It also demonstrates `POOLED[CALLBACK]` as an inlet, `post_init()` for non-serializable state, and dispatching via `context.emit_callback`:
+`CallbackEmitProbeNode` is a CONTROL node with one EXEC inlet (`execute`) and one EXEC outlet (`exec`). It also demonstrates `POOLED[CALLBACK]` as an inlet, `post_init()` for non-serializable state, and dispatching via `context.emit_callback`:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py:16:88"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/callback_emit_probe.py:16:88"
 ```
 
-from: `TestEmitCallbackNode` — registry_key: `haybale-testing:node:TestEmitCallbackNode`
+from: `CallbackEmitProbeNode` — registry_key: `haybale-testing:node:CallbackEmitProbeNode`
 
 **Role-specific:** EXEC inlet (`execute`) + EXEC outlet (`exec`) makes this CONTROL. The worker returns the outlet ID `"exec"` to continue control flow. `context.emit_callback(event_name=..., payload=...)` dispatches to listener nodes by name. `POOLED[CALLBACK].as_inlet(...)` collects all connected listener IDs into a dict.
 
@@ -33,15 +33,15 @@ from: `TestEmitCallbackNode` — registry_key: `haybale-testing:node:TestEmitCal
 
 A DATA node has **no EXEC ports**. It runs only when a downstream CONTROL node demands one of its outputs. Its worker returns `None` and writes results via `self.out(...)`.
 
-Source: `barn/haybale-testing/haybale_testing/nodes/testbed/math_op_node.py`
+Source: `barn/haybale-testing/haybale_testing/nodes/testbed/add_float_probe.py`
 
-`TestAddFloatNode` is the minimal DATA node: two FLOAT inlets, one FLOAT outlet, worker adds them and returns `None`:
+`AddFloatProbeNode` is the minimal DATA node: two FLOAT inlets, one FLOAT outlet, worker adds them and returns `None`:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/math_op_node.py:4:22"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/add_float_probe.py:4:22"
 ```
 
-from: `TestAddFloatNode` — registry_key: `haybale-testing:node:TestAddFloatNode`
+from: `AddFloatProbeNode` — registry_key: `haybale-testing:node:AddFloatProbeNode`
 
 **Role-specific:** no EXEC ports, returns `None`, runs lazily on demand from downstream.
 
@@ -51,15 +51,15 @@ An EVENT node has no EXEC inlet either, but unlike DATA it is an **entry point**
 
 ### System event
 
-Source: `barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py`
+Source: `barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_probe.py`
 
-`TestBeginPlayNode` fires once when execution starts, emitting the current timestamp:
+`BeginPlayProbeNode` fires once when execution starts, emitting the current timestamp:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py:4:26"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_probe.py:4:26"
 ```
 
-from: `TestBeginPlayNode` — registry_key: `haybale-testing:node:TestBeginPlayNode`
+from: `BeginPlayProbeNode` — registry_key: `haybale-testing:node:BeginPlayProbeNode`
 
 **Role-specific:** `event_subscription = SystemEvent(SystemEventType.BEGIN_PLAY)` in `post_init()`. No EXEC inlet — the framework dispatches the event source instead. Worker returns the outlet ID `"exec"` to trigger control flow.
 

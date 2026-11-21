@@ -27,9 +27,9 @@ def _settled(producer: Any, consumer: Any, written: int, takes: int) -> bool:
 
 def _setup(graph: BaseGraph):
     from haybale_testing.nodes.testbed.drain_probe import DrainConsumerProbeNode, DrainProducerProbeNode
-    from haybale_testing.nodes.testbed.record_callback_nodes import TestRecordEventNode
+    from haybale_testing.nodes.testbed.record_callback_probes import RecordEventProbeNode
 
-    event = TestRecordEventNode.class_identity.registry_key
+    event = RecordEventProbeNode.class_identity.registry_key
     p_event = make_node(graph, event, position=(0, 0))
     c_event = make_node(graph, event, position=(0, 300))
     producer = make_node(graph, DrainProducerProbeNode.class_identity.registry_key, position=(300, 0))

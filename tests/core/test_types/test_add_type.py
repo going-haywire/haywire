@@ -224,26 +224,26 @@ class TestAddAdapterShortCircuit:
 
 
 def _make_add_node(graph: BaseGraph, position: tuple[float, float]) -> NodeWrapper:
-    from haybale_testing.nodes.testbed.add_port_test import AddPortTestNode
+    from haybale_testing.nodes.testbed.add_port_probe import AddPortProbeNode
 
-    wrapper = graph.create_node_wrapper(AddPortTestNode.class_identity.registry_key, position=position)
+    wrapper = graph.create_node_wrapper(AddPortProbeNode.class_identity.registry_key, position=position)
     assert wrapper is not None, f"node creation failed at {position}"
     return wrapper
 
 
 def _make_settings_node(graph: BaseGraph, position: tuple[float, float]) -> NodeWrapper:
     """A node with a plain STRING outlet, safe to serialize."""
-    from haybale_testing.nodes.testbed.settings_node import SettingsNode
+    from haybale_testing.nodes.testbed.settings_probe import SettingsProbeNode
 
-    wrapper = graph.create_node_wrapper(SettingsNode.class_identity.registry_key, position=position)
+    wrapper = graph.create_node_wrapper(SettingsProbeNode.class_identity.registry_key, position=position)
     assert wrapper is not None, f"node creation failed at {position}"
     return wrapper
 
 
 def _make_link_node(graph: BaseGraph, position: tuple[float, float]) -> NodeWrapper:
-    from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+    from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
 
-    wrapper = graph.create_node_wrapper(EdgeLinkTestNode.class_identity.registry_key, position=position)
+    wrapper = graph.create_node_wrapper(EdgeLinkProbeNode.class_identity.registry_key, position=position)
     assert wrapper is not None, f"node creation failed at {position}"
     return wrapper
 
@@ -530,7 +530,7 @@ class TestAddPersistence:
         from haywire.core.undo.actions.graph_actions import PasteClipboardAction
 
         graph = graph_with_library_system
-        # A STRING outlet, not EdgeLinkTestNode: that node's CALLBACK ports
+        # A STRING outlet, not EdgeLinkProbeNode: that node's CALLBACK ports
         # cannot be serialized, which is a separate defect.
         source = _make_settings_node(graph, (100, 100))
         target = _make_add_node(graph, (300, 100))

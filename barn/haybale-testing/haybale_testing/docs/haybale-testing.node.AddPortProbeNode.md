@@ -1,0 +1,34 @@
+# Add Port Probe
+
+`haybale-testing:node:AddPortProbeNode` · kind: node
+
+## Ports
+
+| id | direction | type | description |
+|---|---|---|---|
+| `add_in_0` | inlet | `haywire-core:type:ADD` | Grows a new port from whatever connects to it |
+| `str_in_0` | inlet | `haywire-core:type:ADD` | Grows a new port from whatever connects to it |
+| `add_out_0` | outlet | `haywire-core:type:ADD` | Grows a new port from whatever connects to it |
+
+## Notes
+
+Node whose ADD pins grow real ports when something connects to them.
+
+Starts with one undecided inlet, `add_in_0`, one undecided outlet,
+`add_out_0`, and one decided inlet, `str_in_0`, typed `ADD[TEST_STRING]`.
+
+Connecting to an undecided pin replaces it with a port of the connected
+type. Connecting to the decided pin replaces it with a `TEST_STRING` port,
+and anything convertible to it may connect — the value arrives converted.
+Each side appends a fresh slot below, so it always ends in one open pin.
+
+A resolved pin stays once its edge is gone — unplugging leaves an empty
+typed slot the user can reconnect, and removing it for good is a separate
+gesture on the pin menu. Slot indices are never reused, so the pins a saved
+graph refers to keep their ids.
+
+A resolved `Str` pin brings a `Note` inlet along, in a fold of its own. The
+note goes with its pin: removing `Str 0` from the pin menu removes `Note 0`
+and its fold too, and undo brings all three back. The node keeps the resolved
+`Str` pins in order in its store and updates that list when one is removed or
+restored.

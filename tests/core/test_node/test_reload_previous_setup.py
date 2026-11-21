@@ -44,9 +44,9 @@ class _ParkedScheduler:
 
 
 def _print_cls() -> Any:
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
-    return TestPrintNode
+    return PrintProbeNode
 
 
 def _graph_with_editor(library_system, *, parked: bool = True) -> tuple[BaseGraph, Editor]:

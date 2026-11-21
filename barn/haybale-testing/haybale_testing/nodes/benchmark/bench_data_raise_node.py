@@ -13,7 +13,7 @@ class BenchFailure(Exception):
 
 
 @node(
-    label="Bench Data Raise Node",
+    label="Bench Data Raise",
     description="FROZEN: data node whose worker always raises, for measuring the failure path.",
     menu="testing/benchmark",
     search_tags=["benchmark", "frozen", "data", "raise", "failure"],

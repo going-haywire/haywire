@@ -11,9 +11,9 @@ pytestmark = pytest.mark.integration
 
 _INPUT = "haywire-core:node:SubgraphInputNode"
 _OUTPUT = "haywire-core:node:SubgraphOutputNode"
-_LISTEN = "haybale-testing:node:TestCustomCallbackNode"
-_EMIT = "haybale-testing:node:TestEmitCallbackNode"
-_BEGIN = "haybale-testing:node:TestBeginPlayNode"
+_LISTEN = "haybale-testing:node:CallbackEventProbeNode"
+_EMIT = "haybale-testing:node:CallbackEmitProbeNode"
+_BEGIN = "haybale-testing:node:BeginPlayProbeNode"
 
 
 def _slot(wrapper):

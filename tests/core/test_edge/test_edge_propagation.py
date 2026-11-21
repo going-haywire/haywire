@@ -14,7 +14,7 @@ from haywire.core.types import Propagation
 
 from tests.conftest import make_node
 
-_ADD = "haybale-testing:node:TestAddFloatNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
 
 pytestmark = [pytest.mark.integration]
 
@@ -40,12 +40,12 @@ def linked_pair(graph_with_library_system: BaseGraph):
 @pytest.fixture
 def callback_edge(graph_with_library_system):
     """An event node joined to an emit node by a callback edge."""
-    from haybale_testing.nodes.testbed.custom_callback_node import TestCustomCallbackNode
-    from haybale_testing.nodes.testbed.emit_callback_node import TestEmitCallbackNode
+    from haybale_testing.nodes.testbed.callback_event_probe import CallbackEventProbeNode
+    from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
 
     graph = graph_with_library_system
-    event = graph.create_node_wrapper(TestCustomCallbackNode.class_identity.registry_key, position=(0, 0))
-    emit = graph.create_node_wrapper(TestEmitCallbackNode.class_identity.registry_key, position=(300, 0))
+    event = graph.create_node_wrapper(CallbackEventProbeNode.class_identity.registry_key, position=(0, 0))
+    emit = graph.create_node_wrapper(CallbackEmitProbeNode.class_identity.registry_key, position=(300, 0))
     edge = graph.create_edge_wrapper(event.node_id, "listen_callback", emit.node_id, "edge_callback")
     assert edge is not None
     return event, edge
@@ -54,12 +54,12 @@ def callback_edge(graph_with_library_system):
 @pytest.fixture
 def promoted_outlet_edge(graph_with_library_system):
     """An edge out of a promoted setting outlet into an Add."""
-    from haybale_testing.nodes.testbed.settings_node import SettingsNode
+    from haybale_testing.nodes.testbed.settings_probe import SettingsProbeNode
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
 
     graph = graph_with_library_system
-    src = graph.create_node_wrapper(SettingsNode.class_identity.registry_key, position=(0, 0))
+    src = graph.create_node_wrapper(SettingsProbeNode.class_identity.registry_key, position=(0, 0))
     sink = make_node(graph, _ADD)
     promote_setting(src.node, "example", "example_float", direction=PortType.OUTLET)
     pid = type(src.node.example).__dict__["example_float"].storage_key

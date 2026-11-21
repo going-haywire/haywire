@@ -7,8 +7,8 @@ visible and re-links when the real port returns. The graph engine already
 covers the *data* side of this survival (tests/core/test_graph/test_edges.py);
 this covers the canvas's *rendering* fallback, which lives only in the browser.
 
-The /graph-dynamic route wires a DynamicPortTestNode's ``dynamic_outlet_0`` to an
-EdgeLinkTestNode and exposes drop-port / restore-port buttons that change
+The /graph-dynamic route wires a DynamicPortProbeNode's ``dynamic_outlet_0`` to an
+EdgeLinkProbeNode and exposes drop-port / restore-port buttons that change
 ``port_count`` (0 removes the dynamic outlets, 2 restores them).
 """
 

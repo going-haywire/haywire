@@ -10,7 +10,7 @@ import pytest
 
 pytestmark = pytest.mark.integration
 
-_ADD = "haybale-testing:node:TestAddFloatNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
 
 
 def _event(registry_key, affected_class):

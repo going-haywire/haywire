@@ -10,11 +10,11 @@ pytestmark = pytest.mark.integration
 
 
 def test_callback_and_control_pins_take_their_wire_types_kind(graph_with_library_system):
-    from haybale_testing.nodes.testbed.emit_callback_node import TestEmitCallbackNode
+    from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
 
     from haywire.ui.skin.pin_icons import DEFAULT_PIN_ICONS
 
-    node = make_node(graph_with_library_system, TestEmitCallbackNode.class_identity.registry_key).node
+    node = make_node(graph_with_library_system, CallbackEmitProbeNode.class_identity.registry_key).node
 
     assert DEFAULT_PIN_ICONS.role_of(node.ports["edge_callback"]) == "callback_in_multi"
     assert DEFAULT_PIN_ICONS.role_of(node.ports["exec"]) == "control_out"

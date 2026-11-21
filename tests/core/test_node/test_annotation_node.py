@@ -268,16 +268,16 @@ def test_the_worker_passes_control_and_its_payload_through(graph):
 
 @pytest.mark.slow
 def test_a_note_in_a_control_chain_forwards_the_payload(graph_with_library_system: BaseGraph):
-    from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode
-    from haybale_testing.nodes.testbed.control_payload_node import ControlPayloadTestNode
+    from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
+    from haybale_testing.nodes.testbed.control_payload_probe import ControlPayloadProbeNode
 
     graph = graph_with_library_system
-    begin = make_node(graph, TestBeginPlayNode.class_identity.registry_key, position=(0, 0))
-    emitter = make_node(graph, ControlPayloadTestNode.class_identity.registry_key, position=(200, 0))
+    begin = make_node(graph, BeginPlayProbeNode.class_identity.registry_key, position=(0, 0))
+    emitter = make_node(graph, ControlPayloadProbeNode.class_identity.registry_key, position=(200, 0))
     note = make_node(graph, _key(), position=(400, 0))
-    sink = make_node(graph, ControlPayloadTestNode.class_identity.registry_key, position=(600, 0))
-    assert isinstance(emitter.node, ControlPayloadTestNode)
-    assert isinstance(sink.node, ControlPayloadTestNode)
+    sink = make_node(graph, ControlPayloadProbeNode.class_identity.registry_key, position=(600, 0))
+    assert isinstance(emitter.node, ControlPayloadProbeNode)
+    assert isinstance(sink.node, ControlPayloadProbeNode)
     emitter.node.emit_payload = {"k": 1}  # type: ignore[assignment]
 
     make_edge(graph, begin.node_id, "exec", emitter.node_id, "exec_in")

@@ -23,8 +23,8 @@ if TYPE_CHECKING:
 
 pytestmark = [pytest.mark.integration]
 
-_ADD = "haybale-testing:node:TestAddFloatNode"
-_PRINT = "haybale-testing:node:TestPrintNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
+_PRINT = "haybale-testing:node:PrintProbeNode"
 _CARD = "haywire-core:node:GraphNode"
 
 

@@ -42,13 +42,13 @@ def _node(graph):
 
     The choice matters: a node whose only port is an outlet cannot distinguish
     WIDGETS from PINS, because outlets default to ``ShowWidgetStrategy.NEVER``
-    and so draw no widget at either rank. ``PerformanceTester`` generates
+    and so draw no widget at either rank. ``PerformanceProbeNode`` generates
     unlinked FLOAT inlets with NumberWidgets, which is the case the ranks are
     actually about.
     """
-    from haybale_testing.nodes.testbed.test_performance import PerformanceTester
+    from haybale_testing.nodes.testbed.performance_probe import PerformanceProbeNode
 
-    wrapper = graph.create_node_wrapper(PerformanceTester.class_identity.registry_key, position=(0, 0))
+    wrapper = graph.create_node_wrapper(PerformanceProbeNode.class_identity.registry_key, position=(0, 0))
     assert wrapper is not None
     # Fires the dynamic-port rejig that adds the widget-bearing inlets.
     wrapper.node.ports["port_count"].set_value(_PORT_COUNT)

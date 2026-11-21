@@ -24,9 +24,9 @@ def _key(cls):
 
 
 def _add(graph):
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
-    return make_node(graph, _key(TestAddFloatNode))
+    return make_node(graph, _key(AddFloatProbeNode))
 
 
 def test_a_swinglet_takes_either_end_of_a_data_edge(graph):

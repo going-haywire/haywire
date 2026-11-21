@@ -25,12 +25,12 @@ def _reroute(graph_obj):
 
 def test_overriding_bag_is_a_distinct_class_that_inherits_the_rest():
     from haywire.barn.builtin.nodes.reroute import RerouteNode
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
     # _settings_bags is typed dict[str, type]; cast to the bag base so the
     # Settings classmethods below are visible to mypy.
     reroute_bag = cast(type[Settings], RerouteNode._settings_bags["props"])
-    base_bag = cast(type[Settings], TestPrintNode._settings_bags["props"])
+    base_bag = cast(type[Settings], PrintProbeNode._settings_bags["props"])
 
     assert reroute_bag is not base_bag
     assert issubclass(reroute_bag, base_bag)
@@ -81,11 +81,11 @@ class TestRerouteSkinIsPinned:
 
     def test_other_nodes_still_track_the_graph_tier(self, graph_with_library_system):
         """The override is scoped to the node that declares it."""
-        from haybale_testing.nodes.testbed.print_node import TestPrintNode
+        from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
         graph_obj = graph_with_library_system
         _reroute(graph_obj)
-        other = graph_obj.create_node_wrapper(TestPrintNode.class_identity.registry_key, position=(50, 0))
+        other = graph_obj.create_node_wrapper(PrintProbeNode.class_identity.registry_key, position=(50, 0))
         graph_obj.props.default_skin = "skin-graph"
         assert other.node.props.skin == "skin-graph"
 

@@ -22,7 +22,7 @@ from tests.conftest import make_node
 
 pytestmark = [pytest.mark.integration]
 
-_ADD = "haybale-testing:node:TestAddFloatNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
 
 
 def _stamp(node, specs) -> None:

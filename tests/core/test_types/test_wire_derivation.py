@@ -79,11 +79,11 @@ class TestTypesDeclare:
 @pytest.mark.integration
 class TestPortsDerive:
     def test_a_data_inlet(self, graph_with_library_system):
-        from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+        from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
         from haywire.barn.builtin.wires import DataWire
 
-        node = make_node(graph_with_library_system, TestAddFloatNode.class_identity.registry_key).node
+        node = make_node(graph_with_library_system, AddFloatProbeNode.class_identity.registry_key).node
         port = node.ports["value_a"]
 
         assert _id(port.wire_type) == DataWire.id
@@ -92,22 +92,22 @@ class TestPortsDerive:
         assert port.is_dependent
 
     def test_a_pooled_callback_inlet_takes_its_elements(self, graph_with_library_system):
-        from haybale_testing.nodes.testbed.emit_callback_node import TestEmitCallbackNode
+        from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
 
         from haywire.barn.builtin.wires import CallbackWire, ControlWire
 
-        node = make_node(graph_with_library_system, TestEmitCallbackNode.class_identity.registry_key).node
+        node = make_node(graph_with_library_system, CallbackEmitProbeNode.class_identity.registry_key).node
 
         assert _id(node.ports["edge_callback"].wire_type) == CallbackWire.id
         assert _id(node.ports["exec"].wire_type) == ControlWire.id
         assert not node.ports["edge_callback"].is_dependent
 
     def test_an_array_outlet_takes_its_elements(self, graph_with_library_system):
-        from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+        from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
 
         from haywire.barn.builtin.wires import DataWire
 
-        node = make_node(graph_with_library_system, EdgeLinkTestNode.class_identity.registry_key).node
+        node = make_node(graph_with_library_system, EdgeLinkProbeNode.class_identity.registry_key).node
 
         assert _id(node.ports["array_float_outlet"].wire_type) == DataWire.id
 
@@ -125,11 +125,11 @@ class TestPortsDerive:
         assert all(f.wire_type is None for f in folds)
 
     def test_a_bare_add_slot_is_the_wildcard_and_counts_as_dependent(self, graph_with_library_system):
-        from haybale_testing.nodes.testbed.add_port_test import AddPortTestNode
+        from haybale_testing.nodes.testbed.add_port_probe import AddPortProbeNode
 
         from haywire.barn.builtin.wires import DataWire
 
-        node = make_node(graph_with_library_system, AddPortTestNode.class_identity.registry_key).node
+        node = make_node(graph_with_library_system, AddPortProbeNode.class_identity.registry_key).node
         bare = node.ports["add_out_0"]
         decided = node.ports["str_in_0"]
 

@@ -30,9 +30,9 @@ def stand_in(request, graph_with_library_system, construction_fails):
     if request.param == "unknown_key":
         key = _UNKNOWN
     else:
-        from haybale_testing.nodes.testbed.print_node import TestPrintNode
+        from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
-        key = TestPrintNode.class_identity.registry_key
+        key = PrintProbeNode.class_identity.registry_key
         construction_fails(1)
     wrapper = graph_with_library_system.create_node_wrapper(key, position=(10.0, 20.0))
     assert wrapper is not None

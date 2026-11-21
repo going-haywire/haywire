@@ -207,9 +207,9 @@ class TestSubgraphSerialization:
 
 
 def _test_node(graph: BaseGraph) -> NodeWrapper:
-    from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+    from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
 
-    wrapper = graph.create_node_wrapper(EdgeLinkTestNode.class_identity.registry_key)
+    wrapper = graph.create_node_wrapper(EdgeLinkProbeNode.class_identity.registry_key)
     assert wrapper is not None
     return wrapper
 

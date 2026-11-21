@@ -795,7 +795,7 @@ def test_cut_copies_then_deletes(session, edit_state_cls):
 
 @pytest.mark.integration
 def test_cut_is_one_undo_step(graph_with_library_system, library_system, session, edit_state_cls):
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
     from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
     from haybale_graph_editor.editors.graph_canvas.handlers import visual_layer as visual_layer_module
     from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
@@ -805,11 +805,11 @@ def test_cut_is_one_undo_step(graph_with_library_system, library_system, session
     from tests.conftest import make_node
 
     graph = graph_with_library_system
-    key = TestAddFloatNode.class_identity.registry_key
+    key = AddFloatProbeNode.class_identity.registry_key
     kept = make_node(graph, key, position=(100, 100))
     cut = make_node(graph, key, position=(300, 100))
-    assert isinstance(kept.node, TestAddFloatNode)
-    assert isinstance(cut.node, TestAddFloatNode)
+    assert isinstance(kept.node, AddFloatProbeNode)
+    assert isinstance(cut.node, AddFloatProbeNode)
     history = HistoryManager(UndoConfig())
     editor = Editor(graph, library_system.get_node_factory(), history_manager=history)
 

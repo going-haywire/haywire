@@ -17,9 +17,9 @@ from tests.conftest import make_edge, make_node
 
 
 def _create_two_nodes(graph: BaseGraph):
-    from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+    from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
 
-    key = EdgeLinkTestNode.class_identity.registry_key
+    key = EdgeLinkProbeNode.class_identity.registry_key
     node_a = make_node(graph, key, position=(100, 100))
     node_b = make_node(graph, key, position=(300, 100))
     return node_a, node_b

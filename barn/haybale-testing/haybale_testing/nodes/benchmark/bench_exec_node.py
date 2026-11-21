@@ -12,7 +12,7 @@ from haywire.api import EXEC, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(
-    label="Bench Exec Node",
+    label="Bench Exec",
     description="FROZEN: minimal EXEC in→out conduit for measuring control-edge payload forwarding.",
     menu="testing/benchmark",
     search_tags=["benchmark", "frozen", "exec", "conduit", "control-edge"],

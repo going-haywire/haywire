@@ -256,11 +256,11 @@ def test_the_provider_emits_the_stage_events_for_the_selection():
 
 @pytest.mark.integration
 def test_delete_in_stage_view_deletes_the_node(graph_with_library_system, library_system):
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
     graph = graph_with_library_system
     editor = Editor(graph, library_system.get_node_factory())
-    key = TestPrintNode.class_identity.registry_key
+    key = PrintProbeNode.class_identity.registry_key
     wrapper = graph.create_node_wrapper(key, position=(0.0, 0.0))
     node_id = wrapper.node_id
     editor.add_to_stage([node_id])

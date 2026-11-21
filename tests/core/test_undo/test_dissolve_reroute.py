@@ -285,10 +285,10 @@ class TestDissolveRerouteIntegration:
 
     def _split_graph(self, graph):
         """Create A → reroute → B and return (node_a, node_b, reroute_id, original_edge_id)."""
-        from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+        from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
         from haywire.core.undo.actions.graph_actions import SplitEdgeWithRerouteAction
 
-        key = TestAddFloatNode.class_identity.registry_key
+        key = AddFloatProbeNode.class_identity.registry_key
         node_a = graph.create_node_wrapper(key, position=(100, 100))
         node_b = graph.create_node_wrapper(key, position=(400, 100))
         edge = graph.create_edge_wrapper(node_a.node_id, "result", node_b.node_id, "value_a")

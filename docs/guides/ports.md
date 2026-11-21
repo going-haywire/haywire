@@ -282,15 +282,15 @@ The node's write replaces the widget value, and is saved when the `store_strateg
 
 ### Port shapes — declaration
 
-Source: `barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_test.py`
+Source: `barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_probe.py`
 
-`EdgeLinkTestNode` exercises every port shape in `init()`: primitive inlets and outlets, `ARRAY[T]` outlets, `POOLED[T]` inlets, and `EXEC` for control flow. It is purpose-built as a connection testbed, so its `worker` is intentionally empty:
+`EdgeLinkProbeNode` exercises every port shape in `init()`: primitive inlets and outlets, `ARRAY[T]` outlets, `POOLED[T]` inlets, and `EXEC` for control flow. It is purpose-built as a connection testbed, so its `worker` is intentionally empty:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_test.py:9:118"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_probe.py:9:118"
 ```
 
-from: `EdgeLinkTestNode` — registry_key: `haybale-testing:node:EdgeLinkTestNode`
+from: `EdgeLinkProbeNode` — registry_key: `haybale-testing:node:EdgeLinkProbeNode`
 
 What this example covers for port shapes:
 
@@ -306,15 +306,15 @@ What this example covers for port shapes:
 
 ### Pooled worker access
 
-Source: `barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py`
+Source: `barn/haybale-testing/haybale_testing/nodes/testbed/callback_emit_probe.py`
 
-`TestEmitCallbackNode` shows how a pooled inlet is consumed in a worker: the value arrives as a `dict`, iterated to dispatch to multiple listeners. It also demonstrates `on_change` on a pooled inlet, `post_init()` for non-serializable state, and `fold()` for a collapsible config section:
+`CallbackEmitProbeNode` shows how a pooled inlet is consumed in a worker: the value arrives as a `dict`, iterated to dispatch to multiple listeners. It also demonstrates `on_change` on a pooled inlet, `post_init()` for non-serializable state, and `fold()` for a collapsible config section:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py:1:87"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/callback_emit_probe.py:1:87"
 ```
 
-from: `TestEmitCallbackNode` — registry_key: `haybale-testing:node:TestEmitCallbackNode`
+from: `CallbackEmitProbeNode` — registry_key: `haybale-testing:node:CallbackEmitProbeNode`
 
 What this example covers for worker access:
 

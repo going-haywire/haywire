@@ -224,8 +224,8 @@ def test_a_linked_list_refuses_every_edit(graph_with_library_system):
     from haywire.core.types.enums import PortType
 
     graph = graph_with_library_system
-    src = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0))
-    sink = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(200, 0))
+    src = graph.create_node_wrapper("haybale-testing:node:SettingsProbeNode", position=(0, 0))
+    sink = graph.create_node_wrapper("haybale-testing:node:SettingsProbeNode", position=(200, 0))
     for wrapper, direction in ((src, PortType.OUTLET), (sink, PortType.INLET)):
         promote_setting(wrapper.node, "example", "example_string_list", direction=direction)
     pid = type(sink.node.example).__dict__["example_string_list"].storage_key

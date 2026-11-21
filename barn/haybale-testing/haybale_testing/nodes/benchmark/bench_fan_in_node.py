@@ -8,7 +8,7 @@ from haywire.api import FLOAT, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(
-    label="Bench Fan In Node",
+    label="Bench Fan In",
     description="FROZEN: data node adding two inputs, for measuring a fan-in in data-flow evaluation.",
     menu="testing/benchmark",
     search_tags=["benchmark", "frozen", "data", "fan-in"],

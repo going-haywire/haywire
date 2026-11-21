@@ -9,7 +9,7 @@ from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration
 
-_ADD = "haybale-testing:node:TestAddFloatNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
 
 
 @pytest.fixture
@@ -22,12 +22,12 @@ def ledger():
 
 
 def test_a_node_failing_validation_is_recorded_and_the_loop_continues(ledger, graph_with_library_system):
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
     graph = graph_with_library_system
-    key = TestAddFloatNode.class_identity.registry_key
+    key = AddFloatProbeNode.class_identity.registry_key
     bad, good = make_node(graph, key), make_node(graph, key)
-    assert isinstance(bad.node, TestAddFloatNode)
+    assert isinstance(bad.node, AddFloatProbeNode)
     graph.force_validation()
     ledger.clear()
 

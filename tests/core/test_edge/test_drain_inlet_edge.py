@@ -13,7 +13,7 @@ from haywire.core.types import Drained, Propagation
 
 from tests.conftest import make_node
 
-_ADD = "haybale-testing:node:TestAddFloatNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
 
 pytestmark = [pytest.mark.integration]
 
@@ -128,12 +128,12 @@ class TestTheEdgeIntoADrainInlet:
 class TestAPromotedOutletIntoADrainInlet:
     @pytest.fixture
     def edge(self, graph_with_library_system):
-        from haybale_testing.nodes.testbed.settings_node import SettingsNode
+        from haybale_testing.nodes.testbed.settings_probe import SettingsProbeNode
         from haywire.core.node.promotion import promote_setting
         from haywire.core.types.enums import PortType
 
         graph = graph_with_library_system
-        src = graph.create_node_wrapper(SettingsNode.class_identity.registry_key, position=(0, 0))
+        src = graph.create_node_wrapper(SettingsProbeNode.class_identity.registry_key, position=(0, 0))
         sink = make_node(graph, _ADD)
         _make_queueing(sink.node.ports["value_a"])
         promote_setting(src.node, "example", "example_float", direction=PortType.OUTLET)

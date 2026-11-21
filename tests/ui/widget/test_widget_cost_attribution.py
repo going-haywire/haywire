@@ -1,7 +1,7 @@
 """Cost attribution for the 200-node / 2200-widget graph.
 
 Answers "which part of the widget actually costs the time" for a fresh-built
-perf graph (200 PerformanceTester nodes, **0 edges**, 11 NumberWidgets each →
+perf graph (200 PerformanceProbeNode nodes, **0 edges**, 11 NumberWidgets each →
 2200 widgets, all unlinked → all rendered). See ``conftest.build_perf_graph``.
 
 It renders every node through the *real* SkinFactory under a headless NiceGUI
@@ -39,7 +39,7 @@ from .conftest import build_perf_graph
 # perf + integration: depends on the `library_system` fixture and a fully-loaded
 # node registry (builds a real graph). Marked integration so it only runs where
 # that registry state is reliable — outside it, shared-global registry pollution
-# from earlier tests can leave PerformanceTester unregistered (0 nodes built).
+# from earlier tests can leave PerformanceProbeNode unregistered (0 nodes built).
 pytestmark = [pytest.mark.perf, pytest.mark.integration]
 
 

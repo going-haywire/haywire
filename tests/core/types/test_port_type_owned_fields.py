@@ -13,9 +13,9 @@ from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration
 
-_ADD = "haybale-testing:node:TestAddFloatNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
 
-#: Fields of ``FLOAT``'s identity that no port of ``TestAddFloatNode`` overrides.
+#: Fields of ``FLOAT``'s identity that no port of ``AddFloatProbeNode`` overrides.
 _TYPE_OWNED = ("registry_id", "registry_key", "class_name", "module", "color", "widget_key")
 
 

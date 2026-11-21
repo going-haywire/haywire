@@ -29,8 +29,8 @@ class TestInterpreter:
         Returns:
             The populated graph
         """
-        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayEventNode
-        from haybale_testing.nodes.testbed.print_node import TestPrintNode as PrintTerminalMessageNode
+        from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode as BeginPlayEventNode
+        from haybale_testing.nodes.testbed.print_probe import PrintProbeNode as PrintTerminalMessageNode
 
         begin_play = make_node(graph, BeginPlayEventNode.class_identity.registry_key, position=(100, 100))
 
@@ -52,9 +52,9 @@ class TestInterpreter:
         Returns:
             The populated graph
         """
-        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayEventNode
-        from haybale_testing.nodes.testbed.print_node import TestPrintNode as PrintTerminalMessageNode
-        from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode as MathOP
+        from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode as BeginPlayEventNode
+        from haybale_testing.nodes.testbed.print_probe import PrintProbeNode as PrintTerminalMessageNode
+        from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode as MathOP
 
         begin_play = make_node(graph, BeginPlayEventNode.class_identity.registry_key, position=(100, 100))
 
@@ -127,12 +127,14 @@ class TestInterpreter:
         self, graph_with_library_system: BaseGraph, library_system: LibrarySystemService
     ):
         """Test callback flow: BeginPlay → EmitCallback, CustomCallback → Print"""
-        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayEventNode
-        from haybale_testing.nodes.testbed.emit_callback_node import TestEmitCallbackNode as EmitCallbackNode
-        from haybale_testing.nodes.testbed.custom_callback_node import (
-            TestCustomCallbackNode as CustomCallbackNode,
+        from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode as BeginPlayEventNode
+        from haybale_testing.nodes.testbed.callback_emit_probe import (
+            CallbackEmitProbeNode as EmitCallbackNode,
         )
-        from haybale_testing.nodes.testbed.print_node import TestPrintNode as PrintTerminalMessageNode
+        from haybale_testing.nodes.testbed.callback_event_probe import (
+            CallbackEventProbeNode as CustomCallbackNode,
+        )
+        from haybale_testing.nodes.testbed.print_probe import PrintProbeNode as PrintTerminalMessageNode
 
         graph = graph_with_library_system
 

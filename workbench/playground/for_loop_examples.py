@@ -277,7 +277,9 @@ def example_loop_with_math():
     for_loop.node.ports["step"].set_value(1)
 
     # Square the index (multiply by itself)
-    math_square = graph.create_node_wrapper(MathOperationNode.class_identity.registry_key, position=(500, 100))
+    math_square = graph.create_node_wrapper(
+        MathOperationNode.class_identity.registry_key, position=(500, 100)
+    )
     math_square.node.ports["operator"].set_value("multiply")
 
     print_result = graph.create_node_wrapper(LoggerNode.class_identity.registry_key, position=(700, 100))

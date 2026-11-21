@@ -11,7 +11,7 @@ from haywire.core.graph.editor import Editor
 
 from tests.conftest import make_node
 
-_PRINT = "haybale-testing:node:TestPrintNode"
+_PRINT = "haybale-testing:node:PrintProbeNode"
 _CARD = "haywire-core:node:GraphNode"
 _INPUT = "haywire-core:node:SubgraphInputNode"
 _OUTPUT = "haywire-core:node:SubgraphOutputNode"

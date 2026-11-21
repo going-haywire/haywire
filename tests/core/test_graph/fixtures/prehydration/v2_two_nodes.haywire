@@ -10,7 +10,7 @@
   "nodes": {
     "PerformanceTester_2bcfa331": {
       "node_id": "PerformanceTester_2bcfa331",
-      "registry_key": "haybale-testing:node:PerformanceTester",
+      "registry_key": "haybale-testing:node:PerformanceProbeNode",
       "position": [
         337.58044687830585,
         2032.4473193687124
@@ -638,14 +638,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "PerformanceTester",
-          "registry_key": "haybale-testing:node:PerformanceTester",
+          "registry_id": "PerformanceProbeNode",
+          "registry_key": "haybale-testing:node:PerformanceProbeNode",
           "label": "Performance Testing Node",
           "description": "Helps test performance of execution system",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "PerformanceTester",
-          "module": "haybale_testing.nodes.testbed.test_performance",
+          "class_name": "PerformanceProbeNode",
+          "module": "haybale_testing.nodes.testbed.performance_probe",
           "search_tags": [
             "performance",
             "control",
@@ -676,7 +676,7 @@
     },
     "node_9b9daafc": {
       "node_id": "node_9b9daafc",
-      "registry_key": "haybale-testing:node:PerformanceTester",
+      "registry_key": "haybale-testing:node:PerformanceProbeNode",
       "position": [
         797.0454737853889,
         2038.6279546121002
@@ -1304,14 +1304,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "PerformanceTester",
-          "registry_key": "haybale-testing:node:PerformanceTester",
+          "registry_id": "PerformanceProbeNode",
+          "registry_key": "haybale-testing:node:PerformanceProbeNode",
           "label": "Performance Testing Node",
           "description": "Helps test performance of execution system",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "PerformanceTester",
-          "module": "haybale_testing.nodes.testbed.test_performance",
+          "class_name": "PerformanceProbeNode",
+          "module": "haybale_testing.nodes.testbed.performance_probe",
           "search_tags": [
             "performance",
             "control",

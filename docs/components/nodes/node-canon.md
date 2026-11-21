@@ -350,9 +350,9 @@ added with `self.add(...)` and named by `id` (Section 3), and the ports a node
 has right now are what is saved (Section 5).
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_test.py:12:64"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_probe.py:12:64"
 ```
-from: `DynamicPortTestNode` — registry_key: `haybale-testing:node:DynamicPortTestNode`
+from: `DynamicPortProbeNode` — registry_key: `haybale-testing:node:DynamicPortProbeNode`
 
 Follow the chain:
 
@@ -426,8 +426,8 @@ filter is for:
   cannot be removed or renamed.
 
 Code that rebuilds the grown set therefore spares the slot with
-`exclude=[PortOrigin.DECLARED]`. The idiom ships in `AddPortTestNode`
-(`barn/haybale-testing/haybale_testing/nodes/testbed/add_port_test.py`); the
+`exclude=[PortOrigin.DECLARED]`. The idiom ships in `AddPortProbeNode`
+(`barn/haybale-testing/haybale_testing/nodes/testbed/add_port_probe.py`); the
 Subgraph boundary nodes use it to make an interface growable. See
 [ADR 0034](../../adr/0034-add-is-a-type.md) and **Growing slot** in the
 [glossary](../../reference/glossary.md).
@@ -448,9 +448,9 @@ and `origin=PortOrigin.RESOLVED`. It is then a **companion**:
   back at their places.
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/add_port_test.py:companion"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/add_port_probe.py:companion"
 ```
-from: `AddPortTestNode` — registry_key: `haybale-testing:node:AddPortTestNode`
+from: `AddPortProbeNode` — registry_key: `haybale-testing:node:AddPortProbeNode`
 
 `owner` is saved with the port. A graph saved before your node set it loads the
 ports as free-standing ones; set `origin` and `owner` on them in `post_init()`
@@ -467,9 +467,9 @@ the undo step keeps it and hands it back when the removal is undone, and a redo
 calls `on_pin_removed()` again.
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/add_port_test.py:pin-hooks"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/add_port_probe.py:pin-hooks"
 ```
-from: `AddPortTestNode` — registry_key: `haybale-testing:node:AddPortTestNode`
+from: `AddPortProbeNode` — registry_key: `haybale-testing:node:AddPortProbeNode`
 
 The rules:
 
@@ -608,10 +608,10 @@ What the two embedded examples exercise:
 | `init()` declaring ports with `self.add(...)` | both nodes |
 | `worker()` with named inlet params | `MathOperationNode` — `value_a`, `value_b`, `operator` |
 | `self.out('id', value)` to write outlets | `MathOperationNode` — `self.out("result", result)` |
-| `on_change='hb_reconfigure'` on a config port | `DynamicPortTestNode` — `port_count` |
-| `with self.rejig(include=r'^dynamic_')` | `DynamicPortTestNode` — regex-matched replacement |
-| `hb_*` prefix for custom helpers | `DynamicPortTestNode` — `hb_reconfigure` |
-| `self.value('id')` inside a callback | `DynamicPortTestNode` — `self.value("port_count")` |
+| `on_change='hb_reconfigure'` on a config port | `DynamicPortProbeNode` — `port_count` |
+| `with self.rejig(include=r'^dynamic_')` | `DynamicPortProbeNode` — regex-matched replacement |
+| `hb_*` prefix for custom helpers | `DynamicPortProbeNode` — `hb_reconfigure` |
+| `self.value('id')` inside a callback | `DynamicPortProbeNode` — `self.value("port_count")` |
 
 **Next in *Make a node*:** [ports](../../guides/ports.md) — everything a port
 accepts, and the edges the user connects to it. Then

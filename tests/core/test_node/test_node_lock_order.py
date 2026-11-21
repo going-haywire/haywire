@@ -48,10 +48,10 @@ def _node_lock_is_free_while_the_worker_waits(wrapper, action: Callable[[], Any]
 @pytest.fixture
 def wrapper(graph_with_library_system, library_system):
     """A validated Add node: registered, and no longer structurally dirty."""
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
     graph = graph_with_library_system
-    wrapper = graph.create_node_wrapper(TestAddFloatNode.class_identity.registry_key, position=(0, 0))
+    wrapper = graph.create_node_wrapper(AddFloatProbeNode.class_identity.registry_key, position=(0, 0))
     graph.force_validation()
     assert wrapper._is_dirty_structural is False
     return wrapper
@@ -71,13 +71,13 @@ def test_building_takes_the_validation_lock_first(wrapper):
 
 
 def test_a_hot_reload_takes_the_validation_lock_first(wrapper):
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
     from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 
     event = LifeCycleEvent(
         registry_key=wrapper.registry_key,
         event_type=LifeCycleEventType.CLASS_RELOADED,
-        affected_class=TestAddFloatNode,
+        affected_class=AddFloatProbeNode,
         library_identity=cast(Any, None),
     )
 

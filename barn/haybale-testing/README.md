@@ -8,45 +8,45 @@ Test library for test support
 
 ## Nodes
 ### Testing
-- **Add Port TestNode** — 
+- **Add Float Probe** — Test arithmetic node — adds two float values
+- **Add Port Probe** — 
 - **Array Callback Probe** — Test-only: an array-of-CALLBACK outlet and inlet.
 - **Array Exec Probe** — Test-only: an array-of-EXEC outlet and inlet on a control node.
-- **Bench Bare Node** — FROZEN: minimal no-port control node for measuring _execute dispatch overhead.
-- **Bench Data Pass Node** — FROZEN: data node passing x + 1 on, for measuring data-flow evaluation.
-- **Bench Data Raise Node** — FROZEN: data node whose worker always raises, for measuring the failure path.
-- **Bench Exec Node** — FROZEN: minimal EXEC in→out conduit for measuring control-edge payload forwarding.
-- **Bench Fan In Node** — FROZEN: data node adding two inputs, for measuring a fan-in in data-flow evaluation.
-- **Bench Loop Raise Node** — FROZEN: data node raising on odd input, for measuring a loop with failures.
-- **Bench Sink Node** — FROZEN: control node with one data inlet, ending the branch.
+- **Begin Play Probe** — Test version of BeginPlay — triggered once when execution starts
+- **Bench Bare** — FROZEN: minimal no-port control node for measuring _execute dispatch overhead.
+- **Bench Data Pass** — FROZEN: data node passing x + 1 on, for measuring data-flow evaluation.
+- **Bench Data Raise** — FROZEN: data node whose worker always raises, for measuring the failure path.
+- **Bench Exec** — FROZEN: minimal EXEC in→out conduit for measuring control-edge payload forwarding.
+- **Bench Fan In** — FROZEN: data node adding two inputs, for measuring a fan-in in data-flow evaluation.
+- **Bench Loop Raise** — FROZEN: data node raising on odd input, for measuring a loop with failures.
+- **Bench Sink** — FROZEN: control node with one data inlet, ending the branch.
+- **Callback Emit Probe** — Test version of EmitCallback — emits a callback to trigger event nodes
+- **Callback Event Probe** — Test version of CustomCallback — listens for named callbacks
 - **Callback Relay Probe** — Test-only: copies a callback inlet's value to its outlet on write, with a suffix.
-- **Control Payload TestNode** — Test-only control node for exercising EXEC-edge payloads. Records the payload that arrived on its exec inlet, then advances — optionally writing its own payload, optionally forwarding the entered one implicitly (transparent conduit).
-- **Display** — Displays input values for debugging
+- **Control Payload Probe** — Test-only control node for exercising EXEC-edge payloads. Records the payload that arrived on its exec inlet, then advances — optionally writing its own payload, optionally forwarding the entered one implicitly (transparent conduit).
+- **Display Probe** — Displays input values for debugging
 - **Drain Consumer Probe** — Test-only control node taking everything queued on its drain inlet, once per run
 - **Drain Producer Probe** — Test-only control node writing 0, 1, 2, ... to its outlet, one value per run
-- **Dynamic Port TestNode** — 
-- **Edge Link TestNode** — 
-- **Empty Fold** — Tests that a fold holding no ports raises
+- **Dynamic Port Probe** — 
+- **Edge Link Probe** — 
+- **Empty Fold Probe** — Tests that a fold holding no ports raises
 - **Fold Probe** — Tests fold minting, lanes and open state
-- **Mixed Fold** — Tests that a fold spanning two directions raises
-- **Nested Fold** — Tests that a fold declared inside another fold raises
-- **Performance Testing Node** — Helps test performance of execution system
+- **Mixed Fold Probe** — Tests that a fold spanning two directions raises
+- **Nested Fold Probe** — Tests that a fold declared inside another fold raises
+- **Performance Probe** — Helps test performance of execution system
+- **Print Probe** — Test version of Logger — logs a message and continues flow
+- **Record Emit Probe** — Test control node emitting to every dataclass subscription in its pool
+- **Record Event Probe** — Test event node whose subscription is a dataclass callback value
 - **Reorder Probe** — Tests user-driven port ordering
-- **Settings Test Node** — Test the Settings for debugging
-- **Size Box (content-sized)** — Hosts an oversized widget with no declared box
-- **Size Box (declared box)** — Hosts an oversized widget declaring both axes
-- **Size Box (declared width)** — Hosts an oversized widget declaring min_width only
+- **Settings Probe** — Test the Settings for debugging
+- **Size Box Aspect Probe** — Hosts an oversized widget declaring min_width only
+- **Size Box Content Probe** — Hosts an oversized widget with no declared box
+- **Size Box Fixed Probe** — Hosts an oversized widget declaring both axes
 - **Swinglet Control Probe** — Test-only: a control node with an exec swinglet that counts its runs.
 - **Swinglet Echo Probe** — Test-only: a data node whose float swinglet records an arrival and writes it plus one.
 - **Swinglet Pass Probe** — Test-only: a data node whose float swinglet records each run and writes ten times it.
 - **Swinglet Stop Probe** — Test-only: a data node whose float swinglet records each run and passes nothing on.
 - **Swinglet Visual Probe** — Test-only: a data node with a swinglet on a drawn-only wire.
-- **Test Add Float** — Test arithmetic node — adds two float values
-- **Test Begin Play** — Test version of BeginPlay — triggered once when execution starts
-- **Test Custom Callback** — Test version of CustomCallback — listens for named callbacks
-- **Test Emit Callback** — Test version of EmitCallback — emits a callback to trigger event nodes
-- **Test Print** — Test version of Logger — logs a message and continues flow
-- **Test Record Emit** — Test control node emitting to every dataclass subscription in its pool
-- **Test Record Event** — Test event node whose subscription is a dataclass callback value
 - **Visual Probe** — Test-only: a data node with pins on a drawn-only wire.
 
 ## Types

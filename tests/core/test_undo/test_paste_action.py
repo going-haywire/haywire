@@ -494,11 +494,11 @@ class TestPasteExecutionIntegration:
     nodes (no KeyError)."""
 
     def _two_connected_nodes(self, graph):
-        # TestAddFloatNode has only FLOAT ports — serializes cleanly (the
-        # CALLBACK port on EdgeLinkTestNode trips an unrelated to_dict quirk).
-        from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+        # AddFloatProbeNode has only FLOAT ports — serializes cleanly (the
+        # CALLBACK port on EdgeLinkProbeNode trips an unrelated to_dict quirk).
+        from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
-        key = TestAddFloatNode.class_identity.registry_key
+        key = AddFloatProbeNode.class_identity.registry_key
         node_a = graph.create_node_wrapper(key, position=(100, 100))
         node_b = graph.create_node_wrapper(key, position=(300, 100))
         edge = graph.create_edge_wrapper(node_a.node_id, "result", node_b.node_id, "value_a")
@@ -558,12 +558,12 @@ class TestPasteExecutionIntegration:
         top of its source. Single-node selection => bbox.min == the node's own
         pos => offset lands the node AT the paste point.
         """
-        from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+        from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
         from haywire.core.graph.clipboard import build_clipboard_payload
         from haywire.core.undo.actions.graph_actions import PasteClipboardAction
 
         graph = graph_with_library_system
-        key = TestAddFloatNode.class_identity.registry_key
+        key = AddFloatProbeNode.class_identity.registry_key
 
         # Real node at a KNOWN position.
         orig_x, orig_y = 500.0, 600.0

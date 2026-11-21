@@ -38,9 +38,9 @@ def editor(graph_with_library_system, library_system):
 
 @pytest.fixture
 def add_key():
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
-    return TestAddFloatNode.class_identity.registry_key
+    return AddFloatProbeNode.class_identity.registry_key
 
 
 def test_a_stale_node_is_refused(ledger, editor):

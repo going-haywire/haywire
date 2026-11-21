@@ -1,0 +1,95 @@
+from haywire.api import (
+    CALLBACK,
+    EXEC,
+    FLOAT,
+    STRING,
+    BaseNode,
+    CallbackEvent,
+    ExecutionContext,
+    NodeType,
+    QueueMode,
+    MenuWidget,
+    TextWidget,
+    node,
+)
+
+
+@node(
+    label="Callback Event Probe",
+    description="Test version of CustomCallback — listens for named callbacks",
+    menu="testing/callbacks",
+    search_tags=["test", "callback", "listen", "event", "custom"],
+    node_type=NodeType.EVENT,
+)
+class CallbackEventProbeNode(BaseNode):
+    """Test-only event node that listens for custom callbacks."""
+
+    def init(self):
+        with self.fold("Custom Name", default=False, on_change="redraw"):
+            self.add(
+                STRING.as_config(
+                    "custom_callback_name",
+                    default="my_callback",
+                    label="Callback Name",
+                    widget=TextWidget.config(),
+                )
+            )
+
+        self.add(
+            STRING.as_config(
+                "thread_mode",
+                default="single",
+                label="Thread Mode",
+                widget=MenuWidget.config(properties={"options": ["single", "multi"]}),
+            )
+        )
+
+        # Per-event-node queue mode. Lets tests drive the realtime
+        # drop path through a real library event node, not a hand-built
+        # CallbackEvent. "block" is the safe default; "drop" → DROP + depth-1.
+        self.add(
+            STRING.as_config(
+                "queue_mode",
+                default="block",
+                label="Queue Mode",
+                widget=MenuWidget.config(properties={"options": ["block", "drop"]}),
+            )
+        )
+
+        self.add(CALLBACK.as_outlet("listen_callback", label="Listen"))
+
+        self.add(EXEC.as_outlet("triggered", label="Triggered"))
+        self.add(FLOAT.as_outlet("payload", label="Payload"))
+
+    def post_init(self):
+        # A copy or a loaded graph restores the saved id; the listener publishes the id it listens on.
+        self.ports["listen_callback"].set_value(self.node_id)
+        self._update_subscription(None, None)
+
+    def redraw(self, *args, **kwargs) -> None:
+        self.wrapper.redraw()
+        self._update_subscription(None, None)
+
+    def _update_subscription(self, port, new_value):
+        if self.value("queue_mode") == "drop":
+            queue_mode, max_queue_size = QueueMode.DROP, 1
+        else:
+            queue_mode, max_queue_size = QueueMode.BLOCK, 100
+
+        mode = self.value("custom_name")
+        if mode:
+            callback_name = self.value("custom_callback_name")
+            self.event_subscription = CallbackEvent(
+                event_name=callback_name, queue_mode=queue_mode, max_queue_size=max_queue_size
+            )
+            self.wrapper.request_graph_reassembly()
+        else:
+            callback_name = self.value("listen_callback")
+            self.event_subscription = CallbackEvent(
+                event_name=callback_name, queue_mode=queue_mode, max_queue_size=max_queue_size
+            )
+
+    def worker(self, context: ExecutionContext) -> str | None:
+        payload = context.trigger.payload if context.trigger else None
+        self.out("payload", payload)
+        return "triggered"

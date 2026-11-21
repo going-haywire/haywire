@@ -127,7 +127,7 @@ def test_a_float_row_takes_typed_input(page: Page, harness):
 
 
 def test_the_settings_panel_draws_list_rows(page: Page, harness):
-    node = "haybale_testing.nodes.testbed.settings_node.SettingsNode"
+    node = "haybale_testing.nodes.testbed.settings_probe.SettingsProbeNode"
     goto_ready(page, f"{harness}/node?class={node}&bag=example")
     page.wait_for_selector("[data-field]")
     expect(page.locator('[data-field="example_string_list"] [data-array-row]')).to_have_count(3)

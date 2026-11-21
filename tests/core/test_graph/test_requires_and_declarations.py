@@ -11,7 +11,7 @@ from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration
 
-_ADD = "haybale-testing:node:TestAddFloatNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
 _MISSING = "haybale-gone:node:Vanished"
 
 

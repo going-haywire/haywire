@@ -37,7 +37,7 @@ class _OwningSkin(BaseSkin):
 @pytest.fixture
 def drawn(library_system):
     graph = BaseGraph(filestem="cleanup", validation_scheduler=SyncScheduler())
-    wrapper = make_node(graph, "haybale-testing:node:TestAddFloatNode")
+    wrapper = make_node(graph, "haybale-testing:node:AddFloatProbeNode")
     skin = _OwningSkin()
     client = Client(cast(Any, _noop_page), request=None)
 

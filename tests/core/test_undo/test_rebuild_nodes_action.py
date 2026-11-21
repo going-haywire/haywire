@@ -20,15 +20,15 @@ pytestmark = [pytest.mark.integration]
 
 
 def _settings_key() -> str:
-    from haybale_testing.nodes.testbed.settings_node import SettingsNode
+    from haybale_testing.nodes.testbed.settings_probe import SettingsProbeNode
 
-    return SettingsNode.class_identity.registry_key
+    return SettingsProbeNode.class_identity.registry_key
 
 
 def _print_key() -> str:
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
-    return TestPrintNode.class_identity.registry_key
+    return PrintProbeNode.class_identity.registry_key
 
 
 @pytest.fixture
@@ -109,7 +109,7 @@ def test_undoing_a_reset_brings_an_edge_on_a_promoted_port_back_to_life(editor):
     graph = editor.graph
     settings, _ = _configured(editor)
     assert editor.promote_setting(settings.node_id, "example", "example_float", PortType.INLET)
-    source = graph.create_node_wrapper("haybale-testing:node:TestAddFloatNode", position=(10.0, 400.0))
+    source = graph.create_node_wrapper("haybale-testing:node:AddFloatProbeNode", position=(10.0, 400.0))
     graph._validation.force_immediate_validation()
     edge = make_edge(graph, source.node_id, "result", settings.node_id, "example.example_float")
     graph._validation.force_immediate_validation()

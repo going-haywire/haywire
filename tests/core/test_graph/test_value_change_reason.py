@@ -23,9 +23,9 @@ _VALUE_REASONS = [ChangeReason.NODE_VALUE_CHANGED, ChangeReason.GRAPH_CONTENT_CH
 
 
 def _add_float_key() -> str:
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
-    return TestAddFloatNode.class_identity.registry_key
+    return AddFloatProbeNode.class_identity.registry_key
 
 
 # =============================================================================
@@ -108,10 +108,10 @@ def held_graph(library_system) -> Iterator[BaseGraph]:
 
 @pytest.mark.integration
 def test_value_change_requires_save_not_reassembly(held_graph: BaseGraph) -> None:
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
     wrapper = make_node(held_graph, _add_float_key())
-    assert isinstance(wrapper.node, TestAddFloatNode)
+    assert isinstance(wrapper.node, AddFloatProbeNode)
     held_graph._validation.force_immediate_validation()
 
     wrapper.mark_value_edited()

@@ -21,7 +21,7 @@ from playwright.sync_api import Page
 
 from .nav import goto_ready
 
-_PATH = "/node-attached?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example"
+_PATH = "/node-attached?class=haybale_testing.nodes.testbed.settings_probe.SettingsProbeNode&bag=example"
 
 
 def _open_row_menu(page: Page, harness, field: str):

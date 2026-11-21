@@ -17,7 +17,7 @@ from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration
 
-_ADD = "haybale-testing:node:TestAddFloatNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
 
 
 @pytest.fixture
@@ -265,7 +265,7 @@ def test_a_merged_node_saves_against_the_current_declaration(library_system, led
 # ---------------------------------------------------------------------------
 
 #: Its ``init()`` uses the node's id as the default of an outlet.
-_OWN = "haybale-testing:node:TestRecordEventNode"
+_OWN = "haybale-testing:node:RecordEventProbeNode"
 
 
 def test_two_nodes_that_declare_their_own_default_load_unchanged(library_system, ledger):

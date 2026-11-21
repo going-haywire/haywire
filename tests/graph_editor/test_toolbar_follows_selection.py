@@ -62,7 +62,7 @@ class TestEveryWriterReachesIt:
         )
         editor = Editor(graph, library_system.get_node_factory())
         route = EditRoute(lambda: editor, lambda: LevelMode.EDIT)
-        wrapper = make_node(graph, "haybale-testing:node:TestAddFloatNode")
+        wrapper = make_node(graph, "haybale-testing:node:AddFloatProbeNode")
         graph._validation.force_immediate_validation()
         manager = _manager(nodes={wrapper.node_id})
         graph.subscribe_to_validation(manager._refresh_toolbar_for)

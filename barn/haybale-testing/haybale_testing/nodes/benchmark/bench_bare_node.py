@@ -13,7 +13,7 @@ from haywire.api import BaseNode, ExecutionContext, NodeType, node
 
 
 @node(
-    label="Bench Bare Node",
+    label="Bench Bare",
     description="FROZEN: minimal no-port control node for measuring _execute dispatch overhead.",
     menu="testing/benchmark",
     search_tags=["benchmark", "frozen", "bare", "dispatch"],

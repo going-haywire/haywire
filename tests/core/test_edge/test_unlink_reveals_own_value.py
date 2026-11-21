@@ -11,10 +11,10 @@ from haywire.core.types import DataPort, PortType, Propagation
 @pytest.fixture
 def linked_pair(graph_with_library_system, library_system):
     """Two Adds joined by an eager data edge; the sink's own value is 7.0 and the edge delivered 42.0."""
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
     graph = graph_with_library_system
-    key = TestAddFloatNode.class_identity.registry_key
+    key = AddFloatProbeNode.class_identity.registry_key
     source = graph.create_node_wrapper(key, position=(0, 0))
     sink = graph.create_node_wrapper(key, position=(300, 0))
     inlet = sink.node.ports["value_a"]

@@ -33,9 +33,9 @@ if TYPE_CHECKING:
 
 pytestmark = [pytest.mark.integration]
 
-_BEGIN = "haybale-testing:node:TestBeginPlayNode"
-_PRINT = "haybale-testing:node:TestPrintNode"
-_ADD = "haybale-testing:node:TestAddFloatNode"
+_BEGIN = "haybale-testing:node:BeginPlayProbeNode"
+_PRINT = "haybale-testing:node:PrintProbeNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
 _FOR_LOOP = "haybale-core:node:ForLoopNode"
 _INPUT = "haywire-core:node:SubgraphInputNode"
 _OUTPUT = "haywire-core:node:SubgraphOutputNode"

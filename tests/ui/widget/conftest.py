@@ -5,7 +5,7 @@ graph of identical widget-bearing nodes. They used to load a frozen
 ``graphs/10x200nodes.haywire`` file, but a frozen graph silently rots when a node
 or type moves library (the primitive-type hoist into ``builtin`` re-keyed the
 serialized port types to ``builtin:type:*`` and the load broke). Building the graph
-fresh from the live registry keeps the same shape (200 PerformanceTester nodes, 0
+fresh from the live registry keeps the same shape (200 PerformanceProbeNode nodes, 0
 edges, 11 NumberWidgets each) without tracking stale keys.
 """
 
@@ -60,7 +60,7 @@ def nicegui_slot_context():
 
 
 _PERF_NODE_COUNT = 200
-# PerformanceTester.port_count drives dynamic FLOAT port generation (my_change):
+# PerformanceProbeNode.port_count drives dynamic FLOAT port generation (my_change):
 # each unit adds one FLOAT inlet (a NumberWidget) + one FLOAT outlet. With 10 the
 # node carries 11 NumberWidgets — the 10 inlets plus the port_count config widget —
 # the widget-heavy shape the render/cost perf tests measure.
@@ -69,7 +69,7 @@ _WIDGETS_PER_NODE = _PERF_PORT_COUNT + 1
 
 
 def build_perf_graph(count: int = _PERF_NODE_COUNT) -> BaseGraph:
-    """Build a wide, edge-free graph of ``count`` widget-heavy PerformanceTester nodes.
+    """Build a wide, edge-free graph of ``count`` widget-heavy PerformanceProbeNode nodes.
 
     Fresh-built (not loaded from a frozen file) so it can't go stale when a node or
     type changes library. The node type is referenced by its *class* (resolved to a
@@ -78,13 +78,13 @@ def build_perf_graph(count: int = _PERF_NODE_COUNT) -> BaseGraph:
     its full set of dynamic FLOAT ports (``_WIDGETS_PER_NODE`` NumberWidgets per
     node). Synchronous scheduler so validation + dynamic port rejig run inline.
     """
-    from haybale_testing.nodes.testbed.test_performance import PerformanceTester
+    from haybale_testing.nodes.testbed.performance_probe import PerformanceProbeNode
 
-    key = PerformanceTester.class_identity.registry_key
+    key = PerformanceProbeNode.class_identity.registry_key
     graph = BaseGraph(filestem="perf", validation_scheduler=SyncScheduler())
     for _ in range(count):
         nw = graph.create_node_wrapper(key, position=(0, 0))
-        assert nw is not None, f"failed to create perf node {PerformanceTester.__name__} ({key!r})"
+        assert nw is not None, f"failed to create perf node {PerformanceProbeNode.__name__} ({key!r})"
         # Setting port_count fires my_change -> adds the dynamic FLOAT ports.
         nw.node.ports["port_count"].set_value(_PERF_PORT_COUNT)
     graph.force_validation()

@@ -13,7 +13,7 @@ pytestmark = pytest.mark.integration
 
 _INPUT = "haywire-core:node:SubgraphInputNode"
 _OUTPUT = "haywire-core:node:SubgraphOutputNode"
-_ADD = "haybale-testing:node:TestAddFloatNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
 _MACRO = "testlib:macro:Blur"
 
 

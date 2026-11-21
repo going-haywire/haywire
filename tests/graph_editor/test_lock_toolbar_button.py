@@ -250,7 +250,7 @@ class TestTheButtonIsAnUndoableEdit:
         )
         mode = [LevelMode.EDIT]
         route = EditRoute(lambda: editor, lambda: mode[0])
-        wrapper = make_node(graph, "haybale-testing:node:TestAddFloatNode")
+        wrapper = make_node(graph, "haybale-testing:node:AddFloatProbeNode")
         yield editor, route, mode, wrapper.node.props
         graph._validation.clear()
         graph.cleanup()

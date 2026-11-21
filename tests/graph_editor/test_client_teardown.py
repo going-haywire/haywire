@@ -29,7 +29,7 @@ from tests.conftest import edit_route, make_node
 
 pytestmark = pytest.mark.integration
 
-_ADD = "haybale-testing:node:TestAddFloatNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
 
 
 def _noop_page() -> None:

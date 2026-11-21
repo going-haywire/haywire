@@ -21,8 +21,8 @@ from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration
 
-_ADD = "haybale-testing:node:TestAddFloatNode"
-_SETTINGS_NODE = "haybale-testing:node:SettingsNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
+_SETTINGS_NODE = "haybale-testing:node:SettingsProbeNode"
 
 
 @pytest.fixture
@@ -230,11 +230,11 @@ def test_a_propagation_change_is_one_undo_step(held_graph: BaseGraph, editor: Ed
 def test_an_edge_without_propagation_refuses_a_mode_and_records_nothing(
     held_graph: BaseGraph, editor: Editor
 ):
-    from haybale_testing.nodes.testbed.custom_callback_node import TestCustomCallbackNode
-    from haybale_testing.nodes.testbed.emit_callback_node import TestEmitCallbackNode
+    from haybale_testing.nodes.testbed.callback_event_probe import CallbackEventProbeNode
+    from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
 
-    event = make_node(held_graph, TestCustomCallbackNode.class_identity.registry_key, position=(0, 0))
-    emit = make_node(held_graph, TestEmitCallbackNode.class_identity.registry_key, position=(300, 0))
+    event = make_node(held_graph, CallbackEventProbeNode.class_identity.registry_key, position=(0, 0))
+    emit = make_node(held_graph, CallbackEmitProbeNode.class_identity.registry_key, position=(300, 0))
     edge = make_edge(held_graph, event.node_id, "listen_callback", emit.node_id, "edge_callback")
     held_graph.force_validation()
     assert edge.propagation is None

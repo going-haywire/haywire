@@ -53,9 +53,9 @@ def _card(library_system, graph: BaseGraph, wrapper, channel: LayoutChannel) -> 
 @pytest.fixture
 def views(library_system, held_graph: BaseGraph) -> Iterator[tuple[UINode, UINode, Any]]:
     """The same on-stage node drawn by a patch card and a stage card."""
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
-    wrapper = make_node(held_graph, TestAddFloatNode.class_identity.registry_key)
+    wrapper = make_node(held_graph, AddFloatProbeNode.class_identity.registry_key)
     wrapper.node.props.on_stage = True
     held_graph._validation.force_immediate_validation()
     patch_card = _card(library_system, held_graph, wrapper, PATCH)

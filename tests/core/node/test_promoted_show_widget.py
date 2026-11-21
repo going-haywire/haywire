@@ -8,7 +8,7 @@ The choice must reach BOTH the live port (what ``should_show_widget()`` reads)
 and the bag's promotion record (what survives a save — a promoted port is
 regenerated on load, never serialized).
 
-Same fixtures as the sibling promotion files: "haybale-testing:node:SettingsNode",
+Same fixtures as the sibling promotion files: "haybale-testing:node:SettingsProbeNode",
 bag accessor "example", field "example_float".
 """
 
@@ -29,7 +29,7 @@ def _pid(node) -> str:
 
 
 def _make(graph):
-    return graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0)).node
+    return graph.create_node_wrapper("haybale-testing:node:SettingsProbeNode", position=(0, 0)).node
 
 
 class TestDirectionDefaults:
