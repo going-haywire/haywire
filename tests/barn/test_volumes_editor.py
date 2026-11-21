@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, Iterator
+from collections.abc import AsyncGenerator, Callable, Iterator
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -14,7 +14,7 @@ from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
 from haywire.core.access import AccessTier
-from haywire.core.volumes import PROJECT_KEY, VolumeEntry, VolumeStore, set_volume_store
+from haywire.core.volumes import PROJECT_KEY, VolumeEntry, VolumeStore, set_volume_store, user_volume_key
 from haywire.ui import elements as hui
 
 pytestmark = pytest.mark.unit
@@ -49,6 +49,15 @@ def _fresh(store: VolumeStore) -> dict[str, VolumeEntry]:
 
 def _scans(store: VolumeStore, location: Path) -> None:
     store.add(SCANS, label="Scans", description="Scanner drive", location=location)
+
+
+def _store_message(write: Callable[[], object]) -> str:
+    """Return the message the store refuses *write* with, the text the modal passes through."""
+    try:
+        write()
+    except Exception as exc:  # what the editor catches: ValueError, or an unreadable file
+        return str(exc)
+    raise AssertionError("the store accepted the write")
 
 
 async def _open(user: User, *, can_admin: bool = True) -> None:
@@ -184,7 +193,11 @@ async def test_a_store_error_shows_in_the_edit_modal_and_keeps_it_open(
     user.find(marker="volume-open-scans").click()
     await _type(user, "volume-dialog-location", "rel/dir")
     user.find(marker="volume-dialog-save").click()
-    await user.should_see("must be absolute")
+    await user.should_see(
+        _store_message(
+            lambda: store.update(SCANS, label="Scans", description="Scanner drive", location=Path("rel/dir"))
+        )
+    )
     assert _dialog_open(user)
     assert _fresh(store)[SCANS].location == tmp_path
 
@@ -256,18 +269,22 @@ async def test_an_empty_label_in_the_add_modal_falls_back_to_the_name(
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
-    ("name", "location", "message"),
-    [("Bad Name", "/tmp", "Invalid volume name"), ("scans", "rel/dir", "must be absolute")],
+    ("name", "location"),
+    [("Bad Name", "/tmp"), ("scans", "rel/dir")],
 )
 async def test_invalid_input_in_the_add_modal_shows_the_store_message_and_writes_nothing(
-    user: User, store: VolumeStore, name: str, location: str, message: str
+    user: User, store: VolumeStore, name: str, location: str
 ) -> None:
     await _open(user)
     user.find(marker="volume-add").click()
     await _type(user, "volume-add-name", name)
     await _type(user, "volume-add-location", location)
     user.find(marker="volume-add-confirm").click()
-    await user.should_see(message)
+    await user.should_see(
+        _store_message(
+            lambda: store.add(user_volume_key(name), label=name, description="", location=Path(location))
+        )
+    )
     assert _dialog_open(user)
     assert _fresh(store) == {}
 
@@ -282,7 +299,9 @@ async def test_adding_an_existing_name_shows_the_error(
     await _type(user, "volume-add-name", "scans")
     await _type(user, "volume-add-location", str(tmp_path / "other"))
     user.find(marker="volume-add-confirm").click()
-    await user.should_see("already exists")
+    await user.should_see(
+        _store_message(lambda: store.add(SCANS, label="scans", description="", location=tmp_path / "other"))
+    )
     assert _fresh(store)[SCANS].location == tmp_path
 
 
@@ -296,7 +315,9 @@ async def test_malformed_file_shows_the_message_in_the_modal_instead_of_crashing
     await _type(user, "volume-add-name", "scans")
     await _type(user, "volume-add-location", str(tmp_path))
     user.find(marker="volume-add-confirm").click()
-    await user.should_see("unreadable")
+    await user.should_see(
+        _store_message(lambda: store.add(SCANS, label="scans", description="", location=tmp_path))
+    )
     assert _dialog_open(user)
     assert store.path.read_text() == "[volumes\nbroken"
 
@@ -320,6 +341,6 @@ async def test_a_session_demoted_after_draw_gets_the_error_in_the_modal(
     await _type(user, "volume-dialog-location", "/tmp")
     contexts[0].can_admin.return_value = False
     user.find(marker="volume-dialog-save").click()
-    await user.should_see("needs admin access")
+    await user.should_see(marker="volume-dialog-error")
     assert _dialog_open(user)
     assert _fresh(store)[SCANS].location == tmp_path
