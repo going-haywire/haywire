@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import threading
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -17,6 +17,7 @@ from haywire.core.catalog import ModelFile, Resource
 from haywire.core.volumes import VolumeStore
 
 from tests.models.conftest import make_hf_snapshot
+from tests.wait import wait_until
 
 from haybale_models import hf
 from haybale_models.download import DownloadJob, DownloadQueue
@@ -41,7 +42,7 @@ class Env:
             self.index, builtin_sources(self.index, hf_cache=lambda: self.hf_dir), lambda: self.parallel
         )
 
-    def wait(self, job_id: str, timeout: float = 4.0) -> DownloadJob:
+    def wait(self, job_id: str, timeout: float = 10.0) -> DownloadJob:
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             job = self.job(job_id)
@@ -69,15 +70,6 @@ def env(models_env: VolumeStore, tmp_path: Path) -> Iterator[Env]:
 
 def spec(*urls: str, sha: str | None = SHA, size: int | None = None) -> FetchSpec:
     return FetchSpec(ref=ModelRef(urls=urls, sha256=sha, size=size, label="demo"))
-
-
-def wait_until(cond: Callable[[], bool], timeout: float = 3.0) -> None:
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        if cond():
-            return
-        time.sleep(0.01)
-    raise AssertionError("condition not reached")
 
 
 def test_downloads_verifies_and_indexes(env, http_server):
@@ -167,30 +159,27 @@ def test_server_without_range_restarts(env, http_server):
 def test_parallel_limit_respected(env, http_server):
     env.parallel = 2
     ids = [
-        env.queue.enqueue(spec(http_server.file(f"/p{i}", DATA, delay=0.3), sha=None), None)
+        env.queue.enqueue(spec(http_server.file(f"/p{i}", DATA, hold_half=True), sha=None), None)
         for i in range(4)
     ]
-    peak = 0
-    deadline = time.monotonic() + 4
-    while time.monotonic() < deadline:
-        states = [j.state for j in env.queue.jobs()]
-        peak = max(peak, states.count("running"))
-        if all(s == "done" for s in states):
-            break
-        time.sleep(0.01)
-    assert [env.job(i).state for i in ids] == ["done"] * 4
-    assert peak == 2
-    assert http_server.max_active <= 2
+    # The queue starts jobs inside enqueue, and a held download cannot finish to start another.
+    assert sorted(env.job(i).state for i in ids) == ["queued", "queued", "running", "running"]
+    assert wait_until(lambda: http_server.max_active == 2)  # both requests reach the server and are held
+    http_server.release.set()
+    assert [env.wait(i).state for i in ids] == ["done"] * 4
+    assert http_server.max_active == 2
 
 
 def test_duplicate_enqueue_returns_same_job(env, http_server):
-    url = http_server.file("/d", DATA, delay=0.2)
+    url = http_server.file("/d", DATA, hold_half=True)  # held until released: every job stays active
     first = env.queue.enqueue(spec(url), None)
     assert env.queue.enqueue(spec("http://elsewhere/x", sha="a" * 64), None) != first  # other sha: no dup
     assert env.queue.enqueue(spec("http://other/y", sha=SHA), None) == first  # same sha, other source: dup
     unpinned = env.queue.enqueue(spec(url, sha=None), None)
     assert env.queue.enqueue(spec(url, "http://m/z", sha=None), None) == unpinned  # same first source
+    http_server.release.set()
     env.wait(first)
+    env.wait(unpinned)
 
 
 def test_finished_job_is_not_a_duplicate(env, http_server):
@@ -211,7 +200,7 @@ def test_already_local_file_is_not_fetched(env, http_server):
 
 def test_cancel_removes_part(env, http_server):
     job_id = env.queue.enqueue(spec(http_server.file("/c", DATA, hold_half=True)), None)
-    wait_until(lambda: env.job(job_id).done_bytes > 0)
+    assert wait_until(lambda: env.job(job_id).done_bytes > 0)
     env.queue.cancel(job_id)
     http_server.release.set()
     job = env.wait(job_id)
@@ -224,7 +213,7 @@ def test_cancel_queued_job(env, http_server):
     env.parallel = 1
     running = env.queue.enqueue(spec(http_server.file("/q1", DATA, hold_half=True), sha=None), None)
     queued = env.queue.enqueue(spec(http_server.file("/q2", DATA), sha=None), None)
-    wait_until(lambda: env.job(running).done_bytes > 0)
+    assert wait_until(lambda: env.job(running).done_bytes > 0)
     assert env.job(queued).state == "queued"
     env.queue.cancel(queued)
     assert env.job(queued).state == "cancelled"
@@ -382,14 +371,14 @@ def test_running_hf_job_is_not_cancellable(env, monkeypatch):
 
     def fake(uri, cache_dir, expected_size, on_progress, cancel):
         started.set()
-        release.wait(3)
+        release.wait(10)
         blob.parent.mkdir(parents=True, exist_ok=True)
         blob.write_bytes(DATA)
         return blob
 
     monkeypatch.setattr(hf, "download", fake)
     job_id = env.queue.enqueue(spec("hf://org/repo/w.bin", sha=None), None)
-    assert started.wait(2)
+    assert started.wait(10)
     assert env.job(job_id).cancellable is False
     assert env.queue.cancel(job_id) is False
     assert env.job(job_id).state == "running"
@@ -399,7 +388,7 @@ def test_running_hf_job_is_not_cancellable(env, monkeypatch):
 
 def test_running_https_job_is_cancellable(env, http_server):
     job_id = env.queue.enqueue(spec(http_server.file("/k", DATA, hold_half=True)), None)
-    wait_until(lambda: env.job(job_id).done_bytes > 0)
+    assert wait_until(lambda: env.job(job_id).done_bytes > 0)
     assert env.job(job_id).cancellable is True
     assert env.queue.cancel(job_id) is True
     http_server.release.set()
@@ -413,7 +402,7 @@ def test_cancellable_follows_the_running_address(env, http_server, monkeypatch):
     monkeypatch.setattr(hf, "download", fail)
     url = http_server.file("/f", DATA, hold_half=True)
     job_id = env.queue.enqueue(spec("hf://org/repo/w.bin", url), None)
-    wait_until(lambda: env.job(job_id).done_bytes > 0)
+    assert wait_until(lambda: env.job(job_id).done_bytes > 0)
     assert env.job(job_id).cancellable is True
     http_server.release.set()
     assert env.wait(job_id).state == "done"
@@ -436,7 +425,7 @@ def test_two_jobs_cannot_write_the_same_target(env, http_server):
     one = http_server.file("/a/m.bin", DATA, hold_half=True)
     two = http_server.file("/b/m.bin", bytes(reversed(DATA)))
     first = env.queue.enqueue(spec(one, sha=None), None)
-    wait_until(lambda: env.job(first).done_bytes > 0)
+    assert wait_until(lambda: env.job(first).done_bytes > 0)
     second = env.queue.enqueue(spec(two, sha=None), None)
     failed = env.wait(second)
     assert failed.state == "failed"
@@ -513,7 +502,7 @@ def _cache_spec(url: str, sha: str | None = SHA, name: str = "w.pth") -> FetchSp
 
 def _run_on(queue: DownloadQueue, spec_: FetchSpec) -> DownloadJob:
     job_id = queue.enqueue(spec_, "tester")
-    wait_until(lambda: all(j.state not in ("queued", "running") for j in queue.jobs()))
+    assert wait_until(lambda: all(j.state not in ("queued", "running") for j in queue.jobs()))
     return next(j for j in queue.jobs() if j.id == job_id)
 
 
@@ -861,12 +850,12 @@ def test_running_whole_repo_job_is_not_cancellable(env, monkeypatch):
 
     def fake(uri, cache_dir, include, expected_size, on_progress, cancel):
         started.set()
-        release.wait(3)
+        release.wait(10)
         return make_hf_snapshot(cache_dir, "org/repo", C, {"a.bin": b"1"}, ["a.bin"])
 
     monkeypatch.setattr(hf, "download_snapshot", fake)
     job_id = env.queue.enqueue(whole_spec(), None)
-    assert started.wait(2)
+    assert started.wait(10)
     assert env.queue.cancel(job_id) is False
     release.set()
     assert env.wait(job_id).state == "done"

@@ -59,7 +59,7 @@ def test_concurrent_acquire_loads_once() -> None:
 
     def load() -> object:
         loads.append(1)
-        time.sleep(0.05)
+        time.sleep(0.05)  # a slow load, so the other threads arrive while it runs
         return object()
 
     def work() -> None:

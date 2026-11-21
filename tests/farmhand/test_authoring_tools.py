@@ -21,6 +21,7 @@ from haywire.core.node.registry import NodeRegistry
 from haywire.core.registry.base import FileChangeEvent, FileEventType
 
 from tests.core.test_authoring import conftest as authoring
+from tests.wait import wait_until
 
 # The authoring fixtures, shared with tests/core/test_authoring.
 packages = authoring.packages
@@ -57,6 +58,14 @@ class _Context(FarmhandContext):
         return self._registries[registry_cls]
 
 
+@pytest.fixture(autouse=True)
+def _patient_registration_watch(monkeypatch):
+    """Let the tools wait for registration as long as the fake watcher may take on a busy runner."""
+    from haybale_studio.farmhands import authoring as authoring_tools
+
+    monkeypatch.setattr(authoring_tools, "DEFAULT_TIMEOUT_S", 60.0)
+
+
 @pytest.fixture
 def setup(dst_library):
     node_registry = NodeRegistry()
@@ -69,9 +78,7 @@ def _watcher(registry, identity, path: Path, event_type, until) -> threading.Thr
     """Dispatch ``event_type`` for ``path`` once ``until()`` holds, from another thread."""
 
     def _run():
-        deadline = time.monotonic() + 5
-        while not until() and time.monotonic() < deadline:
-            time.sleep(0.01)
+        wait_until(until, timeout_s=60)  # on timeout the dispatch still goes out; the tool reports it
         registry.event_dispatcher(FileChangeEvent(str(path), event_type, identity, time.time()))
 
     thread = threading.Thread(target=_run)

@@ -101,7 +101,7 @@ def test_disable_enable_shrinks_and_grows_tool_list(farmhand_server, farmhand_ca
         assert "haybale-testing_echo" in names
         registry.disable_library("haybale-testing")
         try:
-            deadline = time.monotonic() + 10
+            deadline = time.monotonic() + 30  # bounds a failing run only
             while time.monotonic() < deadline:
                 names = {t.name for t in (await session.list_tools()).tools}
                 if "haybale-testing_echo" not in names:
@@ -110,7 +110,7 @@ def test_disable_enable_shrinks_and_grows_tool_list(farmhand_server, farmhand_ca
             assert "haybale-testing_echo" not in names
         finally:
             registry.enable_library("haybale-testing")
-        deadline = time.monotonic() + 10
+        deadline = time.monotonic() + 30  # bounds a failing run only
         while time.monotonic() < deadline:
             names = {t.name for t in (await session.list_tools()).tools}
             if "haybale-testing_echo" in names:
@@ -131,7 +131,7 @@ def _post(url: str, headers: dict) -> int:
     body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "ping"}).encode()
     request = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json", **headers})
     try:
-        with urllib.request.urlopen(request, timeout=5) as response:
+        with urllib.request.urlopen(request, timeout=30) as response:  # bounds a failing run only
             return response.status
     except urllib.error.HTTPError as exc:
         return exc.code

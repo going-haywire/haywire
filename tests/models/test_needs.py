@@ -6,6 +6,7 @@ import hashlib
 from pathlib import Path
 import importlib
 import sys
+import time
 import types
 from dataclasses import dataclass, field
 from types import SimpleNamespace
@@ -30,6 +31,7 @@ from haybale_models.value.model_ref import ModelRef
 
 from tests.conftest import make_edge, make_node
 from tests.models.conftest import make_hf_snapshot
+from tests.wait import wait_until
 
 pytestmark = pytest.mark.integration
 
@@ -254,23 +256,31 @@ def test_progress_text_while_fetching(env: Any, graph: Any) -> None:
     assert _texts(env) == ["Needs 1 model (12.0 MB)"]
 
 
-def test_progress_text_is_throttled(env: Any, graph: Any) -> None:
-    env.watcher._throttle_s = 0.3
+def test_progress_text_is_throttled(env: Any, graph: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    from haybale_models import needs
+
     _add(graph, ref())
     env.open(graph)
     env.settle()
+    # The watcher's clock stands still from here: the window is measured on it, so how long
+    # the runner takes between two walks does not matter. Its timers still run in real time.
+    now = [time.monotonic()]
+    monkeypatch.setattr(needs, "time", SimpleNamespace(monotonic=lambda: now[0], sleep=time.sleep))
     job = DownloadJob("dl-1", "m", SHA, SIZE, (URL,), state="running", done_bytes=0, total_bytes=SIZE)
     env.models.queue.job_list = [job]
     env.models.queue.changed()
-    env.settle()
-    assert _texts(env) == ["Fetching 1 of 1 — 0 %"]
+    assert wait_until(lambda: _texts(env) == ["Fetching 1 of 1 — 0 %"])
 
+    window_end = now[0] + 0.3
+    env.watcher._throttle_s = 0.3
     job.done_bytes = SIZE // 2
     env.models.queue.changed()
-    env.watcher.wait_idle(0.15)
+    # The walk held the text back and re-armed itself for the end of the window.
+    assert wait_until(lambda: env.watcher._deadlines.get("g1") == window_end)
     assert _texts(env) == ["Fetching 1 of 1 — 0 %"]  # held back inside the window
-    env.settle()
-    assert _texts(env) == ["Fetching 1 of 1 — 50 %"]  # delivered when the window ends
+
+    now[0] = window_end + 1.0  # past the window; a timer that fired before this re-armed and fires again
+    assert wait_until(lambda: _texts(env) == ["Fetching 1 of 1 — 50 %"])  # delivered when the window ends
 
 
 def test_card_warning_set_and_cleared(env: Any, graph: Any) -> None:
@@ -333,13 +343,13 @@ def test_stop_waits_for_a_walk_in_flight(env: Any, graph: Any) -> None:
 
     env.watcher._update_notice = slow
     env.watcher._schedule("g1")
-    assert started.wait(2)
+    assert started.wait(10)
     stopper = threading.Thread(target=env.watcher.stop)
     stopper.start()
-    stopper.join(0.2)
+    stopper.join(0.2)  # no event marks "stop() is blocked": give a stop() that does not wait time to return
     assert stopper.is_alive()  # stop() is waiting on the walk
     release.set()
-    stopper.join(3)
+    stopper.join(10)
     assert not stopper.is_alive()
     assert _texts(env) == []  # the walk's post was retracted, not left behind
 
@@ -441,7 +451,6 @@ def test_graph_closed_during_a_walk_leaves_no_subscription(env: Any, graph: Any)
 
 def test_concurrent_reconcile_subscribes_once(env: Any, graph: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     import threading
-    import time
 
     from haybale_models.needs import _Watched
 
@@ -449,7 +458,7 @@ def test_concurrent_reconcile_subscribes_once(env: Any, graph: Any, monkeypatch:
     original = graph.subscribe_to_validation
 
     def slow(cb: Any) -> None:
-        time.sleep(0.05)
+        time.sleep(0.05)  # widens the window in which both threads see the graph unsubscribed
         original(cb)
 
     monkeypatch.setattr(graph, "subscribe_to_validation", slow)
@@ -465,22 +474,16 @@ def test_concurrent_reconcile_subscribes_once(env: Any, graph: Any, monkeypatch:
 
 
 def test_steady_notifications_do_not_starve_the_walk(env: Any, monkeypatch: pytest.MonkeyPatch) -> None:
-    import time
-
     watcher = NeedsWatcher(env.graphs, env.models, debounce_s=0.2, throttle_s=0.0)
     watcher.start()
     runs: list[str] = []
     monkeypatch.setattr(watcher, "_run", runs.append)
     try:
-        end = time.monotonic() + 1.5
-        first_run_at = None
-        while time.monotonic() < end:
+        end = time.monotonic() + 10  # bounds a failing run only: notifications keep coming until a walk runs
+        while not runs and time.monotonic() < end:
             watcher._schedule("x")
-            if runs and first_run_at is None:
-                first_run_at = time.monotonic()
-            time.sleep(0.1)
+            time.sleep(0.1)  # half the debounce: a postponing scheduler would never fire
         assert runs, "no walk ran while notifications kept arriving"
-        assert first_run_at is not None
     finally:
         watcher.stop()
 

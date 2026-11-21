@@ -1,7 +1,6 @@
 """Audio Clock, File Player and Recorder nodes."""
 
 import importlib
-import time
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -9,6 +8,7 @@ import numpy as np
 import pytest
 
 from tests.conftest import make_node
+from tests.wait import wait_until
 
 pytestmark = pytest.mark.integration
 
@@ -42,10 +42,10 @@ def test_clock_emits_silent_blocks_to_its_subscribers(graph_with_library_system)
     node.value = lambda port_id: _subscribers() if port_id == "callbacks" else None
     ctx = _context("start")
     assert node.worker(ctx) == "started"
-    time.sleep(0.1)
+    assert wait_until(lambda: ctx.emit_callback.call_count >= 10)
     assert node.worker(_context("stop")) == "stopped"
     calls = ctx.emit_callback.call_args_list
-    assert len(calls) >= 10, "256 samples at 48 kHz is a block every 5.3 ms"
+    assert len(calls) >= 10
     first = calls[0].kwargs
     assert first["event_name"] == "listener"
     assert first["payload"]["block_number"] == 0
@@ -88,7 +88,7 @@ def test_file_player_plays_a_file(graph_with_library_system, tmp_path, monkeypat
     ctx = _context("start")
 
     assert node.worker(ctx, path="vol://in.wav") == "started"
-    time.sleep(0.15)
+    assert wait_until(lambda: ctx.emit_callback.call_count >= 4)  # 20 ms of audio is four blocks
     node.worker(_context("stop"), path=None)
 
     payloads = [c.kwargs["payload"] for c in ctx.emit_callback.call_args_list]

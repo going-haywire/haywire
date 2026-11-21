@@ -12,7 +12,6 @@ import asyncio
 import json
 import socket
 import threading
-import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from types import SimpleNamespace
@@ -22,6 +21,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from tests.conftest import _restore_ambient_di, _snapshot_ambient_di
+from tests.wait import wait_until
 
 
 def _free_port() -> int:
@@ -71,11 +71,10 @@ def _make_server(tmp_root: Path, library_paths: list[str]):
     server = uvicorn.Server(config)
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
-    deadline = time.monotonic() + 15
-    while not server.started:
-        if time.monotonic() > deadline:
-            raise RuntimeError("Farmhand test server failed to start")
-        time.sleep(0.05)
+    # Bounds a failing start only; a busy runner can take long to import and bind.
+    wait_until(lambda: server.started or not thread.is_alive(), timeout_s=60)
+    if not server.started:
+        raise RuntimeError("Farmhand test server failed to start")
 
     handle = SimpleNamespace(
         base_url=f"http://127.0.0.1:{port}/mcp",

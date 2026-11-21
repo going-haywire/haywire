@@ -6,7 +6,6 @@ import hashlib
 import logging
 import shutil
 import threading
-import time
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -21,6 +20,8 @@ from haybale_models.resolver import FetchSpec
 
 from haywire.core.catalog import CatalogEntry, ModelFile, Resource
 from haywire.core.volumes import VolumeStore, volume_location
+
+from tests.wait import wait_until
 
 VOLUME = "haybale-models:volume:torchhub"
 
@@ -94,9 +95,7 @@ def test_records_follow_a_relocated_volume(models_env: VolumeStore, tmp_path: Pa
         "pytorch", "pth", None, sha, (url,), (ModelFile("", sha, None, (url,)),), cache="torchhub://w.pth"
     )
     job_id = queue.enqueue(FetchSpec(entry=entry, resource=resource), "tester")
-    deadline = time.monotonic() + 4
-    while time.monotonic() < deadline and any(j.state in ("queued", "running") for j in queue.jobs()):
-        time.sleep(0.01)
+    wait_until(lambda: all(j.state not in ("queued", "running") for j in queue.jobs()))
     assert [j.state for j in queue.jobs() if j.id == job_id] == ["done"]
     old_root = volume_location(VOLUME, models_env)
     assert source.find("torchhub://w.pth") == old_root / "w.pth"

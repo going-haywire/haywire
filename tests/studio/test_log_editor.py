@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from unittest.mock import MagicMock
@@ -13,6 +12,8 @@ from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
 from haybale_studio.editors.log_editor import LogEditor
+
+from tests.ui.user_wait import eventually
 
 
 @pytest.fixture
@@ -49,10 +50,11 @@ async def test_a_record_logged_after_draw_reaches_the_panel(user: User) -> None:
     editor = editor_box["editor"]
     try:
         logging.getLogger("tests.log_editor").warning("a record for the panel")
-        for _ in range(30):
-            if any("a record for the panel" in line for line in _lines(editor._log_element)):
-                break
-            await asyncio.sleep(0.1)
-        assert any("a record for the panel" in line for line in _lines(editor._log_element))
+
+        def shown() -> bool:
+            return any("a record for the panel" in line for line in _lines(editor._log_element))
+
+        await eventually(shown, timeout_s=10)
+        assert shown()
     finally:
         editor.cleanup()
