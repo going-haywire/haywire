@@ -15,12 +15,12 @@ Image types, IO and viewers shared by vision and ML libraries
 - **View Image** — Shows an image on the node, as a live stream or as a still picture
 
 ## Types
-- **Callback Image** — Subscription for emitters that deliver single images
-- **Depth** — A depth map, one value per pixel in millimetres.
-- **Gray image** — A one-channel picture.
+- **Depth Buffer** — A depth buffer, one value per pixel in millimetres.
+- **Gray Image** — A one-channel picture.
 - **Image** — A picture of any channel layout. Pixels are kept as made and converted on demand.
-- **RGB image** — A three-channel picture.
-- **RGBA image** — A picture with three colour channels and transparency.
+- **Image Callback** — Subscription for emitters that deliver single images
+- **RGB Image** — A three-channel picture.
+- **RGBA Image** — A picture with three colour channels and transparency.
 
 ## Adapters
 - **ImageToGrayAdapter** — Convert an image to gray

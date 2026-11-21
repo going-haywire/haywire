@@ -1,4 +1,4 @@
-"""Channel Merge — stacks audio blocks into one multichannel block."""
+"""Merge Channels — stacks audio blocks into one multichannel block."""
 
 from haywire.api import ADD, BaseNode, ExecutionContext, NodeType, PortOrigin, node
 
@@ -9,13 +9,13 @@ _PREFIX = "in_"
 
 
 @node(
-    label="Channel Merge",
+    label="Merge Channels",
     description="Stacks audio blocks into one block with all their channels",
     menu="audio/channels",
     search_tags=["audio", "channel", "merge", "combine", "stack", "join", "multichannel"],
     node_type=NodeType.DATA,
 )
-class ChannelMergeNode(BaseNode):
+class MergeChannelsNode(BaseNode):
     """Joins the blocks on its inputs, in order, into one block. A single-channel input adds one
     channel; a multichannel input adds all of its channels.
 

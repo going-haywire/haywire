@@ -46,9 +46,9 @@ class RecorderNode(BaseNode):
 
     def init(self) -> None:
         from haybale_audio.types.audio import AUDIO
-        from haybale_audio.types.exec_audio import EXEC_AUDIO
+        from haybale_audio.types.audio_exec import AUDIO_EXEC
 
-        self.add(EXEC_AUDIO.as_inlet("write", label="Write"))
+        self.add(AUDIO_EXEC.as_inlet("write", label="Write"))
         self.add(EXEC.as_inlet("stop", label="Stop"))
         self.add(AUDIO.as_inlet("audio", label="Audio", description="Block to append"))
         self.add(
@@ -60,7 +60,7 @@ class RecorderNode(BaseNode):
             )
         )
         self.add(STRING.as_config("status", default="Idle", label="Status", widget=LabelWidget.config()))
-        self.add(EXEC_AUDIO.as_outlet("next", label="Next"))
+        self.add(AUDIO_EXEC.as_outlet("next", label="Next"))
         self.add(INT.as_outlet("frames", label="Frames"))
 
     def post_init(self) -> None:

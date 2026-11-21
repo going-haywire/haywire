@@ -7,7 +7,7 @@ Convert an image to gray
 ## Details
 
 - **converts_from**: `haybale-image:type:IMAGE`
-- **converts_to**: `haybale-image:type:IMAGE_GRAY`
+- **converts_to**: `haybale-image:type:GRAY_IMAGE`
 - **priority**: `0`
 
 ## Notes

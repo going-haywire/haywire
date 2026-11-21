@@ -1,0 +1,25 @@
+# Key renames of haybale-image in release 0.6.
+#
+# Apply to a project's graphs with:
+#   uv run haywire rename --map <this file> --apply
+# The rules behind the names: docs/reference/component-naming.md.
+
+[[rename]]
+old = "haybale-image:type:IMAGE_GRAY"
+new = "haybale-image:type:GRAY_IMAGE"
+
+[[rename]]
+old = "haybale-image:type:IMAGE_RGB"
+new = "haybale-image:type:RGB_IMAGE"
+
+[[rename]]
+old = "haybale-image:type:IMAGE_RGBA"
+new = "haybale-image:type:RGBA_IMAGE"
+
+[[rename]]
+old = "haybale-image:type:CALLBACK_IMAGE"
+new = "haybale-image:type:IMAGE_CALLBACK"
+
+[[rename]]
+old = "haybale-image:type:DEPTH"
+new = "haybale-image:type:DEPTH_BUFFER"

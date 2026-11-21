@@ -67,20 +67,20 @@ class ImageEventNode(BaseNode):
     dispatch = bag(DispatchSettings)
 
     def init(self) -> None:
-        from haybale_image.types.callback import CALLBACK_IMAGE
+        from haybale_image.types.callback import IMAGE_CALLBACK
         from haybale_image.types.image import IMAGE
 
-        self.add(CALLBACK_IMAGE.as_outlet("listen_callback", label="Listen"))
+        self.add(IMAGE_CALLBACK.as_outlet("listen_callback", label="Listen"))
         self.add(EXEC.as_outlet("frame_ready", label="Frame Ready"))
         self.add(IMAGE.as_outlet("image", label="Image"))
         self.add(FLOAT.as_outlet("timestamp", label="Timestamp (s)"))
         self.add(INT.as_outlet("frame_number", label="Frame Number"))
 
     def post_init(self) -> None:
-        from haybale_image.types.callback import CALLBACK_IMAGE
+        from haybale_image.types.callback import IMAGE_CALLBACK
 
         # A copy or a loaded graph restores the saved id; the listener publishes the id it listens on.
-        self.out("listen_callback", CALLBACK_IMAGE(name=self.node_id))
+        self.out("listen_callback", IMAGE_CALLBACK(name=self.node_id))
         self.event_subscription = CallbackEvent(
             event_name=self.node_id,
             queue_mode=_QUEUE_MODES.get(str(self.dispatch.queue_mode), QueueMode.DROP),

@@ -3,7 +3,7 @@
 from typing import Any, cast
 
 import pytest
-from haybale_image.types.image import IMAGE, IMAGE_RGB
+from haybale_image.types.image import IMAGE, RGB_IMAGE
 from haybale_image.value import ImageValue
 from haybale_testing.types.test_types import TEST_INT
 
@@ -106,7 +106,7 @@ def test_a_derived_type_reads_as_its_parent(graph_with_library_system, library_s
     graph = graph_with_library_system
     meta = _make(graph, read=[("img", IMAGE)])
     pixels = ImageValue.from_array(np.zeros((2, 2, 3), np.uint8))
-    _feed(graph, meta, BundleValue().stamped("img", pixels, IMAGE_RGB))
+    _feed(graph, meta, BundleValue().stamped("img", pixels, RGB_IMAGE))
     meta.node.worker(None)
     assert meta.node.ports["img_out"].data.get_value() is pixels
 
@@ -115,7 +115,7 @@ def test_an_image_stays_an_image(graph_with_library_system, library_system):
     graph = graph_with_library_system
     meta = _make(graph, stamp=[("t", FLOAT)])
     pixels = ImageValue.from_array(np.zeros((2, 2, 3), np.uint8))
-    _feed(graph, meta, pixels, IMAGE_RGB)
+    _feed(graph, meta, pixels, RGB_IMAGE)
     meta.node.worker(None)
     assert isinstance(_outlet(meta), ImageValue)
     assert _outlet(meta).array() is pixels.array()
@@ -197,11 +197,11 @@ def test_a_library_node_declares_fixed_fields(graph_with_library_system, library
 def test_an_unwired_carrier_keeps_the_outlets_kind_of_value(graph_with_library_system, library_system):
     graph = graph_with_library_system
     meta = _make(graph, stamp=[("t", FLOAT)])
-    source = _feed(graph, meta, ImageValue.from_array(np.zeros((2, 2, 3), np.uint8)), IMAGE_RGB)
+    source = _feed(graph, meta, ImageValue.from_array(np.zeros((2, 2, 3), np.uint8)), RGB_IMAGE)
     edge = next(e for e in graph.edge_wrappers.values() if e.source_node_id == source.node_id)
     graph.remove_edge_wrapper(edge.edge_id)
     _validate(graph)
-    assert meta.node.ports["carrier_outlet"].type_cls is IMAGE_RGB
+    assert meta.node.ports["carrier_outlet"].type_cls is RGB_IMAGE
     meta.node.worker(None)
     assert isinstance(_outlet(meta), ImageValue)
     assert _outlet(meta).is_empty

@@ -1,6 +1,6 @@
 # Audio Execution Signal
 
-`haybale-audio:type:EXEC_AUDIO` · kind: type
+`haybale-audio:type:AUDIO_EXEC` · kind: type
 
 Signal for sequencing the nodes of an audio flow
 
@@ -14,8 +14,8 @@ Signal for sequencing the nodes of an audio flow
 
 The execution signal between the nodes of an audio flow, everything after an Audio Event.
 
-It is an `EXEC` that only audio nodes accept. An `EXEC_AUDIO` outlet connects to `EXEC_AUDIO`
-and to `EXEC` inlets; a plain `EXEC` outlet does not connect to an `EXEC_AUDIO` inlet. An audio
+It is an `EXEC` that only audio nodes accept. An `AUDIO_EXEC` outlet connects to `AUDIO_EXEC`
+and to `EXEC` inlets; a plain `EXEC` outlet does not connect to an `AUDIO_EXEC` inlet. An audio
 flow can therefore drive a standard control node, and a standard control node cannot drive an
 audio flow. Starting and stopping audio nodes stays with plain `EXEC`.
 
