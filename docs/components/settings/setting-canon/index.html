@@ -6392,8 +6392,8 @@ it differs from <strong>unset</strong>.</p>
 </span><span id="__span-25-57"><a id="__codelineno-25-57" name="__codelineno-25-57" href="#__codelineno-25-57"></a>    <span class="p">)</span>
 </span></code></pre></div>
 <p>from: <code>TestingSettings</code> — registry_key: <code>haybale-testing:setting:TestingSettings</code></p>
-<p><strong>NodeSettings with every descriptor</strong> — source: <code>barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py</code></p>
-<p><code>SettingsNode.example</code> exercises every <code>setting()</code> type, <code>shadow()</code>, <code>watch()</code>, and <code>validator</code> in one inner class:</p>
+<p><strong>NodeSettings with every descriptor</strong> — source: <code>barn/haybale-testing/haybale_testing/nodes/testbed/settings_probe.py</code></p>
+<p><code>SettingsProbeNode.example</code> exercises every <code>setting()</code> type, <code>shadow()</code>, <code>watch()</code>, and <code>validator</code> in one inner class:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>    <span class="n">BOOL</span><span class="p">,</span>
 </span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>    <span class="n">CHOICES</span><span class="p">,</span>
 </span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>    <span class="n">COLOR</span><span class="p">,</span>
@@ -6438,13 +6438,13 @@ it differs from <strong>unset</strong>.</p>
 </span><span id="__span-26-42"><a id="__codelineno-26-42" name="__codelineno-26-42" href="#__codelineno-26-42"></a>
 </span><span id="__span-26-43"><a id="__codelineno-26-43" name="__codelineno-26-43" href="#__codelineno-26-43"></a>
 </span><span id="__span-26-44"><a id="__codelineno-26-44" name="__codelineno-26-44" href="#__codelineno-26-44"></a><span class="nd">@node</span><span class="p">(</span>
-</span><span id="__span-26-45"><a id="__codelineno-26-45" name="__codelineno-26-45" href="#__codelineno-26-45"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Settings Test Node&quot;</span><span class="p">,</span>
+</span><span id="__span-26-45"><a id="__codelineno-26-45" name="__codelineno-26-45" href="#__codelineno-26-45"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Settings Probe&quot;</span><span class="p">,</span>
 </span><span id="__span-26-46"><a id="__codelineno-26-46" name="__codelineno-26-46" href="#__codelineno-26-46"></a>    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Test the Settings for debugging&quot;</span><span class="p">,</span>
 </span><span id="__span-26-47"><a id="__codelineno-26-47" name="__codelineno-26-47" href="#__codelineno-26-47"></a>    <span class="n">search_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;settings&quot;</span><span class="p">,</span> <span class="s2">&quot;debug&quot;</span><span class="p">,</span> <span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="s2">&quot;example&quot;</span><span class="p">],</span>
 </span><span id="__span-26-48"><a id="__codelineno-26-48" name="__codelineno-26-48" href="#__codelineno-26-48"></a>    <span class="n">menu</span><span class="o">=</span><span class="s2">&quot;testing/testbed&quot;</span><span class="p">,</span>
 </span><span id="__span-26-49"><a id="__codelineno-26-49" name="__codelineno-26-49" href="#__codelineno-26-49"></a>    <span class="n">node_type</span><span class="o">=</span><span class="n">NodeType</span><span class="o">.</span><span class="n">DATA</span><span class="p">,</span>
 </span><span id="__span-26-50"><a id="__codelineno-26-50" name="__codelineno-26-50" href="#__codelineno-26-50"></a><span class="p">)</span>
-</span><span id="__span-26-51"><a id="__codelineno-26-51" name="__codelineno-26-51" href="#__codelineno-26-51"></a><span class="k">class</span><span class="w"> </span><span class="nc">SettingsNode</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
+</span><span id="__span-26-51"><a id="__codelineno-26-51" name="__codelineno-26-51" href="#__codelineno-26-51"></a><span class="k">class</span><span class="w"> </span><span class="nc">SettingsProbeNode</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
 </span><span id="__span-26-52"><a id="__codelineno-26-52" name="__codelineno-26-52" href="#__codelineno-26-52"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Node that exercises all setting() — suppress spurious delete test.&quot;&quot;&quot;</span>
 </span><span id="__span-26-53"><a id="__codelineno-26-53" name="__codelineno-26-53" href="#__codelineno-26-53"></a>
 </span><span id="__span-26-54"><a id="__codelineno-26-54" name="__codelineno-26-54" href="#__codelineno-26-54"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">example</span><span class="p">(</span><span class="n">NodeSettings</span><span class="p">):</span>
@@ -6545,7 +6545,7 @@ it differs from <strong>unset</strong>.</p>
 </span><span id="__span-26-149"><a id="__codelineno-26-149" name="__codelineno-26-149" href="#__codelineno-26-149"></a>        <span class="p">)</span>
 </span><span id="__span-26-150"><a id="__codelineno-26-150" name="__codelineno-26-150" href="#__codelineno-26-150"></a>        <span class="n">tint</span> <span class="o">=</span> <span class="n">shadow</span><span class="p">(</span><span class="n">TestingSettings</span><span class="o">.</span><span class="n">default_color</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Tint&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="s2">&quot;mirrors&quot;</span><span class="p">)</span>
 </span></code></pre></div>
-<p>from: <code>SettingsNode</code> — registry_key: <code>haybale-testing:node:SettingsNode</code></p>
+<p>from: <code>SettingsProbeNode</code> — registry_key: <code>haybale-testing:node:SettingsProbeNode</code></p>
 <p>What these examples exercise:</p>
 <table>
 <thead>

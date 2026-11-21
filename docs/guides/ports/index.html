@@ -5737,15 +5737,15 @@ eye greyed out, and the pin menu offers no Hide pin. A fold has no eye either.</
 <p><code>single_link=True</code> narrows both ends to one. <code>port.takes_many_links</code> reads the outgoing set for an outlet and the incoming set for any other port. Between two pins only one edge may exist, in either direction, on every wire.</p>
 <h2 id="4-live-examples-from-the-codebase">4. Live examples from the codebase<a class="headerlink" href="#4-live-examples-from-the-codebase" title="Permanent link">&para;</a></h2>
 <h3 id="port-shapes-declaration">Port shapes — declaration<a class="headerlink" href="#port-shapes-declaration" title="Permanent link">&para;</a></h3>
-<p>Source: <code>barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_test.py</code></p>
-<p><code>EdgeLinkTestNode</code> exercises every port shape in <code>init()</code>: primitive inlets and outlets, <code>ARRAY[T]</code> outlets, <code>POOLED[T]</code> inlets, and <code>EXEC</code> for control flow. It is purpose-built as a connection testbed, so its <code>worker</code> is intentionally empty:</p>
+<p>Source: <code>barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_probe.py</code></p>
+<p><code>EdgeLinkProbeNode</code> exercises every port shape in <code>init()</code>: primitive inlets and outlets, <code>ARRAY[T]</code> outlets, <code>POOLED[T]</code> inlets, and <code>EXEC</code> for control flow. It is purpose-built as a connection testbed, so its <code>worker</code> is intentionally empty:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nd">@node</span><span class="p">(</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Edge Link TestNode&quot;</span><span class="p">,</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Edge Link Probe&quot;</span><span class="p">,</span>
 </span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">search_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;testing&quot;</span><span class="p">,</span> <span class="s2">&quot;edge&quot;</span><span class="p">,</span> <span class="s2">&quot;link&quot;</span><span class="p">,</span> <span class="s2">&quot;inlet&quot;</span><span class="p">,</span> <span class="s2">&quot;outlet&quot;</span><span class="p">,</span> <span class="s2">&quot;connection&quot;</span><span class="p">,</span> <span class="s2">&quot;adapter&quot;</span><span class="p">],</span>
 </span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">menu</span><span class="o">=</span><span class="s2">&quot;testing/testbed&quot;</span><span class="p">,</span>
 </span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">node_type</span><span class="o">=</span><span class="n">NodeType</span><span class="o">.</span><span class="n">CONTROL</span><span class="p">,</span>
 </span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="p">)</span>
-</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">EdgeLinkTestNode</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">EdgeLinkProbeNode</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
 </span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="sd">    Node specificly to test connection behaviors</span>
 </span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="sd">    in the UI. It has a wide variety of inlet and outlet types</span>
@@ -5849,7 +5849,7 @@ eye greyed out, and the pin menu offers no Hide pin. A fold has no eye either.</
 </span><span id="__span-10-108"><a id="__codelineno-10-108" name="__codelineno-10-108" href="#__codelineno-10-108"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute the node - return the constant value&quot;&quot;&quot;</span>
 </span><span id="__span-10-109"><a id="__codelineno-10-109" name="__codelineno-10-109" href="#__codelineno-10-109"></a>        <span class="k">return</span> <span class="kc">None</span>
 </span></code></pre></div>
-<p>from: <code>EdgeLinkTestNode</code> — registry_key: <code>haybale-testing:node:EdgeLinkTestNode</code></p>
+<p>from: <code>EdgeLinkProbeNode</code> — registry_key: <code>haybale-testing:node:EdgeLinkProbeNode</code></p>
 <p>What this example covers for port shapes:</p>
 <table>
 <thead>
@@ -5890,8 +5890,8 @@ eye greyed out, and the pin menu offers no Hide pin. A fold has no eye either.</
 </tbody>
 </table>
 <h3 id="pooled-worker-access">Pooled worker access<a class="headerlink" href="#pooled-worker-access" title="Permanent link">&para;</a></h3>
-<p>Source: <code>barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py</code></p>
-<p><code>TestEmitCallbackNode</code> shows how a pooled inlet is consumed in a worker: the value arrives as a <code>dict</code>, iterated to dispatch to multiple listeners. It also demonstrates <code>on_change</code> on a pooled inlet, <code>post_init()</code> for non-serializable state, and <code>fold()</code> for a collapsible config section:</p>
+<p>Source: <code>barn/haybale-testing/haybale_testing/nodes/testbed/callback_emit_probe.py</code></p>
+<p><code>CallbackEmitProbeNode</code> shows how a pooled inlet is consumed in a worker: the value arrives as a <code>dict</code>, iterated to dispatch to multiple listeners. It also demonstrates <code>on_change</code> on a pooled inlet, <code>post_init()</code> for non-serializable state, and <code>fold()</code> for a collapsible config section:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.api</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="n">BOOL</span><span class="p">,</span>
 </span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    <span class="n">CALLBACK</span><span class="p">,</span>
@@ -5908,13 +5908,13 @@ eye greyed out, and the pin menu offers no Hide pin. A fold has no eye either.</
 </span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>
 </span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>
 </span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="nd">@node</span><span class="p">(</span>
-</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Test Emit Callback&quot;</span><span class="p">,</span>
+</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Callback Emit Probe&quot;</span><span class="p">,</span>
 </span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Test version of EmitCallback — emits a callback to trigger event nodes&quot;</span><span class="p">,</span>
 </span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a>    <span class="n">menu</span><span class="o">=</span><span class="s2">&quot;testing/callbacks&quot;</span><span class="p">,</span>
 </span><span id="__span-11-20"><a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a>    <span class="n">search_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="s2">&quot;callback&quot;</span><span class="p">,</span> <span class="s2">&quot;emit&quot;</span><span class="p">,</span> <span class="s2">&quot;trigger&quot;</span><span class="p">,</span> <span class="s2">&quot;event&quot;</span><span class="p">],</span>
 </span><span id="__span-11-21"><a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a>    <span class="n">node_type</span><span class="o">=</span><span class="n">NodeType</span><span class="o">.</span><span class="n">CONTROL</span><span class="p">,</span>
 </span><span id="__span-11-22"><a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="p">)</span>
-</span><span id="__span-11-23"><a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestEmitCallbackNode</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
+</span><span id="__span-11-23"><a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a><span class="k">class</span><span class="w"> </span><span class="nc">CallbackEmitProbeNode</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
 </span><span id="__span-11-24"><a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Test-only control node that emits a named callback.&quot;&quot;&quot;</span>
 </span><span id="__span-11-25"><a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a>
 </span><span id="__span-11-26"><a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -5980,7 +5980,7 @@ eye greyed out, and the pin menu offers no Hide pin. A fold has no eye either.</
 </span><span id="__span-11-86"><a id="__codelineno-11-86" name="__codelineno-11-86" href="#__codelineno-11-86"></a>
 </span><span id="__span-11-87"><a id="__codelineno-11-87" name="__codelineno-11-87" href="#__codelineno-11-87"></a>        <span class="k">return</span> <span class="s2">&quot;exec&quot;</span>
 </span></code></pre></div>
-<p>from: <code>TestEmitCallbackNode</code> — registry_key: <code>haybale-testing:node:TestEmitCallbackNode</code></p>
+<p>from: <code>CallbackEmitProbeNode</code> — registry_key: <code>haybale-testing:node:CallbackEmitProbeNode</code></p>
 <p>What this example covers for worker access:</p>
 <table>
 <thead>

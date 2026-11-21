@@ -6041,12 +6041,12 @@ with "N inputs", possible.</p>
 added with <code>self.add(...)</code> and named by <code>id</code> (Section 3), and the ports a node
 has right now are what is saved (Section 5).</p>
 <p><div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nd">@node</span><span class="p">(</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Dynamic Port TestNode&quot;</span><span class="p">,</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Dynamic Port Probe&quot;</span><span class="p">,</span>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">search_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;testing&quot;</span><span class="p">,</span> <span class="s2">&quot;dynamic&quot;</span><span class="p">,</span> <span class="s2">&quot;push&quot;</span><span class="p">,</span> <span class="s2">&quot;pop&quot;</span><span class="p">,</span> <span class="s2">&quot;reconfigure&quot;</span><span class="p">],</span>
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">menu</span><span class="o">=</span><span class="s2">&quot;testing/testbed&quot;</span><span class="p">,</span>
 </span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">node_type</span><span class="o">=</span><span class="n">NodeType</span><span class="o">.</span><span class="n">DATA</span><span class="p">,</span>
 </span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="p">)</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">DynamicPortTestNode</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">DynamicPortProbeNode</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
 </span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="sd">    Node with dynamically configurable ports for testing</span>
 </span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="sd">    the validation pipeline (push/pop, hot reload, edge survival).</span>
@@ -6094,7 +6094,7 @@ has right now are what is saved (Section 5).</p>
 </span><span id="__span-5-52"><a id="__codelineno-5-52" name="__codelineno-5-52" href="#__codelineno-5-52"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">worker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">ExecutionContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-5-53"><a id="__codelineno-5-53" name="__codelineno-5-53" href="#__codelineno-5-53"></a>        <span class="k">return</span> <span class="kc">None</span>
 </span></code></pre></div>
-from: <code>DynamicPortTestNode</code> — registry_key: <code>haybale-testing:node:DynamicPortTestNode</code></p>
+from: <code>DynamicPortProbeNode</code> — registry_key: <code>haybale-testing:node:DynamicPortProbeNode</code></p>
 <p>Follow the chain:</p>
 <ol>
 <li><code>port_count</code> declares <code>on_change="hb_reconfigure"</code> — changing its value
@@ -6156,8 +6156,8 @@ filter is for:</p>
   cannot be removed or renamed.</li>
 </ul>
 <p>Code that rebuilds the grown set therefore spares the slot with
-<code>exclude=[PortOrigin.DECLARED]</code>. The idiom ships in <code>AddPortTestNode</code>
-(<code>barn/haybale-testing/haybale_testing/nodes/testbed/add_port_test.py</code>); the
+<code>exclude=[PortOrigin.DECLARED]</code>. The idiom ships in <code>AddPortProbeNode</code>
+(<code>barn/haybale-testing/haybale_testing/nodes/testbed/add_port_probe.py</code>); the
 Subgraph boundary nodes use it to make an interface growable. See
 <a href="../../../adr/0034-add-is-a-type/">ADR 0034</a> and <strong>Growing slot</strong> in the
 <a href="../../../reference/glossary/">glossary</a>.</p>
@@ -6189,7 +6189,7 @@ and <code>origin=PortOrigin.RESOLVED</code>. It is then a <strong>companion</str
 </span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_add_slot</span><span class="p">(</span><span class="n">side</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_index</span><span class="p">(</span><span class="n">side</span><span class="p">),</span> <span class="n">ADD</span><span class="p">[</span><span class="n">TEST_STRING</span><span class="p">])</span>
 </span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>    <span class="k">return</span>
 </span></code></pre></div>
-from: <code>AddPortTestNode</code> — registry_key: <code>haybale-testing:node:AddPortTestNode</code></p>
+from: <code>AddPortProbeNode</code> — registry_key: <code>haybale-testing:node:AddPortProbeNode</code></p>
 <p><code>owner</code> is saved with the port. A graph saved before your node set it loads the
 ports as free-standing ones; set <code>origin</code> and <code>owner</code> on them in <code>post_init()</code>
 if they should follow their owner (the mixer's <code>_upgrade_saved_inputs()</code> does).</p>
@@ -6217,7 +6217,7 @@ calls <code>on_pin_removed()</code> again.</p>
 </span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>    <span class="n">grown</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_str_grown</span><span class="p">()</span>
 </span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">str_grown</span> <span class="o">=</span> <span class="n">grown</span><span class="p">[:</span><span class="n">memento</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">port_id</span><span class="p">]</span> <span class="o">+</span> <span class="n">grown</span><span class="p">[</span><span class="n">memento</span><span class="p">:]</span>
 </span></code></pre></div>
-from: <code>AddPortTestNode</code> — registry_key: <code>haybale-testing:node:AddPortTestNode</code></p>
+from: <code>AddPortProbeNode</code> — registry_key: <code>haybale-testing:node:AddPortProbeNode</code></p>
 <p>The rules:</p>
 <ul>
 <li>Change the node's state and port values only. Adding, removing, retyping or
@@ -6388,19 +6388,19 @@ applies to you; if you are changing how a Group runs, see
 </tr>
 <tr>
 <td><code>on_change='hb_reconfigure'</code> on a config port</td>
-<td><code>DynamicPortTestNode</code> — <code>port_count</code></td>
+<td><code>DynamicPortProbeNode</code> — <code>port_count</code></td>
 </tr>
 <tr>
 <td><code>with self.rejig(include=r'^dynamic_')</code></td>
-<td><code>DynamicPortTestNode</code> — regex-matched replacement</td>
+<td><code>DynamicPortProbeNode</code> — regex-matched replacement</td>
 </tr>
 <tr>
 <td><code>hb_*</code> prefix for custom helpers</td>
-<td><code>DynamicPortTestNode</code> — <code>hb_reconfigure</code></td>
+<td><code>DynamicPortProbeNode</code> — <code>hb_reconfigure</code></td>
 </tr>
 <tr>
 <td><code>self.value('id')</code> inside a callback</td>
-<td><code>DynamicPortTestNode</code> — <code>self.value("port_count")</code></td>
+<td><code>DynamicPortProbeNode</code> — <code>self.value("port_count")</code></td>
 </tr>
 </tbody>
 </table>
