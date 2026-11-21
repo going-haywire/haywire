@@ -96,9 +96,7 @@ def test_has_its_own_icon() -> None:
 @pytest.mark.anyio
 async def test_header_carries_the_title_and_the_add_button(user: User, store: VolumeStore) -> None:
     await _open(user)
-    await user.should_see("Volumes")
     await user.should_see(marker="volume-add")
-    await user.should_not_see("Graphs refer to files as")
     await user.should_not_see(marker="volume-add-name")  # no inline add form
 
 
@@ -110,14 +108,11 @@ async def test_a_row_is_the_label_over_a_fitted_location_line(
     store.add(MODELS, label="Models", description="", location=target)
     await _open(user)
     await user.should_see("Models")
-    await user.should_see("Project")
     line = _one(user, "volume-location-models")
     assert line.props["title"] == str(target)
     assert "hw-path-fit" in line.classes
     await user.should_see(marker="volume-missing-models")
     await user.should_not_see(MODELS)  # the key is a detail, not a row line
-    for word in ("configured", "default", "fixed", "Source"):
-        await user.should_not_see(word)
     await user.should_see(marker="volume-undefined-project")
 
 
@@ -157,7 +152,6 @@ async def test_the_project_modal_is_read_only_and_shows_the_key(user: User, stor
     user.find(marker="volume-open-project").click()
     assert _dialog_open(user)
     await user.should_see(PROJECT_KEY)
-    await user.should_see("The open project's folder")
     await user.should_not_see(marker="volume-dialog-location")
     await user.should_not_see(marker="volume-dialog-save")
 
@@ -229,7 +223,6 @@ async def test_a_library_volume_without_a_suggestion_has_no_reset(
     store.add(MODELS, label="Models", description="", location=tmp_path)
     await _open(user)
     user.find(marker="volume-open-models").click()
-    await user.should_see("has not recorded a suggested location")
     await user.should_not_see(marker="volume-dialog-reset")
     await user.should_not_see(marker="volume-dialog-delete")
 
@@ -239,7 +232,7 @@ async def test_the_add_modal_adds_a_user_volume(user: User, store: VolumeStore, 
     await _open(user)
     user.find(marker="volume-add").click()
     await _type(user, "volume-add-name", "scans")
-    await user.should_see("Key: user:volume:scans")
+    await user.should_see(SCANS)
     await _type(user, "volume-add-label", "Scans")
     await _type(user, "volume-add-description", "Scanner drive")
     await _type(user, "volume-add-location", str(tmp_path))

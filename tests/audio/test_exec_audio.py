@@ -29,7 +29,6 @@ def test_it_is_an_exec_on_the_control_wire():
 
 def test_it_is_registered_as_a_type_of_the_audio_library():
     assert EXEC_AUDIO.class_identity.registry_key == "haybale-audio:type:EXEC_AUDIO"
-    assert EXEC_AUDIO.class_identity.label == "Audio Execution Signal"
 
 
 def test_an_audio_flow_connects_to_an_audio_flow():

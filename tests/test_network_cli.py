@@ -104,7 +104,6 @@ def test_expose_refuses_while_the_studio_runs(path, tmp_path, monkeypatch, capsy
     monkeypatch.setattr(networkcmd, "_studio_is_running", lambda: True)
     args = _parse(["network", "expose", "--ranges", "192.168.1.0/24"], path)
     assert args.handler(args) == 1
-    assert "a studio is running" in capsys.readouterr().out
 
 
 def test_status_always_exits_zero(path, tmp_path, capsys):

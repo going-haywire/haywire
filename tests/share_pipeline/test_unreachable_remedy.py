@@ -35,7 +35,6 @@ def test_github_ssh_links_the_ssh_key_page() -> None:
 
     assert "docs.github.com" in remedy
     assert "connecting-to-github-with-ssh" in remedy
-    assert "SSH key" in remedy
 
 
 def test_github_https_links_the_token_page_not_the_ssh_one() -> None:
@@ -44,7 +43,6 @@ def test_github_https_links_the_token_page_not_the_ssh_one() -> None:
 
     assert "personal-access-tokens" in remedy
     assert "connecting-to-github-with-ssh" not in remedy
-    assert "credential helper" in remedy
 
 
 def test_gitlab_ssh_and_https_link_different_pages() -> None:

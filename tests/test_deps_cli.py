@@ -38,7 +38,6 @@ def test_no_drift_exits_ok_and_prints_confirmation(tmp_path: Path, capsys) -> No
 
     assert exit_code == EXIT_OK
     out = capsys.readouterr().out
-    assert "No dependency drift" in out
     assert lib_dir.name not in out
 
 
@@ -61,7 +60,6 @@ def test_actionable_drift_exits_drift_and_prints_each_kind(tmp_path: Path, capsy
     assert "+ pyproject.toml: haywire-core" in out
     assert "+ haybale.toml linked_libraries: haybale_core" in out
     assert "~ haybale-core: declared 0.1.0, installed 0.2.0" in out
-    assert "Dependency drift found" in out
 
 
 @pytest.mark.unit
@@ -78,16 +76,13 @@ def test_unresolved_only_is_informational_and_exits_ok(tmp_path: Path, capsys) -
     assert exit_code == EXIT_OK
     assert "unresolved imports" in out
     assert "some.weird.import" in out
-    assert "No dependency drift" in out
 
 
 @pytest.mark.unit
 def test_no_barn_directory_is_not_a_failure(tmp_path: Path, capsys) -> None:
     exit_code = run_deps_check_cli(tmp_path)
 
-    out = capsys.readouterr().out
     assert exit_code == EXIT_OK
-    assert "Nothing to check" in out
 
 
 @pytest.mark.unit

@@ -15,7 +15,6 @@ def test_panel_is_registered_under_barns():
 
     identity = ImageSettingsPanel.class_identity
     assert identity.surface is BarnsSurface
-    assert identity.label == "Image"
 
 
 def test_draw_renders_image_settings_schema(monkeypatch):

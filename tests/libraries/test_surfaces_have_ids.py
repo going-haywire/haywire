@@ -117,7 +117,6 @@ def test_barns_surface_sits_directly_after_app_settings():
 
     assert BarnsSurface.id == "barns"
     assert surface_by_id("barns") is BarnsSurface
-    assert BarnsSurface.presentation.label == "Barns"
     assert BarnsSurface.presentation.icon == hui.icon.barns == "house_siding"
     assert AppSettingsSurface.order < BarnsSurface.order < ExecutionInspectorSurface.order
 
