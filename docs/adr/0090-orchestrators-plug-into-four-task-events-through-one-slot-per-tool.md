@@ -30,6 +30,7 @@ level: architectural
   - `plugins/haywire-dev/orchestrators/<tool>/session.sh`: prints session-start context when its tool runs the session, nothing otherwise. The slot decides that itself.
   - `plugins/haywire-dev/orchestrators/<tool>/agents.py` (optional): prints the tool's live agent sessions as `{"agents": [{"cwd", "address", "status"}]}` for the task view.
   - `plugins/haywire-dev/skills/haywire-workflow/orchestrators/<tool>.md`: the agent's how-to for the four events in that tool.
+  - Other scripts of the slot's own (optional), in the same folder: T3's `doctor.py` checks the user's T3 settings against the repository's `t3.json` and fixes the scripts on the user's yes. They act on the tool's settings, never on the repository.
   - `docs/collaboration/orchestrators/<tool>.md`: a person's setup.
   - A file the tool requires at the repository root (`t3.json`) stays thin: it only calls neutral scripts.
 - **The neutral parts name no tool.** `hooks/session-place.sh` runs every slot's `session.sh` and joins what they print; `tasks.py` runs every slot's `agents.py`; the workflow skill and the docs link to the slot pages. Adding a tool adds a slot and touches no neutral file.

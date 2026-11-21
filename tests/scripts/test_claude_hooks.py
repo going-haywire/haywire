@@ -20,7 +20,7 @@ def _fake_bin(tmp_path: Path, gh_script: str | None) -> Path:
     """A bin folder holding jq and perl, and a stand-in gh running ``gh_script`` if given."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
-    for tool in ("jq", "perl", "grep", "sed", "cat", "touch", "mkdir", "sleep"):
+    for tool in ("jq", "perl", "grep", "sed", "cat", "touch", "mkdir", "sleep", "python3"):
         found = shutil.which(tool)
         if found and not (bin_dir / tool).exists():
             (bin_dir / tool).symlink_to(found)
@@ -143,6 +143,7 @@ def _place(
     live=(),
     where: str | None = "feat-x / 1",
     output: list[dict] | None = None,
+    t3_json=False,
     **extra_env: str,
 ) -> str:
     """The hook's context in ``tmp_path/work``: a main folder if ``main``, else a worktree on ``feat/x``.
@@ -160,6 +161,8 @@ def _place(
         _git(origin, "init", "-q")
         _git(origin, "commit", "-q", "--allow-empty", "-m", "x")
         _git(origin, "worktree", "add", "-q", "-b", "feat/x", str(work))
+    if t3_json:
+        shutil.copy(ROOT / "t3.json", work / "t3.json")
     bin_dir = _fake_bin(tmp_path, None)
     (bin_dir / "git").symlink_to(shutil.which("git") or "git")
     for name, script, wanted in (("hc", _HC, hc), ("herdr-app", _HERDR_APP, herdr is not None)):
@@ -217,21 +220,35 @@ _T3_COMPLETE = {
 }
 
 
-def _t3_output(
-    tmp_path: Path, *, settings: str | dict | None = None, venv=True, port=True, **env: str
-) -> dict:
-    """The hook's output in a T3 worktree; T3's settings file holds ``settings`` (absent if ``None``)."""
+def _t3_home(tmp_path: Path, settings: str | dict | None) -> Path:
+    """A T3 home whose settings file holds ``settings`` (absent if ``None``)."""
     home = tmp_path / "t3home"
     if settings is not None:
         (home / "userdata").mkdir(parents=True)
         text = settings if isinstance(settings, str) else json.dumps(settings)
         (home / "userdata" / "settings.json").write_text(text)
+    return home
+
+
+def _t3_output(
+    tmp_path: Path,
+    *,
+    settings: str | dict | None = None,
+    venv=True,
+    port=True,
+    t3_json=False,
+    **env: str,
+) -> dict:
+    """The hook's output in a T3 worktree, with the repository's t3.json if ``t3_json``."""
+    home = _t3_home(tmp_path, settings)
     work = tmp_path / "work"
     origin = tmp_path / "origin"
     origin.mkdir()
     _git(origin, "init", "-q")
     _git(origin, "commit", "-q", "--allow-empty", "-m", "x")
     _git(origin, "worktree", "add", "-q", "-b", "feat/x", str(work))
+    if t3_json:
+        shutil.copy(ROOT / "t3.json", work / "t3.json")
     if venv:
         (work / ".venv").mkdir()
     if port:
@@ -332,6 +349,66 @@ def test_t3_defaults_name_the_cleanup_and_naming(tmp_path):
 @pytest.mark.parametrize("settings", [None, "{not json", "[]"])
 def test_a_missing_or_broken_t3_settings_file_is_skipped(tmp_path, settings):
     assert "T3 setup is incomplete" not in _t3_setup(tmp_path, settings=settings)
+
+
+_T3_SCRIPTS = json.loads((ROOT / "t3.json").read_text())["scripts"]
+
+
+def _t3_project(*scripts: dict) -> dict:
+    """T3 settings, complete but for its one project's scripts, which are ``scripts``."""
+    return {
+        **_T3_COMPLETE,
+        "projectSettingsFolded": True,
+        "projectSettingsOverrides": {"p1": {"defaultProjectScripts": list(scripts)}},
+    }
+
+
+def test_imported_scripts_as_in_t3_json_add_nothing(tmp_path):
+    settings = _t3_project(*_T3_SCRIPTS)
+    assert "T3 setup is incomplete" not in _t3_setup(tmp_path, settings=settings, t3_json=True)
+
+
+def test_a_dropped_async_and_a_missing_script_are_offered_as_a_fix(tmp_path):
+    setup, finish, _ = _T3_SCRIPTS
+    without_async = {k: v for k, v in setup.items() if k != "async"}
+    output = _t3_output(tmp_path, settings=_t3_project(without_async, finish), t3_json=True)
+    context = output["hookSpecificOutput"]["additionalContext"]
+    assert "*Worktree setup* lacks `async: false`" in context
+    assert "lacks the t3.json script *Haywire studio* [fix]" in context
+    assert "doctor.py --fix" in context
+    assert "run it only on the user's yes" in context
+    assert "set in T3 by hand" not in context
+    assert "(the agent can fix this)" in output["systemMessage"]
+
+
+def test_scripts_not_imported_are_left_to_the_user_with_the_docs(tmp_path):
+    context = _t3_setup(tmp_path, settings={**_T3_COMPLETE, "projectSettingsFolded": True}, t3_json=True)
+    assert "the t3.json scripts are not imported" in context
+    assert "orchestrators/t3.md#setup" in context
+    assert "--fix" not in context
+
+
+def test_an_unfinished_setup_with_named_script_gaps_skips_the_guess(tmp_path):
+    setup, finish, studio = _T3_SCRIPTS
+    settings = _t3_project({k: v for k, v in setup.items() if k != "async"}, finish, studio)
+    context = _t3_setup(tmp_path, settings=settings, t3_json=True, venv=False)
+    assert "did not finish within 0 s; then run `python3 scripts/worktree_setup.py`" in context
+    assert "most likely" not in context
+
+
+def test_the_lead_thread_is_checked_too(tmp_path):
+    home = _t3_home(tmp_path, _t3_project(_T3_SCRIPTS[0]))
+    context = _place(
+        tmp_path, main=True, terminal=None, t3_json=True, T3CODE_THREAD_ID="th-1", T3CODE_HOME=str(home)
+    )
+    assert "lacks the t3.json script *Finish merged task* [fix]" in context
+    assert "worktree setup did not finish" not in context
+
+
+def test_an_unreadable_t3_settings_file_points_to_the_docs(tmp_path):
+    output = _t3_output(tmp_path, settings="{not json")
+    assert "could not read T3's settings file" in output["systemMessage"]
+    assert "orchestrators/t3.md#setup" in output["hookSpecificOutput"]["additionalContext"]
 
 
 def test_the_main_folder_needs_no_worktree_setup(tmp_path):
