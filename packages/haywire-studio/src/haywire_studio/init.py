@@ -272,9 +272,13 @@ def _generate_project_pyproject(name: str, lib_name: str, dev_repo: str | None =
             },
             "ruff": {
                 "lint": {
-                    "extend-select": ["TID251"],
+                    # TID252: hot reload mis-resolves a relative import in a library, silently.
+                    "extend-select": ["TID251", "TID252"],
                     "flake8-tidy-imports": {
-                        "banned-api": {module: {"msg": _INTERNAL_IMPORT_MSG} for module in _INTERNAL_MODULES}
+                        "ban-relative-imports": "all",
+                        "banned-api": {
+                            module: {"msg": _INTERNAL_IMPORT_MSG} for module in _INTERNAL_MODULES
+                        },
                     },
                 },
             },
