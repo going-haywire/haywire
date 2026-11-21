@@ -1,4 +1,4 @@
-"""Channel Select — picks, reorders or repeats the channels of a block."""
+"""Select Channel — picks, reorders or repeats the channels of a block."""
 
 from haywire.api import STRING, BaseNode, ExecutionContext, NodeType, node
 
@@ -7,13 +7,13 @@ from haybale_audio.value import AudioBlock
 
 
 @node(
-    label="Channel Select",
+    label="Select Channel",
     description="Picks, reorders or repeats the channels of an audio block",
     menu="audio/channels",
     search_tags=["audio", "channel", "select", "route", "map", "left", "right", "stereo", "mono"],
     node_type=NodeType.DATA,
 )
-class ChannelSelectNode(BaseNode):
+class SelectChannelNode(BaseNode):
     """Builds a block from the channels named in `Channels`, in that order.
 
     `Channels` is a list of channel numbers from 0 and inclusive ranges: `0` is the first channel,

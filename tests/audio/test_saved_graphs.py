@@ -78,4 +78,4 @@ def test_an_edge_from_a_control_node_into_an_audio_pin_loads_invalid_and_is_kept
 
     (edge,) = graph.list_edge_wrappers()
     assert not edge.state.is_valid()
-    assert "No adapter chain found: EXEC → EXEC_AUDIO" in str(edge.state.error_build)
+    assert "No adapter chain found: EXEC → AUDIO_EXEC" in str(edge.state.error_build)

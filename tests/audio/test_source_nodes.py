@@ -27,7 +27,7 @@ def _context(pin: str) -> MagicMock:
 
 
 def _subscribers() -> dict:
-    cb = importlib.import_module("haybale_audio.types.callback").CALLBACK_AUDIO
+    cb = importlib.import_module("haybale_audio.types.callback").AUDIO_CALLBACK
     return {"edge": cb(name="listener")}
 
 

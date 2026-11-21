@@ -1,0 +1,33 @@
+# Key renames of haybale-audio in release 0.6.
+#
+# Apply to a project's graphs with:
+#   uv run haywire rename --map <this file> --apply
+# The rules behind the names: docs/reference/component-naming.md.
+
+[[rename]]
+old = "haybale-audio:node:ChannelMergeNode"
+new = "haybale-audio:node:MergeChannelsNode"
+old_module = "haybale_audio.nodes.channel_merge"
+new_module = "haybale_audio.nodes.merge_channels"
+
+[[rename]]
+old = "haybale-audio:node:ChannelSelectNode"
+new = "haybale-audio:node:SelectChannelNode"
+old_module = "haybale_audio.nodes.channel_select"
+new_module = "haybale_audio.nodes.select_channel"
+
+[[rename]]
+old = "haybale-audio:node:ChannelSplitNode"
+new = "haybale-audio:node:SplitChannelsNode"
+old_module = "haybale_audio.nodes.channel_split"
+new_module = "haybale_audio.nodes.split_channels"
+
+[[rename]]
+old = "haybale-audio:type:CALLBACK_AUDIO"
+new = "haybale-audio:type:AUDIO_CALLBACK"
+
+[[rename]]
+old = "haybale-audio:type:EXEC_AUDIO"
+new = "haybale-audio:type:AUDIO_EXEC"
+old_module = "haybale_audio.types.exec_audio"
+new_module = "haybale_audio.types.audio_exec"

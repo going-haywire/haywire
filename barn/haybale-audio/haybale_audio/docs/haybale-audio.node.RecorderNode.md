@@ -8,12 +8,12 @@ Writes audio blocks to a file
 
 | id | direction | type | description |
 |---|---|---|---|
-| `write` | inlet | `haybale-audio:type:EXEC_AUDIO` | Signal for sequencing the nodes of an audio flow |
+| `write` | inlet | `haybale-audio:type:AUDIO_EXEC` | Signal for sequencing the nodes of an audio flow |
 | `stop` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `audio` | inlet | `haybale-audio:type:AUDIO` | Block to append |
 | `path` | inlet | `haywire-core:type:FILE_PATH` | File to write; its extension picks the format |
 | `status` | config | `haywire-core:type:STRING` | Text data |
-| `next` | outlet | `haybale-audio:type:EXEC_AUDIO` | Signal for sequencing the nodes of an audio flow |
+| `next` | outlet | `haybale-audio:type:AUDIO_EXEC` | Signal for sequencing the nodes of an audio flow |
 | `frames` | outlet | `haywire-core:type:INT` | Whole number |
 
 ## Notes

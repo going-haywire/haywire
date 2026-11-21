@@ -1,4 +1,4 @@
-"""Channel Split — one output per channel of a block."""
+"""Split Channels — one output per channel of a block."""
 
 from haywire.api import ADD, BaseNode, ExecutionContext, NodeType, PortOrigin, node
 
@@ -9,13 +9,13 @@ _PREFIX = "ch_"
 
 
 @node(
-    label="Channel Split",
+    label="Split Channels",
     description="Gives each channel of an audio block its own output",
     menu="audio/channels",
     search_tags=["audio", "channel", "split", "separate", "left", "right", "mono", "multichannel"],
     node_type=NodeType.DATA,
 )
-class ChannelSplitNode(BaseNode):
+class SplitChannelsNode(BaseNode):
     """Outputs single channels of the input block. Output `Channel 0` is the first channel, `Channel 1`
     the second, and so on.
 
