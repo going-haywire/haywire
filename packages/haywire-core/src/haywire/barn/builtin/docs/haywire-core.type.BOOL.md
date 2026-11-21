@@ -8,7 +8,7 @@ True or False
 
 - **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': False}`
-- **widget_key**: `haywire-core:widget:SwitchWidget`
+- **widget_key**: `haywire-core:widget:ToggleWidget`
 - **color**: `#4caf50`
 
 ## Notes

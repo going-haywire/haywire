@@ -1,6 +1,6 @@
-# VecWidget
+# VectorWidget
 
-`haywire-core:widget:VecWidget` · kind: widget
+`haywire-core:widget:VectorWidget` · kind: widget
 
 Vector component editor widget
 

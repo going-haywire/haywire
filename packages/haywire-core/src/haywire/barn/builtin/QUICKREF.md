@@ -2,7 +2,7 @@
 
 ## node
 - `haywire-core:node:AnnotationNode` — Annotation — A box of text for diagrams; links to other annotations with styled arrows  _tags: note, comment, diagram, arrow, annotation_
-- `haywire-core:node:ErrorNode` — Core Error Node — Placeholder for node that could not be loaded  _tags: error, system, placeholder_
+- `haywire-core:node:ErrorNode` — Error — Placeholder for node that could not be loaded  _tags: error, system, placeholder_
 - `haywire-core:node:MetadataInfoNode` — Metadata Info — Lists the fields an image or bundle carries  _tags: metadata, info, field, carrier, icc, exif_
 - `haywire-core:node:MetadataNode` — Metadata — Stamps fields on an image or bundle, and reads them back  _tags: metadata, field, stamp, read, carrier, bundle_
 - `haywire-core:node:NewBundleNode` — New Bundle — Starts an empty bundle, for Metadata nodes to stamp values on  _tags: bundle, metadata, new, carrier_
@@ -15,9 +15,9 @@
 - `haywire-core:type:CALLBACK` — Callback Signal — Signal for callback execution between nodes
 - `haywire-core:type:COLOR` — Color — Hex or rgba color string
 - `haywire-core:type:EXEC` — Execution Signal — Signal for controlling execution flow between nodes
-- `haywire-core:type:FILE_PATH` — File path — A file inside a named volume such as the project folder or `models`.
+- `haywire-core:type:FILE_PATH` — File Path — A file inside a named volume such as the project folder or `models`.
 - `haywire-core:type:FLOAT` — Float — Decimal number
-- `haywire-core:type:FOLDER_PATH` — Folder path — A folder inside a named volume such as the project folder or `models`.
+- `haywire-core:type:FOLDER_PATH` — Folder Path — A folder inside a named volume such as the project folder or `models`.
 - `haywire-core:type:INT` — Integer — Whole number
 - `haywire-core:type:MAT3` — Matrix 3x3 — 3x3 matrix: a 2D transform, a homography, a camera matrix or a 3D rotation
 - `haywire-core:type:MAT4` — Matrix 4x4 — 4x4 matrix: a 3D transform, a view or a projection
@@ -40,24 +40,24 @@
 - `haywire-core:adapter:StringToChoicesAdapter` — StringToChoicesAdapter — String into a choices slot
 
 ## widget
+- `haywire-core:widget:AnnotationTextWidget` — AnnotationTextWidget — Annotation text
 - `haywire-core:widget:ArrowHeadWidget` — ArrowHeadWidget — Arrow head picker
 - `haywire-core:widget:ButtonWidget` — ButtonWidget — button widget
 - `haywire-core:widget:CheckboxWidget` — CheckboxWidget — checkbox widget
 - `haywire-core:widget:ColorWidget` — ColorWidget — Color picker widget
 - `haywire-core:widget:FieldListWidget` — FieldListWidget — List of fields, each a key and a type
 - `haywire-core:widget:FoldWidget` — FoldWidget — Fold header
+- `haywire-core:widget:LabelWidget` — LabelWidget — Label for display only
 - `haywire-core:widget:MatrixWidget` — MatrixWidget — Matrix editor widget, one number per cell
-- `haywire-core:widget:NoteTextWidget` — NoteTextWidget — Note text
+- `haywire-core:widget:MenuWidget` — MenuWidget — menu widget
 - `haywire-core:widget:NumberWidget` — NumberWidget — Fast number input widget
 - `haywire-core:widget:OptionalWidget` — OptionalWidget — Optional value — the wrapped type's widget, plus an absence state
 - `haywire-core:widget:PathWidget` — PathWidget — Pick a file or folder inside a volume
 - `haywire-core:widget:ProgressWidget` — ProgressWidget — Progress bar
-- `haywire-core:widget:SelectWidget` — SelectWidget — select widget
-- `haywire-core:widget:SimpleLabelWidget` — SimpleLabelWidget — Simple label for display only
 - `haywire-core:widget:SliderWidget` — SliderWidget — slider widget
-- `haywire-core:widget:SwitchWidget` — SwitchWidget — switch widget
 - `haywire-core:widget:TextWidget` — TextWidget — Fast text input widget
-- `haywire-core:widget:VecWidget` — VecWidget — Vector component editor widget
+- `haywire-core:widget:ToggleWidget` — ToggleWidget — toggle widget
+- `haywire-core:widget:VectorWidget` — VectorWidget — Vector component editor widget
 
 ## setting
 - `haywire-core:setting:arrange` — arrange — 

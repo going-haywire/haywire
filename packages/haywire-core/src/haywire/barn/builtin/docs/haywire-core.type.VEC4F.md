@@ -8,7 +8,7 @@
 
 - **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': [0.0, 0.0, 0.0, 0.0]}`
-- **widget_key**: `haywire-core:widget:VecWidget`
+- **widget_key**: `haywire-core:widget:VectorWidget`
 - **color**: `#757575`
 
 ## Notes
