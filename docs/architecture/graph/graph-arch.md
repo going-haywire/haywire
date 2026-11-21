@@ -154,7 +154,7 @@ outlets by their *inner* source. `CollapseToGraphNodeAction` and
 
 Each interface port takes the **wire type** of the interior port that names it
 (`DataPort.stored_type`, from `get_stored_type()`), not its declared type. An
-interior `PooledType[CALLBACK]` inlet therefore mints a scalar `CALLBACK`
+interior `POOLED[CALLBACK]` inlet therefore mints a scalar `CALLBACK`
 interface port, and a promoted `OPTIONAL[INT]` setting mints an `INT` one.
 
 ### Macros

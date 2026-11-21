@@ -14,6 +14,6 @@ def test_a_value_type_names_its_wire_type():
 
 
 def test_a_container_names_none():
-    from haybale_core.types import ArrayType
+    from haybale_core.types import ARRAY
 
-    assert _extra_for_kind("type", ArrayType, ArrayType.class_identity)["wire_type"] is None
+    assert _extra_for_kind("type", ARRAY, ARRAY.class_identity)["wire_type"] is None

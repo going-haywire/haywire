@@ -322,7 +322,7 @@ class CompoundType(BaseType, ABC, Generic[T]):
     """N elements of one type, the third type family.
 
     Subscripting sets ``element_type_cls`` to the element's IType, which in
-    turn names the Python type: ``ArrayType[FLOAT].element_type_cls`` is
+    turn names the Python type: ``ARRAY[FLOAT].element_type_cls`` is
     ``FLOAT`` and its ``element_type_cls`` is ``float``. Elements are stored
     unwrapped by a ``CompoundField`` subclass.
 
@@ -330,10 +330,10 @@ class CompoundType(BaseType, ABC, Generic[T]):
     :meth:`_validate_port_type` and :meth:`_configure_port`::
 
         @type(default={'value': []})
-        class ArrayType(CompoundType[T]):
+        class ARRAY(CompoundType[T]):
             field_class = ArrayField
 
-        ArrayType[FLOAT].as_inlet(id='numbers')
+        ARRAY[FLOAT].as_inlet(id='numbers')
     """
 
     field_class: "type[DataField[Any]] | None" = None
@@ -345,13 +345,13 @@ class CompoundType(BaseType, ABC, Generic[T]):
     def __class_getitem__(cls, element_type_cls: type[IType]):
         """Return the parameterized subclass for *element_type_cls*, cached.
 
-        Cached per element, so ``ArrayType[FLOAT] is ArrayType[FLOAT]``.
+        Cached per element, so ``ARRAY[FLOAT] is ARRAY[FLOAT]``.
 
         Every parameterization shares the parent's ``class_identity``, so all
-        of ``ArrayType[*]`` report one registry key, colour and widget_key and
+        of ``ARRAY[*]`` report one registry key, colour and widget_key and
         differ only in ``element_type_cls``. Anything reading appearance off
-        the identity therefore cannot tell ``ArrayType[FLOAT]`` from
-        ``ArrayType[STRING]``; saved graphs still round-trip, because
+        the identity therefore cannot tell ``ARRAY[FLOAT]`` from
+        ``ARRAY[STRING]``; saved graphs still round-trip, because
         ``serialize_element_type`` writes the shared key plus a recursive
         ``element_type`` recipe. ``WrapperType`` stamps a per-parameterization
         identity instead — see ``_wrapped_identity``.

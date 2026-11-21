@@ -13,12 +13,12 @@
 | `float_inlet` | inlet | `haybale-testing:type:TEST_FLOAT` | Decimal number |
 | `string_inlet` | inlet | `haybale-testing:type:TEST_STRING` | Text data |
 | `temperature_inlet` | inlet | `haybale-testing:type:TEST_TEMPERATURE` | Temperature in Celsius |
-| `pooled_bool_inlet` | inlet | `haybale-core:type:PooledType` | Multi-source aggregation |
-| `pooled_int_inlet` | inlet | `haybale-core:type:PooledType` | Multi-source aggregation |
-| `pooled_float_inlet` | inlet | `haybale-core:type:PooledType` | Multi-source aggregation |
-| `pooled_temperature_inlet` | inlet | `haybale-core:type:PooledType` | Multi-source aggregation |
-| `pooled_string_inlet` | inlet | `haybale-core:type:PooledType` | Multi-source aggregation |
-| `pooled_array_string_inlet` | inlet | `haybale-core:type:PooledType` | Multi-source aggregation |
+| `pooled_bool_inlet` | inlet | `haybale-core:type:POOLED` | Multi-source aggregation |
+| `pooled_int_inlet` | inlet | `haybale-core:type:POOLED` | Multi-source aggregation |
+| `pooled_float_inlet` | inlet | `haybale-core:type:POOLED` | Multi-source aggregation |
+| `pooled_temperature_inlet` | inlet | `haybale-core:type:POOLED` | Multi-source aggregation |
+| `pooled_string_inlet` | inlet | `haybale-core:type:POOLED` | Multi-source aggregation |
+| `pooled_array_string_inlet` | inlet | `haybale-core:type:POOLED` | Multi-source aggregation |
 | `callback_outlet` | outlet | `haywire-core:type:CALLBACK` | Signal for callback execution between nodes |
 | `execute_out` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `bool_outlet` | outlet | `haybale-testing:type:TEST_BOOL` | True or False |
@@ -26,11 +26,11 @@
 | `float_outlet` | outlet | `haybale-testing:type:TEST_FLOAT` | Decimal number |
 | `temperature_outlet` | outlet | `haybale-testing:type:TEST_TEMPERATURE` | Temperature in Celsius |
 | `string_outlet` | outlet | `haybale-testing:type:TEST_STRING` | Text data |
-| `array_bool_outlet` | outlet | `haybale-core:type:ArrayType` | Homogeneous typed array |
-| `array_int_outlet` | outlet | `haybale-core:type:ArrayType` | Homogeneous typed array |
-| `array_float_outlet` | outlet | `haybale-core:type:ArrayType` | Homogeneous typed array |
-| `array_temperature_outlet` | outlet | `haybale-core:type:ArrayType` | Homogeneous typed array |
-| `array_string_outlet` | outlet | `haybale-core:type:ArrayType` | Homogeneous typed array |
+| `array_bool_outlet` | outlet | `haybale-core:type:ARRAY` | Homogeneous typed array |
+| `array_int_outlet` | outlet | `haybale-core:type:ARRAY` | Homogeneous typed array |
+| `array_float_outlet` | outlet | `haybale-core:type:ARRAY` | Homogeneous typed array |
+| `array_temperature_outlet` | outlet | `haybale-core:type:ARRAY` | Homogeneous typed array |
+| `array_string_outlet` | outlet | `haybale-core:type:ARRAY` | Homogeneous typed array |
 
 ## Notes
 

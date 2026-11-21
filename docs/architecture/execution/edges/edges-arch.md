@@ -73,7 +73,7 @@ Each port has a **link ceiling**: how many edges it holds at once, read as `Data
 | pooled inlet (field `keeps_value_per_source()`)              | n/a (a pool has no outlet)                   | many                                           |
 | drain inlet (field `queues_values()`)                        | n/a (a drain has no outlet)                  | one                                            |
 
-A container's role is its element's. `PooledType` refuses a control element and an outlet; `DRAIN` refuses an outlet and any element that is not on a `DEPENDENT` wire; `ArrayType` of control and callback elements is allowed.
+A container's role is its element's. `POOLED` refuses a control element and an outlet; `DRAIN` refuses an outlet and any element that is not on a `DEPENDENT` wire; `ARRAY` of control and callback elements is allowed.
 
 Two pins connect when their wire keys match: equal wire-type ids, or a bare `ADD` slot's wildcard `*` (`wires_match`, mirrored on the canvas). Connections across wire types (e.g. EXEC→DATA) are rejected in `_formal_validation()`. A failing edge is never rewritten; while it fails, its wire type comes from whichever end resolves, for drawing only. See [ADR 0042](../../../adr/0042-wire-types-replace-flowtype.md). Same-direction connections (outlet→outlet, inlet→inlet) are also rejected there.
 
@@ -104,7 +104,7 @@ Port-linking logic lives in `EdgeWrapper`, not `Graph` — each edge owns its ow
    - Different types: BFS through `AdapterRegistry` to find shortest chain; walks source's MRO for derived types.
    - Chain is built right-to-left: `AdapterA(child=AdapterB(child=ReturnAdapter()))`.
 
-2. **Same compound structure** (e.g. `ArrayType[X] → ArrayType[Y]`): `_create_element_chain()`:
+2. **Same compound structure** (e.g. `ARRAY[X] → ARRAY[Y]`): `_create_element_chain()`:
    
    - Finds container adapter (e.g. `ArrayArrayAdapter`) via registry.
    - Creates element chain for inner types.

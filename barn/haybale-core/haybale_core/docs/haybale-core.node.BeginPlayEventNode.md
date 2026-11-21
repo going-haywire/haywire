@@ -1,6 +1,6 @@
-# Begin Player
+# Begin Play Event
 
-`haybale-core:node:BeginPlayNode` · kind: node
+`haybale-core:node:BeginPlayEventNode` · kind: node
 
 Triggered once when execution starts
 

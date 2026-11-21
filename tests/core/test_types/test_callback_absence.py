@@ -48,11 +48,11 @@ class TestTypes:
 
 class TestPools:
     def test_absence_from_a_source_removes_its_entry(self, library_system):
-        from haybale_core.types import PooledType
+        from haybale_core.types import POOLED
 
         from haywire.barn.builtin.types import CALLBACK
 
-        pool = PooledType[CALLBACK].create_field()
+        pool = POOLED[CALLBACK].create_field()
         pool.set_value("a", source_id="e1")
         pool.set_value("b", source_id="e2")
 
@@ -62,32 +62,32 @@ class TestPools:
         assert pool.accepts_absence()
 
     def test_an_empty_name_is_a_subscription(self, library_system):
-        from haybale_core.types import PooledType
+        from haybale_core.types import POOLED
 
         from haywire.barn.builtin.types import CALLBACK
 
-        pool = PooledType[CALLBACK].create_field()
+        pool = POOLED[CALLBACK].create_field()
 
         pool.set_value("", source_id="e1")
 
         assert pool.get_value() == {"e1": ""}
 
     def test_a_dataclass_with_an_empty_name_is_a_subscription(self, library_system):
-        from haybale_core.types import PooledType
+        from haybale_core.types import POOLED
         from haybale_testing.types import TEST_RECORD_CALLBACK
 
-        pool = PooledType[TEST_RECORD_CALLBACK].create_field()
+        pool = POOLED[TEST_RECORD_CALLBACK].create_field()
 
         pool.set_value(TEST_RECORD_CALLBACK(), source_id="e1")
 
         assert pool.get_value() == {"e1": TEST_RECORD_CALLBACK()}
 
     def test_absence_without_a_source_changes_nothing(self, library_system):
-        from haybale_core.types import PooledType
+        from haybale_core.types import POOLED
 
         from haywire.barn.builtin.types import CALLBACK
 
-        pool = PooledType[CALLBACK].create_field()
+        pool = POOLED[CALLBACK].create_field()
         pool.set_value("a", source_id="e1")
 
         pool.set_value(None)
@@ -95,11 +95,11 @@ class TestPools:
         assert pool.get_value() == {"e1": "a"}
 
     def test_a_pool_of_data_keeps_a_none_entry(self, library_system):
-        from haybale_core.types import PooledType
+        from haybale_core.types import POOLED
 
         from haywire.barn.builtin.types import FLOAT
 
-        pool = PooledType[FLOAT].create_field()
+        pool = POOLED[FLOAT].create_field()
         pool.set_value(1.0, source_id="e1")
 
         pool.set_value(None, source_id="e1")

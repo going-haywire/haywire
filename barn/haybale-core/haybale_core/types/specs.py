@@ -13,7 +13,7 @@ from haywire.api import DataWire, PrimitiveType, type
     default={"value": b""},
 )
 class BYTES(PrimitiveType[bytes]):
-    """Bytes data type"""
+    """Raw binary data, saved in a graph as base64 text."""
 
     def to_dict(self) -> dict:
         import base64
@@ -34,13 +34,17 @@ class BYTES(PrimitiveType[bytes]):
 
 @type(
     wire_type=DataWire,
-    label="List",
-    description="Ordered collection",
+    label="Untyped List",
+    description="Ordered collection of values of any type",
     color="#e91e63",
     default={"value": []},
 )
 class LIST(PrimitiveType[list]):
-    """List data type"""
+    """An ordered list whose items may be of any type and are not checked.
+
+    Use `ARRAY[T]` for a list of one item type: the port knows the item type, so pins and
+    adapters follow it. `LIST` is for values whose items have no single type.
+    """
 
     def to_dict(self) -> dict:
         return {"value": list(self._value)}
@@ -58,7 +62,7 @@ class LIST(PrimitiveType[list]):
     default={"value": {}},
 )
 class DICT(PrimitiveType[dict]):
-    """Dictionary data type"""
+    """Key-value pairs of any types, passed on as a plain `dict`."""
 
     def to_dict(self) -> dict:
         return {"value": dict(self._value)}

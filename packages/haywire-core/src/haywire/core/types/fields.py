@@ -77,7 +77,7 @@ class DataField(ABC, Generic[T]):
     - CompoundField: element_type_cls = IType of elements (FLOAT, MeshData)
     """
 
-    type_cls: type[IType]  # Type class (FLOAT, MeshData, ArrayType, etc.)
+    type_cls: type[IType]  # Type class (FLOAT, MeshData, ARRAY, etc.)
     default_kwargs: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):

@@ -53,10 +53,10 @@ class TestOptionalKeepsAbsence:
 
 class TestPooledDataFields:
     def test_a_pooled_data_field_keeps_every_value(self, library_system):
-        from haybale_core.types import PooledType
+        from haybale_core.types import POOLED
         from haywire.barn.builtin.types import FLOAT
 
-        pool = PooledType[FLOAT].create_field()
+        pool = POOLED[FLOAT].create_field()
 
         pool.set_value(0.0, source_id="e1")
         pool.set_value(1.0, source_id="e2")

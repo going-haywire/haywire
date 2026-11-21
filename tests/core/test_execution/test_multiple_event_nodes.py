@@ -107,11 +107,11 @@ class TestMultipleEventNodes:
         assert len({entry.split("@")[1] for entry in seen}) == 1  # on one runner
 
     def test_two_shutdown_nodes_both_run_on_stop(self, graph_with_library_system: BaseGraph, library_system):
-        from haybale_core.nodes.events.shutdown import ShutdownNode
+        from haybale_core.nodes.events.shutdown_event import ShutdownEventNode
 
         graph = graph_with_library_system
-        _, x1 = _event_and_target(graph, ShutdownNode, 0)
-        _, x2 = _event_and_target(graph, ShutdownNode, 200)
+        _, x1 = _event_and_target(graph, ShutdownEventNode, 0)
+        _, x2 = _event_and_target(graph, ShutdownEventNode, 200)
         seen: List[str] = []
         lock = threading.Lock()
         _recording(x1, seen, lock)

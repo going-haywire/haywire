@@ -2,13 +2,13 @@ from haywire.api import EXEC, FLOAT, BaseNode, ExecutionContext, NodeType, Syste
 
 
 @node(
-    label="Begin Player",
+    label="Begin Play Event",
     description="Triggered once when execution starts",
     menu="core/event",
     search_tags=["start", "init", "begin", "event"],
     node_type=NodeType.EVENT,
 )
-class BeginPlayNode(BaseNode):
+class BeginPlayEventNode(BaseNode):
     """
     Triggered once when execution starts.
 

@@ -3,8 +3,8 @@
 from typing import Any, cast
 
 from haybale_core.keys import ARRAY_WIDGET
-from haybale_core.nodes.widgets.base import WidgetNode
-from haybale_core.types import ArrayType
+from haybale_core.nodes.widgets.base import BaseWidgetNode
+from haybale_core.types import ARRAY
 from haywire.api import CHOICES, MENU_WIDGET, STRING, NodeSettings, NodeType, node, setting
 
 
@@ -15,7 +15,7 @@ from haywire.api import CHOICES, MENU_WIDGET, STRING, NodeSettings, NodeType, no
     search_tags=["menu", "dropdown", "select", "choice", "widget", "control", "stage"],
     node_type=NodeType.DATA,
 )
-class MenuNode(WidgetNode):
+class MenuNode(BaseWidgetNode):
     """A drop-down that sends the text of the item picked.
 
     Edit the items in *Options*; they can also be promoted to an inlet. A text
@@ -31,7 +31,7 @@ class MenuNode(WidgetNode):
     config_bag = "menu"
 
     class menu(NodeSettings):
-        options = setting[ArrayType[STRING]](
+        options = setting[ARRAY[STRING]](
             ["One", "Two", "Three"],
             label="Options",
             description="The items the menu offers, in order",
