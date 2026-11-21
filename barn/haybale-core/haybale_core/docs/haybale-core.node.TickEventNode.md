@@ -1,4 +1,4 @@
-# Tick
+# Tick Event
 
 `haybale-core:node:TickEventNode` · kind: node
 

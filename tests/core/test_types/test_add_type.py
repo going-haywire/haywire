@@ -210,9 +210,9 @@ class TestAddAdapterShortCircuit:
 
     def test_compound_to_any_passes_through(self, factory):
         """The short-circuit runs before scalar/compound dispatch."""
-        from haybale_core.types import ArrayType
+        from haybale_core.types import ARRAY
 
-        adapter, error = factory.create_chain(ArrayType[INT], ADD, "edge-1")
+        adapter, error = factory.create_chain(ARRAY[INT], ADD, "edge-1")
         assert error is None
         assert isinstance(adapter, ReturnAdapter)
 

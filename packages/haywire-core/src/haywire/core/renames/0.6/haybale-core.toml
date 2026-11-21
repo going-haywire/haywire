@@ -1,0 +1,33 @@
+# Key renames of haybale-core in release 0.6.
+#
+# Apply to a project's graphs with:
+#   uv run haywire rename --map <this file> --apply
+# The rules behind the names: docs/reference/component-naming.md.
+# One entry covers a parameterized type's whole family: ARRAY[INT] and
+# POOLED[CALLBACK] keep their element in the recipe, under the family's key.
+
+[[rename]]
+old = "haybale-core:node:BeginPlayNode"
+new = "haybale-core:node:BeginPlayEventNode"
+old_module = "haybale_core.nodes.events.begin_play"
+new_module = "haybale_core.nodes.events.begin_play_event"
+
+[[rename]]
+old = "haybale-core:node:ShutdownNode"
+new = "haybale-core:node:ShutdownEventNode"
+old_module = "haybale_core.nodes.events.shutdown"
+new_module = "haybale_core.nodes.events.shutdown_event"
+
+[[rename]]
+old = "haybale-core:node:ControlSwitch"
+new = "haybale-core:node:ControlSwitchNode"
+old_module = "haybale_core.nodes.switch"
+new_module = "haybale_core.nodes.control_switch"
+
+[[rename]]
+old = "haybale-core:type:ArrayType"
+new = "haybale-core:type:ARRAY"
+
+[[rename]]
+old = "haybale-core:type:PooledType"
+new = "haybale-core:type:POOLED"

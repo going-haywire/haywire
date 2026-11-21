@@ -103,7 +103,7 @@ def resolve_graph_layout_direction(wrapper: "NodeWrapper") -> LayoutDirection:
 def port_type_name(port: DataPort) -> str:
     """Return *port*'s data-type name as code spells it, or ``—``.
 
-    For example ``FLOAT`` or ``ArrayType[FILE_PATH]``.
+    For example ``FLOAT`` or ``ARRAY[FILE_PATH]``.
     """
     type_cls = getattr(port, "type_cls", None)
     return getattr(type_cls, "__name__", "") or "—"

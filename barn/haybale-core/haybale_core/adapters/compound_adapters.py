@@ -3,30 +3,30 @@ from typing_extensions import override
 
 from haywire.api import BaseAdapter, adapter
 
-from haybale_core.types.array_type import ArrayType
+from haybale_core.types.array_type import ARRAY
 
 
 @adapter(
     label="Array to Array",
-    description="Transform array elements (ArrayType[X] → ArrayType[Y])",
-    converts_from=ArrayType,
-    converts_to=ArrayType,
+    description="Transform array elements (ARRAY[X] → ARRAY[Y])",
+    converts_from=ARRAY,
+    converts_to=ARRAY,
     priority=0,
 )
 class ArrayArrayAdapter(BaseAdapter):
     """
-    Transforms ArrayType[X] → ArrayType[Y].
+    Transforms ARRAY[X] → ARRAY[Y].
 
     Uses internal adapter chain for element transformation.
     Always skips None values to prevent chain failures.
 
     Examples:
-        # ArrayType[FLOAT] → ArrayType[FLOAT] (no element transformation)
+        # ARRAY[FLOAT] → ARRAY[FLOAT] (no element transformation)
         adapter = ArrayArrayAdapter()
         result = adapter.convert([1.0, 2.0, 3.0])
         # → [1.0, 2.0, 3.0]
 
-        # ArrayType[FLOAT] → ArrayType[STRING] (with element transformation)
+        # ARRAY[FLOAT] → ARRAY[STRING] (with element transformation)
         float_to_str = FloatToStringAdapter()
         adapter = ArrayArrayAdapter(element_adapter=float_to_str)
         result = adapter.convert([1.5, None, 2.7])

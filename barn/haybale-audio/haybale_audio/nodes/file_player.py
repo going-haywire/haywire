@@ -71,7 +71,7 @@ class FilePlayerNode(BaseNode):
     playback = bag(PlayerSettings)
 
     def init(self) -> None:
-        from haybale_core.types import PooledType
+        from haybale_core.types import POOLED
         from haybale_audio.types.callback import CALLBACK_AUDIO
 
         self.add(EXEC.as_inlet("start", label="Start"))
@@ -85,7 +85,7 @@ class FilePlayerNode(BaseNode):
             )
         )
         self.add(
-            PooledType[CALLBACK_AUDIO].as_inlet(
+            POOLED[CALLBACK_AUDIO].as_inlet(
                 "callbacks", label="Subscribers", description="Connect to an Audio Event node."
             )
         )

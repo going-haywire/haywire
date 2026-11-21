@@ -377,7 +377,7 @@ class TestCollapse:
         """Multi-exit control is ordinary, not a loopback (decision 4)."""
         graph = graph_with_library_system
         begin = make_node(graph, _BEGIN)
-        switch = make_node(graph, "haybale-core:node:ControlSwitch")
+        switch = make_node(graph, "haybale-core:node:ControlSwitchNode")
         on_true = make_node(graph, _PRINT)
         on_false = make_node(graph, _PRINT)
         graph.create_edge_wrapper(begin.node_id, "exec", switch.node_id, "exec")

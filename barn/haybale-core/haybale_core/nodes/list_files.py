@@ -53,14 +53,14 @@ class ListFilesNode(BaseNode):
     listing = bag(FileListing)
 
     def init(self) -> None:
-        from haybale_core.types import ArrayType
+        from haybale_core.types import ARRAY
 
         self.add(EXEC.as_inlet("execute", label="Execute", description="Lists the folder's files again"))
         self.add(FOLDER_PATH.as_inlet("folder", label="Folder", description="Folder to list"))
 
         self.add(EXEC.as_outlet("next", label="Next", description="Runs after the files are listed"))
         self.add(
-            ArrayType[FILE_PATH].as_outlet(
+            ARRAY[FILE_PATH].as_outlet(
                 "files", label="Files", description="The matching files, in name order"
             )
         )

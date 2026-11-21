@@ -135,7 +135,7 @@ from: `IntToFloatAdapter` — registry_key: `haybale-testing:adapter:IntToFloatA
 
 from: `FloatToStringAdapter` — registry_key: `haybale-testing:adapter:FloatToStringAdapter`
 
-**Compound type adapter** — `MapsStringType → ArrayType` from `barn/haybale-example/haybale_example/adapters/compound_adapters.py:MapsStringArrayAdapter`. Demonstrates a cross-category conversion with `get_test_value()` delegating to the chain and `get_test_repetitions()` set above 1:
+**Compound type adapter** — `MapsStringType → ARRAY` from `barn/haybale-example/haybale_example/adapters/compound_adapters.py:MapsStringArrayAdapter`. Demonstrates a cross-category conversion with `get_test_value()` delegating to the chain and `get_test_repetitions()` set above 1:
 
 ```python
 --8<-- "barn/haybale-example/haybale_example/adapters/compound_adapters.py:10:48"

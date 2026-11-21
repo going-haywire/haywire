@@ -55,12 +55,12 @@ class RunButtonNode(BaseNode):
         )
 
     def init(self) -> None:
-        from haybale_core.types import PooledType
+        from haybale_core.types import POOLED
 
         self.add(EXEC.as_inlet("start", label="Start", description="Enables the button"))
         self.add(EXEC.as_inlet("stop", label="Stop", description="Disables the button"))
         self.add(
-            PooledType[CALLBACK].as_inlet(
+            POOLED[CALLBACK].as_inlet(
                 "callbacks",
                 label="Trigger",
                 description="Tick Event Listen outlets whose flows a press triggers",

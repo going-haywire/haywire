@@ -10,7 +10,7 @@ Converts audio blocks to another sample rate and delivers them to Audio Event no
 |---|---|---|---|
 | `write` | inlet | `haybale-audio:type:EXEC_AUDIO` | Signal for sequencing the nodes of an audio flow |
 | `audio` | inlet | `haybale-audio:type:AUDIO` | Block to convert |
-| `callbacks` | inlet | `haybale-core:type:PooledType` | Connect to an Audio Event node. |
+| `callbacks` | inlet | `haybale-core:type:POOLED` | Connect to an Audio Event node. |
 | `status` | config | `haywire-core:type:STRING` | Text data |
 | `next` | outlet | `haybale-audio:type:EXEC_AUDIO` | Signal for sequencing the nodes of an audio flow |
 

@@ -12,4 +12,4 @@ Binary data
 
 ## Notes
 
-Bytes data type
+Raw binary data, saved in a graph as base64 text.

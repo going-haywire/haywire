@@ -21,7 +21,7 @@ def _add(graph: Any, module: str, name: str) -> Any:
 
 
 def _run(graph: Any, wire_break: bool, monkeypatch: Any) -> tuple[list[str], Any, Any, Any]:
-    begin = _add(graph, "haybale_core.nodes.events.begin_play", "BeginPlayNode")
+    begin = _add(graph, "haybale_core.nodes.events.begin_play_event", "BeginPlayEventNode")
     loop = _add(graph, "haybale_core.nodes.for_loop", "ForLoopNode")
     body = _add(graph, "haybale_core.nodes.print", "PrintNode")
     completed = _add(graph, "haybale_core.nodes.print", "PrintNode")

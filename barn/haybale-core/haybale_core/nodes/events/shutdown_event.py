@@ -8,13 +8,13 @@ from haywire.api import EXEC, FLOAT, BaseNode, ExecutionContext, NodeType, Syste
 
 
 @node(
-    label="Shutdown",
+    label="Shutdown Event",
     description="Triggered when execution is shutting down",
     menu="core/event",
     search_tags=["stop", "end", "cleanup", "event"],
     node_type=NodeType.EVENT,
 )
-class ShutdownNode(BaseNode):
+class ShutdownEventNode(BaseNode):
     """
     Triggered when execution is shutting down.
 

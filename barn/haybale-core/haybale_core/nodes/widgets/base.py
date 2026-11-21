@@ -1,4 +1,4 @@
-"""``WidgetNode``, the base of the widget nodes."""
+"""``BaseWidgetNode``, the base of the widget nodes."""
 
 from typing import Any, ClassVar
 
@@ -30,7 +30,7 @@ LABEL_POSITIONS = ("left", "above", "hidden")
 _NONE = Promotable.NONE
 
 
-class WidgetNode(BaseNode):
+class BaseWidgetNode(BaseNode):
     """A DATA node whose outlet's widget is the node: it shows what flows in and sends what is set.
 
     A subclass declares its types, its widget and, optionally, a settings bag
@@ -44,7 +44,7 @@ class WidgetNode(BaseNode):
     Example::
 
         @node(label="Float Slider", menu="core/widgets/float_slider", node_type=NodeType.DATA)
-        class FloatSliderNode(WidgetNode):
+        class FloatSliderNode(BaseWidgetNode):
             value_type = FLOAT
             widget_key = SLIDER_WIDGET
             default_value = 0.0

@@ -12,7 +12,7 @@ Lists the files in a folder that match the pattern, each time it runs
 | `folder` | inlet | `haywire-core:type:FOLDER_PATH` | Folder to list |
 | `listing.pattern` | config | `haywire-core:type:STRING` | File names to match, such as \*.png<br><br>Separate patterns with ; as in \*.png;\*.jpg<br>\* any characters, <br>? one character, <br>[abc] one of a, b or c<br>Upper and lower case match alike; <br>empty matches every file |
 | `next` | outlet | `haywire-core:type:EXEC` | Runs after the files are listed |
-| `files` | outlet | `haybale-core:type:ArrayType` | The matching files, in name order |
+| `files` | outlet | `haybale-core:type:ARRAY` | The matching files, in name order |
 
 ## Settings
 

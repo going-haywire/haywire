@@ -11,23 +11,23 @@ List editor — one row per item, each drawn by the item type's widget
 
 Edits a list: one row per item, plus controls to add, remove and reorder items.
 
-Each row is the item type's own widget: a text field for `ArrayType[STRING]`,
-a number field for `ArrayType[INT]` and `ArrayType[FLOAT]`. Add appends the
+Each row is the item type's own widget: a text field for `ARRAY[STRING]`,
+a number field for `ARRAY[INT]` and `ARRAY[FLOAT]`. Add appends the
 item type's default (`""`, `0`, `0.0`). Drag a row by its grip to move it;
 the cross on its right removes it.
 
-`ArrayType` does not use this widget by default. Name it on the setting or
+`ARRAY` does not use this widget by default. Name it on the setting or
 port that should show a list editor:
 
 ```python
 class Settings(NodeSettings):
-    options = setting[ArrayType[STRING]](
+    options = setting[ARRAY[STRING]](
         ["One", "Two", "Three"], label="Options", widget=ArrayWidget.config()
     )
 
 def init(self):
     self.add(
-        ArrayType[FLOAT].as_inlet("weights", default={"value": [1.0]}, widget=ArrayWidget.config())
+        ARRAY[FLOAT].as_inlet("weights", default={"value": [1.0]}, widget=ArrayWidget.config())
     )
 ```
 

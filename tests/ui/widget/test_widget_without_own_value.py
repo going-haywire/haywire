@@ -23,9 +23,9 @@ def _port(type_cls) -> DataPort:
 
 
 def _pooled_port() -> DataPort:
-    from haybale_core.types import PooledType
+    from haybale_core.types import POOLED
 
-    port = _port(PooledType[FLOAT])
+    port = _port(POOLED[FLOAT])
     port.data.set_value(1.5, source_id="e1")
     return port
 

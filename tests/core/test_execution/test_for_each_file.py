@@ -57,7 +57,7 @@ class _Batch:
     """BeginPlay → For Each File; body: a sink that records the path; completed and stopped → sinks."""
 
     def __init__(self, graph: Any):
-        self.begin = _add(graph, "haybale_core.nodes.events.begin_play", "BeginPlayNode")
+        self.begin = _add(graph, "haybale_core.nodes.events.begin_play_event", "BeginPlayEventNode")
         self.each = _add(graph, "haybale_core.nodes.for_each_file", "ForEachFileNode")
         sink = ("haybale_testing.nodes.benchmark.bench_sink_node", "BenchSinkNode")
         self.body, self.after, self.halt = _add(graph, *sink), _add(graph, *sink), _add(graph, *sink)

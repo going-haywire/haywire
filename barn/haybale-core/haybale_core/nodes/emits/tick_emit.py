@@ -16,7 +16,7 @@ class TickEmitNode(BaseNode):
     """
     Emits tick callbacks at a configurable framerate from an internal thread.
 
-    Wire from BeginPlayNode to start ticking. Connect TickEventNodes via
+    Wire from BeginPlayEventNode to start ticking. Connect TickEventNodes via
     the callback inlet to receive ticks.
 
     Inputs:
@@ -31,7 +31,7 @@ class TickEmitNode(BaseNode):
     """
 
     def init(self):
-        from haybale_core.types import PooledType
+        from haybale_core.types import POOLED
 
         # Control inputs
         self.add(EXEC.as_inlet("start", label="Start"))
@@ -49,7 +49,7 @@ class TickEmitNode(BaseNode):
         )
 
         # Callback inlet — receives listener IDs from connected TickEventNodes
-        self.add(PooledType[CALLBACK].as_inlet("callback_names", label="Trigger"))
+        self.add(POOLED[CALLBACK].as_inlet("callback_names", label="Trigger"))
 
         # Control outputs
         self.add(EXEC.as_outlet("started", label="Started"))

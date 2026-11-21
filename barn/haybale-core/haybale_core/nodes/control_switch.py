@@ -1,7 +1,7 @@
 """
-Shutdown Event Node.
+Control Switch Node.
 
-Triggered when the interpreter is shutting down, allowing for cleanup operations.
+Routes control flow to its True or False outlet by comparing two values.
 """
 
 import operator
@@ -37,7 +37,7 @@ OPERATORS = {
     search_tags=["switch", "control", "flow", "event"],
     node_type=NodeType.CONTROL,
 )
-class ControlSwitch(BaseNode):
+class ControlSwitchNode(BaseNode):
     """
     Triggered when execution is switching control flow based on condition.
     """
