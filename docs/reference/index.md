@@ -3,6 +3,7 @@
 *This index is a placeholder.*
 
 - [Glossary](glossary.md)
+- [Component naming](component-naming.md)
 - [Design guide](design-guide.md)
 - [Writing a doc page](doc-authoring.md)
 - [Publishing releases](publish_releases.md)

@@ -8,6 +8,7 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.library.haybale_toml import read_haybale
 from haywire.core.library.kinds import kind_registry_map
+from haywire.core.node.base import BaseNode
 from haywire.core.node.inspector import NodeInstanceInspector
 from haywire_studio.packaging.docs.model import ComponentRecord, LibraryDoc
 
@@ -82,6 +83,24 @@ def _own_docstring(cls: Any) -> str:
     return inspect.cleandoc(own_doc) if own_doc else ""
 
 
+def _node_bases(cls: Any, library_folder: Path) -> list[str]:
+    """Names of the public, unregistered node classes under *library_folder* that *cls* inherits from."""
+    names: list[str] = []
+    for base in cls.__mro__[1:]:
+        # A registered class carries its own identity; an inherited one belongs to a subclass.
+        if base is BaseNode or not issubclass(base, BaseNode) or "class_identity" in base.__dict__:
+            continue
+        if base.__name__.startswith("_"):
+            continue
+        try:
+            source = Path(inspect.getfile(base)).resolve()
+        except TypeError:
+            continue
+        if library_folder in source.parents:
+            names.append(base.__name__)
+    return names
+
+
 def _record_from_class(kind: str, key: str, cls: Any) -> ComponentRecord:
     identity = cls.class_identity
     return ComponentRecord(
@@ -99,10 +118,13 @@ def _record_from_class(kind: str, key: str, cls: Any) -> ComponentRecord:
         ports=[],
         settings=[],
         extra=_extra_for_kind(kind, cls, identity),
+        class_name=getattr(cls, "__name__", ""),
     )
 
 
-def _node_record(kind: str, key: str, cls: Any, graph: BaseGraph) -> ComponentRecord:
+def _node_record(
+    kind: str, key: str, cls: Any, graph: BaseGraph, library_folder: Path | None = None
+) -> ComponentRecord:
     """Build a node's ComponentRecord by instantiating it in a throwaway graph.
 
     Ports/settings can only be read off a live instance (declared purely at
@@ -119,6 +141,8 @@ def _node_record(kind: str, key: str, cls: Any, graph: BaseGraph) -> ComponentRe
 
     Args:
         kind: ``"node"`` or ``"macro"`` — recorded as the component's kind.
+        library_folder: The library's folder. When given, the record lists the
+            node bases defined there (see ``ComponentRecord.node_bases``).
     """
     base = _record_from_class(kind, key, cls)
     try:
@@ -145,6 +169,10 @@ def _node_record(kind: str, key: str, cls: Any, graph: BaseGraph) -> ComponentRe
         ports=ports,
         settings=settings,
         extra={},
+        class_name=base.class_name,
+        node_bases=_node_bases(cls, library_folder)
+        if library_folder is not None and isinstance(cls, type)
+        else [],
     )
 
 
@@ -152,6 +180,7 @@ def extract_library(service: Any, library_id: str) -> LibraryDoc:
     lib_identity = service.get_library_registry().get_library_identity(library_id)
     records: list[ComponentRecord] = []
     graph = BaseGraph(filestem="docs", validation_scheduler=SyncScheduler())
+    library_folder = Path(lib_identity.folder_path).resolve()
     for kind, registry_cls in kind_registry_map().items():
         registry = service_registry(service, registry_cls)
         for key in registry.list_names():
@@ -164,7 +193,7 @@ def extract_library(service: Any, library_id: str) -> LibraryDoc:
             # A macro is documented like a node, by the interface a placement
             # of it carries.
             if kind in ("node", "macro"):
-                records.append(_node_record(kind, key, cls, graph))
+                records.append(_node_record(kind, key, cls, graph, library_folder))
             else:
                 records.append(_record_from_class(kind, key, cls))
     records.sort(key=lambda r: r.registry_key)

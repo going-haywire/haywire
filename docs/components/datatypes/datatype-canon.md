@@ -6,6 +6,7 @@ see-also:
   - ../../architecture/execution/edges/edges-arch.md
   - ../adapters/adapter-canon.md
   - ../../reference/glossary.md
+  - ../../reference/component-naming.md
 ---
 
 # Datatype — Canonical Example
@@ -153,5 +154,5 @@ For everything ports-related (`as_config`, `on_change`, `on_connect`, port recon
 | `widget_config` | `dict` | no | `{}` | **NOT RECOMMENDED at type level** — see above. |
 | `store_strategy` | `StoreStrategy` | no | `NONE` | When to persist field values on save. (Older docs called this `store_data: bool` — out of date.) |
 | `help_url` | `str` | no | `''` | External documentation link. |
-| `registry_id` | `str` | no | class name | Unique ID within the library. |
+| `registry_id` | `str` | no | class name | Unique ID within the library. Name the class by [component naming](../../reference/component-naming.md): `SCREAMING_SNAKE`, head noun last (`RGB_IMAGE`). |
 | `deprecation_warning` | `str` | no | `None` | Emitted when the type is used. |

@@ -194,6 +194,7 @@ nav:
   - Reference:
       - Index: reference/index.md
       - Glossary: reference/glossary.md
+      - Component naming: reference/component-naming.md
       - Design guide: reference/design-guide.md
       - Design principles: reference/design-principles.md
       - Questionnaire: reference/questionnaire.md

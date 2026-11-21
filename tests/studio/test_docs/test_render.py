@@ -3,6 +3,7 @@ from haywire_studio.packaging.docs.model import ComponentRecord, LibraryDoc
 from haywire_studio.packaging.docs.render import (
     coverage_report,
     doc_filename,
+    naming_report,
     render_component,
     render_overview,
     render_quickref,
@@ -221,6 +222,82 @@ def test_coverage_flags_missing_description():
     doc = LibraryDoc("lib", "Lib", "1.0.0", "", [rec])
     report = coverage_report(doc)
     assert any("lib:type:x" in line for line in report)
+
+
+def _named(kind, class_name, label="", node_bases=None):
+    return ComponentRecord(
+        registry_key=f"lib:{kind}:{class_name}",
+        kind=kind,
+        library_id="lib",
+        label=label,
+        description="d",
+        deprecation="",
+        hidden=False,
+        class_name=class_name,
+        node_bases=node_bases or [],
+    )
+
+
+def _naming(*records):
+    return naming_report(LibraryDoc("lib", "Lib", "1.0.0", "", list(records)))
+
+
+def test_naming_passes_conforming_components():
+    assert (
+        _naming(
+            _named("node", "LoadImageNode", "Load Image"),
+            _named("node", "MidiSendNode", "MIDI Send"),  # letters only: case and spaces don't count
+            _named("node", "PoseEstimatorNode", "Pose Estimator", node_bases=["BaseEstimatorNode"]),
+            _named("widget", "SliderWidget"),
+            _named("type", "FILE_PATH"),
+            _named("type", "VEC3F"),
+            _named("adapter", "ImageToRgbAdapter"),  # other kinds are not checked
+        )
+        == []
+    )
+
+
+def test_naming_flags_node_without_node_suffix():
+    assert _naming(_named("node", "ControlSwitch", "Control Switch")) == [
+        "lib:node:ControlSwitch: naming: N1 class `ControlSwitch` does not end in `Node`"
+    ]
+
+
+def test_naming_flags_node_whose_label_differs():
+    (line,) = _naming(_named("node", "BeginPlayNode", "Begin Player"))
+    assert line.startswith("lib:node:BeginPlayNode: naming: N1")
+    assert "'Begin Player'" in line
+
+
+def test_naming_flags_test_prefix_beside_n1():
+    (line,) = _naming(_named("node", "TestPrintNode", "Print"))
+    assert "N1" in line
+    assert "N9 class `TestPrintNode` starts with `Test`" in line
+
+
+def test_naming_flags_widget_and_type():
+    assert _naming(_named("widget", "SimpleLabel"), _named("type", "ArrayType")) == [
+        "lib:widget:SimpleLabel: naming: W1 class `SimpleLabel` does not end in `Widget`",
+        "lib:type:ArrayType: naming: T1 type `ArrayType` is not SCREAMING_SNAKE",
+    ]
+
+
+def test_naming_reports_a_misnamed_base_once_per_library():
+    assert _naming(
+        _named("node", "ToggleNode", "Toggle", node_bases=["WidgetNode"]),
+        _named("node", "MenuNode", "Menu", node_bases=["WidgetNode"]),
+    ) == ["lib: naming: N7 base class `WidgetNode` (of ToggleNode, MenuNode) is not `Base<X>Node`"]
+
+
+def test_naming_skips_a_record_without_class_name():
+    assert _naming(_named("node", "", "anything")) == []
+
+
+def test_coverage_report_holds_no_naming_lines():
+    doc = LibraryDoc("lib", "Lib", "1.0.0", "", [_named("node", "ControlSwitch", "Control Switch")])
+    assert coverage_report(doc) == [
+        "lib:node:ControlSwitch: no docstring, no ports (instantiation may have failed)"
+    ]
 
 
 MARKER = (

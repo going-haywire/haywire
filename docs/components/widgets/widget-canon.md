@@ -7,6 +7,7 @@ see-also:
   - ../../guides/ports.md
   - ../adapters/adapter-canon.md
   - ../../reference/glossary.md
+  - ../../reference/component-naming.md
 ---
 
 # Widget — Canonical Example
@@ -47,7 +48,7 @@ Every widget subclasses **`BaseWidget`** and implements **`build()`**, which con
 
 ### The `@widget` decorator
 
-`@widget(...)` registers the class with `WidgetRegistry` and attaches its identity. It is always invoked with parentheses.
+`@widget(...)` registers the class with `WidgetRegistry` and attaches its identity. It is always invoked with parentheses. Name the class `<Control>Widget` or `<Type>Widget` (see [component naming](../../reference/component-naming.md)).
 
 ```python
 @widget(description="Fast number input")

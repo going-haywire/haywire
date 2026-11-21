@@ -148,6 +148,56 @@ def coverage_report(doc: LibraryDoc) -> list[str]:
     return report
 
 
+_SCREAMING_SNAKE = re.compile(r"[A-Z][A-Z0-9_]*")
+
+
+def _label_letters(text: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", text.lower())
+
+
+def _naming_problems(c: ComponentRecord) -> list[str]:
+    problems: list[str] = []
+    name = c.class_name
+    if not name:
+        return problems
+    if c.kind == "node":
+        if not name.endswith("Node"):
+            problems.append(f"N1 class `{name}` does not end in `Node`")
+        elif _label_letters(c.label) != _label_letters(name[: -len("Node")]):
+            problems.append(f"N1 class `{name}` is not its label {c.label!r} + `Node`")
+        if name.startswith("Test"):
+            problems.append(f"N9 class `{name}` starts with `Test`")
+    elif c.kind == "widget" and not name.endswith("Widget"):
+        problems.append(f"W1 class `{name}` does not end in `Widget`")
+    elif c.kind == "type" and not _SCREAMING_SNAKE.fullmatch(name):
+        problems.append(f"T1 type `{name}` is not SCREAMING_SNAKE")
+    return problems
+
+
+def naming_report(doc: LibraryDoc) -> list[str]:
+    """One line per break of the component naming scheme's checkable rules.
+
+    Checks node, widget and type class names against the rules N1, N7, N9, W1
+    and T1 of ``docs/reference/component-naming.md``: one line per component,
+    then one per misnamed node base class, keyed by the library id. Report
+    only: a line never fails a run. A record without ``class_name`` is skipped.
+    """
+    report: list[str] = []
+    subclasses: dict[str, list[str]] = {}
+    for c in doc.components:
+        problems = _naming_problems(c)
+        if problems:
+            report.append(f"{c.registry_key}: naming: {'; '.join(problems)}")
+        if c.kind == "node":
+            for base in c.node_bases:
+                subclasses.setdefault(base, []).append(c.class_name)
+    for base, names in sorted(subclasses.items()):
+        if not (base.startswith("Base") and base.endswith("Node")):
+            of = ", ".join(names)
+            report.append(f"{doc.library_id}: naming: N7 base class `{base}` (of {of}) is not `Base<X>Node`")
+    return report
+
+
 def _catalog_body(doc: LibraryDoc) -> str:
     """The README catalog is the OVERVIEW catalog (labels), minus its H1 title."""
     body = render_overview(doc)

@@ -226,6 +226,27 @@ def _make_identity(lib_id: str, folder_path: Path) -> LibraryIdentity:
     )
 
 
+def test_generate_all_docs_exempts_coverage_but_not_naming(tmp_path, monkeypatch):
+    """An exempt library drops its coverage gaps and keeps its naming lines."""
+    from haywire_studio.packaging.docs import generate
+
+    (tmp_path / "pyproject.toml").write_text('[tool.haywire.docs]\ncoverage_exempt = ["lib_b"]\n')
+    registry = LibraryRegistry()
+    for lib_id in ("lib_a", "lib_b"):
+        folder = tmp_path / "barn" / lib_id
+        folder.mkdir(parents=True)
+        registry._libraries[lib_id] = cast(Any, _FakeLibrary)(_make_identity(lib_id, folder))
+    monkeypatch.setattr(generate, "create_library_system_service", lambda **_: _FakeService(registry))
+    monkeypatch.setattr(
+        generate, "_generate_one", lambda _s, lib_id, *_a: ([f"{lib_id} gap"], [f"{lib_id} naming"])
+    )
+
+    assert generate_all_docs(str(tmp_path)) == {
+        "lib_a": ["lib_a gap", "lib_a naming"],
+        "lib_b": ["lib_b naming"],
+    }
+
+
 def test_library_id_for_path_raises_on_ambiguous_shared_parent(tmp_path):
     """Two libraries loaded under a shared parent directory: calling with
     that shared parent (an ancestor of both) must raise rather than

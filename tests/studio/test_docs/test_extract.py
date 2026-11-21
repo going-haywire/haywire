@@ -1,8 +1,11 @@
 import json
+from pathlib import Path
+from typing import Any, cast
 
 import pytest
 from haywire.core.di.config import create_library_system_service
-from haywire_studio.packaging.docs.extract import _record_from_class, extract_library
+from haywire.core.node.base import BaseNode
+from haywire_studio.packaging.docs.extract import _node_bases, _record_from_class, extract_library
 
 
 @pytest.fixture(scope="module")
@@ -151,3 +154,39 @@ def test_record_from_class_uses_own_docstring_when_present():
 
     rec_sub = _record_from_class("node", "lib:node:subown", _SubclassWithOwnDocstring)
     assert rec_sub.docstring == "This subclass has its own docstring."
+
+
+class BaseProbeShapeNode(BaseNode):
+    """An abstract base defined in this file."""
+
+
+class _PrivateMixinNode(BaseProbeShapeNode):
+    pass
+
+
+class RegisteredProbeNode(_PrivateMixinNode):
+    class_identity = cast(Any, _FakeIdentity())
+
+
+class RegisteredChildNode(RegisteredProbeNode):
+    pass
+
+
+def test_node_bases_lists_public_unregistered_bases_in_the_library(tmp_path):
+    here = Path(__file__).resolve().parent
+    # A registered base, a private one and BaseNode itself are left out.
+    assert _node_bases(RegisteredChildNode, here) == ["BaseProbeShapeNode"]
+    # A base outside the library folder is left out.
+    assert _node_bases(RegisteredChildNode, tmp_path) == []
+
+
+def test_record_from_class_carries_the_class_name():
+    assert _record_from_class("node", "lib:node:base", _BaseWithDocstring).class_name == "_BaseWithDocstring"
+
+
+@pytest.mark.integration
+def test_extract_records_node_bases(service):
+    doc = extract_library(service, "haywire-core")
+    metadata = next(r for r in doc.components if r.registry_key == "haywire-core:node:MetadataNode")
+    assert metadata.class_name == "MetadataNode"
+    assert metadata.node_bases == ["MetadataNodeBase"]
