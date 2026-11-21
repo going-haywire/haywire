@@ -95,7 +95,7 @@ class AdapterFactory:
 
         Example:
             first_adapter, error = factory.create_chain(
-                Temperature,
+                TEMPERATURE,
                 INT,
                 "conn_uuid_123"
             )
@@ -218,15 +218,15 @@ class AdapterFactory:
         Example: FLOAT → STRING
         Result: FloatToStringAdapter (linked to ReturnAdapter)
 
-        Supports type hierarchy: if Temperature extends FLOAT,
-        Temperature → INT resolves via FLOAT → INT adapter.
+        Supports type hierarchy: if TEMPERATURE extends FLOAT,
+        TEMPERATURE → INT resolves via FLOAT → INT adapter.
         """
         # Direct match - no adapters needed
         if source_type == sink_type:
             return (ReturnAdapter(), None)
 
         # Child → parent passthrough: derived types are compatible
-        # with their ancestor types (e.g. Temperature → FLOAT)
+        # with their ancestor types (e.g. TEMPERATURE → FLOAT)
         if issubclass(source_type, sink_type):
             return (ReturnAdapter(), None)
 
@@ -260,8 +260,8 @@ class AdapterFactory:
         entry in the MRO is source_type itself, so the exact match
         is always tried first.
 
-        Example: Temperature extends FLOAT, FLOAT→INT adapter exists.
-                 Temperature→INT resolves via FLOAT→INT.
+        Example: TEMPERATURE extends FLOAT, FLOAT→INT adapter exists.
+                 TEMPERATURE→INT resolves via FLOAT→INT.
 
         Args:
             source_type: Source IType class

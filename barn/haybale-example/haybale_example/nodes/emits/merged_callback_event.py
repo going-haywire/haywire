@@ -13,13 +13,13 @@ from haywire.api import (
 
 
 @node(
-    label="Merge Callback",
+    label="Merged Callback Event",
     description="Listens for a specified number of callbacks from other flows",
     menu="examples/event/callback",
     search_tags=["callback", "listen", "event", "custom"],
     node_type=NodeType.EVENT,
 )
-class MergeCallbackNode(BaseNode):
+class MergedCallbackEventNode(BaseNode):
     """
     Listens for a specified number of callbacks from other flows.
 

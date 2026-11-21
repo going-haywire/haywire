@@ -69,23 +69,23 @@ from: `TestBeginPlayNode` — registry_key: `haybale-testing:node:TestBeginPlayN
 
 **Listener** — source: `barn/haybale-example/haybale_example/nodes/emits/custom_callback.py`
 
-`CustomCallbackNode` listens for named callbacks from other flows. It broadcasts its own ID via a `CALLBACK` outlet so emitters can wire to it, and updates its `event_subscription` dynamically when the config changes:
+`CallbackEventNode` listens for named callbacks from other flows. It broadcasts its own ID via a `CALLBACK` outlet so emitters can wire to it, and updates its `event_subscription` dynamically when the config changes:
 
 ```python
 --8<-- "barn/haybale-example/haybale_example/nodes/emits/custom_callback.py:16:95"
 ```
 
-from: `CustomCallbackNode` — registry_key: `haybale-example:node:CustomCallbackNode`
+from: `CallbackEventNode` — registry_key: `haybale-example:node:CallbackEventNode`
 
 **Emitter** — source: `barn/haybale-example/haybale_example/nodes/emits/emit_callback.py`
 
-`EmitCallbackNode` is the CONTROL counterpart: it has an EXEC inlet, reads connected listener IDs via `PooledType[CALLBACK]`, and emits to them via `context.emit_callback`:
+`CallbackEmitNode` is the CONTROL counterpart: it has an EXEC inlet, reads connected listener IDs via `PooledType[CALLBACK]`, and emits to them via `context.emit_callback`:
 
 ```python
 --8<-- "barn/haybale-example/haybale_example/nodes/emits/emit_callback.py:16:105"
 ```
 
-from: `EmitCallbackNode` — registry_key: `haybale-example:node:EmitCallbackNode`
+from: `CallbackEmitNode` — registry_key: `haybale-example:node:CallbackEmitNode`
 
 **What the pair shows:**
 

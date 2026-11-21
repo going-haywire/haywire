@@ -85,29 +85,29 @@ Two rules worth knowing before you add a type:
 
 Source: [`barn/haybale-example/haybale_example/types/`](../../../barn/haybale-example/haybale_example/types/)
 
-**Derived primitive type** — `Temperature` extends `FLOAT` with a custom widget binding. Inherits all FLOAT adapters automatically; a `Temperature` outlet connects to any `FLOAT` inlet with no extra adapter:
+**Derived primitive type** — `TEMPERATURE` extends `FLOAT` with a custom widget binding. Inherits all FLOAT adapters automatically; a `TEMPERATURE` outlet connects to any `FLOAT` inlet with no extra adapter:
 
 ```python
 --8<-- "barn/haybale-example/haybale_example/types/specs.py:5:32"
 ```
 
-from: `Temperature` — registry_key: `haybale-example:type:Temperature`
+from: `TEMPERATURE` — registry_key: `haybale-example:type:TEMPERATURE`
 
-**Derived type with widget and enum choices** — `MathOPSelector` extends `STRING` and pins a `MenuWidget` with a fixed option list at the type level:
+**Derived type with widget and enum choices** — `MATH_OPERATION` extends `STRING` and pins a `MenuWidget` with a fixed option list at the type level:
 
 ```python
 --8<-- "barn/haybale-example/haybale_example/types/math.py:21:33"
 ```
 
-from: `MathOPSelector` — registry_key: `haybale-example:type:MathOPSelector`
+from: `MATH_OPERATION` — registry_key: `haybale-example:type:MATH_OPERATION`
 
-**Compound type** — `MapsStringType` is a `CompoundType[T]` for string-keyed maps. Demonstrates the compound category: parameterisable (`MapsStringType[FLOAT]`), custom `field_class` assigned post-definition, no `value` property (compound types are descriptors, not instances):
+**Compound type** — `STRING_MAP` is a `CompoundType[T]` for string-keyed maps. Demonstrates the compound category: parameterisable (`STRING_MAP[FLOAT]`), custom `field_class` assigned post-definition, no `value` property (compound types are descriptors, not instances):
 
 ```python
---8<-- "barn/haybale-example/haybale_example/types/maps_string_type.py:14:52"
+--8<-- "barn/haybale-example/haybale_example/types/string_map.py:14:52"
 ```
 
-from: `MapsStringType` — registry_key: `haybale-example:type:MapsStringType`
+from: `STRING_MAP` — registry_key: `haybale-example:type:STRING_MAP`
 
 **Wrapper type** — `OPTIONAL` is the framework's only `WrapperType`. The whole type is a decorator plus a docstring: `__class_getitem__` on the family base derives the absence-tolerant `field_class`, stamps the merged identity, and refuses to wrap another wrapper:
 
@@ -121,13 +121,13 @@ What these examples exercise:
 
 | Concept | Where it shows up |
 |---|---|
-| `@type` on a derived `PrimitiveType` (FLOAT subclass) | `Temperature` |
-| Inherited widget binding from parent | `Temperature` inherits FLOAT's field |
-| Per-type `widget_key` + `widget_config` | `Temperature`, `MathOPSelector` |
-| `@type` on a derived STRING with enum choices | `MathOPSelector` |
-| `default` as bare value (auto-wrapped to `{'value': ...}`) | `MathOPSelector` |
-| `CompoundType[T]` for parameterisable collection types | `MapsStringType` |
-| `field_class` assigned post-definition | `MapsStringType.field_class = MapsStringField` |
+| `@type` on a derived `PrimitiveType` (FLOAT subclass) | `TEMPERATURE` |
+| Inherited widget binding from parent | `TEMPERATURE` inherits FLOAT's field |
+| Per-type `widget_key` + `widget_config` | `TEMPERATURE`, `MATH_OPERATION` |
+| `@type` on a derived STRING with enum choices | `MATH_OPERATION` |
+| `default` as bare value (auto-wrapped to `{'value': ...}`) | `MATH_OPERATION` |
+| `CompoundType[T]` for parameterisable collection types | `STRING_MAP` |
+| `field_class` assigned post-definition | `STRING_MAP.field_class = MapsStringField` |
 | `WrapperType[T]` for a value-or-absence type | `OPTIONAL` |
 | A value that holds fields (derive from `CARRIER`, set `element_type_cls`, override `empty_value`, pass `hidden=False`) | `BUNDLE` |
 | A field class holding its own copy of a mutable default | `MAT3` |
