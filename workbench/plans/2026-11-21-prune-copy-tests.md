@@ -31,7 +31,26 @@ Date: 2026-11-21 · Branch: `test/prune-copy-tests` · Tests only, no product co
 
 A row can cover several asserts in one test; line numbers are those of `master` at 1b9c74674.
 
-## Decisions for the user
+## Outcome (2026-11-21)
+
+The user's rule: a test never pins wording, error messages included; it may check that a
+message exists and the facts it carries (a path, a name, an id, a count), and names with a
+function (commands, tool and parameter names, error codes, protocol markers). Written into
+[tests/README.md](../../tests/README.md#text-in-tests).
+
+- **G0**: b, all 124 rows loosened to the fact the message carries (the "Reason" column
+  gives each target), or to the exception type where there is none.
+- **G1**: c, defaults kept; the duplicate autorestart line dropped.
+- **G2**: kept, the text is a command or API name.
+- **G3**: Farmhand prose dropped (`kind=`, the error code and the tool name stay); playbook
+  sentences dropped. "Download in browser" in the model tool help stays: it names the button
+  the user must press.
+- **G5**: ssl and share CLI prose dropped (paths, commands, `STOP:`/`STATE:` stay);
+  README labels replaced by the two blocks' URLs. The ssl module docstring no longer claims
+  wording as the requirement.
+- **G4** and the phrase-as-branch-locator keep rows: open, see the PR.
+
+## Decisions for the user (as first proposed)
 
 **G0 — exception and validation messages (124 rows, reverted).** `match="cannot be promoted"`,
 `assert "only outlets" in err`, `match="Illegal cycle detected"` …
