@@ -48,7 +48,10 @@ function (commands, tool and parameter names, error codes, protocol markers). Wr
 - **G5**: ssl and share CLI prose dropped (paths, commands, `STOP:`/`STATE:` stay);
   README labels replaced by the two blocks' URLs. The ssl module docstring no longer claims
   wording as the requirement.
-- **G4** and the phrase-as-branch-locator keep rows: open, see the PR.
+- **G4** and the keep rows that use a phrase to tell outcomes apart or to find an element: c.
+  Where the product has a constant the test uses it (layout submenu `row_label`; the volumes
+  editor compares the modal with the store's own message). The rest have no constant and
+  wait for a stable handle in the product: issue #166.
 
 ## Decisions for the user (as first proposed)
 
