@@ -273,16 +273,5 @@ WORKBENCH = [
 
 #: Deprecated names each module still serves (``_DEPRECATED``), sorted. A name
 #: leaves these lists only in the release its entry names.
-COMPONENT_DEPRECATED: list[str] = [
-    "NOTE_TEXT_WIDGET",
-    "NoteTextWidget",
-    "SELECT_WIDGET",
-    "SIMPLE_LABEL_WIDGET",
-    "SWITCH_WIDGET",
-    "SelectWidget",
-    "SimpleLabelWidget",
-    "SwitchWidget",
-    "VEC_WIDGET",
-    "VecWidget",
-]
+COMPONENT_DEPRECATED: list[str] = []
 WORKBENCH_DEPRECATED: list[str] = []

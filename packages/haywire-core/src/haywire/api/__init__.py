@@ -192,32 +192,7 @@ from haywire.ui.widget.registry import WidgetRegistry
 
 #: Names that left ``__all__`` and are still served, with a notice, until the
 #: release each entry names. ``tests/api/names.py`` lists them too.
-_DEPRECATED: dict[str, DeprecatedName] = {
-    old: DeprecatedName(f"{module}:{new}", f"haywire.api.{new}", "0.7.0")
-    for module, renames in (
-        (
-            "haywire.barn.builtin.widgets",
-            {
-                "NoteTextWidget": "AnnotationTextWidget",
-                "SelectWidget": "MenuWidget",
-                "SimpleLabelWidget": "LabelWidget",
-                "SwitchWidget": "ToggleWidget",
-                "VecWidget": "VectorWidget",
-            },
-        ),
-        (
-            "haywire.barn.builtin.widget_keys",
-            {
-                "NOTE_TEXT_WIDGET": "ANNOTATION_TEXT_WIDGET",
-                "SELECT_WIDGET": "MENU_WIDGET",
-                "SIMPLE_LABEL_WIDGET": "LABEL_WIDGET",
-                "SWITCH_WIDGET": "TOGGLE_WIDGET",
-                "VEC_WIDGET": "VECTOR_WIDGET",
-            },
-        ),
-    )
-    for old, new in renames.items()
-}
+_DEPRECATED: dict[str, DeprecatedName] = {}
 
 
 def __getattr__(name: str):

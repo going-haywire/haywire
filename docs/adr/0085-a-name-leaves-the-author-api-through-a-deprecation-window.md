@@ -35,3 +35,4 @@ level: framework
 - Deprecating a name is three edits: move it from `__all__` to `_DEPRECATED`, and from the name list to the deprecated list in `tests/api/names.py`.
 - A name used through a module attribute at call time (`import haywire.api as api; api.Old` inside a worker) warns but is recorded only when it runs during the module's import.
 - The ledger folds a repeated notice into its unread entry and counts it, so a library reloading often does not flood it.
+- **One-time exception (2026-11-21):** the 0.6 naming release removes the renamed builtin names without a deprecation window. External libraries update before they run on 0.6. See D9 in [the component naming plan](../../workbench/plans/2026-11-21-component-naming-scheme.md).

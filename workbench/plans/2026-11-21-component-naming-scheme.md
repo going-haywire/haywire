@@ -1,6 +1,6 @@
 # Component naming scheme: review and rename plan
 
-Date: 2026-11-21 · Status: decided — D1 A, D2 A, D3 A, D4 A, D5 A, D6 B(b), D7 A (revised: `DEPTH_BUFFER`), D8 A
+Date: 2026-11-21 · Status: decided — D1 A, D2 A, D3 A, D4 A, D5 A, D6 B(b), D7 A (revised: `DEPTH_BUFFER`), D8 A, D9 B
 
 ## 1. What was reviewed
 
@@ -252,7 +252,7 @@ sequenceDiagram
 |---|---|---|
 | **S0** | `docs/reference/component-naming.md` holds §2, linked from the node, datatype and widget canons and from the haybale canon. The glossary's `CALLBACK_<NAME>` rule and the `_FRAME` note get updated. A naming check is added to `haywire docs`' coverage report, so every library, external ones included, sees violations | `haywire docs --all` lists exactly the rows in §3 |
 | **S1** | The rename package gains a key-map mode, `haywire rename --map <file>`. The file lists `[[rename]] old="lib:kind:Name" new="lib:kind:Name"` entries. It matches exact keys in `KEY_FIELDS`/`LIST_KEY_FIELDS`, rewrites `class_name`/`registry_id`/`module` alongside for tidiness, and uses the same discovery, dry run and drift report as today. The map for this release ships in haywire-core, so external libraries can apply it | It migrates a copy of every repo graph, and `haywire verify` passes |
-| **S2** | One PR per library: builtin, haybale-core, audio, image, example + TEST_A, testing. Each PR renames the class and its module, the `widget_keys` constant and the label, then runs `/check-rename`, migrates graphs with S1, runs `haywire docs --all` and the docs bake, then `haywire verify` | CI green, `verify` clean |
+| **S2** | One PR per library: builtin, haybale-core, audio, image, example + TEST_A, testing. Each PR renames the class and its module, the `widget_keys` constant and the label, then runs `/check-rename`, migrates graphs with S1, runs `haywire docs --all` and the docs bake, then `haywire verify`. A renamed `haywire.api` name is removed outright, with no `_DEPRECATED` entry (D9); the barn-lib PRs add no shims either. Each PR adds its own map file to `haywire/core/renames/0.6/` | CI green, `verify` clean |
 | **S3** | `/haywire-release` with a minor bump to 0.6.0, and release notes that list the map | Tag published |
 | **S4** | visiongraph, spandrel, protokol, stream, comfyui: raise `haywire-core>=0.6`, run `haywire rename --map` (the core map plus the lib's own), apply the lib's own renames from §3, regenerate docs, publish. Libraries ship no rename map of their own (decided 2026-11-21): their graphs are migrated once with the core map plus a throwaway entry list; nothing ships. | Each lib's `verify` and CI green |
 | **S5** | The naming check fails CI for in-repo libs, with an allow-list for accepted exceptions (`GraphNode`). For external libs it stays a coverage line | – |
@@ -272,3 +272,4 @@ loader stays as it is.
 | D6 | Widget-node vocabulary | **B(b)** widgets follow the nodes: `SwitchWidget`→`ToggleWidget`, `SelectWidget`→`MenuWidget`, `GateSelectWidget`→`GateMenuWidget` |
 | D7 | `DEPTH` | **A, revised** → `DEPTH_BUFFER` ("Depth Buffer"), which keeps the glossary's depth map/buffer entry true. S2 also changes that entry's `DEPTH` mention to `DEPTH_BUFFER` |
 | D8 | `LIST` beside `ARRAY` | **A** keep both; `LIST` labelled "Untyped List" |
+| D9 | Renamed Author API names (`haywire.api`) | **B** the 0.6 naming release removes old author-API names without a deprecation window, a one-time exception to [ADR 0085](../../docs/adr/0085-a-name-leaves-the-author-api-through-a-deprecation-window.md); external libraries update in S4 before they run on 0.6 |
