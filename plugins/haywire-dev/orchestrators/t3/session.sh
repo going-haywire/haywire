@@ -7,43 +7,28 @@
 
 echo "You run in T3 Code${T3CODE_THREAD_ID:+ as thread \`$T3CODE_THREAD_ID\`}. Message another thread with \`t3_thread_send\` (it arrives as its next input); refer to a thread by its title, the branch for a task. Lead and tasks in T3: \`orchestrators/t3.md\` in the haywire-workflow skill."
 
-command -v jq >/dev/null 2>&1 || exit 0
 dir=$(cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null && pwd -P) || exit 0
-missing=()
+unfinished=""
 
 # In a worktree, the imported setup script has built the environment and given the studio a port.
-# T3's import drops t3.json's `async: false`, so T3 starts the agent alongside that script; wait
+# T3's import drops t3.json's `async: false`, so T3 may start the agent alongside that script; wait
 # here until it is done: the port is the last thing it writes. HAYWIRE_T3_SETUP_WAIT is seconds.
 set_up() {
-  [ -d "$dir/.venv" ] && jq -e '.network.port.value | type == "number"' "$dir/.haywire/settings.json" >/dev/null 2>&1
+  [ -d "$dir/.venv" ] && command -v jq >/dev/null 2>&1 \
+    && jq -e '.network.port.value | type == "number"' "$dir/.haywire/settings.json" >/dev/null 2>&1
 }
 dirs=$(git -C "$dir" rev-parse --path-format=absolute --git-dir --git-common-dir 2>/dev/null)
-if [ -n "$dirs" ] && [ "$(sed -n 1p <<<"$dirs")" != "$(sed -n 2p <<<"$dirs")" ]; then
+if [ -n "$dirs" ] && [ "$(sed -n 1p <<<"$dirs")" != "$(sed -n 2p <<<"$dirs")" ] && command -v jq >/dev/null 2>&1; then
   waited=0
   until set_up || [ "$waited" -ge "${HAYWIRE_T3_SETUP_WAIT:-300}" ]; do
     sleep 1
     waited=$((waited + 1))
   done
-  if ! set_up; then
-    missing+=("the worktree setup did not finish within ${HAYWIRE_T3_SETUP_WAIT:-300} s, most likely because the t3.json scripts are not imported: import all three, *Haywire studio* optional (one click starts this worktree's studio), in *Project settings → Actions → Import scripts → Import from t3.json* (not with \`t3_project_update\`, whose write T3 does not run, pingdotgg/t3code#14991), then set \`async: false\` on *Worktree setup* again, which the import drops (pingdotgg/t3code#40325; the T3 how-to says how); then run \`python3 scripts/worktree_setup.py\` in this worktree now")
-  fi
+  set_up || unfinished="${HAYWIRE_T3_SETUP_WAIT:-300}"
 fi
 
-# T3's own settings file is internal and undocumented: when it is missing or unreadable, say nothing.
-settings="${T3CODE_HOME:-$HOME/.t3}/userdata/settings.json"
-values=$(jq -r '[(.storageCleanup.worktreeOnMerge // false), (.storageCleanup.worktreeKeepWhen // "uncommitted-changes"), (.branchNamingMode // "static")] | map(tostring) | join(" ")' "$settings" 2>/dev/null)
-if [ -n "$values" ]; then
-  read -r on_merge keep_when naming <<<"$values"
-  [ "$on_merge" = "true" ] || missing+=("merged worktrees are not deleted: *Settings → Worktrees → Cleanup → Delete merged worktrees*")
-  [ "$keep_when" = "uncommitted-changes" ] || missing+=("worktrees with local changes are not kept by uncommitted changes: *Settings → Worktrees → Cleanup → Keep worktrees with local changes → Uncommitted changes*")
-  [ "$naming" = "semantic" ] || missing+=("branches are not named by kind: *Settings → Worktrees → Branch naming → semantic*")
-fi
-
-if [ ${#missing[@]} -gt 0 ]; then
-  list=""
-  for item in "${missing[@]}"; do list+="${list:+; }$item"; done
-  echo "T3 setup is incomplete; pass this list to the user in your first reply, before other work: $list."
-  echo "user: T3 setup is incomplete:"
-  for item in "${missing[@]}"; do echo "user: - $item"; done
+# What the T3 setup lacks, from T3's own settings file: doctor.py says it, and fixes it on --fix.
+if command -v python3 >/dev/null 2>&1; then
+  python3 "${BASH_SOURCE[0]%/*}/doctor.py" --hook --repo "$dir" ${unfinished:+--setup-unfinished "$unfinished"}
 fi
 exit 0
