@@ -210,25 +210,25 @@ def test_a_closed_fold_hides_its_children(graph_with_library_system) -> None:
 
 
 def test_mixing_directions_in_one_fold_raises(graph_with_library_system) -> None:
-    from haybale_testing.nodes.testbed.mixed_fold import MixedFoldNode
+    from haybale_testing.nodes.testbed.mixed_fold_probe import MixedFoldProbeNode
 
-    error = _build(graph_with_library_system, MixedFoldNode)
+    error = _build(graph_with_library_system, MixedFoldProbeNode)
     assert isinstance(error, ValueError)
 
 
 def test_a_fold_inside_a_fold_raises(graph_with_library_system) -> None:
     """A fold holds ports, not other folds."""
-    from haybale_testing.nodes.testbed.nested_fold import NestedFoldNode
+    from haybale_testing.nodes.testbed.nested_fold_probe import NestedFoldProbeNode
 
-    error = _build(graph_with_library_system, NestedFoldNode)
+    error = _build(graph_with_library_system, NestedFoldProbeNode)
     assert isinstance(error, ValueError)
 
 
 def test_an_empty_fold_raises(graph_with_library_system) -> None:
     """A fold with nothing inside has no direction to take."""
-    from haybale_testing.nodes.testbed.empty_fold import EmptyFoldNode
+    from haybale_testing.nodes.testbed.empty_fold_probe import EmptyFoldProbeNode
 
-    error = _build(graph_with_library_system, EmptyFoldNode)
+    error = _build(graph_with_library_system, EmptyFoldProbeNode)
     assert isinstance(error, ValueError)
 
 

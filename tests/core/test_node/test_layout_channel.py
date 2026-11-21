@@ -60,10 +60,10 @@ def test_a_channel_names_the_fields():
 @pytest.mark.integration
 @pytest.mark.parametrize("pos", [(0.0, 0.0), (120.5, 40.0)])
 def test_position_of_matches_a_real_serialization(graph_with_library_system, pos):
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
     wrapper = graph_with_library_system.create_node_wrapper(
-        TestPrintNode.class_identity.registry_key, position=(5, 5)
+        PrintProbeNode.class_identity.registry_key, position=(5, 5)
     )
     wrapper.node.props.set_position(pos)
     assert position_of(wrapper.serialize()) == pos

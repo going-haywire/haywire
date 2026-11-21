@@ -1,4 +1,4 @@
-# Bench Loop Raise Node
+# Bench Loop Raise
 
 `haybale-testing:node:BenchLoopRaiseNode` · kind: node
 

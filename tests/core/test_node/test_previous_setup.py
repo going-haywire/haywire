@@ -25,9 +25,9 @@ def ledger():
 
 
 def _print_key() -> str:
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
-    return TestPrintNode.class_identity.registry_key
+    return PrintProbeNode.class_identity.registry_key
 
 
 def _printer(graph: BaseGraph, message: str) -> Any:

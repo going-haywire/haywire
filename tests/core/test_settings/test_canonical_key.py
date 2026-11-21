@@ -97,10 +97,10 @@ def test_inherited_props_bag_is_not_stamped_with_first_node_name():
     by every node class. The old "stamp once, first writer wins" rule keyed every
     node's fields under whichever node class happened to be decorated first.
     """
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
     from haywire.barn.builtin.nodes.reroute import RerouteNode
 
-    for cls in (TestPrintNode, RerouteNode):
+    for cls in (PrintProbeNode, RerouteNode):
         bag_cls = cls._settings_bags["props"]
         for field in ("skin", "locked"):
             # getattr, not __dict__: both fields are declared on the

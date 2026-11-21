@@ -23,9 +23,9 @@ _UNKNOWN = "haybale-testing:node:NoSuchNode"
 
 
 def _print_key() -> str:
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
-    return TestPrintNode.class_identity.registry_key
+    return PrintProbeNode.class_identity.registry_key
 
 
 def _load(data: dict) -> BaseGraph:
@@ -108,10 +108,10 @@ def test_a_moved_stand_in_saves_its_new_position(graph_with_library_system, cons
 
 
 def test_an_unknown_class_keeps_its_settings_and_identity(graph_with_library_system):
-    from haybale_testing.nodes.testbed.settings_node import SettingsNode
+    from haybale_testing.nodes.testbed.settings_probe import SettingsProbeNode
 
     wrapper = graph_with_library_system.create_node_wrapper(
-        SettingsNode.class_identity.registry_key, position=(1.0, 2.0)
+        SettingsProbeNode.class_identity.registry_key, position=(1.0, 2.0)
     )
     data = graph_with_library_system.to_dict()
     original = copy.deepcopy(data["nodes"][wrapper.node_id]["node_data"])
@@ -168,7 +168,7 @@ def test_an_unknown_class_keeps_its_own_copy_of_the_loaded_data(graph_with_libra
 
 
 def test_an_edge_survives_break_and_fix(graph_with_library_system, construction_fails):
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
     graph = graph_with_library_system
     source, sink = _two_nodes(graph)
@@ -184,14 +184,14 @@ def test_an_edge_survives_break_and_fix(graph_with_library_system, construction_
 
     _reset(graph, sink.node_id)
 
-    assert isinstance(sink.node, TestPrintNode)
+    assert isinstance(sink.node, PrintProbeNode)
     kept = graph.edge_wrappers[edge.edge_id]
     assert (kept.outlet_port_id, kept.inlet_port_id) == ("done", "exec")
     assert kept.is_valid()
 
 
 def test_a_label_and_move_on_a_stand_in_survive_the_fix(graph_with_library_system, construction_fails):
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
     graph = graph_with_library_system
     wrapper = graph.create_node_wrapper(_print_key(), position=(10.0, 10.0))
@@ -203,13 +203,13 @@ def test_a_label_and_move_on_a_stand_in_survive_the_fix(graph_with_library_syste
     graph.move_node(wrapper.node_id, 640.0, 320.0)
     _reset(graph, wrapper.node_id)
 
-    assert isinstance(wrapper.node, TestPrintNode)
+    assert isinstance(wrapper.node, PrintProbeNode)
     assert wrapper.node.props.label == "Renamed"
     assert wrapper.node.props.get_position() == (640.0, 320.0)
 
 
 def test_a_failed_rebuild_keeps_the_values_for_the_fix(graph_with_library_system, construction_fails):
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
     graph = graph_with_library_system
     wrapper = graph.create_node_wrapper(_print_key(), position=(10.0, 10.0))
@@ -223,7 +223,7 @@ def test_a_failed_rebuild_keeps_the_values_for_the_fix(graph_with_library_system
 
     _reset(graph, wrapper.node_id)
 
-    assert isinstance(wrapper.node, TestPrintNode)
+    assert isinstance(wrapper.node, PrintProbeNode)
     assert not wrapper.is_stand_in
     assert wrapper._kept_data is None
     assert wrapper.node.ports["message"].get_value() == "kept"
@@ -278,7 +278,7 @@ def test_a_pasted_stand_in_carries_the_original_data(
 
 def test_a_node_that_cannot_serialize_still_rebuilds(graph_with_library_system, monkeypatch):
     """A stand-in's data is captured before every rebuild; a failed capture must not stop one."""
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
     graph = graph_with_library_system
     wrapper = graph.create_node_wrapper(_print_key(), position=(10.0, 10.0))
@@ -287,11 +287,11 @@ def test_a_node_that_cannot_serialize_still_rebuilds(graph_with_library_system, 
     def broken_to_dict(self, include_data=True):
         raise RuntimeError("cannot serialize")
 
-    monkeypatch.setattr(TestPrintNode, "_to_dict", broken_to_dict)
+    monkeypatch.setattr(PrintProbeNode, "_to_dict", broken_to_dict)
     _reset(graph, wrapper.node_id)
 
     assert wrapper.node is not old
-    assert isinstance(wrapper.node, TestPrintNode)
+    assert isinstance(wrapper.node, PrintProbeNode)
 
 
 def test_a_pasted_group_stand_in_gets_a_subgraph_of_its_own(

@@ -34,7 +34,7 @@ from haywire.ui.widget.factory import _widget_model_for
 
 from tests.conftest import edit_route
 
-SETTINGS_NODE = "haybale-testing:node:SettingsNode"
+SETTINGS_NODE = "haybale-testing:node:SettingsProbeNode"
 
 
 def _card_model(graph: BaseGraph, port: Any) -> Any:
@@ -43,7 +43,7 @@ def _card_model(graph: BaseGraph, port: Any) -> Any:
 
 
 def _promoted(graph: BaseGraph, field: str, direction: PortType) -> tuple[Any, Any]:
-    """A SettingsNode with ``example.<field>`` promoted; returns (node, port)."""
+    """A SettingsProbeNode with ``example.<field>`` promoted; returns (node, port)."""
     wrapper = graph.create_node_wrapper(SETTINGS_NODE, position=(0, 0))
     assert wrapper is not None
     node: Any = wrapper.node

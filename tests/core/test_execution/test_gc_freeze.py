@@ -74,9 +74,9 @@ def test_an_unpaired_release_changes_nothing():
 def test_an_interpreter_holds_the_freeze_between_start_and_stop(
     graph_with_library_system: BaseGraph, library_system: LibrarySystemService
 ):
-    from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode
+    from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
 
-    make_node(graph_with_library_system, TestBeginPlayNode.class_identity.registry_key, position=(0, 0))
+    make_node(graph_with_library_system, BeginPlayProbeNode.class_identity.registry_key, position=(0, 0))
     interpreter = Interpreter()
     interpreter.load_graph(graph_with_library_system)
 
@@ -95,9 +95,9 @@ def test_an_interpreter_holds_the_freeze_between_start_and_stop(
 def test_shutdown_releases_a_freeze_that_was_not_stopped(
     graph_with_library_system: BaseGraph, library_system: LibrarySystemService
 ):
-    from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode
+    from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
 
-    make_node(graph_with_library_system, TestBeginPlayNode.class_identity.registry_key, position=(0, 0))
+    make_node(graph_with_library_system, BeginPlayProbeNode.class_identity.registry_key, position=(0, 0))
     interpreter = Interpreter()
     interpreter.load_graph(graph_with_library_system)
     interpreter.start_execution()

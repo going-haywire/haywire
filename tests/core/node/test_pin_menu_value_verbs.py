@@ -35,7 +35,7 @@ from haywire.ui.widget.factory import _widget_model_for
 
 from tests.conftest import edit_route
 
-SETTINGS_NODE = "haybale-testing:node:SettingsNode"
+SETTINGS_NODE = "haybale-testing:node:SettingsProbeNode"
 
 
 def _ctx(port: Any, node_wrapper: Any) -> SessionContext:

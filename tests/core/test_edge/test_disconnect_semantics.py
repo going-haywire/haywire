@@ -13,11 +13,11 @@ pytestmark = pytest.mark.integration
 
 def _callback_pair(graph):
     """Create an event node and an emit node joined by a direct callback edge."""
-    from haybale_testing.nodes.testbed.custom_callback_node import TestCustomCallbackNode
-    from haybale_testing.nodes.testbed.emit_callback_node import TestEmitCallbackNode
+    from haybale_testing.nodes.testbed.callback_event_probe import CallbackEventProbeNode
+    from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
 
-    event = graph.create_node_wrapper(TestCustomCallbackNode.class_identity.registry_key, position=(0, 0))
-    emit = graph.create_node_wrapper(TestEmitCallbackNode.class_identity.registry_key, position=(400, 0))
+    event = graph.create_node_wrapper(CallbackEventProbeNode.class_identity.registry_key, position=(0, 0))
+    emit = graph.create_node_wrapper(CallbackEmitProbeNode.class_identity.registry_key, position=(400, 0))
     edge = graph.create_edge_wrapper(event.node_id, "listen_callback", emit.node_id, "edge_callback")
     return event, emit, edge
 
@@ -45,10 +45,10 @@ def _split_with_reroute(graph, edge_id: str) -> str:
 
 
 def test_unlinked_inlet_shows_the_value_it_had_before_linking(graph_with_library_system, library_system):
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
     graph = graph_with_library_system
-    key = TestAddFloatNode.class_identity.registry_key
+    key = AddFloatProbeNode.class_identity.registry_key
     source = graph.create_node_wrapper(key, position=(0, 0))
     sink = graph.create_node_wrapper(key, position=(300, 0))
     inlet = sink.node.ports["value_a"]
@@ -66,12 +66,12 @@ def test_unlinked_inlet_shows_the_value_it_had_before_linking(graph_with_library
 
 
 def test_linked_promoted_setting_saves_the_users_value(graph_with_library_system, library_system):
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
     from haywire.core.node.promotion import promote_setting
 
     graph = graph_with_library_system
-    source = graph.create_node_wrapper(TestAddFloatNode.class_identity.registry_key, position=(0, 0))
-    sink = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(300, 0))
+    source = graph.create_node_wrapper(AddFloatProbeNode.class_identity.registry_key, position=(0, 0))
+    sink = graph.create_node_wrapper("haybale-testing:node:SettingsProbeNode", position=(300, 0))
     node = sink.node
 
     node.example.example_float = 0.25  # the user's setting value
@@ -85,7 +85,7 @@ def test_linked_promoted_setting_saves_the_users_value(graph_with_library_system
     assert node.example.example_float == 0.875  # while linked, the edge drives the setting
 
     saved = node._to_dict()
-    reloaded = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(600, 0)).node
+    reloaded = graph.create_node_wrapper("haybale-testing:node:SettingsProbeNode", position=(600, 0)).node
     reloaded._initialize_from_dict(saved)
 
     assert reloaded.example.example_float == 0.25
@@ -129,10 +129,13 @@ def test_removing_the_edge_before_a_reroute_unsubscribes_the_emit_node(
 
 def _record_pair(graph):
     """Create a record event node and a record emit node joined by a direct callback edge."""
-    from haybale_testing.nodes.testbed.record_callback_nodes import TestRecordEmitNode, TestRecordEventNode
+    from haybale_testing.nodes.testbed.record_callback_probes import (
+        RecordEmitProbeNode,
+        RecordEventProbeNode,
+    )
 
-    event = graph.create_node_wrapper(TestRecordEventNode.class_identity.registry_key, position=(0, 0))
-    emit = graph.create_node_wrapper(TestRecordEmitNode.class_identity.registry_key, position=(400, 0))
+    event = graph.create_node_wrapper(RecordEventProbeNode.class_identity.registry_key, position=(0, 0))
+    emit = graph.create_node_wrapper(RecordEmitProbeNode.class_identity.registry_key, position=(400, 0))
     edge = graph.create_edge_wrapper(event.node_id, "subscription", emit.node_id, "subscriptions")
     return event, emit, edge
 
@@ -140,12 +143,12 @@ def _record_pair(graph):
 def test_a_displaced_edge_taking_over_keeps_the_emit_node_subscribed(
     graph_with_library_system, library_system
 ):
-    from haybale_testing.nodes.testbed.custom_callback_node import TestCustomCallbackNode
+    from haybale_testing.nodes.testbed.callback_event_probe import CallbackEventProbeNode
 
     graph = graph_with_library_system
     first, emit, edge = _callback_pair(graph)
     reroute_id = _split_with_reroute(graph, edge.edge_id)
-    second = graph.create_node_wrapper(TestCustomCallbackNode.class_identity.registry_key, position=(0, 200))
+    second = graph.create_node_wrapper(CallbackEventProbeNode.class_identity.registry_key, position=(0, 200))
     newer = graph.create_edge_wrapper(second.node_id, "listen_callback", reroute_id, "in")
     assert _subscriptions(emit) == [second.node.value("listen_callback")]
     seen: list = []

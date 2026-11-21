@@ -9,7 +9,7 @@ from haywire.api import EXEC, FLOAT, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(
-    label="Bench Sink Node",
+    label="Bench Sink",
     description="FROZEN: control node with one data inlet, ending the branch.",
     menu="testing/benchmark",
     search_tags=["benchmark", "frozen", "control", "sink"],

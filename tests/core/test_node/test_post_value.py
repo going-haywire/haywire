@@ -14,10 +14,10 @@ pytestmark = pytest.mark.integration
 
 
 def _add_node(graph: BaseGraph):
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
-    wrapper = make_node(graph, TestAddFloatNode.class_identity.registry_key)
-    assert isinstance(wrapper.node, TestAddFloatNode)
+    wrapper = make_node(graph, AddFloatProbeNode.class_identity.registry_key)
+    assert isinstance(wrapper.node, AddFloatProbeNode)
     return wrapper.node
 
 

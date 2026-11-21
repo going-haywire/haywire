@@ -27,13 +27,13 @@ def ctx(library_system, nicegui_slot_context):
 
 
 def _wrapper(graph):
-    from haybale_testing.nodes.testbed.display_node import DisplayNode
+    from haybale_testing.nodes.testbed.display_probe import DisplayProbeNode
 
     from haywire.barn.builtin.types import ANNOTATION, EXEC, FLOAT
 
-    wrapper = graph.create_node_wrapper(DisplayNode.class_identity.registry_key, position=(0, 0))
+    wrapper = graph.create_node_wrapper(DisplayProbeNode.class_identity.registry_key, position=(0, 0))
     assert wrapper is not None
-    # DisplayNode's own widget keys name a library that is not loaded, so give it
+    # DisplayProbeNode's own widget keys name a library that is not loaded, so give it
     # an inlet with a widget that resolves.
     wrapper.node.add(FLOAT.as_inlet("x", default=1.0, widget_key="haywire-core:widget:NumberWidget"))
     wrapper.node.add(EXEC.as_inlet("flow"))
@@ -231,8 +231,8 @@ def test_a_reroute_on_a_non_annotation_wire_draws_no_pins_on_stage(ctx, library_
 
     _skin_factory, graph = ctx
     editor = Editor(graph, library_system.get_node_factory())
-    source = make_node(graph, "haybale-testing:node:TestAddFloatNode", position=(0, 0))
-    sink = make_node(graph, "haybale-testing:node:TestAddFloatNode", position=(300, 0))
+    source = make_node(graph, "haybale-testing:node:AddFloatProbeNode", position=(0, 0))
+    sink = make_node(graph, "haybale-testing:node:AddFloatProbeNode", position=(300, 0))
     edge = make_edge(graph, source.node_id, "result", sink.node_id, "value_a")
 
     reroute_id = _split(editor, edge.edge_id, STAGE)

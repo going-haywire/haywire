@@ -66,7 +66,7 @@ def test_edges_waiting_on_pins_added_one_after_another_validate(library_system) 
     The edges exist before their pins, as after a load or an undo, and no other pass runs
     between the two additions: a flag left set by the first would swallow the second.
     """
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
     from haywire.barn.builtin.types import FLOAT
     from haywire.core.graph.base import BaseGraph
@@ -76,9 +76,9 @@ def test_edges_waiting_on_pins_added_one_after_another_validate(library_system) 
 
     graph = BaseGraph(filestem="inline", validation_scheduler=SyncScheduler())
     try:
-        key = TestAddFloatNode.class_identity.registry_key
+        key = AddFloatProbeNode.class_identity.registry_key
         source, sink = make_node(graph, key), make_node(graph, key)
-        assert isinstance(sink.node, TestAddFloatNode)
+        assert isinstance(sink.node, AddFloatProbeNode)
         graph.force_validation()
 
         pins = ["late_0", "late_1"]

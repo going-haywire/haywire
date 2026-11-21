@@ -10,8 +10,8 @@ from typing import Any
 
 from tests.conftest import make_node
 
-LISTEN = "haybale-testing:node:TestCustomCallbackNode"
-EMIT = "haybale-testing:node:TestEmitCallbackNode"
+LISTEN = "haybale-testing:node:CallbackEventProbeNode"
+EMIT = "haybale-testing:node:CallbackEmitProbeNode"
 INPUT = "haywire-core:node:SubgraphInputNode"
 OUTPUT = "haywire-core:node:SubgraphOutputNode"
 CARD = "haywire-core:node:GraphNode"

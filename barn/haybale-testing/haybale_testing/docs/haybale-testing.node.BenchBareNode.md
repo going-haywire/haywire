@@ -1,4 +1,4 @@
-# Bench Bare Node
+# Bench Bare
 
 `haybale-testing:node:BenchBareNode` · kind: node
 

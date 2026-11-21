@@ -344,9 +344,9 @@ class TestSplitEdgeRerouteIntegration:
     """Execute a real split against a live graph with real nodes/edges/types."""
 
     def _two_connected_nodes(self, graph):
-        from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+        from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
-        key = TestAddFloatNode.class_identity.registry_key
+        key = AddFloatProbeNode.class_identity.registry_key
         node_a = graph.create_node_wrapper(key, position=(100, 100))
         node_b = graph.create_node_wrapper(key, position=(300, 100))
         edge = graph.create_edge_wrapper(node_a.node_id, "result", node_b.node_id, "value_a")
@@ -404,13 +404,13 @@ class TestSplitEdgeRerouteIntegration:
         """Splitting a CONTROL edge inserts a reroute with EXEC inlet/outlet."""
         from haywire.barn.builtin.types import EXEC
         from haywire.core.undo.actions.graph_actions import SplitEdgeWithRerouteAction
-        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode
-        from haybale_testing.nodes.testbed.print_node import TestPrintNode
+        from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
+        from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
         graph = graph_with_library_system
 
-        begin_key = TestBeginPlayNode.class_identity.registry_key
-        print_key = TestPrintNode.class_identity.registry_key
+        begin_key = BeginPlayProbeNode.class_identity.registry_key
+        print_key = PrintProbeNode.class_identity.registry_key
 
         begin = graph.create_node_wrapper(begin_key, position=(100, 100))
         print_node = graph.create_node_wrapper(print_key, position=(300, 100))

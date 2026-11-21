@@ -37,7 +37,7 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.node.promotion import promote_setting
 from haywire.core.types.enums import PortType
 
-SETTINGS_NODE = "haybale-testing:node:SettingsNode"
+SETTINGS_NODE = "haybale-testing:node:SettingsProbeNode"
 
 
 def _storage_key(node, accessor: str, field: str) -> str:
@@ -52,7 +52,7 @@ def _promote(node, field: str, direction: PortType) -> str:
 
 def _settings_node(graph: BaseGraph, x: float):
     wrapper = graph.create_node_wrapper(SETTINGS_NODE, position=(x, 0))
-    assert wrapper is not None, "SettingsNode creation failed"
+    assert wrapper is not None, "SettingsProbeNode creation failed"
     return wrapper
 
 

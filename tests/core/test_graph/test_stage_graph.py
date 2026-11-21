@@ -14,9 +14,9 @@ pytestmark = pytest.mark.integration
 
 
 def _key() -> str:
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
-    return TestPrintNode.class_identity.registry_key
+    return PrintProbeNode.class_identity.registry_key
 
 
 def _editor(graph, library_system) -> Editor:
@@ -257,7 +257,7 @@ def test_remove_from_stage_keeps_the_stage_rect(graph_with_library_system, libra
 
 
 def test_stage_takes_annotation_edges_only(graph_with_library_system):
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
     from haywire.barn.builtin.nodes.annotation import AnnotationNode
     from haywire.core.graph.stage import stage_takes_edge
@@ -265,8 +265,8 @@ def test_stage_takes_annotation_edges_only(graph_with_library_system):
     graph = graph_with_library_system
     a = graph.create_node_wrapper(AnnotationNode.class_identity.registry_key, position=(0, 0))
     b = graph.create_node_wrapper(AnnotationNode.class_identity.registry_key, position=(400, 0))
-    x = graph.create_node_wrapper(TestAddFloatNode.class_identity.registry_key, position=(0, 300))
-    y = graph.create_node_wrapper(TestAddFloatNode.class_identity.registry_key, position=(400, 300))
+    x = graph.create_node_wrapper(AddFloatProbeNode.class_identity.registry_key, position=(0, 300))
+    y = graph.create_node_wrapper(AddFloatProbeNode.class_identity.registry_key, position=(400, 300))
     for wrapper in (a, b, x, y):
         assert wrapper is not None
 

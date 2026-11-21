@@ -203,7 +203,7 @@ def test_saving_ends_the_merge_run(state, tmp_path, library_system):
             library_system.get_node_factory(),
             undo_config=UndoConfig(enable_auto_grouping=False, enable_action_merging=True),
         )
-        wrapper = make_node(graph, "haybale-testing:node:TestAddFloatNode")
+        wrapper = make_node(graph, "haybale-testing:node:AddFloatProbeNode")
         port = wrapper.node.ports["value_a"]
         route = EditRoute(lambda: editor, lambda: LevelMode.EDIT)
         entry = MagicMock()

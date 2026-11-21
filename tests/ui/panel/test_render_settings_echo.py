@@ -11,14 +11,14 @@ import pytest
 
 
 from haywire.core.settings import SettingsRegistry
-from haybale_testing.nodes.testbed.settings_node import SettingsNode
+from haybale_testing.nodes.testbed.settings_probe import SettingsProbeNode
 
 pytestmark = pytest.mark.unit
 
 
 @pytest.fixture
 def settings_registry():
-    """A bare SettingsRegistry for constructing a SettingsNode.example bag.
+    """A bare SettingsRegistry for constructing a SettingsProbeNode.example bag.
 
     example_string / persistent_value are plain ``setting`` fields (not registry-
     backed), so they exercise the base ``setting.__set__`` value-equality
@@ -29,7 +29,7 @@ def settings_registry():
 
 def test_setting_write_of_equal_value_does_not_refire(settings_registry):
     """Writing the current value back fires NO change callback (loop terminator)."""
-    bag = SettingsNode.example(registry=settings_registry)
+    bag = SettingsProbeNode.example(registry=settings_registry)
     calls = []
     bag._subscribe(lambda name, value, old: calls.append((name, value)))
 
@@ -42,7 +42,7 @@ def test_setting_write_of_equal_value_does_not_refire(settings_registry):
 
 def test_distinct_then_equal_write_fires_exactly_once(settings_registry):
     """A change then a redundant write yields exactly one callback per real change."""
-    bag = SettingsNode.example(registry=settings_registry)
+    bag = SettingsProbeNode.example(registry=settings_registry)
     calls = []
     bag._subscribe(lambda name, value, old: calls.append(value))
 

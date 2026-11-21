@@ -73,7 +73,7 @@ def test_right_click_on_a_pin_opens_the_pin_menu(page: Page, harness):
     data-hw-menu-surface-id) opens PinMenu — proven by ``PinEditMenuPanel``'s
     "Edit Source" row, which is only ever drawn on that surface."""
     _open(page, harness)
-    pos = _pin_center(page, "exec@TestBeginPlay")
+    pos = _pin_center(page, "exec@BeginPlayProbe")
 
     page.mouse.click(pos["x"], pos["y"], button="right")
     _wait_for_text(page, "Edit Source", exact=True)
@@ -96,7 +96,7 @@ def test_right_click_on_a_node_body_still_opens_the_selection_menu(page: Page, h
     menu — the pin branch (checked first, since a pin sits inside a node)
     must not swallow the node case."""
     _open(page, harness)
-    pos = _node_body_center(page, "TestBeginPlay")
+    pos = _node_body_center(page, "BeginPlayProbe")
 
     page.mouse.click(pos["x"], pos["y"], button="right")
     _wait_for_text(page, "Copy", exact=False)

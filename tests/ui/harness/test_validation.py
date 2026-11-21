@@ -7,7 +7,7 @@ from playwright.sync_api import Page, expect
 
 from tests.ui.harness.nav import goto_ready
 
-_NODE_PATH = "/node?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example"
+_NODE_PATH = "/node?class=haybale_testing.nodes.testbed.settings_probe.SettingsProbeNode&bag=example"
 
 pytestmark = pytest.mark.ui
 

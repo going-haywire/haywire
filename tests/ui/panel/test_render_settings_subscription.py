@@ -23,7 +23,7 @@ from nicegui.page import page as page_deco
 
 from haywire.core.settings import SettingsRegistry
 from haywire.ui.panel.render_utils import render_settings
-from haybale_testing.nodes.testbed.settings_node import SettingsNode
+from haybale_testing.nodes.testbed.settings_probe import SettingsProbeNode
 
 from tests.ui.panel.render_ctx import make_render_ctx
 
@@ -42,8 +42,8 @@ def client() -> Client:
 
 
 def _make_bag():
-    """Construct the SettingsNode 'example' settings bag on a bare registry."""
-    return SettingsNode.example(registry=SettingsRegistry())
+    """Construct the SettingsProbeNode 'example' settings bag on a bare registry."""
+    return SettingsProbeNode.example(registry=SettingsRegistry())
 
 
 def test_render_subscribes_exactly_one_callback(client: Client):

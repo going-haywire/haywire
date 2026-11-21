@@ -26,7 +26,7 @@ def ledger():
 
 @pytest.fixture
 def setup(graph_with_library_system, library_system):
-    """An Add Port TestNode with two grown ``Str`` pins, each fed, and the first one's note fed too."""
+    """An Add Port Probe with two grown ``Str`` pins, each fed, and the first one's note fed too."""
     graph = graph_with_library_system
     source = _make_link_node(graph, (0, 0))
     target = _make_add_node(graph, (300, 0))

@@ -26,8 +26,8 @@ from tests.ui.panel.render_ctx import make_render_ctx
 
 pytestmark = pytest.mark.integration
 
-_ADD = "haybale-testing:node:TestAddFloatNode"
-_SETTINGS_NODE = "haybale-testing:node:SettingsNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
+_SETTINGS_NODE = "haybale-testing:node:SettingsProbeNode"
 _REPO = Path(__file__).resolve().parents[3]
 
 

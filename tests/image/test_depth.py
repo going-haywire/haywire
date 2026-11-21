@@ -2,7 +2,7 @@
 
 import numpy as np
 import pytest
-from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
 
 from haywire.barn.builtin.carrier import CarrierValue
 from haywire.barn.builtin.types import CARRIER, FLOAT
@@ -49,7 +49,7 @@ def test_depth_reaches_a_carrier_inlet_but_not_an_image_inlet(
     graph_with_library_system, library_system, inlet_type, connects
 ):
     graph = graph_with_library_system
-    key = EdgeLinkTestNode.class_identity.registry_key
+    key = EdgeLinkProbeNode.class_identity.registry_key
     source = graph.create_node_wrapper(key, position=(0, 0))
     sink = graph.create_node_wrapper(key, position=(300, 0))
     source.node.add(DEPTH.as_outlet("depth_src"))

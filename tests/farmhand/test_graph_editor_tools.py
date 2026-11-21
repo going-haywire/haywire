@@ -9,7 +9,7 @@ from tests.farmhand.conftest import call_tool_json
 pytestmark = pytest.mark.integration
 
 NODE_KEY = "haybale-example:node:MathOP"  # a registered node with FLOAT data inlets
-CALLBACK_NODE_KEY = "haybale-testing:node:EdgeLinkTestNode"  # has callback_outlet + callback_inlet
+CALLBACK_NODE_KEY = "haybale-testing:node:EdgeLinkProbeNode"  # has callback_outlet + callback_inlet
 
 
 @pytest.fixture(autouse=True)
@@ -397,7 +397,7 @@ def test_unknown_graph_is_stable_error(farmhand_call):
 # haybale-graph-editor_inspect_node
 # ---------------------------------------------------------------------------
 
-SETTINGS_NODE_KEY = "haybale-testing:node:SettingsNode"  # exercises every setting() flavour
+SETTINGS_NODE_KEY = "haybale-testing:node:SettingsProbeNode"  # exercises every setting() flavour
 
 
 def _inspect(farmhand_call, bid, node_id, get, **kwargs):
@@ -474,7 +474,7 @@ def test_inspect_info_is_the_default_and_carries_no_values(farmhand_call):
     try:
         node_id = _add(farmhand_call, bid)
         result = _inspect(farmhand_call, bid, node_id, ["settings"])  # no data= -> info
-        # Nested bag -> category -> rows; SettingsNode has one author bag.
+        # Nested bag -> category -> rows; SettingsProbeNode has one author bag.
         assert set(result["settings"]) == {"example"}
         assert set(result["settings"]["example"]) >= {"type", "stored", "mirrors", "validator"}
 
@@ -1276,7 +1276,7 @@ def test_promote_is_one_undo_step(farmhand_call):
             _call(
                 farmhand_call,
                 "haybale-graph-editor_add_node",
-                {"binding_id": bid, "registry_key": "haybale-testing:node:SettingsNode"},
+                {"binding_id": bid, "registry_key": "haybale-testing:node:SettingsProbeNode"},
             )
         )["node_id"]
         editor = _live_editor(bid)
@@ -1306,7 +1306,7 @@ def test_demote_is_one_undo_step(farmhand_call):
             _call(
                 farmhand_call,
                 "haybale-graph-editor_add_node",
-                {"binding_id": bid, "registry_key": "haybale-testing:node:SettingsNode"},
+                {"binding_id": bid, "registry_key": "haybale-testing:node:SettingsProbeNode"},
             )
         )["node_id"]
         editor = _live_editor(bid)

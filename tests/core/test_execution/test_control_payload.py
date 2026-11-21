@@ -22,11 +22,11 @@ from tests.conftest import make_edge, make_node
 @pytest.mark.integration
 class TestControlPayload:
     def _exec_linked_nodes(self, graph: BaseGraph):
-        """Two EdgeLinkTestNodes wired source.execute_out → sink.execute_inlet."""
-        from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+        """Two EdgeLinkProbeNodes wired source.execute_out → sink.execute_inlet."""
+        from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
 
-        source = make_node(graph, EdgeLinkTestNode.class_identity.registry_key, position=(100, 100))
-        sink = make_node(graph, EdgeLinkTestNode.class_identity.registry_key, position=(300, 100))
+        source = make_node(graph, EdgeLinkProbeNode.class_identity.registry_key, position=(100, 100))
+        sink = make_node(graph, EdgeLinkProbeNode.class_identity.registry_key, position=(300, 100))
         edge = make_edge(graph, source.node_id, "execute_out", sink.node_id, "execute_inlet")
         return source, sink, edge
 
@@ -66,19 +66,19 @@ class TestControlPayload:
 class TestControlPayloadEndToEnd:
     """Run a real assembled flow and watch a payload travel down EXEC edges.
 
-    Chain: TestBeginPlay → conduit_a → conduit_b → sink, all wired exec→exec.
+    Chain: BeginPlayProbe → conduit_a → conduit_b → sink, all wired exec→exec.
     Nodes must explicitly write their outlet via ``out()`` to propagate a payload;
     there is no automatic transparent-conduit fallback.
     """
 
     def _build_chain(self, graph: BaseGraph):
-        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode
-        from haybale_testing.nodes.testbed.control_payload_node import ControlPayloadTestNode
+        from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
+        from haybale_testing.nodes.testbed.control_payload_probe import ControlPayloadProbeNode
 
-        begin = make_node(graph, TestBeginPlayNode.class_identity.registry_key, position=(0, 0))
-        conduit_a = make_node(graph, ControlPayloadTestNode.class_identity.registry_key, position=(200, 0))
-        conduit_b = make_node(graph, ControlPayloadTestNode.class_identity.registry_key, position=(400, 0))
-        sink = make_node(graph, ControlPayloadTestNode.class_identity.registry_key, position=(600, 0))
+        begin = make_node(graph, BeginPlayProbeNode.class_identity.registry_key, position=(0, 0))
+        conduit_a = make_node(graph, ControlPayloadProbeNode.class_identity.registry_key, position=(200, 0))
+        conduit_b = make_node(graph, ControlPayloadProbeNode.class_identity.registry_key, position=(400, 0))
+        sink = make_node(graph, ControlPayloadProbeNode.class_identity.registry_key, position=(600, 0))
 
         make_edge(graph, begin.node_id, "exec", conduit_a.node_id, "exec_in")
         make_edge(graph, conduit_a.node_id, "exec_out", conduit_b.node_id, "exec_in")

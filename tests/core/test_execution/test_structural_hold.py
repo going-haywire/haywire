@@ -1,6 +1,6 @@
 """Structural validation batches wait for the frame barrier (ADR 0064).
 
-A RecordEvent A drives a ``ControlPayloadTestNode`` X; X's ``on_validate``
+A RecordEvent A drives a ``ControlPayloadProbeNode`` X; X's ``on_validate``
 parks a frame on an ``Event`` so a batch can be scheduled while it runs. The
 graph is built on the fixture's ``SyncScheduler`` and then switched to a
 ``ThreadingTimerScheduler`` so batches run on their own thread.
@@ -25,14 +25,14 @@ pytestmark = pytest.mark.integration
 
 class _Rig:
     def __init__(self, graph: BaseGraph, timer: bool = True):
-        from haybale_testing.nodes.testbed.control_payload_node import ControlPayloadTestNode
-        from haybale_testing.nodes.testbed.record_callback_nodes import TestRecordEventNode
+        from haybale_testing.nodes.testbed.control_payload_probe import ControlPayloadProbeNode
+        from haybale_testing.nodes.testbed.record_callback_probes import RecordEventProbeNode
 
         self.graph = graph
-        self.a = make_node(graph, TestRecordEventNode.class_identity.registry_key, position=(0, 0))
-        self.x = make_node(graph, ControlPayloadTestNode.class_identity.registry_key, position=(300, 0))
-        assert isinstance(self.a.node, TestRecordEventNode)
-        assert isinstance(self.x.node, ControlPayloadTestNode)
+        self.a = make_node(graph, RecordEventProbeNode.class_identity.registry_key, position=(0, 0))
+        self.x = make_node(graph, ControlPayloadProbeNode.class_identity.registry_key, position=(300, 0))
+        assert isinstance(self.a.node, RecordEventProbeNode)
+        assert isinstance(self.x.node, ControlPayloadProbeNode)
         make_edge(graph, self.a.node_id, "triggered", self.x.node_id, "exec_in")
 
         self.order: List[str] = []

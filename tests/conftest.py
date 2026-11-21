@@ -709,10 +709,10 @@ def run_frame(graph: "BaseGraph") -> None:
 
 @pytest.fixture
 def construction_fails(monkeypatch):
-    """Make ``TestPrintNode`` construction raise for the next ``n`` calls (``arm(n)``)."""
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    """Make ``PrintProbeNode`` construction raise for the next ``n`` calls (``arm(n)``)."""
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
-    original = TestPrintNode.__init__
+    original = PrintProbeNode.__init__
     state = {"left": 0}
 
     def flaky(self, *args, **kwargs):
@@ -721,7 +721,7 @@ def construction_fails(monkeypatch):
             raise RuntimeError("construction failed")
         original(self, *args, **kwargs)
 
-    monkeypatch.setattr(TestPrintNode, "__init__", flaky)
+    monkeypatch.setattr(PrintProbeNode, "__init__", flaky)
 
     def arm(n: int = 1) -> None:
         state["left"] = n

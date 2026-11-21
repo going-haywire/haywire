@@ -1,5 +1,5 @@
 """
-Integration tests for edge connections using EdgeLinkTestNode.
+Integration tests for edge connections using EdgeLinkProbeNode.
 
 Tests connection behaviors between different port types:
 - Data inlet many-to-one (replacement) and many-to-many (pooled)
@@ -18,15 +18,15 @@ from haywire.core.types import Propagation
 
 
 def _make_node(graph: BaseGraph, position: tuple[float, float]) -> NodeWrapper:
-    """Create one EdgeLinkTestNode, failing loudly if the factory returns None.
+    """Create one EdgeLinkProbeNode, failing loudly if the factory returns None.
 
     ``create_node_wrapper`` is Optional-returning; every test here treats a
     failed creation as a broken precondition rather than a scenario, so narrow
     it once with a clear message instead of dereferencing None downstream.
     """
-    from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+    from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
 
-    wrapper = graph.create_node_wrapper(EdgeLinkTestNode.class_identity.registry_key, position=position)
+    wrapper = graph.create_node_wrapper(EdgeLinkProbeNode.class_identity.registry_key, position=position)
     assert wrapper is not None, f"node creation failed at {position}"
     return wrapper
 
@@ -57,18 +57,18 @@ def _link(
 
 @pytest.mark.integration
 class TestEdges:
-    """Test edge connection behaviors using EdgeLinkTestNode."""
+    """Test edge connection behaviors using EdgeLinkProbeNode."""
 
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
 
     def _create_two_nodes(self, graph: BaseGraph) -> tuple[NodeWrapper, NodeWrapper]:
-        """Create two EdgeLinkTestNode instances and return their wrappers."""
+        """Create two EdgeLinkProbeNode instances and return their wrappers."""
         return _make_node(graph, (100, 100)), _make_node(graph, (300, 100))
 
     def _create_three_nodes(self, graph: BaseGraph) -> tuple[NodeWrapper, NodeWrapper, NodeWrapper]:
-        """Create three EdgeLinkTestNode instances and return their wrappers."""
+        """Create three EdgeLinkProbeNode instances and return their wrappers."""
         return (
             _make_node(graph, (100, 100)),
             _make_node(graph, (300, 100)),
@@ -900,11 +900,11 @@ class TestEdges:
     # ==================================================================
 
     def _create_dynamic_node(self, graph: BaseGraph):
-        """Create a DynamicPortTestNode and return its wrapper."""
-        from haybale_testing.nodes.testbed.dynamic_port_test import DynamicPortTestNode
+        """Create a DynamicPortProbeNode and return its wrapper."""
+        from haybale_testing.nodes.testbed.dynamic_port_probe import DynamicPortProbeNode
 
         return graph.create_node_wrapper(
-            DynamicPortTestNode.class_identity.registry_key, position=(100, 100)
+            DynamicPortProbeNode.class_identity.registry_key, position=(100, 100)
         )
 
     def test_node_validation_edges_stay_valid(self, graph_with_library_system: BaseGraph, library_system):

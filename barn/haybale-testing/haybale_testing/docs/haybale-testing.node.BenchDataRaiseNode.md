@@ -1,4 +1,4 @@
-# Bench Data Raise Node
+# Bench Data Raise
 
 `haybale-testing:node:BenchDataRaiseNode` · kind: node
 

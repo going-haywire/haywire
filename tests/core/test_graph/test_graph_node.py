@@ -201,7 +201,7 @@ class TestInterfaceMirroring:
         assert [p.id for p in node.get_ports(is_port_type=PortType.INLET, has_pin=True)] == ["in_value"]
 
     def test_removing_a_boundary_port_leaves_its_edges_unlinked(self, graph_with_library_system: BaseGraph):
-        from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+        from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
         from haybale_testing.types.test_types import TEST_FLOAT
 
         graph = graph_with_library_system
@@ -212,7 +212,7 @@ class TestInterfaceMirroring:
             input_node.node.add(TEST_FLOAT.as_outlet("gain"))
 
         card = _graph_node(graph, subgraph_key=definition.key)
-        feeder = graph.create_node_wrapper(EdgeLinkTestNode.class_identity.registry_key)
+        feeder = graph.create_node_wrapper(EdgeLinkProbeNode.class_identity.registry_key)
         assert feeder is not None
 
         kept = graph.create_edge_wrapper(feeder.node_id, "float_outlet", card.node_id, "in_value")
@@ -407,7 +407,7 @@ class TestInterfaceEditing:
     def test_reconciling_after_an_unrelated_inner_edit_leaves_the_pins_alone(
         self, graph_with_library_system: BaseGraph
     ):
-        from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+        from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
 
         graph = graph_with_library_system
         definition = _definition(graph)
@@ -415,7 +415,7 @@ class TestInterfaceEditing:
         card = _card(_graph_node(graph, subgraph_key=definition.key))
         before = [p.id for p in card.get_ports(has_pin=True)]
 
-        definition.create_node_wrapper(EdgeLinkTestNode.class_identity.registry_key)
+        definition.create_node_wrapper(EdgeLinkProbeNode.class_identity.registry_key)
         card.reconcile_interface()
 
         assert [p.id for p in card.get_ports(has_pin=True)] == before
@@ -540,7 +540,7 @@ class TestGrowingTheInterface:
 
     def test_the_card_follows_a_port_grown_inside_the_subgraph(self, graph_with_library_system: BaseGraph):
         """The watcher, end to end: no explicit reconcile_interface() call."""
-        from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+        from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
 
         graph = graph_with_library_system
         definition = _definition(graph)
@@ -550,7 +550,7 @@ class TestGrowingTheInterface:
         assert [p.id for p in card.get_ports(has_pin=True)] == []
 
         # An interior node whose inlet the user drags onto the growing slot.
-        interior = definition.create_node_wrapper(EdgeLinkTestNode.class_identity.registry_key)
+        interior = definition.create_node_wrapper(EdgeLinkProbeNode.class_identity.registry_key)
         assert interior is not None
         slot = next(p for p in input_node.node.get_all_ports() if _is_slot(p))
         definition.create_edge_wrapper(input_node.node_id, slot.id, interior.node_id, "float_inlet")

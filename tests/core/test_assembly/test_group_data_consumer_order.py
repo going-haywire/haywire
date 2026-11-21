@@ -19,14 +19,14 @@ _CARD = "haywire-core:node:GraphNode"
 
 
 def _keys():
-    from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
     return (
-        TestBeginPlayNode.class_identity.registry_key,
-        TestPrintNode.class_identity.registry_key,
-        TestAddFloatNode.class_identity.registry_key,
+        BeginPlayProbeNode.class_identity.registry_key,
+        PrintProbeNode.class_identity.registry_key,
+        AddFloatProbeNode.class_identity.registry_key,
     )
 
 

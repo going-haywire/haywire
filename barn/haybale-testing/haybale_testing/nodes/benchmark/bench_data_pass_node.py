@@ -8,7 +8,7 @@ from haywire.api import FLOAT, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(
-    label="Bench Data Pass Node",
+    label="Bench Data Pass",
     description="FROZEN: data node passing x + 1 on, for measuring data-flow evaluation.",
     menu="testing/benchmark",
     search_tags=["benchmark", "frozen", "data", "chain"],

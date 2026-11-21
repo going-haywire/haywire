@@ -21,9 +21,9 @@ from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration
 
-_ADD = "haybale-testing:node:TestAddFloatNode"
-_ADD_SLOTS = "haybale-testing:node:AddPortTestNode"
-_SETTINGS_NODE = "haybale-testing:node:SettingsNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
+_ADD_SLOTS = "haybale-testing:node:AddPortProbeNode"
+_SETTINGS_NODE = "haybale-testing:node:SettingsProbeNode"
 
 
 def _held_graph() -> BaseGraph:

@@ -110,9 +110,9 @@ def test_the_studio_stage_skin_defaults_to_the_default_skin() -> None:
 
 
 def _node(graph: BaseGraph):
-    from haybale_testing.nodes.testbed.display_node import DisplayNode
+    from haybale_testing.nodes.testbed.display_probe import DisplayProbeNode
 
-    wrapper = graph.create_node_wrapper(DisplayNode.class_identity.registry_key, position=(0, 0))
+    wrapper = graph.create_node_wrapper(DisplayProbeNode.class_identity.registry_key, position=(0, 0))
     assert wrapper is not None
     assert wrapper.node is not None
     return wrapper.node

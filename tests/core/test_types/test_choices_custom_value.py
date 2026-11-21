@@ -38,7 +38,7 @@ def _pasted(graph: BaseGraph, wrapper: Any) -> Any:
 @pytest.mark.parametrize("promoted", [False, True])
 def test_a_custom_setting_value_round_trips(graph_with_library_system: BaseGraph, library_system, promoted):
     graph = graph_with_library_system
-    cls = importlib.import_module("haybale_testing.nodes.testbed.settings_node").SettingsNode
+    cls = importlib.import_module("haybale_testing.nodes.testbed.settings_probe").SettingsProbeNode
     wrapper = make_node(graph, cls.class_identity.registry_key, position=(0, 0))
     assert isinstance(wrapper.node, cls), "an unknown key yields an ErrorNode"
     if promoted:

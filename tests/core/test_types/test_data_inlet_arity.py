@@ -22,10 +22,10 @@ def test_a_data_inlet_takes_one_link():
 
 @pytest.mark.integration
 def test_a_pooled_inlet_still_takes_several_edges(graph_with_library_system, library_system):
-    from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+    from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
 
     node = graph_with_library_system.create_node_wrapper(
-        EdgeLinkTestNode.class_identity.registry_key, position=(0, 0)
+        EdgeLinkProbeNode.class_identity.registry_key, position=(0, 0)
     ).node
 
     assert node.ports["pooled_float_inlet"].takes_many_links is True

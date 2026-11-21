@@ -81,7 +81,7 @@ def test_graph_editor_scans_settings_before_skins(monkeypatch) -> None:
 def test_an_old_studio_skin_key_renders_the_error_card(
     library_system, nicegui_slot_context, monkeypatch
 ) -> None:
-    from haybale_testing.nodes.testbed.display_node import DisplayNode
+    from haybale_testing.nodes.testbed.display_probe import DisplayProbeNode
 
     factory = library_system.injector.get(SkinFactory)
     error_skin = factory.get_skin_instance(factory._skin_registry.get_error_skin_registry_key())
@@ -94,7 +94,7 @@ def test_an_old_studio_skin_key_renders_the_error_card(
 
     monkeypatch.setattr(type(error_skin), "render", spy)
     graph = BaseGraph(filestem="old skin key", validation_scheduler=SyncScheduler())
-    wrapper = graph.create_node_wrapper(DisplayNode.class_identity.registry_key, position=(0, 0))
+    wrapper = graph.create_node_wrapper(DisplayProbeNode.class_identity.registry_key, position=(0, 0))
     assert wrapper is not None
 
     card = factory.render("haybale-studio:skin:StackedNodeSkin", wrapper, on_stage=False)

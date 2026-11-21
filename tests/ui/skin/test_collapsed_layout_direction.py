@@ -43,9 +43,9 @@ def _node(graph):
     passes vacuously — which is exactly how the first draft of this file
     "passed" against a skin that re-sided everything.
     """
-    from haybale_testing.nodes.testbed.test_performance import PerformanceTester
+    from haybale_testing.nodes.testbed.performance_probe import PerformanceProbeNode
 
-    key = PerformanceTester.class_identity.registry_key
+    key = PerformanceProbeNode.class_identity.registry_key
     wrapper = graph.create_node_wrapper(key, position=(0, 0))
     peer = graph.create_node_wrapper(key, position=(400, 0))
     assert wrapper is not None

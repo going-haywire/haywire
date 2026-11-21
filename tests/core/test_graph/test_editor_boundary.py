@@ -78,11 +78,11 @@ def test_a_refusing_value_write_is_unrecorded(ledger, editor):
 
 def test_a_failing_reset_is_recorded(ledger, editor, monkeypatch):
     from haywire.core.undo.actions import graph_actions
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
     from tests.conftest import make_node
 
-    node = make_node(editor.graph, TestAddFloatNode.class_identity.registry_key)
-    assert isinstance(node.node, TestAddFloatNode)
+    node = make_node(editor.graph, AddFloatProbeNode.class_identity.registry_key)
+    assert isinstance(node.node, AddFloatProbeNode)
     ledger.clear()
 
     def broken(*args, **kwargs):

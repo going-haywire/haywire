@@ -64,7 +64,7 @@ def _is_culled(page: Page, node_id: str) -> bool:
 
 
 def _sink_node_id(page: Page) -> str:
-    """The EdgeLinkTestNode id — the only node with a `.connection-pin[data-pin-id="int_inlet"]`."""
+    """The EdgeLinkProbeNode id — the only node with a `.connection-pin[data-pin-id="int_inlet"]`."""
     return page.evaluate(
         """() => {
             const pin = [...document.querySelectorAll('.connection-pin')]

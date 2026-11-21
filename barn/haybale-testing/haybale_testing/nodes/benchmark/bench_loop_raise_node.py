@@ -13,7 +13,7 @@ class BenchOddFailure(Exception):
 
 
 @node(
-    label="Bench Loop Raise Node",
+    label="Bench Loop Raise",
     description="FROZEN: data node raising on odd input, for measuring a loop with failures.",
     menu="testing/benchmark",
     search_tags=["benchmark", "frozen", "data", "raise", "loop"],

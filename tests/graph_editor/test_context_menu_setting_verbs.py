@@ -26,7 +26,7 @@ from tests.conftest import edit_route, make_node
 
 pytestmark = pytest.mark.integration
 
-_SETTINGS_NODE = "haybale-testing:node:SettingsNode"
+_SETTINGS_NODE = "haybale-testing:node:SettingsProbeNode"
 
 
 @pytest.fixture

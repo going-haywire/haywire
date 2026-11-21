@@ -2,7 +2,7 @@
 Widget coverage tests: verify that each setting type resolves and renders the
 correct widget DOM (the right control per IType) through the shared-widget panel.
 
-Full matrix for SettingsNode.example:
+Full matrix for SettingsProbeNode.example:
   type     | direct          | mirror       | mirror + watch() (disabled)
   ---------|-----------------|--------------|-----------------------------
   float    | example_float   | intensity    | intensity_ro
@@ -15,7 +15,7 @@ Full matrix for SettingsNode.example:
 Uses two routes:
   /schema?class=haywire.core.di.test_config.TestingWidgetSettings
       — FrameworkSettings with one field per widget type
-  /node?class=...SettingsNode&bag=example
+  /node?class=...SettingsProbeNode&bag=example
       — NodeSettings covering the full matrix above
 """
 
@@ -25,7 +25,7 @@ from playwright.sync_api import Page, expect
 from tests.ui.harness.nav import goto_ready
 
 _WIDGET_SCHEMA_PATH = "/schema?class=haywire.core.di.test_config.TestingWidgetSettings"
-_NODE_PATH = "/node?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example"
+_NODE_PATH = "/node?class=haybale_testing.nodes.testbed.settings_probe.SettingsProbeNode&bag=example"
 _TESTING_SCHEMA_PATH = "/schema?class=haybale_testing.settings.testing.TestingSettings"
 
 pytestmark = pytest.mark.ui
@@ -138,7 +138,7 @@ def test_schema_row_keeps_label_and_widget_side_by_side(page: Page, harness):
 
 
 # ---------------------------------------------------------------------------
-# SettingsNode.example — direct fields
+# SettingsProbeNode.example — direct fields
 # ---------------------------------------------------------------------------
 
 
@@ -229,7 +229,7 @@ def test_direct_color_field(page: Page, harness):
 
 
 # ---------------------------------------------------------------------------
-# SettingsNode.example — mirror fields (plain)
+# SettingsProbeNode.example — mirror fields (plain)
 # ---------------------------------------------------------------------------
 
 

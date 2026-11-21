@@ -8,8 +8,8 @@ pytestmark = pytest.mark.integration
 
 _INPUT = "haywire-core:node:SubgraphInputNode"
 _OUTPUT = "haywire-core:node:SubgraphOutputNode"
-_ADD = "haybale-testing:node:TestAddFloatNode"
-_EVENT = "haybale-testing:node:TestBeginPlayNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
+_EVENT = "haybale-testing:node:BeginPlayProbeNode"
 
 
 def _identity(folder_path="/lib"):

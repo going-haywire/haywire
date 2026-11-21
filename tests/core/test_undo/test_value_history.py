@@ -22,7 +22,7 @@ from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration
 
-_SETTINGS_NODE = "haybale-testing:node:SettingsNode"
+_SETTINGS_NODE = "haybale-testing:node:SettingsProbeNode"
 _FIELD = "persistent_value"
 
 

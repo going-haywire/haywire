@@ -13,14 +13,14 @@ tools, panels, exporters, doc generators). Both found while building
 ## 1. `props` is a settings bag
 
 `NodeProperties` extends `NodeSettings`, so `type(node)._settings_bags` is
-`{'props': ..., '<author bags>': ...}` — for `SettingsNode` it is literally
+`{'props': ..., '<author bags>': ...}` — for `SettingsProbeNode` it is literally
 `['props', 'example']`. `props` carries **13 framework fields** (position,
 size, muted, skin, …).
 
 ```python
 uv run python -c "
-from haybale_testing.nodes.testbed.settings_node import SettingsNode
-print(list(SettingsNode._settings_bags))   # ['props', 'example']
+from haybale_testing.nodes.testbed.settings_probe import SettingsProbeNode
+print(list(SettingsProbeNode._settings_bags))   # ['props', 'example']
 "
 ```
 

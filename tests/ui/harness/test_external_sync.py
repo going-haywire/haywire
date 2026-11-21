@@ -9,7 +9,7 @@ from playwright.sync_api import Page, expect
 
 from tests.ui.harness.nav import goto_ready, wait_until
 
-_LIVE_PATH = "/node-live?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example"
+_LIVE_PATH = "/node-live?class=haybale_testing.nodes.testbed.settings_probe.SettingsProbeNode&bag=example"
 
 pytestmark = pytest.mark.ui
 

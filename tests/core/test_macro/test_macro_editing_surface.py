@@ -72,7 +72,7 @@ def test_a_node_key_has_no_macro_source(library_system):
     """The lookup is macro-only; a node's source is the source editor's business."""
     from haywire.core.macro.source import macro_source_path
 
-    assert macro_source_path("haybale-testing:node:TestAddFloatNode") is None
+    assert macro_source_path("haybale-testing:node:AddFloatProbeNode") is None
 
 
 def test_a_macro_from_an_uninstalled_library_is_not_editable(library_system):
@@ -184,6 +184,6 @@ def test_an_ordinary_node_is_not_a_placement(graph_with_library_system):
     from haywire.core.macro.source import is_macro_placement
     from tests.conftest import make_node
 
-    card = make_node(graph_with_library_system, "haybale-testing:node:TestAddFloatNode")
+    card = make_node(graph_with_library_system, "haybale-testing:node:AddFloatProbeNode")
 
     assert is_macro_placement(card.node) is False

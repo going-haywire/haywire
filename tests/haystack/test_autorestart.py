@@ -124,7 +124,7 @@ def test_autorestart_on_stays_stopped_when_compile_fails(monkeypatch):
 def test_running_host_not_restarted_by_value_edit(graph_with_library_system, monkeypatch):
     """An interior value edit marks the running host unsaved and leaves it running."""
     from haybale_haystack.graph_entry import GraphEntry
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
     from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY, GraphNode
     from haywire.barn.builtin.nodes.subgraph_io import SubgraphOutputNode
     from haywire.core.graph.subgraph import SubgraphDefinition
@@ -134,7 +134,7 @@ def test_running_host_not_restarted_by_value_edit(graph_with_library_system, mon
     graph = graph_with_library_system
     definition = graph.add_subgraph(SubgraphDefinition(key="sg", label="Group"))
     make_node(definition, SubgraphOutputNode.class_identity.registry_key)
-    interior = make_node(definition, TestAddFloatNode.class_identity.registry_key)
+    interior = make_node(definition, AddFloatProbeNode.class_identity.registry_key)
     card = make_node(graph, GraphNode.class_identity.registry_key, node_data={"store": {SUBGRAPH_KEY: "sg"}})
     assert isinstance(card.node, GraphNode)
     card.node.reconcile_interface()

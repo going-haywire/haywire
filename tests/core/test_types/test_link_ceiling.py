@@ -81,10 +81,10 @@ def test_single_link_is_saved_only_when_set():
 
 @pytest.mark.integration
 def test_a_saved_allow_multiple_links_is_ignored_on_load(graph_with_library_system):
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
     graph = graph_with_library_system
-    node = make_node(graph, TestAddFloatNode.class_identity.registry_key)
+    node = make_node(graph, AddFloatProbeNode.class_identity.registry_key)
     data = graph.to_dict()
     for spec in data["nodes"][node.node_id]["node_data"]["ports"].values():
         spec["kwargs"]["allow_multiple_links"] = True
@@ -97,10 +97,10 @@ def test_a_saved_allow_multiple_links_is_ignored_on_load(graph_with_library_syst
 
 @pytest.mark.integration
 def test_a_narrowed_outlet_keeps_one_linked_edge(graph_with_library_system):
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
     graph = graph_with_library_system
-    key = TestAddFloatNode.class_identity.registry_key
+    key = AddFloatProbeNode.class_identity.registry_key
     source, first, second = (make_node(graph, key) for _ in range(3))
     source.node.ports["result"].single_link = True
 

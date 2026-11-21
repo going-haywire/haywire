@@ -1,4 +1,4 @@
-# Bench Fan In Node
+# Bench Fan In
 
 `haybale-testing:node:BenchFanInNode` · kind: node
 

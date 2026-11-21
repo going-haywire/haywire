@@ -19,9 +19,9 @@ from haywire.core.undo.actions.graph_actions import (
 
 from tests.conftest import make_node
 
-_PRINT = "haybale-testing:node:TestPrintNode"
-_ADD = "haybale-testing:node:TestAddFloatNode"
-_BEGIN = "haybale-testing:node:TestBeginPlayNode"
+_PRINT = "haybale-testing:node:PrintProbeNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
+_BEGIN = "haybale-testing:node:BeginPlayProbeNode"
 _INPUT = "haywire-core:node:SubgraphInputNode"
 _OUTPUT = "haywire-core:node:SubgraphOutputNode"
 _CARD = "haywire-core:node:GraphNode"

@@ -79,14 +79,14 @@ def test_an_audio_flow_chains_from_an_event_through_the_nodes(graph_with_library
 def test_an_event_can_drive_a_standard_control_node_in_a_graph(graph_with_library_system):
     g = graph_with_library_system
     event = _audio(g, "audio_event", "AudioEventNode")
-    sink = _testing(g, "print_node", "TestPrintNode")
+    sink = _testing(g, "print_probe", "PrintProbeNode")
     assert make_edge(g, event.node_id, "block_ready", sink.node_id, "exec").state.is_valid()
 
 
 @pytest.mark.integration
 def test_a_begin_play_cannot_drive_a_recorder_in_a_graph(graph_with_library_system):
     g = graph_with_library_system
-    begin = _testing(g, "begin_play_node", "TestBeginPlayNode")
+    begin = _testing(g, "begin_play_probe", "BeginPlayProbeNode")
     recorder = _audio(g, "recorder", "RecorderNode")
     edge = make_edge(g, begin.node_id, "exec", recorder.node_id, "write")
     assert not edge.state.is_valid()
@@ -96,7 +96,7 @@ def test_a_begin_play_cannot_drive_a_recorder_in_a_graph(graph_with_library_syst
 @pytest.mark.integration
 def test_a_standard_control_node_still_starts_and_stops_audio_nodes(graph_with_library_system):
     g = graph_with_library_system
-    begin = _testing(g, "begin_play_node", "TestBeginPlayNode")
+    begin = _testing(g, "begin_play_probe", "BeginPlayProbeNode")
     player = _audio(g, "file_player", "FilePlayerNode")
     recorder = _audio(g, "recorder", "RecorderNode")
     assert make_edge(g, begin.node_id, "exec", player.node_id, "start").state.is_valid()
@@ -107,7 +107,7 @@ def test_a_standard_control_node_still_starts_and_stops_audio_nodes(graph_with_l
 def test_a_node_after_the_exit_cannot_re_enter_the_audio_flow(graph_with_library_system):
     g = graph_with_library_system
     event = _audio(g, "audio_event", "AudioEventNode")
-    sink = _testing(g, "print_node", "TestPrintNode")
+    sink = _testing(g, "print_probe", "PrintProbeNode")
     recorder = _audio(g, "recorder", "RecorderNode")
     assert make_edge(g, event.node_id, "block_ready", sink.node_id, "exec").state.is_valid()
     assert not make_edge(g, sink.node_id, "done", recorder.node_id, "write").state.is_valid()

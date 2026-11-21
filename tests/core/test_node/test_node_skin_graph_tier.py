@@ -9,9 +9,9 @@ SKIN_KEY = "ui.node.default.skin.studio_skin"
 
 
 def _add_node(graph_obj: BaseGraph):
-    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
-    return graph_obj.create_node_wrapper(TestPrintNode.class_identity.registry_key, position=(100, 100))
+    return graph_obj.create_node_wrapper(PrintProbeNode.class_identity.registry_key, position=(100, 100))
 
 
 @pytest.mark.integration

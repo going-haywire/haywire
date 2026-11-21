@@ -17,9 +17,9 @@ from tests.core.test_graph.callback_group import subscriptions
 
 pytestmark = [pytest.mark.integration]
 
-_LISTEN = "haybale-testing:node:TestCustomCallbackNode"
-_EMIT = "haybale-testing:node:TestEmitCallbackNode"
-_PRINT = "haybale-testing:node:TestPrintNode"
+_LISTEN = "haybale-testing:node:CallbackEventProbeNode"
+_EMIT = "haybale-testing:node:CallbackEmitProbeNode"
+_PRINT = "haybale-testing:node:PrintProbeNode"
 _INPUT = "haywire-core:node:SubgraphInputNode"
 _OUTPUT = "haywire-core:node:SubgraphOutputNode"
 _CARD = "haywire-core:node:GraphNode"

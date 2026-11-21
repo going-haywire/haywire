@@ -1,4 +1,4 @@
-# Bench Data Pass Node
+# Bench Data Pass
 
 `haybale-testing:node:BenchDataPassNode` · kind: node
 

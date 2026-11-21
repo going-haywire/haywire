@@ -1,7 +1,7 @@
 """Integration tests for per-event-node queue mode.
 
 Exercises the realtime-drop wiring end to end through a real haybale-testing
-event node (``TestCustomCallback``): the node's ``queue_mode`` config feeds the
+event node (``CallbackEventProbe``): the node's ``queue_mode`` config feeds the
 ``CallbackEvent`` it builds, assembly turns it into a Flow, and ``_register_flow``
 builds the ``FlowQueue`` from the subscription's fields.
 
@@ -32,10 +32,10 @@ class TestEventNodeQueueMode:
     """The queue mode chosen on the event node reaches its flow's queue."""
 
     def _build(self, graph: BaseGraph, callback_name: str, queue_mode: str) -> BaseGraph:
-        from haybale_testing.nodes.testbed.custom_callback_node import (
-            TestCustomCallbackNode as CustomCallbackNode,
+        from haybale_testing.nodes.testbed.callback_event_probe import (
+            CallbackEventProbeNode as CustomCallbackNode,
         )
-        from haybale_testing.nodes.testbed.print_node import TestPrintNode as PrintNode
+        from haybale_testing.nodes.testbed.print_probe import PrintProbeNode as PrintNode
 
         custom_callback = make_node(
             graph, CustomCallbackNode.class_identity.registry_key, position=(100, 100)

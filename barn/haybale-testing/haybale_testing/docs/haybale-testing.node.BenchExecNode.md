@@ -1,4 +1,4 @@
-# Bench Exec Node
+# Bench Exec
 
 `haybale-testing:node:BenchExecNode` · kind: node
 

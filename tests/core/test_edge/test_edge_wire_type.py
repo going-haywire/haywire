@@ -8,9 +8,9 @@ from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration
 
-_ADD = "haybale-testing:node:TestAddFloatNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
 _INPUT = "haywire-core:node:SubgraphInputNode"
-_EMIT = "haybale-testing:node:TestEmitCallbackNode"
+_EMIT = "haybale-testing:node:CallbackEmitProbeNode"
 
 
 def test_a_data_edge_carries_its_outlets_wire_type(graph_with_library_system):

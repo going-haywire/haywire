@@ -49,9 +49,9 @@ def _type(library_system: Any) -> Any:
 
 
 def _node(graph: Any) -> Any:
-    from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+    from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
 
-    return graph.create_node_wrapper(EdgeLinkTestNode.class_identity.registry_key, position=(0, 0))
+    return graph.create_node_wrapper(EdgeLinkProbeNode.class_identity.registry_key, position=(0, 0))
 
 
 def _port(graph: Any, library_system: Any, **kwargs: Any) -> Any:

@@ -101,8 +101,8 @@ _SWITCH_SETTLED_JS = (
     };
     const exec = (frag) => pins.find(p => p.id.includes(frag) && p.dataset.pinId === 'exec');
     const near = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) < 2;
-    const onPins = near(end(0), pinEdge(exec('TestBeginPlayNode'), ctm))
-        && near(end(path.getTotalLength()), pinEdge(exec('TestPrintNode'), ctm));
+    const onPins = near(end(0), pinEdge(exec('BeginPlayProbeNode'), ctm))
+        && near(end(path.getTotalLength()), pinEdge(exec('PrintProbeNode'), ctm));
     const boxes = [...document.querySelectorAll('.node-card, .connection-pin')].map(e => {
         const r = e.getBoundingClientRect();
         return [r.left, r.top, r.width, r.height];
@@ -133,12 +133,12 @@ def _switch(page: Page, testid: str) -> None:
 
 def test_outlet_vector_flips_with_the_graph_direction(page: Page, harness) -> None:
     _open(page, harness)
-    before = _pin(page, "TestBeginPlayNode", "exec")
+    before = _pin(page, "BeginPlayProbeNode", "exec")
     assert before["dirX"] == 1, "outlet should point +X under the default l2r"
 
     _switch(page, "set-r2l")
 
-    after = _pin(page, "TestBeginPlayNode", "exec")
+    after = _pin(page, "BeginPlayProbeNode", "exec")
     assert after["layout"] == "r2l"
     assert after["dirX"] == -1, "outlet must point -X under r2l"
 
@@ -163,7 +163,7 @@ def test_edge_endpoint_tracks_the_moved_pin_without_a_hover(page: Page, harness)
     _open(page, harness)
     _switch(page, "set-r2l")
 
-    pin = _pin(page, "TestBeginPlayNode", "exec")
+    pin = _pin(page, "BeginPlayProbeNode", "exec")
     path = _edge_first_control_point(page)
     # The edge must start at the pin's CURRENT screen position. Without the
     # redraw-triggered update it still starts where the pin used to be, which
@@ -178,8 +178,8 @@ def test_vertical_switch_reaims_both_ends(page: Page, harness) -> None:
     _open(page, harness)
     _switch(page, "set-t2b")
 
-    outlet = _pin(page, "TestBeginPlayNode", "exec")
-    inlet = _pin(page, "TestPrintNode", "exec")
+    outlet = _pin(page, "BeginPlayProbeNode", "exec")
+    inlet = _pin(page, "PrintProbeNode", "exec")
     assert outlet["layout"] == "t2b"
     assert (outlet["dirX"], outlet["dirY"]) == (0, 1), "t2b outlet points +Y"
     assert (inlet["dirX"], inlet["dirY"]) == (0, -1), "t2b inlet points -Y"
@@ -224,8 +224,8 @@ def test_vertical_pins_sit_on_the_card_edge_not_inside(page: Page, harness, test
     _open(page, harness)
     _switch(page, testid)
 
-    card = _card_box(page, "TestBeginPlayNode")
-    pin = _pin_screen_box(page, "TestBeginPlayNode", "exec")
+    card = _card_box(page, "BeginPlayProbeNode")
+    pin = _pin_screen_box(page, "BeginPlayProbeNode", "exec")
 
     if outlet_edge == "bottom":
         assert pin["cy"] > card["bottom"] - 4, (
@@ -245,9 +245,9 @@ def test_root_ghost_pins_leave_the_card_body(page: Page, harness, testid) -> Non
     _open(page, harness)
     _switch(page, testid)
 
-    card = _card_box(page, "TestBeginPlayNode")
+    card = _card_box(page, "BeginPlayProbeNode")
     for pin_id in ("root_in", "root_out"):
-        ghost = _pin_screen_box(page, "TestBeginPlayNode", pin_id)
+        ghost = _pin_screen_box(page, "BeginPlayProbeNode", pin_id)
         on_top = ghost["cy"] < card["top"] + 4
         on_bottom = ghost["cy"] > card["bottom"] - 4
         assert on_top or on_bottom, (
@@ -286,12 +286,12 @@ def test_vertical_title_gap_matches_horizontal(page: Page, harness, testid) -> N
     _open(page, harness)
 
     _switch(page, "set-l2r")
-    card = _card_box(page, "TestBeginPlayNode")
-    baseline = _title_box(page, "TestBeginPlayNode")["top"] - card["top"]
+    card = _card_box(page, "BeginPlayProbeNode")
+    baseline = _title_box(page, "BeginPlayProbeNode")["top"] - card["top"]
 
     _switch(page, testid)
-    card = _card_box(page, "TestBeginPlayNode")
-    gap = _title_box(page, "TestBeginPlayNode")["top"] - card["top"]
+    card = _card_box(page, "BeginPlayProbeNode")
+    gap = _title_box(page, "BeginPlayProbeNode")["top"] - card["top"]
 
     assert abs(gap - baseline) < 2, (
         f"{testid}: title sits {gap:.1f}px below the card top vs {baseline:.1f}px "
@@ -308,7 +308,7 @@ def test_vertical_pin_keeps_its_rotation_while_hovered(page: Page, harness) -> N
         return page.evaluate(
             """() => {
                 const pin = [...document.querySelectorAll('.connection-pin')]
-                    .find(e => e.id.includes('TestBeginPlayNode') && e.dataset.pinId === 'exec');
+                    .find(e => e.id.includes('BeginPlayProbeNode') && e.dataset.pinId === 'exec');
                 const m = new DOMMatrix(getComputedStyle(pin).transform);
                 return Math.round(Math.atan2(m.b, m.a) * 180 / Math.PI);
             }"""
@@ -316,11 +316,11 @@ def test_vertical_pin_keeps_its_rotation_while_hovered(page: Page, harness) -> N
 
     assert abs(rotation_of()) == 90, "vertical pin should be rotated at rest"
 
-    box = _pin_screen_box(page, "TestBeginPlayNode", "exec")
+    box = _pin_screen_box(page, "BeginPlayProbeNode", "exec")
     centre = page.evaluate(
         """() => {
             const pin = [...document.querySelectorAll('.connection-pin')]
-                .find(e => e.id.includes('TestBeginPlayNode') && e.dataset.pinId === 'exec');
+                .find(e => e.id.includes('BeginPlayProbeNode') && e.dataset.pinId === 'exec');
             const r = pin.getBoundingClientRect();
             return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
         }"""
@@ -331,7 +331,7 @@ def test_vertical_pin_keeps_its_rotation_while_hovered(page: Page, harness) -> N
     page.wait_for_function(
         """() => {
             const pin = [...document.querySelectorAll('.connection-pin')]
-                .find(e => e.id.includes('TestBeginPlayNode') && e.dataset.pinId === 'exec');
+                .find(e => e.id.includes('BeginPlayProbeNode') && e.dataset.pinId === 'exec');
             return pin.matches(':hover') && pin.getAnimations().length === 0;
         }"""
     )
@@ -350,7 +350,7 @@ def test_switching_back_restores_the_original_orientation(page: Page, harness) -
     _switch(page, "set-l2r")
 
     restored = _edge_first_control_point(page)
-    assert _pin(page, "TestBeginPlayNode", "exec")["dirX"] == 1
+    assert _pin(page, "BeginPlayProbeNode", "exec")["dirX"] == 1
     assert restored["c1x"] > restored["startX"]
     # Same geometry as before the round trip — the flip is not cumulative.
     assert abs(restored["startX"] - original["startX"]) < 12

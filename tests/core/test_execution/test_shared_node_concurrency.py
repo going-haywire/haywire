@@ -59,15 +59,15 @@ class _OverlapProbe:
 
 
 def _record_node_cls():
-    from haybale_testing.nodes.testbed.record_callback_nodes import TestRecordEventNode
+    from haybale_testing.nodes.testbed.record_callback_probes import RecordEventProbeNode
 
-    return TestRecordEventNode
+    return RecordEventProbeNode
 
 
 def _payload_node_cls():
-    from haybale_testing.nodes.testbed.control_payload_node import ControlPayloadTestNode
+    from haybale_testing.nodes.testbed.control_payload_probe import ControlPayloadProbeNode
 
-    return ControlPayloadTestNode
+    return ControlPayloadProbeNode
 
 
 def _flows_containing(interpreter: Interpreter, node_id: str) -> List[Any]:
@@ -85,21 +85,21 @@ class TestSharedNodeConcurrentExecution:
         self, graph_with_library_system: BaseGraph, library_system
     ):
         """BeginPlay -> RecordEmit emits to event A and event B; both flows reach shared X."""
-        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode
-        from haybale_testing.nodes.testbed.record_callback_nodes import TestRecordEmitNode
+        from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
+        from haybale_testing.nodes.testbed.record_callback_probes import RecordEmitProbeNode
 
         RecordEvent = _record_node_cls()
         Payload = _payload_node_cls()
         graph = graph_with_library_system
 
-        begin = make_node(graph, TestBeginPlayNode.class_identity.registry_key, position=(0, 0))
-        emit = make_node(graph, TestRecordEmitNode.class_identity.registry_key, position=(200, 0))
+        begin = make_node(graph, BeginPlayProbeNode.class_identity.registry_key, position=(0, 0))
+        emit = make_node(graph, RecordEmitProbeNode.class_identity.registry_key, position=(200, 0))
         a = make_node(graph, RecordEvent.class_identity.registry_key, position=(0, 200))
         b = make_node(graph, RecordEvent.class_identity.registry_key, position=(0, 400))
         x = make_node(graph, Payload.class_identity.registry_key, position=(400, 300))
         for w, cls in (
-            (begin, TestBeginPlayNode),
-            (emit, TestRecordEmitNode),
+            (begin, BeginPlayProbeNode),
+            (emit, RecordEmitProbeNode),
             (a, RecordEvent),
             (b, RecordEvent),
             (x, Payload),
@@ -167,7 +167,7 @@ class TestSharedNodeConcurrentExecution:
         probe = _OverlapProbe(x.node)
         x.node.on_validate = probe.on_validate  # type: ignore[method-assign]
 
-        real_worker = x.node.worker  # ControlPayloadTestNode.worker: self.received = self.value("exec_in")
+        real_worker = x.node.worker  # ControlPayloadProbeNode.worker: self.received = self.value("exec_in")
         worker_saw: Dict[str, Optional[Any]] = {}
 
         def recording_worker(context):
@@ -263,15 +263,15 @@ class TestSharedNodeConcurrentExecution:
         lifecycle hooks run once each.
         """
         from haybale_core.nodes.events.shutdown import ShutdownNode
-        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode
+        from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
 
         Payload = _payload_node_cls()
         graph = graph_with_library_system
 
-        begin = make_node(graph, TestBeginPlayNode.class_identity.registry_key, position=(0, 0))
+        begin = make_node(graph, BeginPlayProbeNode.class_identity.registry_key, position=(0, 0))
         shut = make_node(graph, ShutdownNode.class_identity.registry_key, position=(0, 200))
         x = make_node(graph, Payload.class_identity.registry_key, position=(300, 100))
-        assert isinstance(begin.node, TestBeginPlayNode)
+        assert isinstance(begin.node, BeginPlayProbeNode)
         assert isinstance(shut.node, ShutdownNode)
         assert isinstance(x.node, Payload)
         make_edge(graph, begin.node_id, "exec", x.node_id, "exec_in")
@@ -322,20 +322,20 @@ class TestSharedNodeConcurrentExecution:
         A -> EA ; B -> EB ; D.result -> EA.payload and EB.payload. The flows stay
         in separate groups; D is a shared data node, so they take turns on it.
         """
-        from haybale_testing.nodes.testbed.emit_callback_node import TestEmitCallbackNode
-        from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+        from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
+        from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
         RecordEvent = _record_node_cls()
         graph = graph_with_library_system
 
         a = make_node(graph, RecordEvent.class_identity.registry_key, position=(0, 0))
         b = make_node(graph, RecordEvent.class_identity.registry_key, position=(0, 200))
-        ea = make_node(graph, TestEmitCallbackNode.class_identity.registry_key, position=(300, 0))
-        eb = make_node(graph, TestEmitCallbackNode.class_identity.registry_key, position=(300, 200))
-        d = make_node(graph, TestAddFloatNode.class_identity.registry_key, position=(150, 100))
-        assert isinstance(d.node, TestAddFloatNode)
-        assert isinstance(ea.node, TestEmitCallbackNode)
-        assert isinstance(eb.node, TestEmitCallbackNode)
+        ea = make_node(graph, CallbackEmitProbeNode.class_identity.registry_key, position=(300, 0))
+        eb = make_node(graph, CallbackEmitProbeNode.class_identity.registry_key, position=(300, 200))
+        d = make_node(graph, AddFloatProbeNode.class_identity.registry_key, position=(150, 100))
+        assert isinstance(d.node, AddFloatProbeNode)
+        assert isinstance(ea.node, CallbackEmitProbeNode)
+        assert isinstance(eb.node, CallbackEmitProbeNode)
         for edge in (
             make_edge(graph, a.node_id, "triggered", ea.node_id, "execute"),
             make_edge(graph, b.node_id, "triggered", eb.node_id, "execute"),

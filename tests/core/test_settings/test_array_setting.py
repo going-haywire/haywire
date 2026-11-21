@@ -2,7 +2,7 @@
 
 Pins the paths a list setting shares with every other setting: the cell, the
 node's save/load, reset, promotion to each direction, a graph round trip, an
-edge between promoted ports, and demotion. ``SettingsNode.example`` carries one
+edge between promoted ports, and demotion. ``SettingsProbeNode.example`` carries one
 list field per tested item type.
 """
 
@@ -15,13 +15,13 @@ from haywire.core.types.enums import PortType
 
 pytestmark = pytest.mark.integration
 
-SETTINGS_NODE = "haybale-testing:node:SettingsNode"
+SETTINGS_NODE = "haybale-testing:node:SettingsProbeNode"
 DEFAULT_STRINGS = ["One", "Two", "Three"]
 
 
 def _node(graph: BaseGraph, x: float = 0):
     wrapper = graph.create_node_wrapper(SETTINGS_NODE, position=(x, 0))
-    assert wrapper is not None, "SettingsNode creation failed"
+    assert wrapper is not None, "SettingsProbeNode creation failed"
     return wrapper
 
 

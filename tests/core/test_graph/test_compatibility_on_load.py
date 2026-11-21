@@ -19,7 +19,7 @@ def _wrapper(graph, node_id):
 @pytest.mark.integration
 def test_load_applies_node_compatibility_warning(library_system, monkeypatch):
     reg = library_system.get_node_registry()
-    disp_key = next(k for k in reg.list_names() if k == "haybale-testing:node:DisplayNode")
+    disp_key = next(k for k in reg.list_names() if k == "haybale-testing:node:DisplayProbeNode")
 
     # Author a warning on the testing library, landing in a FUTURE version
     # relative to whatever the live library is, so a saved-below-version node fires.
@@ -54,7 +54,7 @@ def test_load_applies_node_compatibility_warning(library_system, monkeypatch):
 @pytest.mark.integration
 def test_load_does_not_warn_when_saved_version_current(library_system, monkeypatch):
     reg = library_system.get_node_registry()
-    disp_key = next(k for k in reg.list_names() if k == "haybale-testing:node:DisplayNode")
+    disp_key = next(k for k in reg.list_names() if k == "haybale-testing:node:DisplayProbeNode")
     lib_registry = library_system.get_library_registry()
     testing_lib = lib_registry._libraries["haybale-testing"]
 
@@ -74,7 +74,7 @@ def test_load_does_not_warn_when_saved_version_current(library_system, monkeypat
 @pytest.mark.integration
 def test_library_wide_finding_lands_on_graph(library_system, monkeypatch):
     reg = library_system.get_node_registry()
-    disp_key = next(k for k in reg.list_names() if k == "haybale-testing:node:DisplayNode")
+    disp_key = next(k for k in reg.list_names() if k == "haybale-testing:node:DisplayProbeNode")
     lib_registry = library_system.get_library_registry()
     testing_lib = lib_registry._libraries["haybale-testing"]
 
@@ -101,7 +101,7 @@ def test_reset_clears_compatibility_warning(library_system, monkeypatch):
     """Resetting a node rebuilds it from current code, so the advisory
     compatibility warning (derived from the saved file) must clear."""
     reg = library_system.get_node_registry()
-    disp_key = next(k for k in reg.list_names() if k == "haybale-testing:node:DisplayNode")
+    disp_key = next(k for k in reg.list_names() if k == "haybale-testing:node:DisplayProbeNode")
     lib_registry = library_system.get_library_registry()
     testing_lib = lib_registry._libraries["haybale-testing"]
 

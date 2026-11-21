@@ -54,9 +54,9 @@ def editor(library_system, held_graph: BaseGraph) -> Editor:
 
 
 def _add_node(graph: BaseGraph) -> Any:
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
-    wrapper = make_node(graph, TestAddFloatNode.class_identity.registry_key)
+    wrapper = make_node(graph, AddFloatProbeNode.class_identity.registry_key)
     graph._validation.force_immediate_validation()
     return wrapper
 

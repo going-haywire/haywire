@@ -151,11 +151,11 @@ def test_framework_role_nodes_and_templates_are_not_clone_sources(factory, key):
 
 
 def test_an_ordinary_node_is_a_clone_source(factory):
-    assert is_clone_source(factory.node_registry.get("haybale-testing:node:TestAddFloatNode"))
+    assert is_clone_source(factory.node_registry.get("haybale-testing:node:AddFloatProbeNode"))
 
 
 def test_a_clone_of_another_library_links_it(factory, library_system, target, dst_identity):
-    cls = factory.node_registry.get("haybale-testing:node:SettingsNode")
+    cls = factory.node_registry.get("haybale-testing:node:SettingsProbeNode")
     libraries = FakeLibraries(dst_identity, delegate=library_system.get_library_registry())
     fields = NodeFields(label="Adder", class_name="Adder", menu="m")
     plan = plan_node(cls, fields, target, libraries)

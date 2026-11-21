@@ -16,7 +16,7 @@ from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration
 
-_ADD = "haybale-testing:node:TestAddFloatNode"
+_ADD = "haybale-testing:node:AddFloatProbeNode"
 #: Its progress bar is a promoted setting (a card row).
 _FOR_EACH_FILE = "haybale-core:node:ForEachFileNode"
 

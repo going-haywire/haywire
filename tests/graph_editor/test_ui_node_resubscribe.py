@@ -34,9 +34,9 @@ def held_graph(library_system) -> Iterator[BaseGraph]:
 
 @pytest.fixture
 def card(library_system, held_graph: BaseGraph) -> Iterator[tuple[UINode, Any, BaseGraph]]:
-    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
-    wrapper = make_node(held_graph, TestAddFloatNode.class_identity.registry_key)
+    wrapper = make_node(held_graph, AddFloatProbeNode.class_identity.registry_key)
     held_graph._validation.force_immediate_validation()
     client = Client(cast(Any, _noop_page), request=None)
     with client:

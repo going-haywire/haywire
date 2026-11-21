@@ -1,6 +1,6 @@
 """
 Structural tests: verify that the correct fields and widget types
-render for SettingsNode.example and TestingSettings.
+render for SettingsProbeNode.example and TestingSettings.
 """
 
 import pytest
@@ -8,14 +8,14 @@ from playwright.sync_api import Page, expect
 
 from tests.ui.harness.nav import goto_ready
 
-_NODE_PATH = "/node?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example"
+_NODE_PATH = "/node?class=haybale_testing.nodes.testbed.settings_probe.SettingsProbeNode&bag=example"
 _SCHEMA_PATH = "/schema?class=haybale_testing.settings.testing.TestingSettings"
 
 pytestmark = pytest.mark.ui
 
 
 def test_node_fields_present(page: Page, harness):
-    """All non-mirror fields in SettingsNode.example appear as data-field rows."""
+    """All non-mirror fields in SettingsProbeNode.example appear as data-field rows."""
     goto_ready(page, f"{harness}{_NODE_PATH}")
     page.wait_for_selector("[data-field]")
 

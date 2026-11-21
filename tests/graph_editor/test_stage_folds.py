@@ -53,13 +53,13 @@ def _labels(card) -> list[str]:
 def test_toggling_a_fold_on_a_stage_card_changes_the_node_and_the_patch_follows(
     library_system, nicegui_slot_context
 ) -> None:
-    from haybale_testing.nodes.testbed.display_node import DisplayNode
+    from haybale_testing.nodes.testbed.display_probe import DisplayProbeNode
 
     from haywire.barn.builtin.types import FLOAT
 
     factory = library_system.injector.get(SkinFactory)
     graph = BaseGraph(filestem="stage folds", validation_scheduler=SyncScheduler())
-    wrapper = graph.create_node_wrapper(DisplayNode.class_identity.registry_key, position=(0, 0))
+    wrapper = graph.create_node_wrapper(DisplayProbeNode.class_identity.registry_key, position=(0, 0))
     assert wrapper is not None
     with wrapper.node.fold("Adv", default=False):
         wrapper.node.add(

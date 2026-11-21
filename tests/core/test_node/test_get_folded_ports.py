@@ -97,9 +97,9 @@ class TestAgainstRealNodeData:
     silently in a card."""
 
     def _add_node(self, graph_obj):
-        from haybale_testing.nodes.testbed.print_node import TestPrintNode
+        from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
-        return graph_obj.create_node_wrapper(TestPrintNode.class_identity.registry_key, position=(100, 100))
+        return graph_obj.create_node_wrapper(PrintProbeNode.class_identity.registry_key, position=(100, 100))
 
     def test_runs_against_real_node_data(self, graph_with_library_system):
         wrapper = self._add_node(graph_with_library_system)

@@ -113,9 +113,10 @@ def test_box_select_takes_the_inset_card_not_its_interior(page: Page, harness):
     found = card.bounding_box()
     assert found is not None
 
-    page.mouse.move(found["x"] - 30, found["y"] - 30)
+    # A tight margin: the fixture's float source sits just left of the card.
+    page.mouse.move(found["x"] - 10, found["y"] - 10)
     page.mouse.down()
-    page.mouse.move(found["x"] + found["width"] + 30, found["y"] + found["height"] + 30, steps=10)
+    page.mouse.move(found["x"] + found["width"] + 10, found["y"] + found["height"] + 10, steps=10)
     page.mouse.up()
 
     _expect_selected(page, card_id)

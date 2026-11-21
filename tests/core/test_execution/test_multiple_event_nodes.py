@@ -19,15 +19,15 @@ from tests.conftest import make_edge, make_node
 
 
 def _begin_play_cls():
-    from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode
+    from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
 
-    return TestBeginPlayNode
+    return BeginPlayProbeNode
 
 
 def _payload_cls():
-    from haybale_testing.nodes.testbed.control_payload_node import ControlPayloadTestNode
+    from haybale_testing.nodes.testbed.control_payload_probe import ControlPayloadProbeNode
 
-    return ControlPayloadTestNode
+    return ControlPayloadProbeNode
 
 
 def _recording(wrapper: Any, seen: List[str], lock: threading.Lock) -> None:
@@ -130,13 +130,13 @@ class TestMultipleEventNodes:
     def test_two_custom_callbacks_with_one_name_both_trigger(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        from haybale_testing.nodes.testbed.custom_callback_node import TestCustomCallbackNode
+        from haybale_testing.nodes.testbed.callback_event_probe import CallbackEventProbeNode
 
         graph = graph_with_library_system
         targets = []
         for y in (0, 200):
-            listener = make_node(graph, TestCustomCallbackNode.class_identity.registry_key, position=(0, y))
-            assert isinstance(listener.node, TestCustomCallbackNode)
+            listener = make_node(graph, CallbackEventProbeNode.class_identity.registry_key, position=(0, y))
+            assert isinstance(listener.node, CallbackEventProbeNode)
             listener.node.ports["custom_callback_name"].set_value("shared_name")
             listener.node.ports["custom_name"].set_value(True)  # rebuilds the subscription
             target = make_node(graph, _payload_cls().class_identity.registry_key, position=(300, y))
