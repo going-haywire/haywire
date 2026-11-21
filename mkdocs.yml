@@ -198,6 +198,7 @@ nav:
       - Component naming: reference/component-naming.md
       - Design guide: reference/design-guide.md
       - Design principles: reference/design-principles.md
+      - Coding standards: reference/coding-standards.md
       - Questionnaire: reference/questionnaire.md
       - Writing a doc page: reference/doc-authoring.md
       - Publishing releases: reference/publish_releases.md
