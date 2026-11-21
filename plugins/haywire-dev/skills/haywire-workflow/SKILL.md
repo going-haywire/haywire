@@ -249,7 +249,7 @@ them.
    its own worktree, once its branch is merged:
 
    ```sh
-   python3 "${CLAUDE_SKILL_DIR}/scripts/finish.py" <branch>   # in core also: uv run python scripts/finish.py <branch>
+   python3 "${CLAUDE_SKILL_DIR}/scripts/finish.py" <branch>
    ```
 
    `finish` is the only way to delete a branch: the hook blocks raw `git branch -D` and
@@ -265,11 +265,6 @@ them.
    - `finish --sweep` lists leftovers (merged or closed branches, remote branches of
      finished PRs, detached clean worktrees); `--sweep --yes` cleans them. Run it only on
      the user's word.
-
-   **Who does what.** With a lead session (one per machine), the lead merges, on the
-   user's word, then watches the merge's run on `master` (step 4) and warns the tasks
-   whose PRs now conflict. The task does the cleanup above. Without a lead, the user is
-   the lead and the task session does all of it.
 
 ## Releasing
 
@@ -343,10 +338,11 @@ only the main folder, so search with grep there.
 - A library in another repository (spandrel, visiongraph, …) gets a worktree per task like
   any other, placed **beside the repositories**, not in an orchestrator's own worktree
   folder: its development project reaches core by relative `../haywire-repo/...` paths,
-  which resolve only there. From the library's main folder:
+  which resolve only there. From the library's main folder, then `uv sync` in the worktree
+  (a library has no `worktree_setup.py`):
 
   ```sh
-  git worktree add ../<repo>-<name> -b <kind>/<name> origin/master
+  git worktree add ../<repo>-<name> -b <kind>/<name> origin/<default branch>
   ```
 
   Run its code in the full studio with ADR 0081's overlay, from inside the worktree (the
@@ -365,14 +361,6 @@ only the main folder, so search with grep there.
 - A worktree drives only its own studio, started with
   `.claude/skills/haywire-live-studio/scripts/studioctl start` from inside the worktree,
   on the port `worktree_setup.py` gave it; 8124 is the main folder's studio.
-
-**When the branch is merged**, the task runs `finish <branch>` in its worktree (*Finishing
-as the maintainer*, step 5). The worktree is left detached at the default branch and empty;
-the orchestrator removes the folder its own way, or, from the main folder:
-
-```sh
-git worktree remove <folder>
-```
 
 **A second machine** works on its own clone: [second-machine.md](second-machine.md).
 
@@ -430,8 +418,7 @@ maintainer*, step 4), warns the tasks whose PRs now conflict, and tells the task
 The task runs `finish` itself; the worktree's folder then goes the orchestrator's way.
 
 **The lead writes reports to the user by name**: task name, PR URL, state.
-`python3 "${CLAUDE_SKILL_DIR}/scripts/tasks.py"` (in core also `uv run python
-scripts/tasks.py`) lists every task with its PR and, when an orchestrator's slot can list
+`python3 "${CLAUDE_SKILL_DIR}/scripts/tasks.py"` lists every task with its PR and, when an orchestrator's slot can list
 them, its session.
 
 ## In a library repository
@@ -442,10 +429,8 @@ come from [going-haywire/.github](https://github.com/going-haywire/.github) (the
 plugin, installed once per clone (the library's `CLAUDE.md` says how). What differs:
 
 - **Layout.** The library is cloned beside core (`../haywire-repo`), which its development
-  project reaches by relative paths. A task's worktree goes beside the repositories, never
-  in an orchestrator's own worktree folder (*Parallel sessions*). There is no `worktree_setup.py`: after
-  `git worktree add ../<repo>-<name> -b <kind>/<name> origin/<default branch>`, run
-  `uv sync` in the worktree and give its studio a port of its own.
+  project reaches by relative paths. A task's worktree goes beside the repositories, set up
+  as in *Parallel sessions*.
 - **Checks** are the library's own, in the library
   [CONTRIBUTING.md](https://github.com/going-haywire/.github/blob/main/CONTRIBUTING.md#checks),
   each with `uv run --frozen`.

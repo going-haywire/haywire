@@ -17,10 +17,8 @@ then names this file.
 
 ## Created
 
-The user creates a worktree in herdr: right-click a space whose terminal is in the main
-folder → *New worktree*, branch name such as `fix/edge-drag`. The worktree items appear
-only on a space herdr sees inside the repo; *Open worktree* opens a space on an existing
-one. The session in it runs `python3 scripts/worktree_setup.py` first.
+The user may create the worktree in herdr (*New worktree*); the session in it runs
+`python3 scripts/worktree_setup.py` first.
 
 The lead starts a task itself, from the main folder on an up-to-date `master`:
 
