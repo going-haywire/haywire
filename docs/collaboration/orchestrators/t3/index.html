@@ -3140,6 +3140,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-agent-checks-the-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The agent checks the setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -5082,6 +5099,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-agent-checks-the-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The agent checks the setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -5176,21 +5210,21 @@ use it is in the workflow skill's
      once the PR is merged, and refuses before.</li>
 <li><strong>Haywire studio</strong> you run from the scripts menu: it starts this worktree's studio on
      the port <code>worktree_setup.py</code> gave it (see <em>Starting the studio</em>).</li>
-<li>Set <code>async: false</code> on <em>Worktree setup</em> again. Whether T3's project settings UI can set it
-   is not known; this works: back up <code>~/.t3/userdata/settings.json</code>, then in
-   <code>projectSettingsOverrides.&lt;projectId&gt;.defaultProjectScripts</code> add <code>"async": false</code> to the
-   entry with <code>"id": "worktree-setup"</code>. T3 keeps a hand edit made while it runs. The agent
-   can make the edit for you, on your yes. Without it the agent starts while the setup is
-   still running, and the session-start hook's wait covers that.</li>
+<li>Set <code>async: false</code> on <em>Worktree setup</em> again: the import drops it. The agent offers to
+   do this for you (below). Without it the agent starts while the setup is still running,
+   and the session-start hook's wait covers that.</li>
 <li><em>Settings → Worktrees → Cleanup</em>: turn on <em>Delete merged worktrees</em>, and <em>Keep worktrees
    with local changes</em> with <em>Uncommitted changes</em>.</li>
 <li>Branch naming: the model's semantic prefix, so branches read <code>feat/…</code>, <code>fix/…</code>, <code>docs/…</code>.</li>
 </ol>
-<p>Each T3 session checks this setup when it starts and lists what is missing, with the fix;
-the agent passes the list on in its first reply. That reply is what reaches you: T3 does not
-display the message a hook shows at session start (<code>systemMessage</code>), which other hosts, such
-as the Claude Code CLI, do show. The check reads T3's internal settings file, which T3 does not document, so a T3 update can
-break that part of it.</p>
+<h3 id="the-agent-checks-the-setup">The agent checks the setup<a class="headerlink" href="#the-agent-checks-the-setup" title="Permanent link">&para;</a></h3>
+<p>Each T3 session, the lead's included, checks this setup at start and the agent lists what is
+missing in its first reply (T3 does not show a hook's own message). It offers to add missing
+<code>t3.json</code> scripts and <code>async: false</code>, and only on your yes runs
+<code>python3 plugins/haywire-dev/orchestrators/t3/doctor.py --fix</code>, which backs up
+<code>~/.t3/userdata/settings.json</code> first. The rest (the import, cleanup, branch naming) you do
+in T3, steps 1, 3 and 4. <code>--check</code> lists the gaps without changing anything. The check reads
+T3's internal settings file; one it does not recognise it leaves untouched.</p>
 <h2 id="starting-the-studio">Starting the studio<a class="headerlink" href="#starting-the-studio" title="Permanent link">&para;</a></h2>
 <p>The script <em>Haywire studio</em> runs in the thread's folder. It calls <code>haywire-studio</code> from the
 <a href="https://github.com/going-haywire/umbrella#readme">umbrella</a> (<code>bin/haywire-studio</code>, linked
