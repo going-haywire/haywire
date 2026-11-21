@@ -39,7 +39,7 @@ Fundamental components for haywire graphs
 - **Pooled** — Multi-source aggregation
 
 ## Adapters
-- **Array to Array** — Transform array elements (ArrayType[X] → ArrayType[Y])
+- **Array to Array** — Transform array elements (ARRAY[X] → ARRAY[Y])
 
 ## Widgets
 - **ArrayWidget** — List editor — one row per item, each drawn by the item type's widget

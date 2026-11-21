@@ -26,7 +26,7 @@ T = TypeVar("T")
     color="#9c27b0",
     default={"value": {}},
 )
-class PooledType(CompoundType[T]):
+class POOLED(CompoundType[T]):
     """
     Pooled compound type for multi-source aggregation.
 
@@ -35,10 +35,10 @@ class PooledType(CompoundType[T]):
 
     Usage:
         # Pooled floats
-        PooledType[FLOAT].as_inlet(id='values')
+        POOLED[FLOAT].as_inlet(id='values')
 
         # Pooled meshes
-        PooledType[MeshData].as_inlet(id='mesh_collection')
+        POOLED[MeshData].as_inlet(id='mesh_collection')
 
     Note: Pooled is INLET-ONLY - cannot be used with outlets!
 
@@ -69,7 +69,7 @@ class PooledType(CompoundType[T]):
         Pooled fields aggregate multiple inputs - they can't be outputs.
         """
         if port_type != PortType.INLET:
-            raise ValueError("PooledType supports inlets only: pooled fields aggregate multiple inputs.")
+            raise ValueError("POOLED supports inlets only: pooled fields aggregate multiple inputs.")
 
     @classmethod
     def _configure_port(cls, port, **context) -> None:
@@ -83,14 +83,14 @@ class PooledType(CompoundType[T]):
             # The pool pulls every linked outlet, so a source that never fired
             # contributes its empty payload `{}`, which reads as a fired empty payload.
             raise ValueError(
-                "PooledType cannot have a control element type: the pool holds the empty "
+                "POOLED cannot have a control element type: the pool holds the empty "
                 "payload of a source that never fired, indistinguishable from a fired one"
             )
 
     @property
     def value(self):
         """Pooled types don't have instances - this is for type checking only"""
-        raise NotImplementedError("PooledType is a type descriptor, not instantiable")
+        raise NotImplementedError("POOLED is a type descriptor, not instantiable")
 
 
 # ============================================================================
@@ -101,7 +101,7 @@ class PooledType(CompoundType[T]):
 @dataclass
 class PooledField(DataField):
     """
-    Field implementation for PooledType.
+    Field implementation for POOLED.
 
     Stores dict of source_id -> unwrapped value.
     Essential for multi-source aggregation where each source
@@ -203,7 +203,7 @@ class PooledField(DataField):
         element_type = self.type_cls.element_type_cls
         assert element_type is not None
         # element_type_cls is declared `type | None` because for PrimitiveType[T]
-        # it holds a plain Python type (float, int, ...). PooledType is a
+        # it holds a plain Python type (float, int, ...). POOLED is a
         # CompoundType, so here it is always an IType subclass — narrow to match
         # the contract every caller relies on (.class_identity / issubclass).
         return cast(Type[IType], element_type)
@@ -266,4 +266,4 @@ class PooledField(DataField):
 
 
 # Set field_class now that PooledField is defined
-PooledType.field_class = PooledField
+POOLED.field_class = PooledField

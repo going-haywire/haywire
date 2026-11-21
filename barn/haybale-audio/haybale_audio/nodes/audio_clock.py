@@ -80,13 +80,13 @@ class AudioClockNode(BaseNode):
     clock = bag(ClockSettings)
 
     def init(self) -> None:
-        from haybale_core.types import PooledType
+        from haybale_core.types import POOLED
         from haybale_audio.types.callback import CALLBACK_AUDIO
 
         self.add(EXEC.as_inlet("start", label="Start"))
         self.add(EXEC.as_inlet("stop", label="Stop"))
         self.add(
-            PooledType[CALLBACK_AUDIO].as_inlet(
+            POOLED[CALLBACK_AUDIO].as_inlet(
                 "callbacks", label="Subscribers", description="Connect to an Audio Event node."
             )
         )

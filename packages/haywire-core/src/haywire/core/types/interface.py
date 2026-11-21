@@ -29,7 +29,7 @@ class IType(ABC):
       ``None``: ``PrimitiveType.__init__`` raises on one.
     - ``BaseType`` (``MeshData``, ``Vector3``) — one structured instance, which
       is both descriptor and data. ``element_type_cls`` is the class itself.
-    - ``CompoundType`` (``ArrayType[FLOAT]``) — N elements of one type, from
+    - ``CompoundType`` (``ARRAY[FLOAT]``) — N elements of one type, from
       ``__class_getitem__``. ``element_type_cls`` is the element type. Other
       subsystems dispatch on this family to mean "container": ``AdapterFactory``
       builds element-wise chains for it and ``pin_render`` gives it collection
@@ -39,7 +39,7 @@ class IType(ABC):
       type. See ADR 0033.
 
     Nesting reads back through ``element_type_cls``, so
-    ``ArrayType[FLOAT].element_type_cls`` is ``FLOAT`` and
+    ``ARRAY[FLOAT].element_type_cls`` is ``FLOAT`` and
     ``FLOAT.element_type_cls`` is ``float``.
 
     Subclasses must implement :attr:`value`, :meth:`to_dict` and
@@ -154,11 +154,11 @@ class IType(ABC):
         Override to restrict, raising ``ValueError`` for a port type the type
         does not support::
 
-            class PooledType(CompoundType):
+            class POOLED(CompoundType):
                 @classmethod
                 def _validate_port_type(cls, port_type: PortType):
                     if port_type != PortType.INLET:
-                        raise ValueError("PooledType only supports inlets")
+                        raise ValueError("POOLED only supports inlets")
         """
         pass
 
@@ -171,7 +171,7 @@ class IType(ABC):
 
         Override to set attributes the type always wants::
 
-            class PooledType(CompoundType):
+            class POOLED(CompoundType):
                 @classmethod
                 def _configure_port(cls, port, **context):
                     port.color = "#9c27b0"
@@ -190,7 +190,7 @@ class IType(ABC):
 
         ``store_strategy`` defaults to ``HAS_WIDGET``, so the value is saved
         with the graph only when the port has a widget. Compound and wrapper
-        types are subscripted first (``ArrayType[FLOAT].as_inlet('numbers')``).
+        types are subscripted first (``ARRAY[FLOAT].as_inlet('numbers')``).
 
         Args:
             id: Port identifier, unique within the node.
@@ -248,8 +248,8 @@ class IType(ABC):
             self.add(FLOAT.as_inlet('value', default=1.0))
             self.add(FLOAT.as_inlet('threshold', default=0.5,
                      widget=SliderWidget.config(min=0.0, max=1.0)))
-            self.add(ArrayType[FLOAT].as_inlet('numbers', default={'value': [1.0, 2.0]}))
-            self.add(PooledType[FLOAT].as_inlet('values'))
+            self.add(ARRAY[FLOAT].as_inlet('numbers', default={'value': [1.0, 2.0]}))
+            self.add(POOLED[FLOAT].as_inlet('values'))
             self.add(FLOAT.as_inlet('param', on_change='on_param_changed'))
         """
         from haywire.core.types.utils import create_port_spec
@@ -265,7 +265,7 @@ class IType(ABC):
         """Build an outlet spec for ``node.add()``, which instantiates the ``DataPort``.
 
         The value is saved with the graph, and compound and wrapper types are
-        subscripted first (``ArrayType[FLOAT].as_outlet('sorted')``).
+        subscripted first (``ARRAY[FLOAT].as_outlet('sorted')``).
 
         Args:
             id: Port identifier, unique within the node.
@@ -326,7 +326,7 @@ class IType(ABC):
         Example::
 
             self.add(FLOAT.as_outlet('result'))
-            self.add(ArrayType[FLOAT].as_outlet('sorted'))
+            self.add(ARRAY[FLOAT].as_outlet('sorted'))
             self.add(CTRL.as_outlet('loop_body', needs_loopback=True))
         """
         from haywire.core.types.utils import create_port_spec
@@ -345,7 +345,7 @@ class IType(ABC):
 
         A swinglet takes edges as an inlet does and gives edges as an outlet does, so a
         link can leave it or arrive at it. Compound and wrapper types are subscripted
-        first (``ArrayType[FLOAT].as_swinglet('numbers')``).
+        first (``ARRAY[FLOAT].as_swinglet('numbers')``).
 
         Values: what an edge writes to a swinglet is stored as its linked value and stops
         there, as it does at an inlet. Only the node's own write, ``out()``, passes on to
@@ -482,7 +482,7 @@ class IType(ABC):
             self.add(FLOAT.as_config('threshold', default=0.5))
             self.add(FLOAT.as_config('speed', default=1.0,
                      widget=SliderWidget.config(min=0.0, max=10.0)))
-            self.add(ArrayType[STRING].as_config('tags', default={'value': ['a', 'b']}))
+            self.add(ARRAY[STRING].as_config('tags', default={'value': ['a', 'b']}))
         """
         from haywire.core.types.utils import create_port_spec
 

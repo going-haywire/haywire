@@ -158,7 +158,7 @@ def declaring_type_of(type_cls: Any) -> tuple[Any, type[WireType]] | None:
     """Return the type that declares the wire type of *type_cls*, with that wire type, or ``None``.
 
     A type that declares a wire type in its identity is its own declarer. A
-    container or wrapper that declares none (``ArrayType[T]``, ``PooledType[T]``,
+    container or wrapper that declares none (``ARRAY[T]``, ``POOLED[T]``,
     ``ADD[T]``) yields its element's declarer, through any nesting. A bare
     ``ADD``, a type without an identity and ``None`` yield ``None``.
     """
@@ -178,7 +178,7 @@ def wire_type_of(type_cls: Any) -> type[WireType] | None:
     """Return the wire type values of *type_cls* travel on, or ``None``.
 
     A type answers with the wire type its identity declares. A container or
-    wrapper that declares none (``ArrayType[T]``, ``PooledType[T]``, ``ADD[T]``)
+    wrapper that declares none (``ARRAY[T]``, ``POOLED[T]``, ``ADD[T]``)
     answers with its element's, through any nesting. A bare ``ADD``, a type
     without an identity and ``None`` answer ``None``. See ``declaring_type_of``.
     """

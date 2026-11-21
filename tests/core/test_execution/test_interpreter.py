@@ -29,10 +29,10 @@ class TestInterpreter:
         Returns:
             The populated graph
         """
-        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayNode
+        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayEventNode
         from haybale_testing.nodes.testbed.print_node import TestPrintNode as PrintTerminalMessageNode
 
-        begin_play = make_node(graph, BeginPlayNode.class_identity.registry_key, position=(100, 100))
+        begin_play = make_node(graph, BeginPlayEventNode.class_identity.registry_key, position=(100, 100))
 
         print_msg = make_node(
             graph, PrintTerminalMessageNode.class_identity.registry_key, position=(300, 100)
@@ -52,11 +52,11 @@ class TestInterpreter:
         Returns:
             The populated graph
         """
-        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayNode
+        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayEventNode
         from haybale_testing.nodes.testbed.print_node import TestPrintNode as PrintTerminalMessageNode
         from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode as MathOP
 
-        begin_play = make_node(graph, BeginPlayNode.class_identity.registry_key, position=(100, 100))
+        begin_play = make_node(graph, BeginPlayEventNode.class_identity.registry_key, position=(100, 100))
 
         print_msg = make_node(
             graph, PrintTerminalMessageNode.class_identity.registry_key, position=(300, 100)
@@ -127,7 +127,7 @@ class TestInterpreter:
         self, graph_with_library_system: BaseGraph, library_system: LibrarySystemService
     ):
         """Test callback flow: BeginPlay → EmitCallback, CustomCallback → Print"""
-        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayNode
+        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayEventNode
         from haybale_testing.nodes.testbed.emit_callback_node import TestEmitCallbackNode as EmitCallbackNode
         from haybale_testing.nodes.testbed.custom_callback_node import (
             TestCustomCallbackNode as CustomCallbackNode,
@@ -137,7 +137,7 @@ class TestInterpreter:
         graph = graph_with_library_system
 
         # Flow 1: BeginPlay → EmitCallback
-        begin_play = make_node(graph, BeginPlayNode.class_identity.registry_key, position=(100, 100))
+        begin_play = make_node(graph, BeginPlayEventNode.class_identity.registry_key, position=(100, 100))
 
         emit_callback = make_node(graph, EmitCallbackNode.class_identity.registry_key, position=(300, 100))
 
@@ -332,18 +332,18 @@ class TestInterpreter:
         """
         # These two shutdown-hang tests deliberately use the REAL haybale_core
         # nodes (not haybale_testing equivalents): they are regression guards
-        # for a deadlock in TickEmitNode's threaded emitter / ShutdownNode's
+        # for a deadlock in TickEmitNode's threaded emitter / ShutdownEventNode's
         # graceful-stop protocol. The guard must watch the production node, so
         # this is the rule's "tests specifically of another library's
         # components" exemption — do not migrate to testbed copies.
         from haybale_core.nodes.emits.tick_emit import TickEmitNode
         from haybale_core.nodes.events.tick_event import TickEventNode
-        from haybale_core.nodes.events.begin_play import BeginPlayNode
-        from haybale_core.nodes.events.shutdown import ShutdownNode
+        from haybale_core.nodes.events.begin_play_event import BeginPlayEventNode
+        from haybale_core.nodes.events.shutdown_event import ShutdownEventNode
 
-        begin = make_node(graph, BeginPlayNode.class_identity.registry_key, position=(0, 0))
+        begin = make_node(graph, BeginPlayEventNode.class_identity.registry_key, position=(0, 0))
         shutdown = (
-            make_node(graph, ShutdownNode.class_identity.registry_key, position=(0, 200))
+            make_node(graph, ShutdownEventNode.class_identity.registry_key, position=(0, 200))
             if with_shutdown
             else None
         )

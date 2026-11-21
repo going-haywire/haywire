@@ -122,9 +122,9 @@ class TestRoles:
         assert DEFAULT_PIN_ICONS.role_of(multi) == "data_in_multi"
 
     def test_a_compound_type_takes_the_compound_kind(self):
-        from haybale_core.types import ArrayType
+        from haybale_core.types import ARRAY
 
-        port = _port(ArrayType[FLOAT], PortType.INLET)
+        port = _port(ARRAY[FLOAT], PortType.INLET)
         assert DEFAULT_PIN_ICONS.role_of(port) == "compound_in"
         assert DEFAULT_PIN_ICONS.resolve(port) == "view_day"
 

@@ -96,7 +96,7 @@ class DataPort(DataTypeIdentity):
 
     # Type tracking
     type_cls: type[IType] | None = field(default=None, metadata={"serialize": False})
-    """The type class (FLOAT, ArrayType, etc.)"""
+    """The type class (FLOAT, ARRAY, etc.)"""
 
     wire_type: type[WireType] | None = field(
         default=None, init=False, repr=False, compare=False, metadata={"serialize": False}

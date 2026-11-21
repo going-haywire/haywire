@@ -1,7 +1,7 @@
-"""ArrayWidget — edits an ``ArrayType[T]`` value one row per item.
+"""ArrayWidget — edits an ``ARRAY[T]`` value one row per item.
 
 Each row is the item type's own declared widget, so a library shipping its own
-IType gets ``ArrayType[TheirType]`` rows without this file changing. A row
+IType gets ``ARRAY[TheirType]`` rows without this file changing. A row
 talks to the list through ``_ItemModel``, which reads and writes one index.
 """
 
@@ -85,23 +85,23 @@ class _ItemModel:
 class ArrayWidget(BaseWidget):
     """Edits a list: one row per item, plus controls to add, remove and reorder items.
 
-    Each row is the item type's own widget: a text field for `ArrayType[STRING]`,
-    a number field for `ArrayType[INT]` and `ArrayType[FLOAT]`. Add appends the
+    Each row is the item type's own widget: a text field for `ARRAY[STRING]`,
+    a number field for `ARRAY[INT]` and `ARRAY[FLOAT]`. Add appends the
     item type's default (`""`, `0`, `0.0`). Drag a row by its grip to move it;
     the cross on its right removes it.
 
-    `ArrayType` does not use this widget by default. Name it on the setting or
+    `ARRAY` does not use this widget by default. Name it on the setting or
     port that should show a list editor:
 
     ```python
     class Settings(NodeSettings):
-        options = setting[ArrayType[STRING]](
+        options = setting[ARRAY[STRING]](
             ["One", "Two", "Three"], label="Options", widget=ArrayWidget.config()
         )
 
     def init(self):
         self.add(
-            ArrayType[FLOAT].as_inlet("weights", default={"value": [1.0]}, widget=ArrayWidget.config())
+            ARRAY[FLOAT].as_inlet("weights", default={"value": [1.0]}, widget=ArrayWidget.config())
         )
     ```
 
@@ -243,7 +243,7 @@ class ArrayWidget(BaseWidget):
     # ---- item type -------------------------------------------------------
 
     def _item_type(self) -> "type[IType] | None":
-        """Return the item type of this list field (``STRING`` for ``ArrayType[STRING]``), or ``None``."""
+        """Return the item type of this list field (``STRING`` for ``ARRAY[STRING]``), or ``None``."""
         element = getattr(self.port.data.type_cls, "element_type_cls", None)
         if isinstance(element, type) and issubclass(element, IType):
             return element

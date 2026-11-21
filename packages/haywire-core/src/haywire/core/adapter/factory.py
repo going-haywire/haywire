@@ -110,7 +110,7 @@ class AdapterFactory:
             return (ReturnAdapter(), None)
 
         # Get base types for compound type detection
-        # (ArrayType[FLOAT] → ArrayType)
+        # (ARRAY[FLOAT] → ARRAY)
         source_base = self._get_base_type(source_type)
         sink_base = self._get_base_type(sink_type)
 
@@ -177,13 +177,13 @@ class AdapterFactory:
         Get base type from potentially parameterized compound type.
 
         Parameterized compound types are created dynamically via
-        __class_getitem__ (e.g., ArrayType[FLOAT]). This extracts
+        __class_getitem__ (e.g., ARRAY[FLOAT]). This extracts
         the base class for registry lookups.
 
         Examples:
-            ArrayType[FLOAT] → ArrayType
-            PooledType[STRING] → PooledType
-            ArrayType → ArrayType (already base)
+            ARRAY[FLOAT] → ARRAY
+            POOLED[STRING] → POOLED
+            ARRAY → ARRAY (already base)
             FLOAT → FLOAT (scalar type)
 
         Args:
@@ -203,7 +203,7 @@ class AdapterFactory:
             and issubclass(type_cls.__bases__[0], CompoundType)
             and hasattr(type_cls, "element_type_cls")
         ):
-            # This is ArrayType[X], return ArrayType (the base)
+            # This is ARRAY[X], return ARRAY (the base)
             return type_cls.__bases__[0]
 
         # Already a base type or scalar
@@ -308,7 +308,7 @@ class AdapterFactory:
             return (None, "Compound types missing element_type_cls")
 
         # Get base types for registry lookup
-        # (ArrayType[FLOAT] → ArrayType)
+        # (ARRAY[FLOAT] → ARRAY)
         source_base = self._get_base_type(source_type)
         sink_base = self._get_base_type(sink_type)
 
@@ -317,7 +317,7 @@ class AdapterFactory:
         sink_base_key = sink_base.class_identity.registry_key
 
         # Find container adapter via registry
-        # Note: Registry compares base types (ArrayType vs ArrayType)
+        # Note: Registry compares base types (ARRAY vs ARRAY)
         # not element types
         container_classes = self.adapter_registry.find_adapter_chain(
             source_base_key,
@@ -393,7 +393,7 @@ class AdapterFactory:
             return (None, "Compound types missing element_type_cls")
 
         # Get base types for registry lookup
-        # (ArrayType[FLOAT] → ArrayType, PooledType[STRING] → PooledType)
+        # (ARRAY[FLOAT] → ARRAY, POOLED[STRING] → POOLED)
         source_base = self._get_base_type(source_type)
         sink_base = self._get_base_type(sink_type)
 

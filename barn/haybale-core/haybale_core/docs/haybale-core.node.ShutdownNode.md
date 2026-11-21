@@ -1,6 +1,6 @@
 # Shutdown
 
-`haybale-core:node:ShutdownNode` · kind: node
+`haybale-core:node:ShutdownEventNode` · kind: node
 
 Triggered when execution is shutting down
 

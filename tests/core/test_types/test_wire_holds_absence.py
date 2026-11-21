@@ -106,14 +106,14 @@ class TestADataclassOnTheWire:
 
 class TestWhatIsNotWrapped:
     def test_containers_of_a_callback_keep_their_own_fields(self, library_system):
-        from haybale_core.types import ArrayType, PooledType
+        from haybale_core.types import ARRAY, POOLED
         from haybale_core.types.array_type import ArrayField
         from haybale_core.types.pooled_type import PooledField
 
         from haywire.barn.builtin.types import CALLBACK
 
-        assert type(ArrayType[CALLBACK].create_field()) is ArrayField
-        assert type(PooledType[CALLBACK].create_field()) is PooledField
+        assert type(ARRAY[CALLBACK].create_field()) is ArrayField
+        assert type(POOLED[CALLBACK].create_field()) is PooledField
 
     def test_an_optional_callback_is_still_a_wrapper_field(self, library_system):
         from haywire.barn.builtin.types import CALLBACK, OPTIONAL

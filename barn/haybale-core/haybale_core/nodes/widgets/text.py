@@ -1,6 +1,6 @@
 """Text."""
 
-from haybale_core.nodes.widgets.base import WidgetNode
+from haybale_core.nodes.widgets.base import BaseWidgetNode
 from haywire.api import STRING, TEXT_WIDGET, NodeType, node
 
 
@@ -11,7 +11,7 @@ from haywire.api import STRING, TEXT_WIDGET, NodeType, node
     search_tags=["text", "string", "field", "widget", "control", "stage"],
     node_type=NodeType.DATA,
 )
-class TextNode(WidgetNode):
+class TextNode(BaseWidgetNode):
     """A text field that sends its text when you press Enter or leave the field.
 
     Nothing is sent while you type, so a consumer never sees a half-typed value. A

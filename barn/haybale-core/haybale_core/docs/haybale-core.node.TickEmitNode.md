@@ -11,7 +11,7 @@ Emits tick callbacks at a configurable framerate
 | `start` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `stop` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `target_fps` | inlet | `haywire-core:type:FLOAT` | Targeted Frames per second - needs a start signal to be applied |
-| `callback_names` | inlet | `haybale-core:type:PooledType` | Multi-source aggregation |
+| `callback_names` | inlet | `haybale-core:type:POOLED` | Multi-source aggregation |
 | `started` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `stopped` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 
@@ -19,7 +19,7 @@ Emits tick callbacks at a configurable framerate
 
 Emits tick callbacks at a configurable framerate from an internal thread.
 
-Wire from BeginPlayNode to start ticking. Connect TickEventNodes via
+Wire from BeginPlayEventNode to start ticking. Connect TickEventNodes via
 the callback inlet to receive ticks.
 
 Inputs:

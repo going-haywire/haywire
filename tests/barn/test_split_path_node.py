@@ -116,7 +116,7 @@ def test_only_connected_outlets_are_worked_out(graph_with_library_system):
 def test_an_outlet_connected_later_delivers_on_the_next_run(graph_with_library_system, monkeypatch):
     """The node ran with the outlet unconnected; a new edge alone makes the next run deliver it."""
     graph = graph_with_library_system
-    begin = _add(graph, "haybale_core.nodes.events.begin_play", "BeginPlayNode")
+    begin = _add(graph, "haybale_core.nodes.events.begin_play_event", "BeginPlayEventNode")
     split = _add(graph, "haybale_core.nodes.split_path", "SplitPathNode")
     first = _add(graph, "haybale_core.nodes.logger", "LoggerNode")
     second = _add(graph, "haybale_core.nodes.logger", "LoggerNode")
