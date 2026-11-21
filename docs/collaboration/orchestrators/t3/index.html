@@ -5090,7 +5090,8 @@ use it is in the workflow skill's
    agent can import them for you with <code>t3_project_update</code>, on your yes. The scripts menu
    then lists them as <em>From t3.json</em>:</li>
 <li><strong>Worktree setup</strong> runs <code>python3 scripts/worktree_setup.py</code> when T3 creates a
-     worktree, before the agent starts.</li>
+     worktree. T3 starts the agent without waiting for it, so the session-start hook
+     waits until the worktree has its environment and studio port, up to 5 minutes.</li>
 <li><strong>Finish merged task</strong> runs each time a worktree thread settles: from the main folder
      it runs <code>finish</code> on the thread's branch, which removes the worktree and both branches
      once the PR is merged, and refuses before.</li>
