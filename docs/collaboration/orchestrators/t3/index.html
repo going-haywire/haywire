@@ -5124,16 +5124,27 @@ use it is in the workflow skill's
    and applies its settings, but runs no script from it until it is imported. Import all
    three once, in <em>Project settings → Actions → Import scripts → Import from t3.json</em>; the
    <em>Import scripts</em> button shows only while some <code>t3.json</code> script is not imported yet. The
-   agent can import them for you with <code>t3_project_update</code>, on your yes. The scripts menu
-   then lists them as <em>From t3.json</em>:</li>
+   scripts menu then lists them as <em>From t3.json</em>. Import them in the app, not with the
+   agent's <code>t3_project_update</code>: on most installs T3 runs the scripts kept in its
+   <code>settings.json</code>, and that tool writes elsewhere
+   (<a href="https://github.com/pingdotgg/t3code/issues/14991">pingdotgg/t3code#14991</a>).</li>
 <li><strong>Worktree setup</strong> runs <code>python3 scripts/worktree_setup.py</code> when T3 creates a
-     worktree. T3 starts the agent without waiting for it, so the session-start hook
-     waits until the worktree has its environment and studio port, up to 5 minutes.</li>
+     worktree. <code>t3.json</code> sets <code>async: false</code> on it so that T3 holds the agent until it
+     exits, but the import drops that field
+     (<a href="https://github.com/pingdotgg/t3code/issues/40325">pingdotgg/t3code#40325</a>); set it
+     again after importing (below). Either way the session-start hook waits until the
+     worktree has its environment and studio port, up to 5 minutes.</li>
 <li><strong>Finish merged task</strong> runs each time a worktree thread settles: from the main folder
      it runs <code>finish</code> on the thread's branch, which removes the worktree and both branches
      once the PR is merged, and refuses before.</li>
 <li><strong>Haywire studio</strong> you run from the scripts menu: it starts this worktree's studio on
      the port <code>worktree_setup.py</code> gave it (see <em>Starting the studio</em>).</li>
+<li>Set <code>async: false</code> on <em>Worktree setup</em> again. Whether T3's project settings UI can set it
+   is not known; this works: back up <code>~/.t3/userdata/settings.json</code>, then in
+   <code>projectSettingsOverrides.&lt;projectId&gt;.defaultProjectScripts</code> add <code>"async": false</code> to the
+   entry with <code>"id": "worktree-setup"</code>. T3 keeps a hand edit made while it runs. The agent
+   can make the edit for you, on your yes. Without it the agent starts while the setup is
+   still running, and the session-start hook's wait covers that.</li>
 <li><em>Settings → Worktrees → Cleanup</em>: turn on <em>Delete merged worktrees</em>, and <em>Keep worktrees
    with local changes</em> with <em>Uncommitted changes</em>.</li>
 <li>Branch naming: the model's semantic prefix, so branches read <code>feat/…</code>, <code>fix/…</code>, <code>docs/…</code>.</li>
