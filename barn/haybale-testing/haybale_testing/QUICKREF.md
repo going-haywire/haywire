@@ -62,9 +62,10 @@
 
 ## farmhand
 - `haybale-testing:farmhand:affinity` — Affinity — Report handler thread and loop.
-- `haybale-testing:farmhand:block` — Block — Sleep off-loop for `seconds`.
+- `haybale-testing:farmhand:block` — Block — Sleep off-loop for `seconds`, or until `gate` is released.
 - `haybale-testing:farmhand:echo` — Echo — Echo text back (canned read tool).
 - `haybale-testing:farmhand:fail` — Fail — Always fails with a stable code.
+- `haybale-testing:farmhand:release` — Release — Open a gate a Block call waits on.
 
 ## state
 - `haybale-testing:state:TestSessionState` — Test Session State — 
