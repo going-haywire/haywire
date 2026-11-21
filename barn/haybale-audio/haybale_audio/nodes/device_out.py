@@ -12,7 +12,7 @@ from haywire.api import (
     NodeSettings,
     NodeType,
     Promotable,
-    SimpleLabelWidget,
+    LabelWidget,
     bag,
     node,
     setting,
@@ -101,9 +101,7 @@ class DeviceOutNode(BaseNode):
         self.add(EXEC_AUDIO.as_inlet("write", label="Write"))
         self.add(EXEC.as_inlet("stop", label="Stop"))
         self.add(AUDIO.as_inlet("audio", label="Audio", description="Block to play"))
-        self.add(
-            STRING.as_config("status", default="Idle", label="Status", widget=SimpleLabelWidget.config())
-        )
+        self.add(STRING.as_config("status", default="Idle", label="Status", widget=LabelWidget.config()))
         self.add(EXEC_AUDIO.as_outlet("next", label="Next"))
         self.add(INT.as_outlet("depth", label="Depth"))
 

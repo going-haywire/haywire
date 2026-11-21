@@ -60,7 +60,7 @@ class TestPromotedPortWritesThroughTheSetting:
         assert isinstance(_widget_model_for(port), SettingWidgetModel)
 
     def test_the_model_carries_the_setting_s_bag(self, graph_with_library_system: BaseGraph):
-        # A SelectWidget hands it to a one-argument options callable, on the card as in the panel.
+        # A MenuWidget hands it to a one-argument options callable, on the card as in the panel.
         node, port = _promoted(graph_with_library_system, "example_float", PortType.OUTLET)
         model = _widget_model_for(port)
         assert isinstance(model, SettingWidgetModel)

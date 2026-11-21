@@ -9,7 +9,7 @@ from haywire.api import (
     ExecutionContext,
     NodeType,
     PathWidget,
-    SimpleLabelWidget,
+    LabelWidget,
     VolumePath,
     node,
     resolve_volume_path,
@@ -59,9 +59,7 @@ class RecorderNode(BaseNode):
                 description="File to write; its extension picks the format",
             )
         )
-        self.add(
-            STRING.as_config("status", default="Idle", label="Status", widget=SimpleLabelWidget.config())
-        )
+        self.add(STRING.as_config("status", default="Idle", label="Status", widget=LabelWidget.config()))
         self.add(EXEC_AUDIO.as_outlet("next", label="Next"))
         self.add(INT.as_outlet("frames", label="Frames"))
 

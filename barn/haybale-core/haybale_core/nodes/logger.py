@@ -1,6 +1,6 @@
 import logging
 
-from haywire.api import EXEC, STRING, BaseNode, ExecutionContext, NodeType, SelectWidget, TextWidget, node
+from haywire.api import EXEC, STRING, BaseNode, ExecutionContext, NodeType, MenuWidget, TextWidget, node
 
 # Lives under the `haywire` namespace
 logger = logging.getLogger("haywire.nodes.logger")
@@ -31,7 +31,7 @@ class LoggerNode(BaseNode):
                 "severity",
                 label="Severity",
                 description="Log level this message is emitted at.",
-                widget=SelectWidget.config(properties={"options": _SEVERITIES}),
+                widget=MenuWidget.config(properties={"options": _SEVERITIES}),
                 default="INFO",
             )
         )

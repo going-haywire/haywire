@@ -46,12 +46,12 @@ def _draw(skin: _Skin, wrapper, name: str, route: Any = None, **kwargs: Any) -> 
 
 
 def test_it_draws_the_field_s_own_widget_by_default(note, nicegui_slot_context) -> None:
-    from haywire.barn.builtin.widget_keys import SELECT_WIDGET
+    from haywire.barn.builtin.widget_keys import MENU_WIDGET
 
     factory, _ = _factory()
     _draw(_Skin(factory), note, "font")
 
-    assert factory.render_widget.call_args.args[0] == SELECT_WIDGET
+    assert factory.render_widget.call_args.args[0] == MENU_WIDGET
 
 
 def test_a_widget_key_overrides_it(note, nicegui_slot_context) -> None:

@@ -97,7 +97,7 @@ class TestSettingDescriptor:
         assert _WithChoices.algorithm.widget_config["properties"]["options"] == ["fast", "accurate"]
 
     def test_choices_callable_stored_unresolved(self):
-        # Callable options are stored as-is — resolved by SelectWidget at build time,
+        # Callable options are stored as-is — resolved by MenuWidget at build time,
         # never eagerly here.
         options = _WithChoices.dynamic.widget_config["properties"]["options"]
         assert callable(options)

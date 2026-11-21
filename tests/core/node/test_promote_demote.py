@@ -91,7 +91,7 @@ def test_promoted_port_carries_the_settings_widget_config(library_system):
     promote_setting(test_node, "filter", "mode")
     mode_pid = bag_cls.__dict__["mode"].storage_key
     mode_port = test_node.ports[mode_pid]
-    assert mode_port.widget_key == widget_keys.SELECT_WIDGET
+    assert mode_port.widget_key == widget_keys.MENU_WIDGET
     assert mode_port.widget_config["properties"]["options"] == ["fast", "precise"]
 
 

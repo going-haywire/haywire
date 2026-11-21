@@ -13,7 +13,7 @@ def test_choices_default_widget_is_select():
     from haywire.barn.builtin.types import CHOICES
     from haywire.barn.builtin import widget_keys
 
-    assert CHOICES.class_identity.widget_key == widget_keys.SELECT_WIDGET
+    assert CHOICES.class_identity.widget_key == widget_keys.MENU_WIDGET
 
 
 @pytest.mark.integration

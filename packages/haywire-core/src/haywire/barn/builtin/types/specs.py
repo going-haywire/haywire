@@ -115,7 +115,7 @@ class STRING(PrimitiveType[str]):
     description="True or False",
     color="#4caf50",
     default={"value": False},
-    widget_key=widget_keys.SWITCH_WIDGET,
+    widget_key=widget_keys.TOGGLE_WIDGET,
 )
 class BOOL(PrimitiveType[bool]):
     """Boolean data type"""

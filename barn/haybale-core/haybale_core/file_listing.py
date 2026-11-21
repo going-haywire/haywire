@@ -14,7 +14,7 @@ from haywire.api import (
     NumberWidget,
     PortType,
     Promotable,
-    SimpleLabelWidget,
+    LabelWidget,
     StoreStrategy,
     resolve_volume_path,
     setting,
@@ -71,7 +71,7 @@ class FileListing(NodeSettings):
         0,
         label="Total",
         description="Number of files found",
-        widget=SimpleLabelWidget.config(),
+        widget=LabelWidget.config(),
         promotable=Promotable.OUTLET | Promotable.CONFIG,
         store=StoreStrategy.NEVER,
     )

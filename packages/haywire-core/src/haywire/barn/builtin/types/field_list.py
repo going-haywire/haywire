@@ -60,7 +60,7 @@ def _entry_from(item: Any) -> FieldEntry | None:
 
 @type_decorator(
     wire_type=DataWire,
-    label="Field list",
+    label="Field List",
     description="Fields declared by key and type",
     color="#78909c",
     default={"entries": []},

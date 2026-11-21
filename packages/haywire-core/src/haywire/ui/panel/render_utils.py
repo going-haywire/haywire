@@ -841,11 +841,11 @@ def _render_reactive_field_row(
 
     # Every field — scalars, vectors, color — resolves a shared BaseWidget by its
     # widget_key, stamped once at __set_name__ (see _resolve_widget_instance).
-    # VecWidget handles vec types via widget_config['vec_meta']; the panel does
+    # VectorWidget handles vec types via widget_config['vec_meta']; the panel does
     # not special-case them.
     error_container = ui.element("div").classes("w-full")
 
-    # A column-oriented widget (e.g. VecWidget in row-per-component mode) renders
+    # A column-oriented widget (e.g. VectorWidget in row-per-component mode) renders
     # multiple flush component rows; top-align the label against the first row
     # rather than centering it across the whole block. Field-to-field spacing
     # comes uniformly from the parent column's gap (same for scalars and

@@ -396,9 +396,9 @@ string `widget=` hints, ad-hoc type inference) that preceded it. See
 rationale and the alternatives it rejects.
 
 `CHOICES(STRING)` is the one builtin IType whose declared identity points at
-a dropdown (`widget_key=SELECT_WIDGET`) while carrying zero options itself —
+a dropdown (`widget_key=MENU_WIDGET`) while carrying zero options itself —
 every declaration site supplies its own via `widget_config={"options": [...]
-| {value: label} | callable}`. `SelectWidget.build()` resolves a callable
+| {value: label} | callable}`. `MenuWidget.build()` resolves a callable
 option-list at build time, so a dynamic list (e.g. sourced from a live
 registry) still refreshes on every widget instance build even though nothing
 about option resolution happens at stamp time.

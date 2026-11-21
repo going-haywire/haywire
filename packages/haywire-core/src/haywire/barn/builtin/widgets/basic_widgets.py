@@ -172,18 +172,18 @@ class CheckboxWidget(BaseWidget):
         )
 
 
-@widget(description="switch widget")
-class SwitchWidget(BaseWidget):
+@widget(description="toggle widget")
+class ToggleWidget(BaseWidget):
     """
     Toggle switch widget for boolean ports.
 
-    Config options (via ``SwitchWidget.config(properties={...})``):
+    Config options (via ``ToggleWidget.config(properties={...})``):
 
     - ``text`` (str): Label text displayed next to the switch.
 
     Example::
 
-        SwitchWidget.config(properties={'text': 'Active'})
+        ToggleWidget.config(properties={'text': 'Active'})
     """
 
     def build(self) -> Any:
@@ -265,12 +265,12 @@ class SliderWidget(BaseWidget):
         return slider
 
 
-@widget(description="select widget")
-class SelectWidget(BaseWidget):
+@widget(description="menu widget")
+class MenuWidget(BaseWidget):
     """
     Dropdown select widget for int and string ports.
 
-    Config options (via ``SelectWidget.config(properties={...})``):
+    Config options (via ``MenuWidget.config(properties={...})``):
 
     - ``options`` (list, ``{value: label}`` dict, or callable returning either):
       List of selectable values (required). A callable is invoked at ``build()``
@@ -296,15 +296,15 @@ class SelectWidget(BaseWidget):
 
     Example::
 
-        SelectWidget.config(properties={'options': ['Low', 'Medium', 'High']})
-        SelectWidget.config(properties={'options': {0: 'Off', 1: 'On'}, 'clearable': True})
-        SelectWidget.config(properties={'options': lambda: list_available_skins()})
+        MenuWidget.config(properties={'options': ['Low', 'Medium', 'High']})
+        MenuWidget.config(properties={'options': {0: 'Off', 1: 'On'}, 'clearable': True})
+        MenuWidget.config(properties={'options': lambda: list_available_skins()})
         # Depends on a sibling setting of the same bag:
-        SelectWidget.config(properties={'options': lambda bag: list_sources(bag.backend)})
+        MenuWidget.config(properties={'options': lambda bag: list_sources(bag.backend)})
         # A slow query, run when the user clicks refresh:
-        SelectWidget.config(properties={'options': known_sources, 'refresh': find_sources})
+        MenuWidget.config(properties={'options': known_sources, 'refresh': find_sources})
         # Suggestions, plus any typed value:
-        SelectWidget.config(properties={'options': ['auto', 'cpu'], 'new_value_mode': 'add-unique'})
+        MenuWidget.config(properties={'options': ['auto', 'cpu'], 'new_value_mode': 'add-unique'})
     """
 
     def build(self) -> Any:
@@ -346,7 +346,7 @@ class SelectWidget(BaseWidget):
         try:
             options = await run.io_bound(self._run_query)
         except Exception:
-            log.warning("SelectWidget refresh failed", exc_info=True)
+            log.warning("MenuWidget refresh failed", exc_info=True)
             return
         finally:
             button.props(remove="loading")
@@ -395,8 +395,8 @@ class SelectWidget(BaseWidget):
         element.update()
 
 
-@widget(description="Simple label for display only")
-class SimpleLabelWidget(BaseWidget):
+@widget(description="Label for display only")
+class LabelWidget(BaseWidget):
     """
     Read-only label widget that displays the port value as text.
 
@@ -405,7 +405,7 @@ class SimpleLabelWidget(BaseWidget):
 
     Example::
 
-        SimpleLabelWidget.config()
+        LabelWidget.config()
     """
 
     def build(self) -> Any:

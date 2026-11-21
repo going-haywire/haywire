@@ -15,7 +15,7 @@ from haywire.core.node import node, BaseNode
 
 
 @node(
-    label="Core Error Node",
+    label="Error",
     description="Placeholder for node that could not be loaded",
     search_tags=["error", "system", "placeholder"],
     menu="core/system/error",

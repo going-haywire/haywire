@@ -99,7 +99,7 @@ class NodeProperties(NodeSettings):
         label="Skin",
         category="appearance",
         order=10,
-        # A mirror inherits its IType (-> CHOICES/SELECT_WIDGET) from src but not
+        # A mirror inherits its IType (-> CHOICES/MENU_WIDGET) from src but not
         # src's widget_config, so the options are re-supplied here.
         widget_config={"options": _patch_skin_choices},
     )

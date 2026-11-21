@@ -36,9 +36,9 @@ _NODES: list[tuple[Any, str, Any]] = [
     (IntSliderNode, widget_keys.SLIDER_WIDGET, 0),
     (FloatNumberNode, widget_keys.NUMBER_WIDGET, 0.0),
     (IntNumberNode, widget_keys.NUMBER_WIDGET, 0),
-    (ToggleNode, widget_keys.SWITCH_WIDGET, False),
+    (ToggleNode, widget_keys.TOGGLE_WIDGET, False),
     (TextNode, widget_keys.TEXT_WIDGET, ""),
-    (MenuNode, widget_keys.SELECT_WIDGET, "One"),
+    (MenuNode, widget_keys.MENU_WIDGET, "One"),
 ]
 
 

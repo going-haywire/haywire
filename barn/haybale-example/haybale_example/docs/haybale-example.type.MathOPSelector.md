@@ -8,7 +8,7 @@ Simple mathematical operations for one or two float values
 
 - **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': 'add'}`
-- **widget_key**: `haywire-core:widget:SelectWidget`
+- **widget_key**: `haywire-core:widget:MenuWidget`
 - **color**: `#ffc107`
 
 ## Notes

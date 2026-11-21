@@ -189,7 +189,7 @@ def resolve_options(options: Any, settings: Any = None) -> Any:
     or ``None``) when it takes a positional parameter, else with no arguments.
     Giving that parameter a default (``def options(bag=None)``) keeps the callable
     working with a framework that calls it without arguments. Anything else is
-    returned as given. ``SelectWidget`` and every other reader of ``options``
+    returned as given. ``MenuWidget`` and every other reader of ``options``
     resolve through here, so they all see the same list.
     """
     if not callable(options):

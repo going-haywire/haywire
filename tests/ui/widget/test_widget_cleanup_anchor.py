@@ -9,20 +9,20 @@ from __future__ import annotations
 
 import pytest
 
-from haywire.barn.builtin.widgets.note_text_widget import NoteTextWidget
+from haywire.barn.builtin.widgets.annotation_text_widget import AnnotationTextWidget
 
-from tests.ui.widget.test_note_text_widget import _model
+from tests.ui.widget.test_annotation_text_widget import _model
 
 pytestmark = pytest.mark.unit
 
 
 def test_rendering_a_widget_adds_nothing_to_the_page(nicegui_slot_context) -> None:
-    first = NoteTextWidget(_model("Hello", lambda _value: None))
+    first = AnnotationTextWidget(_model("Hello", lambda _value: None))
     client = first.render().client
     before = len(client.delete_handlers)
 
     for _ in range(5):
-        widget = NoteTextWidget(_model("Hello", lambda _value: None))
+        widget = AnnotationTextWidget(_model("Hello", lambda _value: None))
         widget.render()
         widget.cleanup()
 
@@ -30,7 +30,7 @@ def test_rendering_a_widget_adds_nothing_to_the_page(nicegui_slot_context) -> No
 
 
 def test_removing_the_widget_element_cleans_the_widget_up(nicegui_slot_context) -> None:
-    widget = NoteTextWidget(_model("Hello", lambda _value: None))
+    widget = AnnotationTextWidget(_model("Hello", lambda _value: None))
     root = widget.render()
 
     root.delete()

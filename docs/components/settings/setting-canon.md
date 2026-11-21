@@ -154,7 +154,7 @@ file auto-define). Nothing re-resolves at render time. Precedence:
 1. An explicit `widget=WidgetCls.config(...)` dict, if given — wins outright.
 2. Otherwise, the field's IType's own declared identity
    (`@type(widget_key=..., widget_config=...)`) — e.g. `CHOICES` declares
-   `widget_key=SELECT_WIDGET`, `COLOR` declares a color-picker key, plain
+   `widget_key=MENU_WIDGET`, `COLOR` declares a color-picker key, plain
    `FLOAT`/`INT` declare a NumberDrag key, `BOOL` a toggle key.
 3. `min`/`max` and any `widget_config=` you pass are folded into
    `widget_config["properties"]` on top of the IType's own declared
@@ -162,7 +162,7 @@ file auto-define). Nothing re-resolves at render time. Precedence:
 
 There is no `choices=` parameter and no string `widget="color"` /
 `widget="label"` shorthand — both were deleted. For a read-only label use
-`widget=SimpleLabelWidget.config()`; for a color field use `setting[COLOR]`
+`widget=LabelWidget.config()`; for a color field use `setting[COLOR]`
 (its IType identity already selects the color picker, no `widget=` needed).
 
 **Dropdowns use `setting[CHOICES]`, options supplied per-use.** `CHOICES` is
@@ -182,7 +182,7 @@ algorithm = setting[CHOICES](
     widget_config={'options': {'fast': 'Fast Mode', 'accurate': 'High Accuracy'}},
 )
 
-# Callable — resolved by SelectWidget at build and again each time the dropdown opens
+# Callable — resolved by MenuWidget at build and again each time the dropdown opens
 # (use for dynamic lists from a registry; plugin-added entries appear automatically)
 theme = setting[CHOICES]('', widget_config={'options': lambda: get_theme_registry().list_workbench_keys()})
 
@@ -192,13 +192,13 @@ theme = setting[CHOICES]('', widget_config={'options': lambda: get_theme_registr
 def list_source_options(bag=None):
     return list_sources(bag.backend if bag is not None else None)
 
-source = setting[STRING]('', widget=SelectWidget.config(properties={'options': list_source_options}))
+source = setting[STRING]('', widget=MenuWidget.config(properties={'options': list_source_options}))
 
 # A slow list (network discovery): keep `options` fast and put the query behind a
 # refresh button. `refresh` is called like `options`, off the UI thread, on click only;
 # `refresh: True` calls `options` again. With `refresh`, opening the dropdown re-reads
 # nothing: `options` fills it once at build, the button is the only update.
-source = setting[STRING]('', widget=SelectWidget.config(
+source = setting[STRING]('', widget=MenuWidget.config(
     properties={'options': known_sources, 'refresh': find_sources}))
 ```
 
@@ -342,7 +342,7 @@ class device(NodeSettings):
     mxid = setting[STRING](
         "",
         label="Device MXID",
-        widget=SelectWidget.config(properties={"options": _list_available_mxids}),
+        widget=MenuWidget.config(properties={"options": _list_available_mxids}),
         promote_default=PortType.CONFIG,   # on the node face by default
     )
 ```
@@ -457,7 +457,7 @@ no sentinel to make reachable, so no reason to widen a range to admit one.
 
 **What the panel does.** Present, the row renders the **element type's own
 widget** — an `OPTIONAL[BOOL]` is a switch, an `OPTIONAL[VEC3F]` is a
-`VecWidget`. Absent, that widget is replaced by a `none` cell, framed and
+`VectorWidget`. Absent, that widget is replaced by a `none` cell, framed and
 sized like a value widget so the column doesn't jump, in muted italics so it
 doesn't read as a value. (Absence must *look* absent: a `None` cell renders as
 `0` through the usual converter, which would lie about the value.)

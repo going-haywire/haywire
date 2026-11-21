@@ -1,4 +1,4 @@
-"""NoteTextWidget: a note's text, edited in place on a double-click and written once on commit."""
+"""AnnotationTextWidget: a note's text, edited in place on a double-click and written once on commit."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import pytest
 from nicegui import ui
 
 from haywire.barn.builtin.types import STRING
-from haywire.barn.builtin.widgets.note_text_widget import _HINT, NoteTextWidget
+from haywire.barn.builtin.widgets.annotation_text_widget import _HINT, AnnotationTextWidget
 from haywire.core.types.enums import PortType
 from haywire.core.types.port import DataPort
 from haywire.ui.panel.setting_widget_model import SettingWidgetModel
@@ -44,7 +44,7 @@ def _label(root: ui.element) -> ui.label:
 
 
 def test_double_click_opens_the_editor_with_the_text(nicegui_slot_context) -> None:
-    root = NoteTextWidget(_model("Hello", lambda _v: None)).render()
+    root = AnnotationTextWidget(_model("Hello", lambda _v: None)).render()
     editor = _editor(root)
     assert editor.visible is False
 
@@ -56,7 +56,7 @@ def test_double_click_opens_the_editor_with_the_text(nicegui_slot_context) -> No
 
 def test_commit_writes_the_new_text_once(nicegui_slot_context) -> None:
     writes: list[Any] = []
-    root = NoteTextWidget(_model("Hello", writes.append)).render()
+    root = AnnotationTextWidget(_model("Hello", writes.append)).render()
     editor = _editor(root)
     _fire(root, "dblclick")
     editor.value = "Hello world"
@@ -71,7 +71,7 @@ def test_commit_writes_the_new_text_once(nicegui_slot_context) -> None:
 def test_the_save_key_commits(nicegui_slot_context) -> None:
     """The keymap listener sends ``hw-commit`` before Ctrl+S, where a Quasar blur never arrives."""
     writes: list[Any] = []
-    root = NoteTextWidget(_model("Hello", writes.append)).render()
+    root = AnnotationTextWidget(_model("Hello", writes.append)).render()
     editor = _editor(root)
     _fire(root, "dblclick")
     editor.value = "Hello world"
@@ -83,7 +83,7 @@ def test_the_save_key_commits(nicegui_slot_context) -> None:
 
 def test_cancel_and_unchanged_commit_write_nothing(nicegui_slot_context) -> None:
     writes: list[Any] = []
-    root = NoteTextWidget(_model("Hello", writes.append)).render()
+    root = AnnotationTextWidget(_model("Hello", writes.append)).render()
     editor = _editor(root)
 
     _fire(root, "dblclick")
@@ -100,7 +100,7 @@ def test_cancel_and_unchanged_commit_write_nothing(nicegui_slot_context) -> None
 
 
 def test_a_refused_commit_shows_the_stored_text(nicegui_slot_context) -> None:
-    root = NoteTextWidget(_model("Hello", lambda _v: False)).render()
+    root = AnnotationTextWidget(_model("Hello", lambda _v: False)).render()
     editor = _editor(root)
     _fire(root, "dblclick")
     editor.value = "Refused"
@@ -111,7 +111,7 @@ def test_a_refused_commit_shows_the_stored_text(nicegui_slot_context) -> None:
 
 
 def test_empty_text_shows_the_hint(nicegui_slot_context) -> None:
-    root = NoteTextWidget(_model("", lambda _v: None)).render()
+    root = AnnotationTextWidget(_model("", lambda _v: None)).render()
 
     label = _label(root)
     assert label.text == _HINT
@@ -119,6 +119,6 @@ def test_empty_text_shows_the_hint(nicegui_slot_context) -> None:
 
 
 def test_the_shown_text_is_not_a_widget_container(nicegui_slot_context) -> None:
-    root = NoteTextWidget(_model("Hello", lambda _v: None)).render()
+    root = AnnotationTextWidget(_model("Hello", lambda _v: None)).render()
 
     assert all("widget-container" not in e._classes for e in [root, *root.descendants()])

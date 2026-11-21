@@ -9,7 +9,7 @@ from haywire.api import (
     NodeSettings,
     NodeType,
     Promotable,
-    SimpleLabelWidget,
+    LabelWidget,
     bag,
     node,
     setting,
@@ -101,9 +101,7 @@ class ResampleNode(BaseNode):
                 "callbacks", label="Subscribers", description="Connect to an Audio Event node."
             )
         )
-        self.add(
-            STRING.as_config("status", default="Idle", label="Status", widget=SimpleLabelWidget.config())
-        )
+        self.add(STRING.as_config("status", default="Idle", label="Status", widget=LabelWidget.config()))
         self.add(EXEC_AUDIO.as_outlet("next", label="Next"))
 
     def post_init(self) -> None:

@@ -5,7 +5,7 @@ from typing import Any, cast
 from haybale_core.keys import ARRAY_WIDGET
 from haybale_core.nodes.widgets.base import WidgetNode
 from haybale_core.types import ArrayType
-from haywire.api import CHOICES, SELECT_WIDGET, STRING, NodeSettings, NodeType, node, setting
+from haywire.api import CHOICES, MENU_WIDGET, STRING, NodeSettings, NodeType, node, setting
 
 
 @node(
@@ -26,7 +26,7 @@ class MenuNode(WidgetNode):
 
     value_type = CHOICES
     inlet_type = STRING
-    widget_key = SELECT_WIDGET
+    widget_key = MENU_WIDGET
     default_value = "One"
     config_bag = "menu"
 

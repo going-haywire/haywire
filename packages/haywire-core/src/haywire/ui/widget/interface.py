@@ -112,12 +112,12 @@ class IWidget(ABC):
             Dictionary with 'key' and 'config' for port creation
 
         Example:
-            SelectWidget.config(
+            MenuWidget.config(
                 properties={'options': ['A', 'B', 'C']}
             )
             # Returns:
             # {
-            #     'key': 'core:widget:SelectWidget',
+            #     'key': 'core:widget:MenuWidget',
             #     'config': {'properties': {'options': ['A', 'B', 'C']}}
             # }
         """

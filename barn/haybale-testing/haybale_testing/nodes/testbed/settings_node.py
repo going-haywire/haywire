@@ -15,7 +15,7 @@ from haywire.api import (
     ExecutionContext,
     NodeSettings,
     NodeType,
-    SelectWidget,
+    MenuWidget,
     node,
     setting,
     shadow,
@@ -94,7 +94,7 @@ class SettingsNode(BaseNode):
         )
         example_source = setting[STRING](
             "",
-            widget=SelectWidget.config(
+            widget=MenuWidget.config(
                 properties={
                     "options": _known_sources,
                     "refresh": _find_sources,
@@ -143,7 +143,7 @@ class SettingsNode(BaseNode):
         count_mirror = shadow(TestingSettings.default_count, label="Count Mirror", category="mirrors")
         label_mirror = shadow(TestingSettings.default_label, label="Label Mirror", category="mirrors")
         enabled = shadow(TestingSettings.default_enabled, label="Enabled", category="mirrors")
-        # Mirrors inherit IType (-> CHOICES/SELECT_WIDGET) from src, but NOT its
+        # Mirrors inherit IType (-> CHOICES/MENU_WIDGET) from src, but NOT its
         # per-setting widget_config — options must be re-supplied here.
         mode = shadow(
             TestingSettings.default_mode,

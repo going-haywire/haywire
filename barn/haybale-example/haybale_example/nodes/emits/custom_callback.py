@@ -7,7 +7,7 @@ from haywire.api import (
     CallbackEvent,
     ExecutionContext,
     NodeType,
-    SelectWidget,
+    MenuWidget,
     TextWidget,
     node,
 )
@@ -51,7 +51,7 @@ class CustomCallbackNode(BaseNode):
                 "thread_mode",
                 default="single",
                 label="Thread Mode",
-                widget=SelectWidget.config(properties={"options": ["single", "multi"]}),
+                widget=MenuWidget.config(properties={"options": ["single", "multi"]}),
             )
         )
 

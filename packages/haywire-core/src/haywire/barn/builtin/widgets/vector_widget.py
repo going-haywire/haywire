@@ -1,4 +1,4 @@
-"""VecWidget — N-component numeric editor for VEC* ports.
+"""VectorWidget — N-component numeric editor for VEC* ports.
 
 Reads length + component labels from ``widget_config['properties']['vec_meta']``
 (set by the VEC* type's ``widget_config``). Falls back to a single 3-component
@@ -22,7 +22,7 @@ from haywire.ui.components.number.drag import NumberDrag
 
 
 @widget(description="Vector component editor widget")
-class VecWidget(BaseWidget):
+class VectorWidget(BaseWidget):
     """N-component numeric editor for VEC* ports."""
 
     def build(self) -> Any:

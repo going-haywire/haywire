@@ -12,7 +12,7 @@ core must never import from ui.
 from typing import Collection
 
 from haywire.barn.builtin.types import CHOICES, STRING
-from haywire.barn.builtin.widgets.basic_widgets import SimpleLabelWidget
+from haywire.barn.builtin.widgets.basic_widgets import LabelWidget
 from haywire.core.namespaces import CATEGORY_NODE_SKINS, NAMESPACE_UI_NODE_DEFAULT_SKIN
 from haywire.core.settings.settings_framework import FrameworkSettings
 from haywire.core.settings import setting
@@ -144,7 +144,7 @@ class NodeDefaultSkinSettings(FrameworkSettings, namespace=NAMESPACE_UI_NODE_DEF
         label="Default NodeSkin",
         description="Current default node skin",
         category=CATEGORY_NODE_SKINS,
-        widget=SimpleLabelWidget.config(),
+        widget=LabelWidget.config(),
     )
     studio_skin = setting[CHOICES](
         default=_default_skin,

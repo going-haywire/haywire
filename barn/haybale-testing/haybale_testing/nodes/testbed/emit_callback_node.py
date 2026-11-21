@@ -7,7 +7,7 @@ from haywire.api import (
     BaseNode,
     ExecutionContext,
     NodeType,
-    SwitchWidget,
+    ToggleWidget,
     TextWidget,
     node,
 )
@@ -44,7 +44,7 @@ class TestEmitCallbackNode(BaseNode):
                 label="Sequential",
                 description="Sequential Mode - if multiple callbacks, emit in sequence",
                 default=False,
-                widget=SwitchWidget.config(),
+                widget=ToggleWidget.config(),
             )
         )
 

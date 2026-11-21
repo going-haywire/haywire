@@ -1,0 +1,29 @@
+# Key renames of the haywire-core builtin in release 0.6.
+#
+# Apply to a project's graphs with:
+#   uv run haywire rename --map <this file> --apply
+# The rules behind the names: docs/reference/component-naming.md.
+
+[[rename]]
+old = "haywire-core:widget:SimpleLabelWidget"
+new = "haywire-core:widget:LabelWidget"
+
+[[rename]]
+old = "haywire-core:widget:VecWidget"
+new = "haywire-core:widget:VectorWidget"
+old_module = "haywire.barn.builtin.widgets.vec_widget"
+new_module = "haywire.barn.builtin.widgets.vector_widget"
+
+[[rename]]
+old = "haywire-core:widget:NoteTextWidget"
+new = "haywire-core:widget:AnnotationTextWidget"
+old_module = "haywire.barn.builtin.widgets.note_text_widget"
+new_module = "haywire.barn.builtin.widgets.annotation_text_widget"
+
+[[rename]]
+old = "haywire-core:widget:SwitchWidget"
+new = "haywire-core:widget:ToggleWidget"
+
+[[rename]]
+old = "haywire-core:widget:SelectWidget"
+new = "haywire-core:widget:MenuWidget"

@@ -80,9 +80,9 @@ class TestDelegation:
         [
             (INT, "NumberWidget"),
             (FLOAT, "NumberWidget"),
-            (BOOL, "SwitchWidget"),
-            (CHOICES, "SelectWidget"),
-            (VEC3F, "VecWidget"),
+            (BOOL, "ToggleWidget"),
+            (CHOICES, "MenuWidget"),
+            (VEC3F, "VectorWidget"),
         ],
     )
     def test_builds_the_element_types_own_widget(self, element_cls, expected_inner):

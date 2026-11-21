@@ -21,7 +21,7 @@ _FIELD_PINS = r"_(in|out)$"
 _SUMMARY_LENGTH = 60
 
 
-class MetadataNodeBase(BaseNode):
+class BaseMetadataNode(BaseNode):
     """Base of the nodes that stamp and read fields on a carrier.
 
     Every pin whose id ends in `_in` or `_out` belongs to the field lists and is
@@ -29,7 +29,7 @@ class MetadataNodeBase(BaseNode):
 
     ```python
     @node(label="Camera Info", menu="camera", node_type=NodeType.DATA)
-    class CameraInfoNode(MetadataNodeBase):
+    class CameraInfoNode(BaseMetadataNode):
         READ_FIELDS = FIELD_LIST().with_added("camera_timestamp", FLOAT)
     ```
     """
@@ -187,7 +187,7 @@ class MetadataFieldSettings(NodeSettings):
     search_tags=["metadata", "field", "stamp", "read", "carrier", "bundle"],
     node_type=NodeType.DATA,
 )
-class MetadataNode(MetadataNodeBase):
+class MetadataNode(BaseMetadataNode):
     """Stamps named fields on an image, depth map or bundle, and reads them back.
 
     List fields under **Stamp** and **Read** in the Properties panel, each with a key

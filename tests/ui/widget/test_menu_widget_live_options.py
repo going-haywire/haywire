@@ -1,4 +1,4 @@
-"""SelectWidget with callable ``options`` (re-read on open, optionally from the bag) and ``refresh``."""
+"""MenuWidget with callable ``options`` (re-read on open, optionally from the bag) and ``refresh``."""
 
 from typing import Any, cast
 
@@ -6,7 +6,7 @@ import pytest
 from nicegui import Client, events
 
 from haywire.barn.builtin.types import STRING
-from haywire.barn.builtin.widgets.basic_widgets import SelectWidget
+from haywire.barn.builtin.widgets.basic_widgets import MenuWidget
 from haywire.ui.panel.setting_widget_model import SettingWidgetModel
 
 pytestmark = pytest.mark.integration
@@ -17,13 +17,13 @@ def _noop_page() -> None:  # registration target for a headless Client
 
 
 def _rendered(properties: dict[str, Any], value: str = "a", settings: Any = None):
-    """A SelectWidget on a STRING cell; returns widget, cell, client."""
+    """A MenuWidget on a STRING cell; returns widget, cell, client."""
     cell = STRING.create_field(default_override={"value": value})
     config = {"properties": properties}
     model = SettingWidgetModel(
         field_id="choice", widget_config=config, cell=cell, on_edit=cell.set_value, settings=settings
     )
-    widget = SelectWidget(model)
+    widget = MenuWidget(model)
     client = Client(cast(Any, _noop_page), request=None)
     with client:
         widget.render()
