@@ -417,11 +417,16 @@ class TestInterpreter:
 
         # No graceful path => no grace period: stop never waits on a producer-fed flow.
         waited_on: list = []
+
+        def recording(flow, wait):
+            def wait_for_completion(*args, **kwargs):
+                waited_on.append(flow.flow_id)
+                return wait(*args, **kwargs)
+
+            return wait_for_completion
+
         for flow in self._tick_flows(interpreter):
-            wait = flow.queue.wait_for_completion
-            flow.queue.wait_for_completion = lambda *a, _flow=flow, _wait=wait, **k: (
-                waited_on.append(_flow.flow_id) or _wait(*a, **k)
-            )
+            flow.queue.wait_for_completion = recording(flow, flow.queue.wait_for_completion)
 
         self._stop_must_not_hang(interpreter)
         assert waited_on == []
