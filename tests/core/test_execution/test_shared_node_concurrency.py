@@ -262,17 +262,17 @@ class TestSharedNodeConcurrentExecution:
         The Shutdown frame runs after the BeginPlay frame, and the shared node's
         lifecycle hooks run once each.
         """
-        from haybale_core.nodes.events.shutdown import ShutdownNode
+        from haybale_core.nodes.events.shutdown_event import ShutdownEventNode
         from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
 
         Payload = _payload_node_cls()
         graph = graph_with_library_system
 
         begin = make_node(graph, BeginPlayProbeNode.class_identity.registry_key, position=(0, 0))
-        shut = make_node(graph, ShutdownNode.class_identity.registry_key, position=(0, 200))
+        shut = make_node(graph, ShutdownEventNode.class_identity.registry_key, position=(0, 200))
         x = make_node(graph, Payload.class_identity.registry_key, position=(300, 100))
         assert isinstance(begin.node, BeginPlayProbeNode)
-        assert isinstance(shut.node, ShutdownNode)
+        assert isinstance(shut.node, ShutdownEventNode)
         assert isinstance(x.node, Payload)
         make_edge(graph, begin.node_id, "exec", x.node_id, "exec_in")
         make_edge(graph, shut.node_id, "exec", x.node_id, "exec_in")

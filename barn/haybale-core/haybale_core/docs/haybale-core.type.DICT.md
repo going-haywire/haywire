@@ -12,4 +12,4 @@ Key-value pairs
 
 ## Notes
 
-Dictionary data type
+Key-value pairs of any types, passed on as a plain `dict`.

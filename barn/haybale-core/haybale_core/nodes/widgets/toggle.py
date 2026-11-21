@@ -1,6 +1,6 @@
 """Toggle."""
 
-from haybale_core.nodes.widgets.base import WidgetNode
+from haybale_core.nodes.widgets.base import BaseWidgetNode
 from haywire.api import BOOL, TOGGLE_WIDGET, NodeType, node
 
 
@@ -11,7 +11,7 @@ from haywire.api import BOOL, TOGGLE_WIDGET, NodeType, node
     search_tags=["toggle", "switch", "bool", "boolean", "widget", "control", "stage"],
     node_type=NodeType.DATA,
 )
-class ToggleNode(WidgetNode):
+class ToggleNode(BaseWidgetNode):
     """An on/off switch that sends true or false.
 
     A value arriving at *In* flips the switch and is sent on. Last write wins, so a

@@ -24,7 +24,7 @@ def _add(graph: Any, module: str, name: str) -> Any:
 
 
 def _begin(graph: Any) -> Any:
-    return _add(graph, "haybale_core.nodes.events.begin_play", "BeginPlayNode")
+    return _add(graph, "haybale_core.nodes.events.begin_play_event", "BeginPlayEventNode")
 
 
 def _loop(graph: Any) -> Any:

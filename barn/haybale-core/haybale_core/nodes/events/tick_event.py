@@ -2,7 +2,7 @@ from haywire.api import CALLBACK, EXEC, FLOAT, BaseNode, CallbackEvent, Executio
 
 
 @node(
-    label="Tick",
+    label="Tick Event",
     description="Triggered by a connected emitter (Tick Emit, Run Button)",
     menu="core/event",
     search_tags=["frame", "update", "loop", "event", "tick"],

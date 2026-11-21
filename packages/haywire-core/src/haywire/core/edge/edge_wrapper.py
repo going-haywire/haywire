@@ -712,7 +712,7 @@ class EdgeWrapper:
             # field whose wire type IS its declared type, and wrong for the two
             # where it isn't: PooledField (stores its element) and a WrapperType
             # field (OPTIONAL[INT] declares the wrapper, sends an INT). Only
-            # PooledType hid the asymmetry, by forbidding outlets outright.
+            # POOLED hid the asymmetry, by forbidding outlets outright.
             sink_type = inlet_port.stored_type
             source_type = outlet_port.stored_type
 

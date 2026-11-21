@@ -9,9 +9,9 @@ pytestmark = pytest.mark.unit
 
 
 def _array_port(port_type: PortType) -> DataPort:
-    from haybale_core.types import ArrayType
+    from haybale_core.types import ARRAY
 
-    array = ArrayType[FLOAT]
+    array = ARRAY[FLOAT]
     return DataPort(
         registry_id="a",
         registry_key=array.class_identity.registry_key,

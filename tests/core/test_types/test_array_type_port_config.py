@@ -1,4 +1,4 @@
-"""An ArrayType port takes its element's wire type and colour, and an array outlet on a data wire
+"""An ARRAY port takes its element's wire type and colour, and an array outlet on a data wire
 allows several links like any data outlet."""
 
 import pytest
@@ -19,7 +19,7 @@ def _edge_link_test_node(graph: BaseGraph):
 
 
 class TestArrayTypeOutletConnectionRule:
-    """An ArrayType outlet over a data element takes many links, exactly like a scalar
+    """An ARRAY outlet over a data element takes many links, exactly like a scalar
     data outlet; see `DataPort.takes_many_links`."""
 
     def test_array_outlet_over_data_element_allows_multiple_links(self, graph_with_library_system):
@@ -35,8 +35,8 @@ class TestArrayTypeOutletConnectionRule:
         node = _edge_link_test_node(graph_with_library_system)
         inlet = node.ports["pooled_array_string_inlet"]
 
-        # Wrapped in PooledType: a pooled field keeps one value per source, so the inlet
-        # takes many; the ArrayType layer beneath it still resolves to the data wire.
+        # Wrapped in POOLED: a pooled field keeps one value per source, so the inlet
+        # takes many; the ARRAY layer beneath it still resolves to the data wire.
         assert inlet.wire_type.id == DataWire.id
         assert inlet.takes_many_links is True
 
@@ -50,7 +50,7 @@ class TestArrayTypeOutletConnectionRule:
         assert outlet.color == FLOAT.class_identity.color
 
     def test_pooled_inlet_color_follows_element_type(self, graph_with_library_system):
-        """A PooledType wrapper takes the colour of the element that declares the wire type."""
+        """A POOLED wrapper takes the colour of the element that declares the wire type."""
         from haywire.barn.builtin.types import FLOAT
 
         node = _edge_link_test_node(graph_with_library_system)
@@ -59,7 +59,7 @@ class TestArrayTypeOutletConnectionRule:
         assert inlet.color == FLOAT.class_identity.color
 
     def test_two_edges_link_from_the_same_array_outlet(self, graph_with_library_system):
-        """End-to-end regression: a second edge from an ArrayType outlet must
+        """End-to-end regression: a second edge from an ARRAY outlet must
         link, not displace the first (the bug this module exists to catch)."""
         graph = graph_with_library_system
         node_a = _edge_link_test_node(graph)

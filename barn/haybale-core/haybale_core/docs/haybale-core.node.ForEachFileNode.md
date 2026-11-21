@@ -19,7 +19,7 @@ Runs the loop body once for each file in a folder that matches the pattern
 | `stem` | outlet | `haywire-core:type:STRING` | The current file's name without extension |
 | `extension` | outlet | `haywire-core:type:STRING` | The current file's extension, such as .png |
 | `index` | outlet | `haywire-core:type:INT` | Position of the current file, from 0 |
-| `failed` | outlet | `haybale-core:type:ArrayType` | Files whose iteration failed |
+| `failed` | outlet | `haybale-core:type:ARRAY` | Files whose iteration failed |
 | `completed` | outlet | `haywire-core:type:EXEC` | Runs when every file was gone through |
 | `stopped` | outlet | `haywire-core:type:EXEC` | Runs when Break or On Error = stop ended the loop early |
 

@@ -23,15 +23,15 @@ def _port(type_cls, port_type, **kwargs) -> DataPort:
 
 
 def _array(element):
-    from haybale_core.types import ArrayType
+    from haybale_core.types import ARRAY
 
-    return ArrayType[element]  # type: ignore[valid-type]
+    return ARRAY[element]  # type: ignore[valid-type]
 
 
 def _pooled(element):
-    from haybale_core.types import PooledType
+    from haybale_core.types import POOLED
 
-    return PooledType[element]  # type: ignore[valid-type]
+    return POOLED[element]  # type: ignore[valid-type]
 
 
 @pytest.mark.unit

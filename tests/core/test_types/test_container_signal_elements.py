@@ -61,7 +61,7 @@ def test_an_array_of_callbacks_reaches_its_inlet_on_write(graph_with_library_sys
 
 def test_a_pool_of_exec_stays_refused(graph_with_library_system):
     """A pool of EXEC stays refused when a node builds the port, as its `init()` would (Q39)."""
-    from haybale_core.types import PooledType
+    from haybale_core.types import POOLED
     from haybale_testing.nodes.testbed.container_signal_probes import ArrayExecProbeNode
 
     from haywire.barn.builtin.types import EXEC
@@ -70,5 +70,5 @@ def test_a_pool_of_exec_stays_refused(graph_with_library_system):
         graph_with_library_system, ArrayExecProbeNode.class_identity.registry_key, position=(0, 0)
     ).node
 
-    with pytest.raises(ValueError, match="PooledType"):
-        node.add(PooledType[EXEC].as_inlet("pooled_exec_in"))
+    with pytest.raises(ValueError, match="POOLED"):
+        node.add(POOLED[EXEC].as_inlet("pooled_exec_in"))

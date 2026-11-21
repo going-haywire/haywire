@@ -11,7 +11,7 @@ from typing import Any, cast
 import pytest
 from nicegui import Client
 
-from haybale_core.types import ArrayType
+from haybale_core.types import ARRAY
 from haybale_core.widgets.array_widget import ArrayWidget
 from haywire.barn.builtin import widgets as builtin_widgets
 from haywire.barn.builtin.types import FLOAT, INT, STRING
@@ -40,12 +40,12 @@ def registered_widgets():
 
 
 def _rendered(item_cls, initial, widget_config=None, on_edit=None):
-    """An ArrayWidget on an ``ArrayType[item_cls]`` cell.
+    """An ArrayWidget on an ``ARRAY[item_cls]`` cell.
 
     Returns ``(widget, cell, edits)``. The default ``on_edit`` records each
     write and lands it in the cell.
     """
-    array: Any = ArrayType
+    array: Any = ARRAY
     cell = array[item_cls].create_field(default_override={"value": list(initial)})
     edits: list = []
 

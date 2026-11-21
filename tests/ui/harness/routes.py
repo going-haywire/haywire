@@ -1034,7 +1034,7 @@ def register_routes(library_service) -> None:
         from unittest.mock import MagicMock
         from uuid import uuid4
 
-        from haybale_core.types import ArrayType
+        from haybale_core.types import ARRAY
         from haybale_core.widgets.array_widget import ArrayWidget
         from haywire.barn.builtin.types import FLOAT, INT, STRING
         from haywire.barn.builtin.widgets import TextWidget
@@ -1045,7 +1045,7 @@ def register_routes(library_service) -> None:
         if theme_css:
             ui.add_css(theme_css)
 
-        array: Any = ArrayType  # subscripted with runtime values below
+        array: Any = ARRAY  # subscripted with runtime values below
         # A fresh node id per page load, as on /fill-widget.
         node = NodeData(f"list-demo-{uuid4().hex[:8]}", MagicMock())
         ports = [

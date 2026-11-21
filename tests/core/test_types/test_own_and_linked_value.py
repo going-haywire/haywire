@@ -84,10 +84,10 @@ class TestTheFieldChecksBothValues:
         assert field.get_value() == 3
 
     def test_a_rejected_linked_value_leaves_no_linked_value_behind(self, library_system):
-        from haybale_core.types import ArrayType
+        from haybale_core.types import ARRAY
         from haywire.barn.builtin.types import FLOAT
 
-        field = ArrayType[FLOAT].create_field()
+        field = ARRAY[FLOAT].create_field()
 
         with pytest.raises(TypeError):
             field.set_value("not a list", source_id="e1")
@@ -96,10 +96,10 @@ class TestTheFieldChecksBothValues:
 
 class TestPooledFieldsKeepTheirShape:
     def test_a_pooled_field_never_holds_a_linked_value(self, library_system):
-        from haybale_core.types import PooledType
+        from haybale_core.types import POOLED
         from haywire.barn.builtin.types import FLOAT
 
-        pool = PooledType[FLOAT].create_field()
+        pool = POOLED[FLOAT].create_field()
 
         pool.set_value(1.0, source_id="e1")
 

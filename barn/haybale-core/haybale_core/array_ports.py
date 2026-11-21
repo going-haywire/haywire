@@ -6,18 +6,18 @@ __all__ = ["array_element_type", "array_of"]
 
 
 def array_element_type(edge_wrapper: Any) -> Optional[Any]:
-    """Return ``T`` when the edge comes from an ``ArrayType[T]`` outlet, else ``None``."""
-    from haybale_core.types import ArrayType
+    """Return ``T`` when the edge comes from an ``ARRAY[T]`` outlet, else ``None``."""
+    from haybale_core.types import ARRAY
 
     outlet = getattr(edge_wrapper, "_outlet_port", None)
     incoming = getattr(outlet, "stored_type", None)
-    if isinstance(incoming, type) and issubclass(incoming, ArrayType):
+    if isinstance(incoming, type) and issubclass(incoming, ARRAY):
         return getattr(incoming, "element_type_cls", None)
     return None
 
 
 def array_of(element: Any) -> Any:
-    """Return ``ArrayType[element]``."""
-    from haybale_core.types import ArrayType
+    """Return ``ARRAY[element]``."""
+    from haybale_core.types import ARRAY
 
-    return ArrayType[element]  # type: ignore[valid-type]  # element is a runtime type
+    return ARRAY[element]  # type: ignore[valid-type]  # element is a runtime type

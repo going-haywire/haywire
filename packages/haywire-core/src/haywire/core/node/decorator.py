@@ -173,7 +173,7 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
                 menu="events",
                 node_type=NodeType.EVENT
             )
-            class BeginPlayNode(BaseNode):
+            class BeginPlayEventNode(BaseNode):
                 ...
 
         Loop node:

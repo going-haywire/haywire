@@ -14,7 +14,7 @@ class NodeType(IntFlag):
 
     - DATA: no pins on non-DATA ports, and at least one data outlet.
     - CONTROL: at least one control inlet and at least one control outlet. A
-      control node may carry several control outlets — ``ControlSwitch`` has two.
+      control node may carry several control outlets — ``ControlSwitchNode`` has two.
     - EVENT: no inlets with pins, an ``event_subscription``, and at least one
       control outlet.
     - OUTPUT: a control node that ends a flow.

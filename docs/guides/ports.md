@@ -89,13 +89,13 @@ Defaults are per-direction and usually correct without setting anything: **inlet
 FLOAT.as_inlet('threshold', default=0.5)
 
 # Array of typed values (one connection, multiple values)
-ArrayType[FLOAT].as_inlet('numbers', default={'value': [1.0, 2.0, 3.0]})
+ARRAY[FLOAT].as_inlet('numbers', default={'value': [1.0, 2.0, 3.0]})
 
 # Pooled — accepts MULTIPLE connections; values arrive as a dict
-PooledType[FLOAT].as_inlet('values')
+POOLED[FLOAT].as_inlet('values')
 ```
 
-**Pooled is inlet-only.** `PooledType[T].as_outlet(...)` is invalid and raises an error.
+**Pooled is inlet-only.** `POOLED[T].as_outlet(...)` is invalid and raises an error.
 
 **Outlets take no `on_change`.** `on_change` reports what a node receives; the node's own `out()` never fires it, so `as_outlet(..., on_change=...)` raises `ValueError` at declaration (ADR 0048).
 
@@ -250,7 +250,7 @@ eye greyed out, and the pin menu offers no Hide pin. A fold has no eye either.
 
 ### Swinglets
 
-A swinglet is a port that may be either end of an edge, on any wire type: `T.as_swinglet(id, **kwargs)`. A link can leave it or arrive at it, so a card needs one pin where an inlet/outlet pair would need two. Compound and wrapper types are subscripted first (`ArrayType[FLOAT].as_swinglet('numbers')`); a pooled type refuses it. `as_swinglet` defaults to `store_strategy = HAS_WIDGET | NODE_SET` and `show_widget = NOT_LINKED`; a type's own declaration wins. The design is in [ADR 0048](../adr/0048-swinglets.md).
+A swinglet is a port that may be either end of an edge, on any wire type: `T.as_swinglet(id, **kwargs)`. A link can leave it or arrive at it, so a card needs one pin where an inlet/outlet pair would need two. Compound and wrapper types are subscripted first (`ARRAY[FLOAT].as_swinglet('numbers')`); a pooled type refuses it. `as_swinglet` defaults to `store_strategy = HAS_WIDGET | NODE_SET` and `show_widget = NOT_LINKED`; a type's own declaration wins. The design is in [ADR 0048](../adr/0048-swinglets.md).
 
 ```python
 self.add(FLOAT.as_swinglet("value", default=0.0))
@@ -284,7 +284,7 @@ The node's write replaces the widget value, and is saved when the `store_strateg
 
 Source: `barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_probe.py`
 
-`EdgeLinkProbeNode` exercises every port shape in `init()`: primitive inlets and outlets, `ArrayType[T]` outlets, `PooledType[T]` inlets, and `EXEC` for control flow. It is purpose-built as a connection testbed, so its `worker` is intentionally empty:
+`EdgeLinkProbeNode` exercises every port shape in `init()`: primitive inlets and outlets, `ARRAY[T]` outlets, `POOLED[T]` inlets, and `EXEC` for control flow. It is purpose-built as a connection testbed, so its `worker` is intentionally empty:
 
 ```python
 --8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_probe.py:9:118"
@@ -298,9 +298,9 @@ What this example covers for port shapes:
 |---|---|
 | Primitive inlet / outlet | `TEST_BOOL`, `TEST_INT`, `TEST_FLOAT`, `TEST_STRING` |
 | Derived type inlet (hierarchy) | `TEST_TEMPERATURE` — subtype of `FLOAT` |
-| `PooledType[T].as_inlet(...)` (inlet-only) | `pooled_bool_inlet`, `pooled_int_inlet`, etc. |
-| `ArrayType[T].as_outlet(...)` | `array_bool_outlet`, `array_int_outlet`, etc. |
-| `PooledType[ArrayType[T]].as_inlet(...)` | `pooled_array_string_inlet` — nested shapes |
+| `POOLED[T].as_inlet(...)` (inlet-only) | `pooled_bool_inlet`, `pooled_int_inlet`, etc. |
+| `ARRAY[T].as_outlet(...)` | `array_bool_outlet`, `array_int_outlet`, etc. |
+| `POOLED[ARRAY[T]].as_inlet(...)` | `pooled_array_string_inlet` — nested shapes |
 | `EXEC` inlet + outlet | `execute_inlet`, `execute_out` |
 | `CALLBACK` inlet + outlet | `callback_inlet`, `callback_outlet` |
 
@@ -320,7 +320,7 @@ What this example covers for worker access:
 
 | Concept | Where it shows up |
 |---|---|
-| `PooledType[CALLBACK].as_inlet(...)` | `edge_callback` — collects multiple listener IDs |
+| `POOLED[CALLBACK].as_inlet(...)` | `edge_callback` — collects multiple listener IDs |
 | Pooled value arrives as `dict` in worker | `edge_callbacks` parameter, iterated with `.values()` |
 | `on_change='printout'` on a pooled inlet | called when connections change |
 | `fold(...)` collapsible config section | `Custom Name` fold with `custom_callback_name` |
@@ -347,11 +347,11 @@ MeshData.as_inlet('mesh', default={'vertices': [], 'faces': []})
 MeshData.as_outlet('combined')
 
 # Array (one connection, list of typed values)
-ArrayType[FLOAT].as_inlet('weights', default={'value': [1.0, 1.0]})
-ArrayType[FLOAT].as_outlet('filtered')
+ARRAY[FLOAT].as_inlet('weights', default={'value': [1.0, 1.0]})
+ARRAY[FLOAT].as_outlet('filtered')
 
 # Pooled (inlet only, multiple connections)
-PooledType[FLOAT].as_inlet('values')
+POOLED[FLOAT].as_inlet('values')
 
 # Swinglet (either end of an edge)
 FLOAT.as_swinglet('value', default=0.0)
@@ -389,6 +389,6 @@ length = len(inlet.data)
 | Symptom | Cause | Fix |
 |---|---|---|
 | `KeyError: 'my_port'` from `self.value()` | Port ID typo or mismatch with `init()` | Match the IDs exactly; they are case-sensitive |
-| `PooledType[T].as_outlet(...)` raises | Pooled is inlet-only by design | Use `ArrayType[T].as_outlet` for fan-out |
+| `POOLED[T].as_outlet(...)` raises | Pooled is inlet-only by design | Use `ARRAY[T].as_outlet` for fan-out |
 | Array outlet won't connect to single-value inlet | Type-mismatch on container shape | Use matching shape (both array, or both single) |
 | Worker parameter is `None` when expected to be bound | Parameter name doesn't match inlet ID | Check spelling; or use `self.value(id)` for dynamic access |
