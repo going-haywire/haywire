@@ -452,7 +452,7 @@ If a check fails, STOP and show the failure: the bump broke something CI catches
 the local steps did not. Fix it on the release branch and push again.
 
 Once every check is green, merge. The user's "publish" in Step 5 is the word; do not ask
-again. Read the PR's comments first, as in the `haywire-workflow` skill (*Finishing as the
+again. Read the PR's comments first, as in the workflow (`docs/collaboration/workflow.md`, *Finishing as the
 maintainer*, step 3); a comment from a person is answered before the merge.
 
 ```bash
@@ -474,7 +474,7 @@ gh run watch <id> --exit-status
 Expected jobs, in order: `plan` (finds the version differs from the latest tag), `gate`,
 `build`, `tag` (creates `v<NEW_VERSION>` on the merge commit), `publish`,
 `deploy-marketstall`, `release-notes`. A failed gate or build leaves no tag. The
-`CI` workflow runs on the same commit; check it too (`haywire-workflow`, step 4).
+`CI` workflow runs on the same commit; check it too (the workflow, *Finishing as the maintainer*, step 4).
 
 Do not tag and do not push a tag: CI does, and the local `block-dangerous-git.sh` hook
 blocks a tag push from here. Then bring the working copy up to date and let go of the
@@ -519,7 +519,7 @@ uv run python scripts/release_sweep.py reminders --ref v<NEW_VERSION>
 The release URL first. Then the libraries `floors` lists as `unblocked`: each now has a
 core release that satisfies its dependency floor, so the library's own release can go
 ahead. Ask once: "publish <libraries> now?". On "publish", start one release task per
-library (*Lead and tasks* in the `haywire-workflow` skill), whose brief is the library
+library (*Lead and tasks* in the workflow), whose brief is the library
 release of *In a library repository*: the release PR, its merge once green, `finish`. Then the reminders: each open one with
 the commit on its `Waits for:` line and `released` (the tag contains it), `waiting`,
 `unknown commit` (not in this clone: `git fetch`) or `no Waits for line` (read the

@@ -38,6 +38,6 @@ sequenceDiagram
 | The layout and the umbrella | developer | [going-haywire/umbrella](https://github.com/going-haywire/umbrella#readme), [ADR 0081](../adr/0081-libraries-from-other-repositories-run-from-an-umbrella-environment.md) |
 | One library | developer | [Library CONTRIBUTING: setting up](https://github.com/going-haywire/.github/blob/main/CONTRIBUTING.md#setting-up) |
 | ① Only some libraries | developer | [umbrella README](https://github.com/going-haywire/umbrella#readme): `bin/umbrella-sync` writes the untracked `pyproject.toml` and `uv.lock` from the repositories cloned on this machine |
-| The dev plugin | developer | [haywire-dev README](https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/README.md) |
-| Worktrees: core's and a library's | developer, lead | [The workflow skill: parallel sessions](https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/SKILL.md#parallel-sessions) |
-| A second machine | developer | [second-machine.md](https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/second-machine.md) |
+| The dev plugin | developer | [haywire-dev README](https://github.com/going-haywire/haywire/blob/master/dev/README.md) |
+| Worktrees: core's and a library's | developer, lead | [The workflow: parallel sessions](workflow.md#parallel-sessions) |
+| A second machine | developer | [second-machine.md](second-machine.md) |

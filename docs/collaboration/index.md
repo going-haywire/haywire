@@ -80,6 +80,6 @@ and [ADR 0088](../adr/0088-a-release-is-the-merge-of-a-release-pr-and-ci-tags-it
 | [Library CONTRIBUTING.md](https://github.com/going-haywire/.github/blob/main/CONTRIBUTING.md) | library contributors | what differs in a library repository |
 | [going-haywire/.github README](https://github.com/going-haywire/.github#readme) | maintainers | the shared workflows, rulesets and plugin catalogue |
 | `CLAUDE.md` (read through `AGENTS.md`) | agents | what applies to agents only |
-| [The workflow skill](https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/SKILL.md) | agents | the step-by-step of every git and pull request action |
+| [The workflow](workflow.md) | agents | the step-by-step of every git and pull request action |
 | [Decision records](../adr/0086-the-simple-path-is-the-floor.md) | maintainers, agents | why a decision was taken |
 | `.insights/` | agents, maintainers | silent traps already known |

@@ -2,7 +2,7 @@
 
 The rules are in `CONTRIBUTING.md` (the agent-only ones in CLAUDE.md, *Git and pull
 requests*); the procedures in the
-`haywire-workflow` skill. CI's own settings are commented in `.github/workflows/ci.yml`.
+workflow page, `docs/collaboration/workflow.md`. CI's own settings are commented in `.github/workflows/ci.yml`.
 
 ## CI
 
@@ -44,7 +44,7 @@ requests*); the procedures in the
   do. *Permanent refs* (`master`, `gh-pages`, the `v*` tags) forbids deleting and
   force-pushing with no bypass at all, so nothing running as the user can break it. *PR
   gate* (required checks, the PR rule) lets an admin bypass only through a pull request.
-  The local hook (`plugins/haywire-dev/hooks/block-dangerous-git.sh`) keeps the rest with the user:
+  The local hook (`dev/hooks/block-dangerous-git.sh`) keeps the rest with the user:
   force pushes, remote deletions, tag pushes, and `gh api` writes to rulesets or branch
   protection (reads pass).
 - **`scripts/finish.py` is the only way agents delete a branch.** The hook blocks raw
@@ -57,9 +57,10 @@ requests*); the procedures in the
   its role from the login's permission on `going-haywire/haywire`: write access makes a
   maintainer, anything else, including a failed check (no `gh`, no network, 8 s limit), a
   contributor; it also warns when `jq` or `gh` is missing, since the other hooks then check
-  nothing. `require-workflow-skill.sh` refuses `git commit`, `git push` and the `gh pr`
-  commands that change a PR until the session has loaded the `haywire-workflow` skill;
-  `mark-workflow-skill.sh` records the load per session id under
+  nothing. `require-workflow-read.sh` refuses `git commit`, `git push` and the `gh pr`
+  commands that change a PR until the session has read the workflow page (as a file, or
+  as the bridge's resource `farmhand://dev/collaboration/workflow.md`);
+  `mark-workflow-read.sh` records the read per session id under
   `$TMPDIR/claude-haywire-workflow/`. `guard-pr-merge.sh` refuses `gh pr merge` while the
   PR is a draft, carries `needs introduction` or `agent files`, has an unresolved review
   thread, or the newest run of any check has not passed, and, in going-haywire/haywire,

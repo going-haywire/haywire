@@ -49,4 +49,4 @@ sequenceDiagram
 | The pull request | contributor | [CONTRIBUTING: opening the pull request](https://github.com/going-haywire/haywire/blob/master/CONTRIBUTING.md#opening-the-pull-request) |
 | ③ First runs, labels | maintainer | [A fork's pull request](fork-pull-request.md) |
 | Review, ④ merge | maintainer | [CONTRIBUTING: review and merge](https://github.com/going-haywire/haywire/blob/master/CONTRIBUTING.md#review-and-merge) |
-| With an agent | contributor | [CONTRIBUTING: working with AI agents](https://github.com/going-haywire/haywire/blob/master/CONTRIBUTING.md#working-with-ai-agents); the skill's contributor steps: [finishing as a contributor](https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/SKILL.md#finishing-as-a-contributor) |
+| With an agent | contributor | [CONTRIBUTING: working with AI agents](https://github.com/going-haywire/haywire/blob/master/CONTRIBUTING.md#working-with-ai-agents); the workflow's contributor steps: [finishing as a contributor](workflow.md#finishing-as-a-contributor) |

@@ -1,7 +1,17 @@
+---
+serve: developer
+status: current
+doc_template: guide
+scope: Read when the session runs in herdr (the session-start hook says so) — how the lead and tasks, messages, the task view and merges run there
+see-also:
+  - ../workflow.md
+  - herdr.md
+---
+
 # herdr
 
-How the lead and tasks of *Lead and tasks* in [SKILL.md](../SKILL.md) run in
-[herdr](https://herdr.dev/guide/), the slot `plugins/haywire-dev/orchestrators/herdr/`
+How the lead and tasks of *Lead and tasks* in [the workflow](../workflow.md) run in
+[herdr](https://herdr.dev/guide/), the slot `dev/orchestrators/herdr/`
 (ADR 0090). A herdr session carries `HC_TERMINAL_ID`, its address; the session-start hook
 then names this file.
 

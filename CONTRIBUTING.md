@@ -46,7 +46,7 @@ accepted. Why it works this way: [ADR 0079](docs/adr/0079-a-first-contribution-s
 Required: [uv](https://docs.astral.sh/uv/), git, the [GitHub CLI](https://cli.github.com/)
 (`gh auth login`), and `jq` (the agent hooks use it). On Windows, let git create symbolic
 links before you clone (Developer Mode on, `git config --global core.symlinks true`): the
-agents' workflow skill and two scripts are links into `plugins/haywire-dev/`.
+agents' workflow skill and two scripts are links into `dev/`.
 
 Optional:
 
@@ -112,8 +112,9 @@ comment; a merge waits until every review thread is resolved.
 ## Working with AI agents
 
 Agents are welcome on both sides. They read [AGENTS.md](AGENTS.md), which points to
-[CLAUDE.md](CLAUDE.md), and Claude Code also loads the `haywire-workflow` skill, which
-holds the step-by-step for contributors and the maintainer.
+[CLAUDE.md](CLAUDE.md), and the workflow page
+([docs/collaboration/workflow.md](docs/collaboration/workflow.md), which the Farmhand bridge
+serves to every agent session here) holds the step-by-step for contributors and the maintainer.
 
 - An agent works freely on your fork: branches, commits, pushes.
 - Anything public on `going-haywire/haywire` (opening or readying a pull request,

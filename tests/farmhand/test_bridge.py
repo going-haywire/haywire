@@ -15,16 +15,18 @@ from mcp.client.session import ClientSession
 from mcp.shared.memory import create_client_server_memory_streams
 
 from haywire.core.access import AccessTier
-from haywire.core.docs.tree import front_matter
+from haywire.core.docs.tree import front_matter, served_docs
 from haywire_studio.auth.operations import add_agent
 from haywire_studio.farmhand.bridge import (
     CONNECT_TOOL,
     STATUS_TOOL,
     Bridge,
+    developer_docs,
     find_project_root,
     locate_studio,
     principal_token,
     product_index,
+    read_developer_doc,
 )
 
 DEAD_PID = 2**22 + 12345  # above every default pid_max, so never a live process
@@ -201,3 +203,58 @@ def test_the_studio_s_tools_appear_when_it_comes_up_and_go_when_it_stops(tmp_pat
     assert not result.isError
     assert connected.startswith(f"Connected to the studio at http://127.0.0.1:{farmhand_server.port}/mcp/")
     assert notes.count("ToolListChangedNotification") >= 2
+
+
+def _developer_project(tmp_path: Path) -> Path:
+    project = tmp_path / "repo"
+    pages = project / "docs" / "collaboration"
+    pages.mkdir(parents=True)
+    (project / "pyproject.toml").write_text(
+        '[tool.haywire.agents]\ndeveloper-docs = "docs"\n', encoding="utf-8"
+    )
+    (pages / "workflow.md").write_text(
+        "---\nserve: developer\nscope: Read before a commit\n---\n# The workflow\nRule.\n", encoding="utf-8"
+    )
+    (pages / "notes.md").write_text("# Notes\n", encoding="utf-8")
+    return project
+
+
+def test_developer_docs_come_from_the_project_s_declaration(tmp_path):
+    project = _developer_project(tmp_path)
+    assert developer_docs(project) == (project / "docs").resolve()
+    assert developer_docs(tmp_path) is None
+
+
+def test_the_index_lists_the_declared_developer_pages(tmp_path):
+    index = product_index(developer_docs(_developer_project(tmp_path)))
+    assert "- farmhand://dev/collaboration/workflow.md (The workflow): Read before a commit" in index
+    assert "notes.md" not in index
+
+
+def test_a_developer_page_is_read_from_its_folder_and_never_outside_it(tmp_path):
+    root = developer_docs(_developer_project(tmp_path))
+    assert root is not None
+    assert "Rule." in read_developer_doc(root, "collaboration/workflow.md")
+    with pytest.raises(FileNotFoundError):
+        read_developer_doc(root, "../pyproject.toml")
+
+
+def test_the_bridge_serves_developer_pages_without_a_studio(tmp_path):
+    bridge = Bridge(_developer_project(tmp_path), poll_s=0.05)
+
+    async def scenario(session, _notes):
+        init_resources = {str(r.uri) for r in (await session.list_resources()).resources}
+        page = await session.read_resource("farmhand://dev/collaboration/workflow.md")
+        return init_resources, page.contents[0].text
+
+    resources, text = _bridge_session(bridge, scenario)
+    assert "farmhand://dev/collaboration/workflow.md" in resources
+    assert "Rule." in text
+
+
+def test_core_declares_its_workflow_page():
+    core = Path(__file__).resolve().parents[2]
+    root = developer_docs(core)
+    assert root is not None
+    entries = {e["path"] for e in served_docs("developer", root)}
+    assert "collaboration/workflow.md" in entries

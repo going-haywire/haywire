@@ -106,23 +106,24 @@ def front_matter(text: str) -> dict[str, str]:
     return {}
 
 
-def served_docs(audience: str) -> list[dict[str, str]]:
+def served_docs(audience: str, root: Path | None = None) -> list[dict[str, str]]:
     """Return the pages marked ``serve: <audience>``, each with its path, title and scope.
 
     Args:
         audience: The marker's value: ``product`` for every place of work,
             ``developer`` for the org's repositories.
+        root: The docs folder to search; ``None`` is the baked docs tree.
     """
-    root = docs_root()
+    root = docs_root() if root is None else root
     entries: list[dict[str, str]] = []
-    for rel in list_docs():
-        text = (root / rel).read_text(encoding="utf-8")
+    for path in sorted(root.rglob("*.md")):
+        text = path.read_text(encoding="utf-8")
         fields = front_matter(text)
         if fields.get("serve") == audience:
             entries.append(
                 {
-                    "path": rel,
-                    "title": _first_heading(text, Path(rel).stem),
+                    "path": path.relative_to(root).as_posix(),
+                    "title": _first_heading(text, path.stem),
                     "scope": fields.get("scope", ""),
                 }
             )

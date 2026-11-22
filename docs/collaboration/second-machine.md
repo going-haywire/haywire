@@ -1,3 +1,12 @@
+---
+serve: developer
+status: current
+doc_template: guide
+scope: Read when setting up another machine to work on the org's repositories — tools, the main checkout, the other libraries, the orchestrator
+see-also:
+  - workflow.md
+---
+
 # Setting up a second machine
 
 A second machine (for example a Linux box on the home network) runs its own sessions,
@@ -7,7 +16,8 @@ work moves between them only through pushed branches.
 ## Tools
 
 - git, [uv](https://docs.astral.sh/uv/), the [GitHub CLI](https://cli.github.com/),
-  Claude Code (logged in), and Node.js (`npx` starts the Farmhand proxy from `.mcp.json`).
+  and Claude Code (logged in). The Farmhand bridge runs from the clone's own environment
+  (`.mcp.json`), so it needs nothing more.
 - `gh auth login`, then `gh auth setup-git`: git pushes over HTTPS with the same login.
 - Optionally, the orchestrator you use on the first machine, set up to reach this one, to
   run its sessions from one place: its file in [orchestrators/](orchestrators/) says how.

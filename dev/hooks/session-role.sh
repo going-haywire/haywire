@@ -25,12 +25,12 @@ fi
 
 case "$permission" in
   ADMIN | MAINTAIN | WRITE)
-    role="Role: maintainer (write access to $UPSTREAM). Follow the maintainer steps of the haywire-workflow skill."
+    role="Role: maintainer (write access to $UPSTREAM). Follow the maintainer steps of the workflow (farmhand://dev/collaboration/workflow.md)."
     ;;
   *)
     reason=${permission:+"$permission access"}
     reason=${reason:-"access could not be checked"}
-    role="Role: contributor ($reason to $UPSTREAM). Work on your fork: commit and push there freely. Open, ready, comment on or review anything on $UPSTREAM only when the user says so, and never merge or release. Follow the contributor steps of the haywire-workflow skill."
+    role="Role: contributor ($reason to $UPSTREAM). Work on your fork: commit and push there freely. Open, ready, comment on or review anything on $UPSTREAM only when the user says so, and never merge or release. Follow the contributor steps of the workflow (farmhand://dev/collaboration/workflow.md)."
     ;;
 esac
 
