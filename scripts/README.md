@@ -13,7 +13,7 @@ Maintenance scripts run by humans or CI.
 | `finish.py`                 | Delete a merged branch's local and remote branch and its worktree.   |
 | `tasks.py`                  | List the tasks in flight: worktrees, their PRs and agent sessions.   |
 
-`finish.py` and `tasks.py` are links to the copies in `dev/scripts/`, which the org's library
+`worktree_setup.py`, `finish.py` and `tasks.py` are links to the copies in `dev/scripts/`, which the org's library
 repositories reach through the core clone beside them; edit them there.
 
 `worktree_setup.py` runs with the system Python (`python3 scripts/worktree_setup.py`),
