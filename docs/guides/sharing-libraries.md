@@ -251,7 +251,8 @@ which re-runs every check from the top.
 ### 4.2 Publish from the default branch
 
 `haywire share` refuses to publish from anything but the repository's default
-branch. There is no escape hatch — the rule is unconditional. It guarantees
+branch. There is no escape hatch, except for a release through a pull request
+(§7.2), which tags nothing on the current branch. It guarantees
 every published entry reflects a state that will still exist and keep
 receiving fixes after the run. For the full rationale, and why tag-pinning
 did not relax the rule, see
@@ -508,6 +509,12 @@ the [GitHub CLI](https://cli.github.com) (`gh`), titled like the commit (`chore:
 v<version>`). Your checkout returns to the default branch, untouched. The run ends with
 `STATE: RELEASE_PR_OPEN` and a `PR:` line; until the PR is merged, `--status` says so and a
 second `share` is refused.
+
+`--pr` runs from any branch whose `HEAD` is exactly origin's default branch, not only from
+the default branch itself. A worktree can't check out the default branch while the main
+folder has it, so run it there on a branch with nothing of its own, brought up to date
+(`git fetch origin && git merge --ff-only origin/<default>`). The PR still goes into the
+default branch.
 
 Without `gh`, signed in (`gh auth login`) and on a GitHub remote, the run cannot open the PR.
 It ends with `STATE: RELEASE_BRANCH_PUSHED` instead, prints the host's link that opens it,

@@ -486,7 +486,8 @@ def _run_publish(
         print(f"✓ Committed {result.sha[:8]} and tagged {result.tag}")
 
     if pipeline.pr_mode:
-        _push_release_branch(pipeline, out, base=pipeline.start_branch or "", title=plan.message)
+        base = (preconditions.default_branch if preconditions else None) or pipeline.start_branch or ""
+        _push_release_branch(pipeline, out, base=base, title=plan.message)
         return
 
     push = asyncio.run(pipeline.apply_push(on_output=lambda line: print(f"  {line}")))

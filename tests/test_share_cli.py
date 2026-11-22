@@ -738,6 +738,51 @@ def test_pr_mode_reports_why_gh_refused(project: Path, capsys) -> None:
     assert "STATE: RELEASE_BRANCH_PUSHED" in out
 
 
+def test_pr_mode_runs_from_a_worktree_at_the_default_tip(project: Path, capsys) -> None:
+    """A task worktree cannot check out the default branch; a release PR doesn't need it."""
+    from haywire.core.publishing.git import GitResult
+
+    default = _git_out(project, "rev-parse", "--abbrev-ref", "HEAD")
+    worktree = project.parent / "worktree"
+    _git_out(project, "worktree", "add", str(worktree), "-b", "task/release")
+    calls: list = []
+    ok = GitResult(True, "https://github.com/o/r/pull/8\n", "", 0)
+
+    assert _pr_run(worktree, gh="/usr/bin/gh", gh_result=ok, gh_calls=calls) == 0
+
+    assert "STATE: RELEASE_PR_OPEN" in capsys.readouterr().out
+    [args] = calls
+    assert args[args.index("--base") + 1] == default
+    assert "refs/heads/release/v0.3.2" in _git_out(project, "ls-remote", "--heads", "origin")
+    assert _git_out(worktree, "rev-parse", "--abbrev-ref", "HEAD") == "task/release"
+
+
+def test_pr_mode_refuses_a_branch_ahead_of_the_default_tip(project: Path, capsys) -> None:
+    from haywire_studio.packaging.share_cli import EXIT_REFUSED
+
+    _git_out(project, "switch", "-c", "task/ahead")
+    (project / "extra.txt").write_text("unreviewed")
+    _git_out(project, "add", "extra.txt")
+    _git_out(project, "commit", "-m", "ahead")
+
+    assert _pr_run(project) == EXIT_REFUSED
+
+    out = capsys.readouterr().out
+    assert "`task/ahead` is not at the latest" in out
+    assert "refs/heads/release/" not in _git_out(project, "ls-remote", "--heads", "origin")
+
+
+def test_a_direct_release_still_needs_the_default_branch(project: Path, capsys) -> None:
+    from haywire_studio.packaging.share_cli import EXIT_REFUSED, run_share_cli
+
+    _git_out(project, "switch", "-c", "task/direct")
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift), _fake_docs():
+        code = run_share_cli(repo_root=project, bump="patch", message=None)
+
+    assert code == EXIT_REFUSED
+    assert "but the repository publishes from" in capsys.readouterr().out
+
+
 def test_status_reports_the_open_release_pr(project: Path, capsys) -> None:
     from haywire_studio.packaging.share_cli import run_share_cli
 

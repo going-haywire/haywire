@@ -504,15 +504,19 @@ def check(pipeline: SharePipeline) -> PreconditionsReport:
         )
 
     default_branch: str | None = None
+    remote_head: str | None = None
     # Absent when the remote has never had anything pushed to it (an empty
     # repo has no HEAD to symref) — that is "nothing has ever been shared",
     # not a failure, so default_branch simply stays None and the
     # non-default-branch check below is skipped.
     for line in reachable.stdout.splitlines():
         left, sep, right = line.partition("\t")
-        if sep and right.strip() == "HEAD" and left.startswith("ref: refs/heads/"):
+        if not sep or right.strip() != "HEAD":
+            continue
+        if left.startswith("ref: refs/heads/"):
             default_branch = left.removeprefix("ref: refs/heads/").strip()
-            break
+        else:
+            remote_head = left.strip()
 
     symbolic = git(["symbolic-ref", "-q", "HEAD"], cwd=pipeline.repo_root, timeout=10.0)
     if not symbolic.ok:
@@ -543,12 +547,23 @@ def check(pipeline: SharePipeline) -> PreconditionsReport:
                 default_branch=default_branch,
             )
         if current != default_branch:
-            return PreconditionsReport(
-                failures=[_wrong_branch_failure(pipeline, current=current, default=default_branch)],
-                remote_url=remote_url,
-                barn_libraries=barn_libraries,
-                default_branch=default_branch,
+            # A release PR tags nothing on this branch: its commit goes on a fresh
+            # release branch, and CI tags the merge on the default branch. So any
+            # branch at origin's default tip will do, a worktree's task branch included.
+            wrong = (
+                _release_base_failure(
+                    pipeline, current=current, default=default_branch, remote_head=remote_head
+                )
+                if pipeline.pr_mode
+                else _wrong_branch_failure(pipeline, current=current, default=default_branch)
             )
+            if wrong is not None:
+                return PreconditionsReport(
+                    failures=[wrong],
+                    remote_url=remote_url,
+                    barn_libraries=barn_libraries,
+                    default_branch=default_branch,
+                )
 
     released = release_state.detect(pipeline.repo_root)
     if released.kind is not release_state.ReleaseKind.NONE:
@@ -921,6 +936,28 @@ def _detached_head_failure(pipeline: SharePipeline) -> PreconditionFailure:
             "  git switch -c my-branch\n\n"
             "then publish from there."
         ),
+    )
+
+
+def _release_base_failure(
+    pipeline: SharePipeline, *, current: str, default: str, remote_head: str | None
+) -> PreconditionFailure | None:
+    """``None`` when *current* sits exactly at origin's *default* tip, where a release PR starts.
+
+    Ahead would put unreviewed commits into the release, behind would release an
+    old state: both refused.
+    """
+    head = git(["rev-parse", "HEAD"], cwd=pipeline.repo_root, timeout=10.0)
+    if remote_head is not None and head.ok and head.stdout.strip() == remote_head:
+        return None
+    return PreconditionFailure(
+        message=f"`{current}` is not at the latest `{default}` on origin.",
+        remedy=(
+            f"A release PR is built from origin's `{default}` as it is now. Run `share --pr` on "
+            f"`{default}` itself, or on a branch with nothing of its own, brought up to date:\n\n"
+            f"  git fetch origin && git merge --ff-only origin/{default}"
+        ),
+        next_command=f"git fetch origin && git merge --ff-only origin/{default}",
     )
 
 
