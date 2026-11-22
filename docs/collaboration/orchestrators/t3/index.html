@@ -5272,9 +5272,17 @@ a worktree's studio uses the port <code>worktree_setup.py</code> wrote to its <c
 so several run side by side; the main folder's is 8124.</p>
 <h2 id="things-to-know">Things to know<a class="headerlink" href="#things-to-know" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>After a merge the lead sends nothing to the task's thread.</strong> This overrides the
+  "merged" message of the neutral flow in <a href="../../lead-and-tasks/">Lead and tasks</a>: a message
+  resumes the thread, and if its worktree is already gone T3 re-creates the worktree and the
+  branch from local <code>master</code>
+  (<a href="https://github.com/going-haywire/haywire/issues/198">#198</a>). The lead checks <code>master</code>'s
+  CI itself and re-settles the thread; the settle script runs <code>finish</code>. A task's brief
+  promises no "merged" message.</li>
 <li><strong>A thread can settle before its PR merges</strong>, when its last turn ends. Its settle script
   then finds the PR unmerged and leaves everything. After each merge the lead unsettles the
-  task's thread and settles it again, so the cleanup runs.</li>
+  task's thread and settles it again, so the cleanup runs. A thread that has not settled
+  yet settles when its turn ends, and the script runs then.</li>
 <li><strong>Library tasks</strong> need their worktree beside the repositories, which T3 cannot do. The
   lead creates it with <code>git worktree add ../&lt;repo&gt;-&lt;name&gt; …</code> and starts the thread on that
   folder (<code>existing_worktree</code>). Not yet confirmed on a real library task.</li>
