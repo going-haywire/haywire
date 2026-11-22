@@ -653,11 +653,22 @@ def test_the_owner_checklist_lists_only_the_missing_names_and_asks_for_a_bump(
 # ── --pr: a release through a pull request ──────────────────────────────────
 
 
-def _pr_run(project: Path):
+def _pr_run(project: Path, *, gh: str | None = None, gh_result=None, gh_calls: list | None = None):
+    """A ``--pr`` run. *gh* is where ``shutil.which`` finds gh (None: not installed),
+    *gh_result* what running it returns; *gh_calls* collects the command lines run."""
+    from haywire.core.publishing.pipeline.steps import release_pr
     from haywire_studio.packaging.share_cli import run_share_cli
 
-    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift), _fake_docs():
-        return run_share_cli(repo_root=project, bump="patch", message=None, pr=True)
+    with (
+        patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift),
+        _fake_docs(),
+        patch.object(release_pr.shutil, "which", return_value=gh),
+        patch.object(release_pr, "run", return_value=gh_result) as gh_run,
+    ):
+        code = run_share_cli(repo_root=project, bump="patch", message=None, pr=True)
+    if gh_calls is not None:
+        gh_calls += [call.args[0] for call in gh_run.call_args_list]
+    return code
 
 
 def _git_out(repo: Path, *args: str) -> str:
@@ -673,7 +684,7 @@ def test_pr_mode_pushes_only_the_release_branch(project: Path, capsys) -> None:
     assert _pr_run(project) == 0
 
     out = capsys.readouterr().out
-    assert "STATE: RELEASE_PR_OPEN" in out
+    assert "STATE: RELEASE_BRANCH_PUSHED" in out
     assert _tags(project) == []
     assert _git_out(project, "rev-parse", "--abbrev-ref", "HEAD") == default
     assert _git_out(project, "rev-parse", "HEAD") == before
@@ -683,6 +694,48 @@ def test_pr_mode_pushes_only_the_release_branch(project: Path, capsys) -> None:
     assert _git_out(project, "rev-parse", f"origin/{default}") == before
     release = _git_out(project, "show", "release/v0.3.2:barn/haybale-alpha/pyproject.toml")
     assert toml.loads(release)["project"]["version"] == "0.3.2"
+
+
+def test_pr_mode_opens_the_pr_with_gh(project: Path, capsys) -> None:
+    from haywire.core.publishing.git import GitResult
+
+    url = "https://github.com/o/r/pull/7"
+    calls: list = []
+    assert (
+        _pr_run(project, gh="/usr/bin/gh", gh_result=GitResult(True, f"{url}\n", "", 0), gh_calls=calls) == 0
+    )
+
+    out = capsys.readouterr().out
+    assert f"PR: {url}" in out
+    assert "STATE: RELEASE_PR_OPEN" in out
+    [args] = calls
+    default = _git_out(project, "rev-parse", "--abbrev-ref", "HEAD")
+    assert args[:3] == ["gh", "pr", "create"]
+    assert args[args.index("--head") + 1] == "release/v0.3.2"
+    assert args[args.index("--base") + 1] == default
+    assert args[args.index("--title") + 1] == "chore: share v0.3.2"
+
+
+def test_pr_mode_without_gh_names_the_command_that_opens_the_pr(project: Path, capsys) -> None:
+    assert _pr_run(project) == 0
+
+    out = capsys.readouterr().out
+    assert "gh) is not installed" in out
+    assert "NEXT: gh pr create --base " in out
+    assert "--head release/v0.3.2 --title 'chore: share v0.3.2'" in out
+    assert "STATE: RELEASE_BRANCH_PUSHED" in out
+    assert "RELEASE_PR_OPEN" not in out
+
+
+def test_pr_mode_reports_why_gh_refused(project: Path, capsys) -> None:
+    from haywire.core.publishing.git import GitResult
+
+    refused = GitResult(False, "", "To get started with GitHub CLI, please run:  gh auth login\n", 4)
+    assert _pr_run(project, gh="/usr/bin/gh", gh_result=refused) == 0
+
+    out = capsys.readouterr().out
+    assert "gh could not open the PR: To get started with GitHub CLI" in out
+    assert "STATE: RELEASE_BRANCH_PUSHED" in out
 
 
 def test_status_reports_the_open_release_pr(project: Path, capsys) -> None:

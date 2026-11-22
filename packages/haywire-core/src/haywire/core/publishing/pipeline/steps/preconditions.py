@@ -769,7 +769,8 @@ def _already_released_failure(state: release_state.ReleaseState) -> Precondition
             ),
             remedy=(
                 "A second release now would collide with it. The owner merges the PR, or closes it "
-                f"and deletes {state.branch} on origin.\nSTOP: wait for the merge."
+                f"and deletes {state.branch} on origin. If no PR exists for {state.branch} yet, "
+                "open it first (`gh pr create`, or the host's compare page).\nSTOP: wait for the merge."
             ),
             code="release_pr_open",
             human_only=True,

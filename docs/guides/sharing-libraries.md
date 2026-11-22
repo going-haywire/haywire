@@ -120,11 +120,13 @@ whose tag step failed); it is removed when the push succeeds.
 `--first-release` creates the PyPI project(s) when the project declares `distribute = "pypi"`; see [publish-to-pypi §6](./publish-to-pypi.md#6-the-first-release).
 
 `--status` prints the state and ends with a `STATE:` line: `READY`, `RELEASED`,
-`NOTHING_TO_RELEASE`, `UNPUSHED`, `RELEASE_PR_OPEN`, `RELEASE_MERGED`, `STALE_MARKER`,
+`NOTHING_TO_RELEASE`, `UNPUSHED`, `RELEASE_BRANCH_PUSHED`, `RELEASE_PR_OPEN`,
+`RELEASE_MERGED`, `STALE_MARKER`,
 `NEEDS_HUMAN` or `BLOCKED`. Every refusal ends with one `NEXT:`, `DONE:` or `STOP:` line.
 
-`RELEASE_PR_OPEN` and `RELEASE_MERGED` belong to the release-PR mode (§7.2): a
-`release/v<X>` branch waits on `origin`, or its PR was merged and the version has no tag.
+`RELEASE_BRANCH_PUSHED`, `RELEASE_PR_OPEN` and `RELEASE_MERGED` belong to the release-PR
+mode (§7.2): `share --pr` pushed `release/v<X>` but could not open its PR, a `release/v<X>`
+branch waits on `origin`, or its PR was merged and the version has no tag.
 `share --resume` handles the second: it tags the merged commit and pushes the tag alone.
 
 ### 2.4 Exit codes and `--json`
@@ -494,10 +496,15 @@ uv run haywire share --bump patch --pr
 ```
 
 The run does everything the plain run does (bump, docs, marketstall), but commits on
-`release/v<version>`, pushes only that branch, makes no tag, and prints the host's link that
-opens the pull request. Your checkout returns to the default branch, untouched. The run ends
-with `STATE: RELEASE_PR_OPEN`; until the PR is merged, `--status` says so and a second
-`share` is refused.
+`release/v<version>`, pushes only that branch, makes no tag, and opens the pull request with
+the [GitHub CLI](https://cli.github.com) (`gh`), titled like the commit (`chore: share
+v<version>`). Your checkout returns to the default branch, untouched. The run ends with
+`STATE: RELEASE_PR_OPEN` and a `PR:` line; until the PR is merged, `--status` says so and a
+second `share` is refused.
+
+Without `gh`, signed in (`gh auth login`) and on a GitHub remote, the run cannot open the PR.
+It ends with `STATE: RELEASE_BRANCH_PUSHED` instead, prints the host's link that opens it,
+and gives the `gh pr create` command on its `NEXT:` line.
 
 The merge is the release. Two things tag the merge commit and publish it:
 

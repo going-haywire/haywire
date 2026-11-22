@@ -149,7 +149,7 @@ Coverage gaps (missing docstrings, etc.) are read-only feedback and never fail t
 
 ### 2.8 Release-PR mode
 
-`SharePipeline.pr_mode` (`share --pr`) changes where the release commit goes, not what it holds. `verify_push_allowed()` checks that `release/v<version>` exists neither locally nor on `origin` and dry-runs the push of that ref. `apply_commit()` then switches to the branch (carrying the working tree), commits, and makes no tag and no marker; if the commit fails it switches back. `apply_push()` pushes only that branch with `--set-upstream` and returns to the starting branch. The CLI prints the host's link from `HostProvider.new_pull_request_url()` via `derive_pull_request_url()`, and ends in `RELEASE_PR_OPEN`. Steps 2 to 5 are unchanged, and `marketstall.toml` pins the tag the merge will receive.
+`SharePipeline.pr_mode` (`share --pr`) changes where the release commit goes, not what it holds. `verify_push_allowed()` checks that `release/v<version>` exists neither locally nor on `origin` and dry-runs the push of that ref. `apply_commit()` then switches to the branch (carrying the working tree), commits, and makes no tag and no marker; if the commit fails it switches back. `apply_push()` pushes only that branch with `--set-upstream` and returns to the starting branch. The CLI then opens the PR with `release_pr.open_pull_request()` (`gh pr create`, its prompts disabled) and ends in `RELEASE_PR_OPEN`. When `gh` is missing, not signed in or refuses, it ends in `RELEASE_BRANCH_PUSHED`, printing the host's link from `HostProvider.new_pull_request_url()` via `derive_pull_request_url()` and the `gh` command as `NEXT:`. Steps 2 to 5 are unchanged, and `marketstall.toml` pins the tag the merge will receive.
 
 ## 3. The plan/apply split
 

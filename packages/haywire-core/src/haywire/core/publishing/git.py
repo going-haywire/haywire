@@ -113,15 +113,15 @@ def git_remote(args: list[str], *, cwd: Path, timeout: float = 60.0) -> GitResul
     return _run(["git", *args], cwd=cwd, timeout=timeout, env=_hardened_env())
 
 
-def run(cmd: list[str], *, cwd: Path, timeout: float) -> GitResult:
-    """Run an arbitrary non-git command synchronously, with the ambient environment.
+def run(cmd: list[str], *, cwd: Path, timeout: float, env: dict[str, str] | None = None) -> GitResult:
+    """Run an arbitrary non-git command synchronously, with the ambient environment or *env*.
 
     Same contract as :func:`git` (nothing raises, everything comes back as a
     :class:`GitResult`) for a non-git subprocess that doesn't need streaming —
-    currently ``uv lock``. Like ``git``, this is a purely local call: no
-    prompt-disabling env is applied.
+    ``uv lock``, and ``gh pr create``, which passes an *env* that disables its
+    prompts. No prompt-disabling env is applied otherwise.
     """
-    return _run(cmd, cwd=cwd, timeout=timeout, env=None)
+    return _run(cmd, cwd=cwd, timeout=timeout, env=env)
 
 
 async def git_remote_streaming(
