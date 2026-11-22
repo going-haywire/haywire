@@ -1,4 +1,4 @@
-# haybale-example — component index (v0.5.4)
+# haybale-example — component index (v0.6.0)
 
 ## node
 - `haybale-example:node:CallbackEmitNode` — Callback Emit — Emits a callback to trigger event nodes in other flows  _tags: callback, emit, trigger, event_
