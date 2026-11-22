@@ -1,4 +1,5 @@
 ---
+serve: product
 status: draft
 doc_template: reference
 scope: The Questionnaire format (a SurveyJS subset plus the check element), the exchange between agent and user, and the Findings an agent reads back

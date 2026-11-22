@@ -492,13 +492,12 @@ class FarmhandHost(SignalPeer):
 
     @staticmethod
     def _connection_hint(port: int, document, *, tls: bool) -> str:
-        """The connect line, naming a real agent token when one exists.
+        """The connect line for an agent outside this project; never the token itself.
 
-        With authentication on, printing a header-less command would hand the
-        operator something that returns 401. Printing the *first* agent
-        principal's token is right far more often than not — most studios have
-        exactly one — and when there is none, saying so beats a command that
-        cannot work.
+        With authentication on, the line fills in the first agent principal's
+        token on the operator's terminal (``$(haywire user token <name>)``), so
+        a log an agent reads never holds a credential. An agent in this project
+        connects through the Farmhand bridge and needs no line.
         """
         if not document.auth.enabled:
             return connection_command(port, None, tls=tls)
@@ -508,7 +507,7 @@ class FarmhandHost(SignalPeer):
                 "authentication is on but no agent principal exists — create one with:\n"
                 "  haywire user add <name> --agent --tier edit"
             )
-        return connection_command(port, agents[0].token, tls=tls)
+        return connection_command(port, f"$(haywire user token {agents[0].name})", tls=tls)
 
     async def _runner_main(self) -> None:
         assert self._session_manager is not None and self._started is not None and self._stop is not None

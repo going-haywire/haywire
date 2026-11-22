@@ -179,8 +179,11 @@ uv run haywire farmhand status
 sits behind the same authentication gate as everything else: a bearer token
 is required whenever authentication is on, and the studio cannot be exposed
 with authentication off ([§4](#4-opening-the-studio-up)). An agent
-connects with a roster token, minted by `haywire user add <name> --agent
---tier edit`, the same roster that authenticates a browser session.
+connects with a roster token, the same roster that authenticates a browser
+session. An agent in the project connects through the Farmhand bridge, which
+sends the token of the agent principal `farmhand` itself (create it once with
+`haywire user add farmhand --agent --tier edit`), so the token never passes
+through the agent.
 
 ### `restrict_to_loopback`
 
@@ -454,6 +457,7 @@ now the only way to fix it.
 uv run haywire user add <name> --tier {view,operate,edit,admin}      # a password-holding user
 uv run haywire user add <name> --agent --tier {view,operate,edit,admin} # a token-holding agent
 uv run haywire user add <name> --agent --tier edit --workspace <path> # scoped to one project
+uv run haywire user token <name>                                      # an agent's token, nothing else
 uv run haywire user list
 uv run haywire user tier <name> {view,operate,edit,admin}
 uv run haywire user passwd <name>
@@ -474,10 +478,14 @@ possibly-stale online/offline flag).
 Every mutation — CLI or UI — goes through the same document, so the two
 surfaces can never disagree about who's allowed in.
 
-An agent principal's token is the credential an MCP client presents; connect
-with `claude mcp add --transport http farmhand http://127.0.0.1:8124/mcp
---header "Authorization: Bearer <token>"`, or with no header at all when
-authentication is off.
+An agent principal's token is the credential an MCP client presents. No
+command prints it unasked: `haywire user add` and the studio's startup line
+leave it out, so neither a terminal an agent reads nor the studio's log holds
+it. An agent in the project needs none of this (the Farmhand bridge sends the
+`farmhand` principal's token itself). For an agent elsewhere, fill the token
+in on your own terminal: `claude mcp add --transport http farmhand
+http://127.0.0.1:8124/mcp --header "Authorization: Bearer $(haywire user token
+<name>)"`, or no header at all when authentication is off.
 
 ### What each tier and the lock allow
 

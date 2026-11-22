@@ -56,6 +56,10 @@ def register(subparsers: argparse._SubParsersAction) -> None:
     passwd.add_argument("name")
     passwd.set_defaults(handler=_passwd)
 
+    token = actions.add_parser("token", help="Print an agent principal's token, for an agent elsewhere")
+    token.add_argument("name")
+    token.set_defaults(handler=_token)
+
     tier = actions.add_parser("tier", help="Change a principal's access tier")
     tier.add_argument("name")
     tier.add_argument("tier", choices=_TIERS)
@@ -84,9 +88,8 @@ def _add(args: argparse.Namespace) -> int:
         if args.agent:
             agent = add_agent(args.name, tier, workspace=args.workspace, path=path)
             print(f"Created agent principal {agent.name!r} ({tier.value}).")
-            print(f"  Token: {agent.token}")
-            print("  Give this to the agent — it is stored in the roster and can be re-read at any time.")
-            print("  Connect with:  haywire farmhand status")
+            print("  The Farmhand bridge reads its token from the roster itself; no agent needs to see it.")
+            print(f"  For an agent elsewhere (another machine or harness):  haywire user token {agent.name}")
         else:
             add_user(args.name, _prompt_password(args.name), tier, path=path)
             print(f"Created user principal {args.name!r} ({tier.value}).")
@@ -138,4 +141,18 @@ def _tier(args: argparse.Namespace) -> int:
         print(f"ERROR: {exc}")
         return 1
     print(f"{args.name!r} is now {args.tier}.")
+    return 0
+
+
+def _token(args: argparse.Namespace) -> int:
+    """Print the token alone, so ``$(haywire user token <name>)`` can fill it in."""
+    try:
+        principal = load_document(_document_path(args)).auth.find(args.name)
+    except SecurityError as exc:
+        print(f"ERROR: {exc}")
+        return 1
+    if principal is None or not principal.is_agent:
+        print(f"ERROR: {args.name!r} is not an agent principal.")
+        return 1
+    print(principal.token)
     return 0

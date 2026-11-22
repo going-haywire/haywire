@@ -1,4 +1,5 @@
 ---
+serve: product
 status: draft
 doc_template: canonical-example
 scope: Authoring Farmhand MCP tools — @farmhand decorator, Farmhand base class, FarmhandContext facade, FarmhandError contract, input schema derivation, resource vs tool distinction, agent-facing output conventions (row shape, truncation, next-step hints)

@@ -87,6 +87,48 @@ def _first_heading(text: str, fallback: str) -> str:
     return fallback
 
 
+def front_matter(text: str) -> dict[str, str]:
+    """Return a page's scalar front-matter fields (``key: value`` lines), or ``{}``.
+
+    Only the leading ``---`` block counts; list items and nested keys are
+    skipped, and surrounding quotes are dropped from a value.
+    """
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return {}
+    fields: dict[str, str] = {}
+    for line in lines[1:]:
+        if line.strip() == "---":
+            return fields
+        key, sep, value = line.partition(":")
+        if sep and key and not key.startswith((" ", "-")) and value.strip():
+            fields[key.strip()] = value.strip().strip("\"'")
+    return {}
+
+
+def served_docs(audience: str) -> list[dict[str, str]]:
+    """Return the pages marked ``serve: <audience>``, each with its path, title and scope.
+
+    Args:
+        audience: The marker's value: ``product`` for every place of work,
+            ``developer`` for the org's repositories.
+    """
+    root = docs_root()
+    entries: list[dict[str, str]] = []
+    for rel in list_docs():
+        text = (root / rel).read_text(encoding="utf-8")
+        fields = front_matter(text)
+        if fields.get("serve") == audience:
+            entries.append(
+                {
+                    "path": rel,
+                    "title": _first_heading(text, Path(rel).stem),
+                    "scope": fields.get("scope", ""),
+                }
+            )
+    return entries
+
+
 def doc_manifest() -> list[dict[str, str]]:
     """Index of the tree: one entry per file with its path and title.
 
