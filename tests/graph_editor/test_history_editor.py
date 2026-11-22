@@ -64,7 +64,7 @@ class _Harness:
         state = GraphAppState()
         self.published: list[object] = []
         dispatcher = SimpleNamespace(broadcast=self.published.append)
-        state._dispatcher = lambda: dispatcher  # type: ignore[assignment,return-value]
+        state._dispatcher = lambda: dispatcher  # type: ignore[assignment]
         state.register(cast(Any, self.document))
         self.ctx = SimpleNamespace(
             data={EditState: SimpleNamespace(active_graph=active)}, app_data={GraphAppState: state}

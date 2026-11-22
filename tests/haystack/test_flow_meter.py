@@ -233,7 +233,7 @@ def _row_editor(monkeypatch, *, executing: bool, enabled: bool = True):
     context.principal = "someone"
     app_data = MagicMock()
     app_data.__getitem__.side_effect = lambda key: {HaystackState: hs, GraphAppState: gas}[key]
-    context.app_data = app_data  # type: ignore[assignment]
+    context.app_data = app_data
     context.data[EditState].active_graph = None
     editor = HaystackEditor(cast(EditorWrapper, object()))
     monkeypatch.setattr(editor, "_flow_meters_enabled", lambda: enabled)
@@ -289,7 +289,7 @@ def test_a_sample_updates_the_meter_from_the_interpreter(monkeypatch):
 def test_a_failing_sample_does_not_stop_the_timer(monkeypatch):
     editor, context, interpreter = _row_editor(monkeypatch, executing=True)
     _draw(editor, context)
-    interpreter.flow_metrics = MagicMock(side_effect=RuntimeError("boom"))  # type: ignore[method-assign]
+    interpreter.flow_metrics = MagicMock(side_effect=RuntimeError("boom"))
     editor._sample_meters(context)
 
 

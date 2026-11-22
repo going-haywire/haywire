@@ -314,7 +314,7 @@ def _graph(locked=(), off_stage=()):
 
 
 def test_select_connected_replaces_the_selection_without_locked_nodes() -> None:
-    handlers = SelectionHandlers(graph=_graph(locked=["c"]), route=MagicMock(), session_id="t")  # type: ignore[arg-type]
+    handlers = SelectionHandlers(graph=_graph(locked=["c"]), route=MagicMock(), session_id="t")
     handlers.selected_edges = {"e9"}
     handlers.process_select_connected(SelectConnectedEvent(node_id="a", scope="downstream"))
     assert handlers.selected_nodes == {"b"}
@@ -326,7 +326,7 @@ def test_select_connected_in_a_stage_canvas_keeps_to_on_stage_nodes() -> None:
         graph=_graph(off_stage=["b"]),
         route=MagicMock(),
         session_id="t",
-        channel=STAGE,  # type: ignore[arg-type]
+        channel=STAGE,
     )
     handlers.process_select_connected(SelectConnectedEvent(node_id="c", scope="upstream"))
     assert handlers.selected_nodes == {"a"}
@@ -337,7 +337,7 @@ _ARRANGE_LAYOUT = "haybale_graph_editor.editors.graph_canvas.handlers.selection.
 
 def _arranging(editor, channel=PATCH, **graph) -> SelectionHandlers:
     return SelectionHandlers(
-        graph=_graph(**graph),  # type: ignore[arg-type]
+        graph=_graph(**graph),
         route=edit_route(editor),
         session_id="t",
         channel=channel,

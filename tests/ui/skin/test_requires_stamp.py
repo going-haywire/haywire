@@ -163,7 +163,7 @@ def test_a_port_without_a_widget_renders_nothing(library_system, nicegui_slot_co
     key = factory._skin_registry.get_default_skin_registry_key()
     assert key
     port = SimpleNamespace(id="value", widget_key=None)
-    assert factory.get_skin_instance(key).render_widget(port, "node-1") is None  # type: ignore[arg-type]
+    assert factory.get_skin_instance(key).render_widget(port, "node-1") is None
 
 
 def test_a_readable_pin_requires_view(nicegui_slot_context) -> None:

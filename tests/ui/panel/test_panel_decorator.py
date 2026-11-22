@@ -72,7 +72,7 @@ def test_panel_surface_must_subclass_surface():
     with pytest.raises(TypeError, match="surface"):
 
         @panel(
-            surface=_NotASurface,  # type: ignore[arg-type]
+            surface=_NotASurface,
             label="Bad",
         )
         class P(BasePanel):
@@ -88,7 +88,7 @@ def test_panel_hosts_entries_must_subclass_surface():
 
         @panel(
             surface=_DummySurface,
-            hosts=(_NotASurface,),  # type: ignore[arg-type]
+            hosts=(_NotASurface,),
             label="Bad",
         )
         class P(BasePanel):
@@ -109,7 +109,7 @@ def test_panel_rejects_focus_kwarg():
     """Clean break: focus= is not an accepted-but-deprecated alias."""
     with pytest.raises((ValueError, TypeError)):
 
-        @panel(focus=_DummySurface, label="Old vocabulary")  # type: ignore[call-arg]
+        @panel(focus=_DummySurface, label="Old vocabulary")
         class P(BasePanel):
             def draw(self, ctx, layout):
                 pass
@@ -176,7 +176,7 @@ def test_panel_redraw_on_rejects_signal_instance():
         @panel(
             surface=_DummySurface,
             label="Bad",
-            redraw_on=(SelectionMoved(),),  # type: ignore[arg-type]
+            redraw_on=(SelectionMoved(),),
         )
         class P(BasePanel):
             def draw(self, ctx, layout):
@@ -192,7 +192,7 @@ def test_panel_redraw_on_rejects_non_signal_type():
         @panel(
             surface=_DummySurface,
             label="Bad",
-            redraw_on=(NotASignal,),  # type: ignore[arg-type]
+            redraw_on=(NotASignal,),
         )
         class P(BasePanel):
             def draw(self, ctx, layout):
@@ -231,7 +231,7 @@ def test_panel_redraw_on_error_mentions_panel_context():
         @panel(
             surface=_DummySurface,
             label="Bad",
-            redraw_on=(str,),  # type: ignore[arg-type]
+            redraw_on=(str,),
         )
         class P(BasePanel):
             def draw(self, ctx, layout):

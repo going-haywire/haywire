@@ -177,7 +177,7 @@ def test_shutdown_grace_is_one_deadline_for_all_shutdown_flows():
     interpreter._executing = True
     key = SystemEvent(type=SystemEventType.SHUTDOWN).get_subscription_key()
     flows: Dict[str, List[Any]] = {key: [SimpleNamespace(queue=_StuckQueue()) for _ in range(3)]}
-    interpreter.event_subscriptions = flows  # type: ignore[assignment]
+    interpreter.event_subscriptions = flows
     interpreter.dispatch_system_event = lambda *args, **kwargs: 0  # type: ignore[method-assign]
 
     interpreter.stop_execution(timeout=0.3)

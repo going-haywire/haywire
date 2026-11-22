@@ -63,6 +63,11 @@ dev = [
 
 [tool.mypy]
 python_version = "3.12"
+# mypy skips the body of an unannotated function by default; this checks it too.
+check_untyped_defs = true
+# A stale ignore hides the next real error on its line (CS-T5).
+warn_unused_ignores = true
+enable_error_code = ["ignore-without-code"]
 # What `uv run mypy` checks with no arguments; CI's types job runs exactly that.
 files = [
     "packages/haywire-core/src/",
@@ -126,14 +131,6 @@ module = [
     "sounddevice",
 ]
 ignore_missing_imports = true
-
-# Test functions rarely carry a return annotation, and mypy skips the BODY of
-# any untyped function by default — so without this, most of tests/ was parsed
-# but never actually analysed. Scoped to tests/ deliberately: production code
-# has not been measured under this flag yet.
-[[tool.mypy.overrides]]
-module = ["tests.*"]
-check_untyped_defs = true
 
 [tool.ruff]
 line-length = 109

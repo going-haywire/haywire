@@ -325,7 +325,7 @@ def _build_annotation_graph(node_factory):
         wrapper = graph.create_node_wrapper(key, position=(x, y))
         assert wrapper is not None, "could not create an annotation node"
         ids[name] = wrapper.node_id
-    graph.node_wrappers[ids["a"]].node.annotation.text = "hello"  # type: ignore[attr-defined]
+    graph.node_wrappers[ids["a"]].node.annotation.text = "hello"
     assert editor.create_edge(ids["c"], "right_0", ids["d"], "left_0")
     # The first link grows the `_1` slots it connects to.
     graph.force_validation()
@@ -1648,7 +1648,7 @@ def register_routes(library_service) -> None:
                 ui.button(testid, on_click=on_click).props(f'data-testid="{testid}" dense')
 
         def _show_control_pins() -> None:
-            graph.node_wrappers[ids["a"]].node.annotation.show_control_pins = True  # type: ignore[attr-defined]
+            graph.node_wrappers[ids["a"]].node.annotation.show_control_pins = True
 
         with controls:
             ui.button("show-control", on_click=_show_control_pins).props('data-testid="show-control" dense')
@@ -1882,11 +1882,11 @@ def register_routes(library_service) -> None:
 
         graph_editor = GraphEditor(
             SimpleNamespace(_binding_id="graph::views", editor_binding_id="graph::views")
-        )  # type: ignore[arg-type]
+        )
         session, app_state = _harness_session(library_service, graph)
         context = session.context
         graph_editor._context = context
-        graph_editor._project_state = app_state  # type: ignore[assignment]
+        graph_editor._project_state = app_state
         level = graph_editor._new_level(context, DOCUMENT_LEVEL, _Container())
         level.view = view
         graph_editor._levels[DOCUMENT_LEVEL] = level
@@ -1966,7 +1966,7 @@ def register_routes(library_service) -> None:
                 self.id = "graph::slot-before"
 
             @property
-            def binding_id(self) -> str:  # type: ignore[override]
+            def binding_id(self) -> str:
                 return self.id
 
             def save(self, save_as=None):
@@ -1977,7 +1977,7 @@ def register_routes(library_service) -> None:
         graph_state.register(container)
 
         slot = TabSlot(
-            session=session,  # type: ignore[arg-type]
+            session=session,
             name=SlotName.EDIT,
             registry=library_service.injector.get(EditorRegistry),
         )
@@ -2063,7 +2063,7 @@ def register_routes(library_service) -> None:
         graph, editor, card_id = _build_enter_graph(library_service)
         card = graph.get_node_wrapper(card_id)
         assert card is not None
-        definition = card.node.resolve_definition()  # type: ignore[attr-defined]
+        definition = card.node.resolve_definition()
         slider = definition.create_node_wrapper(FloatSliderNode.class_identity.registry_key)
         assert slider is not None
         slider.node.props.on_stage = True
@@ -2170,11 +2170,11 @@ def register_routes(library_service) -> None:
         note_key = AnnotationNode.class_identity.registry_key
         note = graph.create_node_wrapper(note_key, position=(4100.0, 3950.0))
         assert note is not None
-        note.node.annotation.text = "Harness note"  # type: ignore[attr-defined]
+        note.node.annotation.text = "Harness note"
         # A look apart from Quasar's field defaults, so the editor's inheritance shows.
-        note.node.annotation.font_size = 30  # type: ignore[attr-defined]
-        note.node.annotation.text_color = "#ff0000"  # type: ignore[attr-defined]
-        note.node.annotation.underline = True  # type: ignore[attr-defined]
+        note.node.annotation.font_size = 30
+        note.node.annotation.text_color = "#ff0000"
+        note.node.annotation.underline = True
         ui.label(note.node_id).props(f'data-testid="level-note-id" data-node="{note.node_id}"')
         ui.label(card_id).props(f'data-testid="level-card-id" data-node="{card_id}"')
         ui.label(fold.node_id).props(f'data-testid="level-fold-id" data-node="{fold.node_id}"')

@@ -72,9 +72,9 @@ class _FakeTabbedSlot(TabSlot):
 
     # Shadow every read-only property Slot defines so plain instance attributes
     # can be set without hitting Python's data-descriptor setter guard.
-    active_key = None  # type: ignore[assignment]
-    active_binding = None  # type: ignore[assignment]
-    active_binding_id = None  # type: ignore[assignment]
+    active_key = None
+    active_binding = None
+    active_binding_id = None
     visible = None  # type: ignore[assignment]
     bindings: list = None  # type: ignore[assignment]
 

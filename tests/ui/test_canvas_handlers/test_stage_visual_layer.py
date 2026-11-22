@@ -170,7 +170,7 @@ async def test_chunked_sync_waits_for_the_included_edge_count(graph):
     async def _wait(n):
         waited.append(n)
 
-    h._await_client_drawn = _wait  # type: ignore[method-assign]
+    h._await_client_drawn = _wait
     await h.sync_with_graph_chunked()
     assert waited == [1]
 
@@ -238,7 +238,7 @@ def test_positions_are_translated_by_the_origin(graph):
     assert h.mounted_at == {"a": (200.0, 200.0), "b": (210.0, 220.0)}
 
     resent = []
-    h.update_node_position = lambda nid, pos: resent.append((nid, pos))  # type: ignore[method-assign]
+    h.update_node_position = lambda nid, pos: resent.append((nid, pos))
     graph.node_wrappers["a"].node.props.stage_x = 60.0
     graph.node_wrappers["a"].node.props.stage_y = 100.0
     h.resync_positions(["a"])

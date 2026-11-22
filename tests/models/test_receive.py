@@ -354,7 +354,7 @@ def test_an_error_flushing_at_finish_ends_the_job(env, http_server):
             raise OSError("no space left on device")
 
     receiver._out.close()
-    receiver._out = Failing()  # type: ignore[assignment]
+    receiver._out = Failing()
     with pytest.raises(OSError, match="no space"):
         receiver.finish()
     job = env.job(receiver.job_id)

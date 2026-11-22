@@ -196,9 +196,7 @@ class TestOpeningALevelForIt:
         editor = _make_editor(document)
         editor._project_state = cast(Any, SimpleNamespace(node_factory=MagicMock()))
         opened: list = []
-        editor._open_level = MagicMock(  # type: ignore[method-assign]
-            side_effect=lambda _ctx, container: opened.append(container)
-        )
+        editor._open_level = MagicMock(side_effect=lambda _ctx, container: opened.append(container))
         context, _edit = _context()
 
         editor._on_reveal_graph_instance(context, RevealGraphInstance(graph_id="group_graph", node_id="n1"))
@@ -212,7 +210,7 @@ class TestOpeningALevelForIt:
 
         editor = _make_editor(_graph("webcam"))
         editor._project_state = cast(Any, SimpleNamespace(node_factory=MagicMock()))
-        editor._open_level = MagicMock()  # type: ignore[method-assign]
+        editor._open_level = MagicMock()
         context, _edit = _context()
 
         editor._on_reveal_graph_instance(context, RevealGraphInstance(graph_id="stranger", node_id="n1"))
@@ -229,7 +227,7 @@ class TestARevealWaitingForTheTab:
         document = _graph("webcam")
         document.subgraphs = {"sg_a": _graph("group_graph", key="sg_a")}
         editor = _make_editor(document)
-        editor._on_reveal_graph_instance = MagicMock()  # type: ignore[method-assign]
+        editor._on_reveal_graph_instance = MagicMock()
         return editor
 
     def test_a_reveal_into_an_interior_of_this_document_is_carried_out_and_cleared(self):

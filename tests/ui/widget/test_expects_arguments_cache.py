@@ -74,13 +74,13 @@ def test_expects_arguments_cache_speedup(library_system, nicegui_slot_context):
     def _cached(func):
         return _orig(func)
 
-    helpers.expects_arguments = _cached  # type: ignore[attr-defined]
-    ev.helpers.expects_arguments = _cached  # type: ignore[attr-defined]
+    helpers.expects_arguments = _cached
+    ev.helpers.expects_arguments = _cached
     try:
         cached = min(_render_all(skin_factory, wrappers, skin_key) for _ in range(_REPEATS))
     finally:
-        helpers.expects_arguments = _orig  # type: ignore[attr-defined]
-        ev.helpers.expects_arguments = _orig  # type: ignore[attr-defined]
+        helpers.expects_arguments = _orig
+        ev.helpers.expects_arguments = _orig
 
     print(
         "\n--- expects_arguments cache: 200-node render wall time ---\n"

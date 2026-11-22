@@ -72,9 +72,9 @@ def test_nested_field_path_view_to_model():
     handler = w.ex.handlers["update:modelValue"]
     handler(type("E", (), {"sender": w.ex})())
 
-    assert port.get_value().x == 9.0  # type: ignore[union-attr]
+    assert port.get_value().x == 9.0
     # y must remain untouched
-    assert port.get_value().y == 0.0  # type: ignore[union-attr]
+    assert port.get_value().y == 0.0
     # binding is the right one
     assert x_binding.source_property == "x"
 

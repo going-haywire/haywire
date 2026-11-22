@@ -55,7 +55,7 @@ def _make_provider(
         canvas_vue=canvas_vue,
     )
     # Expose the stub for tests that need to seed selection/edge values.
-    cast(Any, provider)._test_edit_stub = edit_stub  # type: ignore[attr-defined]
+    cast(Any, provider)._test_edit_stub = edit_stub
     return provider
 
 

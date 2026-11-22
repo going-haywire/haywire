@@ -425,7 +425,7 @@ def _absence_tolerant_field(base_field_cls: type) -> type:
     if cached is not None:
         return cached
 
-    class _AbsenceTolerantField(base_field_cls):  # type: ignore[valid-type,misc]
+    class _AbsenceTolerantField(base_field_cls):
         """``base_field_cls``, plus the ability to hold absence."""
 
         def _set_own(self, value: Any) -> None:
@@ -477,7 +477,7 @@ def _field_holding_absence(base_field_cls: type) -> type:
 
     if issubclass(base_field_cls, PrimitiveField):
 
-        class _PrimitiveHoldingAbsence(base_field_cls):  # type: ignore[valid-type,misc]
+        class _PrimitiveHoldingAbsence(base_field_cls):
             def _set_own(self, value: Any) -> None:
                 if value is None:
                     # Past the subclass's own _set_own, whose coercion rejects None.
@@ -492,7 +492,7 @@ def _field_holding_absence(base_field_cls: type) -> type:
         extended: type = _PrimitiveHoldingAbsence
     elif issubclass(base_field_cls, BaseField):
 
-        class _BaseHoldingAbsence(base_field_cls):  # type: ignore[valid-type,misc]
+        class _BaseHoldingAbsence(base_field_cls):
             def _default_instance(self) -> Any:
                 # Empty default kwargs mean absent (Q22), not the type built with no arguments.
                 return super()._default_instance() if self.default_kwargs else None
@@ -637,7 +637,7 @@ class WrapperType(IType, ABC, Generic[T]):
             # (``class OPTIONAL(WrapperType[T])``), not a parameterization.
             # Hand it back to Generic — deriving a field class from a TypeVar
             # would fail, and there is nothing to cache.
-            return super().__class_getitem__(element_type_cls)  # type: ignore[misc]
+            return super().__class_getitem__(element_type_cls)
 
         if not hasattr(cls, "_parameterized_cache"):
             cls._parameterized_cache = {}

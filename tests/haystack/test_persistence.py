@@ -86,7 +86,7 @@ def test_dump_includes_execute_flag_for_running_entries(tmp_workspace):
 
     entry = GraphEntry(graph=g, editor=MagicMock(), path=p, unsaved=False)
     # Mark it as currently executing
-    entry.interpreter = MagicMock()  # type: ignore[method-assign]
+    entry.interpreter = MagicMock()
     entry.interpreter.is_executing = True
 
     state = MagicMock()

@@ -58,13 +58,13 @@ class LoadedModels:
         """
         found = self._join(key, holder)
         if found is not _MISSING:
-            return found  # type: ignore[no-any-return]
+            return found
         with self._lock:
             key_lock = self._key_locks.setdefault(key, threading.Lock())
         with key_lock:
             found = self._join(key, holder)
             if found is not _MISSING:
-                return found  # type: ignore[no-any-return]
+                return found
             value = load()
             entry = _Loaded(value, release, time.time(), {id(holder): holder})
             with self._lock:

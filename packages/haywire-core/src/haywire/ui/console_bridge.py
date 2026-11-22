@@ -96,7 +96,7 @@ class StdoutTee:
         """Swap self into sys.stdout. Idempotent — a second call is a no-op."""
         if isinstance(sys.stdout, StdoutTee):
             return
-        sys.stdout = self  # type: ignore[assignment]
+        sys.stdout = self
 
     @property
     def max_history(self) -> int:

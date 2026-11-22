@@ -137,7 +137,7 @@ def test_a_placement_is_descendable(macro_file, graph_with_library_system):
     wrapper = MagicMock()
     wrapper._binding_id = "doc"
     editor = GraphEditor(wrapper)
-    editor._project_state = SimpleNamespace(node_factory=MagicMock())  # type: ignore[assignment]
+    editor._project_state = SimpleNamespace(node_factory=MagicMock())
     context = SimpleNamespace(
         principal=None,
         session_id="test",

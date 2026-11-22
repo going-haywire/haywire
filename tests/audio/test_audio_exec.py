@@ -17,7 +17,7 @@ pytestmark = pytest.mark.unit
 
 
 def _chain(source: type, sink: type) -> tuple[object, str | None]:
-    return AdapterFactory(AdapterRegistry()).create_chain(source, sink, "edge")  # type: ignore[arg-type]
+    return AdapterFactory(AdapterRegistry()).create_chain(source, sink, "edge")
 
 
 def test_it_is_an_exec_on_the_control_wire():

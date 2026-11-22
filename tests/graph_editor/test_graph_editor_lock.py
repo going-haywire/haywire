@@ -40,7 +40,7 @@ def _locked_editor(
     tier: AccessTier, open_locked: bool = True, document: _FakeDocument | None = None
 ) -> tuple[GraphEditor, Any, _FakeDocument]:
     document = document or _FakeDocument()
-    document.editor.graph.props = SimpleNamespace(open_locked=open_locked)  # type: ignore[attr-defined,assignment]
+    document.editor.graph.props = SimpleNamespace(open_locked=open_locked)  # type: ignore[assignment]
     editor, context, document = _editor(document)
     real = _session_context(tier)
     context.can_access = real.can_access

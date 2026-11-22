@@ -211,7 +211,7 @@ def test_nodes_measured_writes_the_channel_size_fields(graph, canvas_vue):
     ui_node.wrapper.node.props = props
     handler.node_panels["n1"] = ui_node
     handler.process_nodes_measured(
-        SimpleNamespace(measurements=[{"nodeId": "n1", "width": 300.0, "height": 50.0}])  # type: ignore[arg-type]
+        SimpleNamespace(measurements=[{"nodeId": "n1", "width": 300.0, "height": 50.0}])
     )
     assert (props.height, props.width) == (300.0, 50.0)
 

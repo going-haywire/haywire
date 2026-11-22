@@ -107,7 +107,7 @@ def test_detail_attr_follows_the_node_across_a_rebuild(card):
         seen.append("x")
         orig()
 
-    ui_node._apply_detail_attr = spy  # type: ignore[method-assign]
+    ui_node._apply_detail_attr = spy
     node.props.detail = "minimal" if node.props.detail != "minimal" else "full"
     assert seen
 

@@ -154,7 +154,7 @@ def test_lookup_not_blocked_by_scan_walk(models_env: VolumeStore, index: ModelIn
     in_walk = threading.Event()
     release = threading.Event()
 
-    def slow_walk(top: Path):  # type: ignore[no-untyped-def]
+    def slow_walk(top: Path):
         in_walk.set()
         assert release.wait(30)  # longer than the looker's join: a blocked lookup stays blocked through it
         yield from real_walk(top)
@@ -187,7 +187,7 @@ def test_concurrent_hash_pending_hashes_each_file_once(models_env: VolumeStore, 
     first_in = threading.Event()
     release = threading.Event()
 
-    def spy(*args: object, **kwargs: object):  # type: ignore[no-untyped-def]
+    def spy(*args: object, **kwargs: object):
         nonlocal calls
         calls += 1
         return real(*args, **kwargs)  # type: ignore[arg-type]
@@ -209,12 +209,12 @@ def test_concurrent_hash_pending_hashes_each_file_once(models_env: VolumeStore, 
     assert len(index.records()) == 2
 
 
-def _blocked_walk(in_walk, release):  # type: ignore[no-untyped-def]
+def _blocked_walk(in_walk, release):
     import os
 
     real_walk = os.walk
 
-    def walk(top: Path):  # type: ignore[no-untyped-def]
+    def walk(top: Path):
         listing = list(real_walk(top))  # the volume is listed BEFORE the pause
         in_walk.set()
         assert release.wait(5)

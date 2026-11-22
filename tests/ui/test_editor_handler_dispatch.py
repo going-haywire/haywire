@@ -196,7 +196,7 @@ def test_discover_handlers_walks_mro_to_pick_up_inherited_decorations():
 class _ChildOverridesWithoutDecorator(_BaseHandler):
     class_identity = _identity()
 
-    def from_base(self, ctx, event):  # type: ignore[override]
+    def from_base(self, ctx, event):
         # No decorator — subscription should silently disappear.
         pass
 
@@ -298,7 +298,7 @@ def test_wrapper_redraw_on_handler_triggers_wrapper_redraw():
     session.publish(signal)
 
     assert wrapper.instance is not None
-    assert cast(Any, wrapper.instance).calls == [("on_a", signal)]  # type: ignore[attr-defined]
+    assert cast(Any, wrapper.instance).calls == [("on_a", signal)]
     assert redraw_calls == [wrapper]
 
 
@@ -325,7 +325,7 @@ def test_wrapper_react_on_handler_does_not_trigger_redraw():
     session.publish(_SignalB())
 
     assert wrapper.instance is not None
-    assert len(cast(Any, wrapper.instance).calls) == 1  # type: ignore[attr-defined]
+    assert len(cast(Any, wrapper.instance).calls) == 1
     assert redraw_calls == []  # react_on is side-effect only
 
 
@@ -459,7 +459,7 @@ def test_wrapper_hot_reload_re_subscribes_against_new_class():
     # And the new instance is the one that receives events — the old
     # subscription is gone so only one call lands.
     session.publish(_SignalA())
-    assert cast(Any, wrapper.instance).calls == 1  # type: ignore[attr-defined]
+    assert cast(Any, wrapper.instance).calls == 1
 
 
 class _OneOf(_StubEditorBase):
@@ -494,14 +494,14 @@ def test_two_wrappers_in_one_session_each_receive_events_independently():
     assert w2._instantiate() is True
 
     session.publish(_SignalA())
-    assert cast(Any, w1.instance).calls == 1  # type: ignore[attr-defined]
-    assert cast(Any, w2.instance).calls == 1  # type: ignore[attr-defined]
+    assert cast(Any, w1.instance).calls == 1
+    assert cast(Any, w2.instance).calls == 1
 
     # Cleaning up one doesn't affect the other.
     w1.cleanup()
     session.publish(_SignalA())
     assert w1.instance is None
-    assert cast(Any, w2.instance).calls == 2  # type: ignore[attr-defined]
+    assert cast(Any, w2.instance).calls == 2
 
 
 class _UndecoratedEditor(_StubEditorBase):

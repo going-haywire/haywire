@@ -117,7 +117,7 @@ class _SignalFieldDescriptor:
                     )
         # 3. Synthesize the signal class.
         cross = _is_app_state(owner)
-        signal_class: type[Signal] = type(  # type: ignore[assignment]
+        signal_class: type[Signal] = type(
             name,
             (Signal,),
             {

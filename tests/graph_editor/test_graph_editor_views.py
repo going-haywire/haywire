@@ -193,7 +193,7 @@ class TestTwoCanvasesPerLevel:
         editor._switch_view(context, DOCUMENT_LEVEL, "patch")
         editor._switch_view(context, DOCUMENT_LEVEL, "stage")
 
-        assert editor.mounts == ["stage"]  # type: ignore[attr-defined]
+        assert editor.mounts == ["stage"]
         assert level.canvases == {"patch": patch, "stage": stage}
         assert level.canvas_manager is stage
         assert level.view == "stage"
@@ -204,7 +204,7 @@ class TestTwoCanvasesPerLevel:
         editor, context = _views_editor()
         editor._switch_view(context, DOCUMENT_LEVEL, "patch")
         editor._switch_view(context, DOCUMENT_LEVEL, "nonsense")
-        assert editor.mounts == []  # type: ignore[attr-defined]
+        assert editor.mounts == []
         assert editor._levels[DOCUMENT_LEVEL].view == "patch"
 
     def test_the_visible_canvas_is_the_levels_canvas_manager(self):
@@ -237,7 +237,7 @@ class TestTwoCanvasesPerLevel:
     def test_a_switch_claims_the_session_for_the_editor(self):
         editor, context = _views_editor()
         editor._switch_view(context, DOCUMENT_LEVEL, "stage")
-        editor._claim_session_state.assert_called_once_with(context)  # type: ignore[attr-defined]
+        editor._claim_session_state.assert_called_once_with(context)
 
     def test_a_switch_hides_the_selection_toolbars(self):
         editor, context = _views_editor()
@@ -340,7 +340,7 @@ class TestOpenView:
 
         editor._switch_view(context, DOCUMENT_LEVEL, "patch")
 
-        assert editor.mounts == ["patch"]  # type: ignore[attr-defined]
+        assert editor.mounts == ["patch"]
         assert set(level.canvases) == {"patch", "stage"}
 
     def test_the_first_canvas_a_level_mounts_reports_compatibility(self, monkeypatch):
@@ -438,13 +438,13 @@ class TestTeardownAndRepoint:
         patch.zoom_container.get_viewport.return_value = Viewport(zoom=1.5, pan_x=-10.0, pan_y=-20.0)
         stage.zoom_container.get_viewport.return_value = Viewport(zoom=0.5, pan_x=-30.0, pan_y=-40.0)
         editor._level_panels = MagicMock()
-        editor._mount_level = MagicMock()  # type: ignore[method-assign]
+        editor._mount_level = MagicMock()
         calls: list[tuple[str, Any]] = []
-        editor._mount_view = lambda ctx, lvl, view, viewport=None: calls.append((view, viewport))  # type: ignore[method-assign]
-        editor._teardown_level = lambda old: GraphEditor._teardown_canvas(editor, old)  # type: ignore[method-assign]
+        editor._mount_view = lambda ctx, lvl, view, viewport=None: calls.append((view, viewport))
+        editor._teardown_level = lambda old: GraphEditor._teardown_canvas(editor, old)
         container = level.container
 
-        editor._repoint_level(context, level, container)  # type: ignore[arg-type]
+        editor._repoint_level(context, level, container)
 
         patch.cleanup.assert_called_once_with()
         stage.cleanup.assert_called_once_with()
@@ -452,7 +452,7 @@ class TestTeardownAndRepoint:
         replacement = editor._levels[DOCUMENT_LEVEL]
         assert replacement is not level
         assert replacement.view == "stage"
-        editor._mount_level.assert_called_once_with(  # type: ignore[attr-defined]
+        editor._mount_level.assert_called_once_with(
             context, replacement, viewport=Viewport(zoom=0.5, pan_x=-30.0, pan_y=-40.0)
         )
         assert calls == [("patch", Viewport(zoom=1.5, pan_x=-10.0, pan_y=-20.0))]
@@ -466,9 +466,9 @@ class TestTeardownAndRepoint:
         stage.zoom_container.get_viewport.return_value = Viewport(zoom=0.5, pan_x=-30.0, pan_y=-40.0)
         editor._level_panels = MagicMock()
         mounted_levels: list[tuple[str, Any]] = []
-        editor._mount_level = lambda ctx, lvl, viewport=None: mounted_levels.append((lvl.view, viewport))  # type: ignore[method-assign]
+        editor._mount_level = lambda ctx, lvl, viewport=None: mounted_levels.append((lvl.view, viewport))
         views: list[tuple[str, Any]] = []
-        editor._mount_view = lambda ctx, lvl, view, viewport=None: views.append((view, viewport))  # type: ignore[method-assign]
+        editor._mount_view = lambda ctx, lvl, view, viewport=None: views.append((view, viewport))
 
         kept = editor._teardown_canvases_keeping_viewports()
         editor._mount_levels(context, kept)
@@ -484,9 +484,9 @@ class TestTeardownAndRepoint:
         patch = level.canvases["patch"]
         patch.zoom_container.get_viewport.return_value = Viewport(zoom=2.0, pan_x=0.0, pan_y=0.0)
         editor._level_panels = MagicMock()
-        editor._mount_level = MagicMock()  # type: ignore[method-assign]
+        editor._mount_level = MagicMock()
         views: list[str] = []
-        editor._mount_view = lambda ctx, lvl, view, viewport=None: views.append(view)  # type: ignore[method-assign]
+        editor._mount_view = lambda ctx, lvl, view, viewport=None: views.append(view)
 
         editor._mount_levels(context, editor._teardown_canvases_keeping_viewports())
 
@@ -530,7 +530,7 @@ class TestAPointerGestureOnTheStageClaimsTheSession:
         level = editor._levels[DOCUMENT_LEVEL]
         level.view = "stage"
         claimed: list[Any] = []
-        editor._claim_session_state = lambda ctx: claimed.append(ctx)  # type: ignore[method-assign]
+        editor._claim_session_state = lambda ctx: claimed.append(ctx)
         stage = level.canvases["stage"]
         patch = level.canvases["patch"]
 

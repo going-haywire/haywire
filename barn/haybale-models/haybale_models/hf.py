@@ -247,7 +247,7 @@ def download_snapshot(
     ref = parse_hf_repo(uri)
     lock = threading.Lock()
 
-    class _Progress(huggingface_hub.utils.tqdm):  # type: ignore[misc]
+    class _Progress(huggingface_hub.utils.tqdm):
         """Reports the snapshot's bytes bar to ``on_progress``."""
 
         def __init__(self, *args: object, **kwargs: object) -> None:
@@ -264,7 +264,7 @@ def download_snapshot(
                     self._hw_done += int(n or 0)
                     done = max(0, self._hw_done)
                 on_progress(done, self.total or expected_size)
-            return super().update(n)  # type: ignore[no-any-return]
+            return super().update(n)
 
     try:
         result = huggingface_hub.snapshot_download(

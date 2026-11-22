@@ -164,7 +164,7 @@ def _drawn_labels(panel_cls, ctx) -> list[str]:
     from unittest.mock import patch
 
     panel = panel_cls.__new__(panel_cls)
-    panel.actions = MagicMock()  # type: ignore[attr-defined]
+    panel.actions = MagicMock()
     with patch("haybale_graph_editor.panels.graph.menu.selection.selection.hui.menu_row") as row:
         panel.draw(ctx, MagicMock())
     return [call.args[0] for call in row.call_args_list]
@@ -310,7 +310,7 @@ class TestRevertToMacroRow:
         from haybale_graph_editor.panels.graph.menu.selection.selection import ModifiedInstanceMenuPanel
 
         panel = ModifiedInstanceMenuPanel.__new__(ModifiedInstanceMenuPanel)
-        panel.actions = MagicMock()  # type: ignore[attr-defined]
+        panel.actions = MagicMock()
         library_system = MagicMock()
         library_system.get_macro_registry.return_value.template.return_value = template
         with (

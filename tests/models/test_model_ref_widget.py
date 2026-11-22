@@ -831,12 +831,12 @@ def _recommended_chip(user: User) -> ui.chip:
 
 def _has_marker(user: User, marker: str) -> bool:
     assert user.client is not None
-    return any(marker in el._markers for el in user.client.layout.descendants())  # type: ignore[attr-defined]
+    return any(marker in el._markers for el in user.client.layout.descendants())
 
 
 def _has_recommended_chip(user: User) -> bool:
     return bool(user.find(marker="model-ref-tabs").elements) and any(
-        "model-ref-recommended" in el._markers  # type: ignore[attr-defined]
+        "model-ref-recommended" in el._markers
         for el in next(iter(user.find(marker="model-ref-tabs").elements)).descendants()
     )
 

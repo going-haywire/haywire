@@ -72,7 +72,7 @@ class TestResolutionCollapse:
     def test_set_global_rejects_mode_kwarg(self):
         reg, name = _reg_with()
         with pytest.raises(TypeError):
-            reg.set_global(name, 8, mode="anything")  # type: ignore[call-arg]
+            reg.set_global(name, 8, mode="anything")
 
     def test_reset_global_returns_to_default(self):
         reg, name = _reg_with()
@@ -113,6 +113,6 @@ class TestSettingModeRemoved:
 
     def test_settingmode_enum_gone(self):
         with pytest.raises(ImportError):
-            from haywire.core.settings.enums import (  # type: ignore[import-untyped,import-not-found]  # noqa: F401
+            from haywire.core.settings.enums import (  # type: ignore[import-untyped]  # noqa: F401
                 SettingMode,
             )

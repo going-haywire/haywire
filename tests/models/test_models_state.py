@@ -91,7 +91,7 @@ def test_on_disable_stops_watcher_queue_and_releases_pool(fresh, monkeypatch):
     state = fresh.make()
     calls: list[str] = []
     needs = SimpleNamespace(stop=lambda: calls.append("needs"))
-    state._needs = needs  # type: ignore[assignment]
+    state._needs = needs
     monkeypatch.setattr(state.queue, "stop", lambda: calls.append("queue"))
     monkeypatch.setattr(state.pool, "release_all", lambda: calls.append("pool"))
     state.on_disable()

@@ -541,7 +541,7 @@ def _drawn_row(ctx):
     from haybale_haystack.panels.graph.menu.macro import UpdateMacroMenuPanel
 
     panel = UpdateMacroMenuPanel.__new__(UpdateMacroMenuPanel)
-    panel.actions = MagicMock()  # type: ignore[attr-defined]
+    panel.actions = MagicMock()
     with patch("haybale_haystack.panels.graph.menu.macro.hui.menu_row") as row:
         panel.draw(ctx, MagicMock())
     return row

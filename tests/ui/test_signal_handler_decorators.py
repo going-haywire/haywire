@@ -71,19 +71,19 @@ def test_redraw_on_returns_function_unchanged() -> None:
 
 def test_redraw_on_rejects_no_args() -> None:
     with pytest.raises(TypeError, match="requires at least one Signal subclass"):
-        redraw_on()  # type: ignore[call-overload]
+        redraw_on()
 
 
 def test_redraw_on_rejects_signal_instance() -> None:
     """Passing an instance instead of the class is a common mistake — catch it."""
     instance = SelectionMoved()
     with pytest.raises(TypeError, match="not a type"):
-        redraw_on(instance)  # type: ignore[arg-type]
+        redraw_on(instance)
 
 
 def test_redraw_on_rejects_non_type_argument() -> None:
     with pytest.raises(TypeError, match="not a type"):
-        redraw_on("SelectionMoved")  # type: ignore[arg-type]
+        redraw_on("SelectionMoved")
 
 
 def test_redraw_on_rejects_non_signal_type() -> None:
@@ -91,12 +91,12 @@ def test_redraw_on_rejects_non_signal_type() -> None:
         pass
 
     with pytest.raises(TypeError, match="not a Signal subclass"):
-        redraw_on(NotASignal)  # type: ignore[arg-type]
+        redraw_on(NotASignal)
 
 
 def test_redraw_on_rejects_str_type() -> None:
     with pytest.raises(TypeError, match="not a Signal subclass"):
-        redraw_on(str)  # type: ignore[arg-type]
+        redraw_on(str)
 
 
 def test_redraw_on_accepts_signal_base_directly() -> None:
@@ -132,11 +132,11 @@ def test_react_on_stores_multiple_signal_types_in_order() -> None:
 
 def test_react_on_validation_matches_redraw_on() -> None:
     with pytest.raises(TypeError, match="requires at least one Signal subclass"):
-        react_on()  # type: ignore[call-overload]
+        react_on()
     with pytest.raises(TypeError, match="not a type"):
-        react_on(SelectionMoved())  # type: ignore[arg-type]
+        react_on(SelectionMoved())
     with pytest.raises(TypeError, match="not a Signal subclass"):
-        react_on(int)  # type: ignore[arg-type]
+        react_on(int)
 
 
 # ---------------------------------------------------------------------------

@@ -20,4 +20,4 @@ def array_of(element: Any) -> Any:
     """Return ``ARRAY[element]``."""
     from haybale_core.types import ARRAY
 
-    return ARRAY[element]  # type: ignore[valid-type]  # element is a runtime type
+    return ARRAY[element]

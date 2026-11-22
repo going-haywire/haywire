@@ -40,7 +40,7 @@ def _installed(tmp_path, **row_kwargs) -> LibraryInfo:
 def test_none_when_not_installed():
     from haybale_marketplace.editors.library_overview_editor import LibraryOverviewEditor
 
-    editor = LibraryOverviewEditor(wrapper=None)  # type: ignore[arg-type]
+    editor = LibraryOverviewEditor(wrapper=None)
     row = Haybale(name="haybale-x", version="1.0.0", notes="notes.md")
     context = _make_context()
 
@@ -51,7 +51,7 @@ def test_none_when_not_installed():
 def test_none_when_notes_not_declared(tmp_path):
     from haybale_marketplace.editors.library_overview_editor import LibraryOverviewEditor
 
-    editor = LibraryOverviewEditor(wrapper=None)  # type: ignore[arg-type]
+    editor = LibraryOverviewEditor(wrapper=None)
     info = _installed(tmp_path)
     assert not info.row.notes
     context = _make_context()
@@ -63,7 +63,7 @@ def test_none_when_notes_not_declared(tmp_path):
 def test_installed_with_notes_yields_a_click_target_and_edit_icon(tmp_path):
     from haybale_marketplace.editors.library_overview_editor import LibraryOverviewEditor
 
-    editor = LibraryOverviewEditor(wrapper=None)  # type: ignore[arg-type]
+    editor = LibraryOverviewEditor(wrapper=None)
     info = _installed(tmp_path, notes="notes.md")
     context = _make_context()
 
@@ -81,7 +81,7 @@ def test_click_target_opens_the_file_even_when_it_does_not_exist_yet(tmp_path, m
     file to already exist."""
     from haybale_marketplace.editors.library_overview_editor import LibraryOverviewEditor
 
-    editor = LibraryOverviewEditor(wrapper=None)  # type: ignore[arg-type]
+    editor = LibraryOverviewEditor(wrapper=None)
     info = _installed(tmp_path, notes="notes.md")
     notes_path = tmp_path / "barn" / "haybale-x" / "haybale_x" / "notes.md"
     assert not notes_path.exists()
