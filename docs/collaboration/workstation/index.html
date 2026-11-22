@@ -5058,7 +5058,7 @@ core alone needs only core (<a href="../../guides/development/#setup">Developing
     You-&gt;&gt;Lib: clone each library you work on, beside core
     Note over Lib: one library: its own uv sync runs&lt;br/&gt;its tests and the studio with core
     opt several libraries in one studio
-        You-&gt;&gt;Folder: ① drop the missing libraries from the umbrella's&lt;br/&gt;pyproject.toml locally, then uv sync
+        You-&gt;&gt;Folder: ① bin/umbrella-sync: lists the libraries cloned&lt;br/&gt;on this machine, then uv sync
     end
     You-&gt;&gt;CC: claude plugin marketplace add going-haywire/.github (once per machine)
     You-&gt;&gt;CC: claude plugin install haywire-dev@going-haywire --scope project (each library clone)</code></pre>
@@ -5084,7 +5084,7 @@ core alone needs only core (<a href="../../guides/development/#setup">Developing
 <tr>
 <td>① Only some libraries</td>
 <td>developer</td>
-<td>ADR 0081, consequences: a missing repository is dropped from the umbrella's <code>pyproject.toml</code> locally</td>
+<td><a href="https://github.com/going-haywire/umbrella#readme">umbrella README</a>: <code>bin/umbrella-sync</code> writes the untracked <code>pyproject.toml</code> and <code>uv.lock</code> from the repositories cloned on this machine</td>
 </tr>
 <tr>
 <td>The dev plugin</td>
