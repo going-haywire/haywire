@@ -13,8 +13,8 @@ release. This mirrors the share wizard's per-library version write
 (`write_barn_versions`), minus the commit/tag/push that skill handles
 separately.
 
-Prints a unified diff of all changes and asks for confirmation before
-writing. Use --yes to skip the prompt (for scripted use).
+Prints a unified diff of all changes, then writes them; it never prompts.
+--dry-run prints the diff and writes nothing.
 
 Runs as a workspace script, always under `uv run` with the workspace synced
 (`/haywire-release`, `scripts/README.md`, `docs/reference/publish_releases.md`),
@@ -297,11 +297,6 @@ def main(argv: list[str] | None = None) -> int:
         help="Path to the workspace root pyproject.toml (default: ./pyproject.toml)",
     )
     parser.add_argument(
-        "--yes",
-        action="store_true",
-        help="Skip the confirmation prompt (for scripted use).",
-    )
-    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Print the diff but do not write any files.",
@@ -319,15 +314,6 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.dry_run:
         return 0
-
-    if not args.yes:
-        try:
-            response = input("Apply changes? [y/N] ").strip().lower()
-        except EOFError:
-            response = ""
-        if response != "y":
-            print("Aborted.")
-            return 1
 
     # Second pass: actually write.
     apply_bump(args.root, args.new_version, dry_run=False)

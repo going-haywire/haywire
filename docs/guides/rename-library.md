@@ -47,22 +47,22 @@ will show you if there are any uncommitted changes. If there are, commit them:
 git add -A && git commit -m "wip before rename"
 ```
 
-Then run the rename command:
+Then look at what the rename would do:
 
 ```sh
-uv run haywire rename hay-old-name haybale-new-name --verbose
+uv run haywire rename hay-old-name haybale-new-name --dry-run --verbose
 ```
 
-Run without `--apply`, this is a dry run: a full preflight report of what
-would change, and nothing is written. When it looks right:
+With `--dry-run` you get a full preflight report of what would change, and
+nothing is written. When it looks right, run it without the flag:
 
 ```sh
-uv run haywire rename hay-old-name haybale-new-name --apply
+uv run haywire rename hay-old-name haybale-new-name
 ```
 
-You'll be asked to confirm once (twice if the target name doesn't start with
-`haybale-` or `hay-` — see [§3](#3-choosing-a-name)). Add `--yes` to skip the
-prompts for scripting. When it finishes:
+It doesn't ask for confirmation. If the target name doesn't start with
+`haybale-` or `hay-`, the report shows a warning (see
+[§3](#3-choosing-a-name)). When it finishes:
 
 ```sh
 uv run haywire verify        # confirm every graph's keys still resolve
@@ -131,11 +131,11 @@ Both names are taken **verbatim** — the old name exactly as it appears in
 `barn/`, and the new name exactly as you want it. Nothing is reconstructed
 or auto-prefixed on your behalf.
 
-`haybale-` and `hay-` are treated as conventional; a target starting with
-either needs no extra confirmation. Anything else — including a bare name,
-or one starting with `haywire-` (the framework's own reserved prefix) —
-still works, but you're asked to confirm it's not a typo before the rename
-proceeds.
+`haybale-` and `hay-` are treated as conventional. Anything else, including
+a bare name or one starting with `haywire-` (the framework's own reserved
+prefix), still works, but the report warns about it so that you can check
+it's not a typo. Run with `--dry-run` first to see the warning before
+anything changes.
 
 Before it runs, the target name is checked against five namespaces it could
 collide with, any of which blocks the rename:
@@ -158,7 +158,7 @@ the rename proceeds.
 ## 4. What has to be true before you rename
 
 `haywire rename`'s preflight is strictly read-only — it writes nothing,
-not even a temp file — so you can run it (without `--apply`) as often as
+not even a temp file — so you can run it with `--dry-run` as often as
 you like to see what it would do.
 
 **A clean working tree.** `git status --porcelain` must be empty across the
@@ -166,7 +166,10 @@ you like to see what it would do.
 `--allow-dirty` escape hatch. This is what makes git the complete rollback:
 if the tree is proven clean before anything is written, everything dirty
 afterward is provably this run's own work, and `git checkout . && git clean
--fd` restores the start state exactly. If the rename fails partway through —
+-fd` restores the start state exactly. The one exception is
+`.haywire/settings.json`, the project's local settings (a worktree's studio
+port, for one): a rename never writes it, so the check ignores it and the
+rollback leaves it alone. If the rename fails partway through —
 every phase after the first can fail without corrupting what came before —
 the failure message always repeats this exact recovery command.
 
@@ -185,10 +188,10 @@ just the directory being moved.
 
 ## 5. Running it
 
-### 5.1 Dry run (the default)
+### 5.1 Dry run
 
 ```sh
-uv run haywire rename haybale-old-name haybale-new-name --verbose
+uv run haywire rename haybale-old-name haybale-new-name --dry-run --verbose
 ```
 
 Prints the full preflight report and changes nothing. Without `--verbose`,
@@ -199,17 +202,13 @@ site.
 ### 5.2 Applying it
 
 ```sh
-uv run haywire rename haybale-old-name haybale-new-name --apply
+uv run haywire rename haybale-old-name haybale-new-name
 ```
 
-Confirmation happens up to twice, unless `--yes` is passed:
+There is no confirmation prompt: running the command without `--dry-run` is
+the "go". The report it prints first is the same one `--dry-run` shows.
 
-1. Only if the target name needs the prefix confirmation from
-   [§3](#3-choosing-a-name).
-2. Always: a summary of the distribution names, the reference count, and
-   that `uv sync` will run — your final "go".
-
-The rename then runs in five phases, each one stopping immediately (with the
+The rename runs in five phases, each one stopping immediately (with the
 recovery hint) if it fails:
 
 1. Rename the module directory.

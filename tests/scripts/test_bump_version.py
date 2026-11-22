@@ -188,6 +188,44 @@ def test_apply_bump_writes_files_and_returns_diff(tmp_path: Path) -> None:
     assert "gamma/pyproject.toml" in diff_text
 
 
+def _mini_workspace(tmp_path: Path) -> Path:
+    """The fixture's four packages on disk, every one at 0.0.1; returns the root pyproject."""
+    root = tmp_path / "pyproject.toml"
+    root.write_text((FIXTURE_DIR / "sample_root_pyproject.toml").read_text())
+    for rel, name in (
+        ("subdir-a/alpha", "alpha-pkg"),
+        ("subdir-a/beta", "beta-pkg"),
+        ("subdir-a/delta", "delta-pkg"),
+        ("subdir-b/gamma", "gamma-pkg"),
+    ):
+        (tmp_path / rel).mkdir(parents=True)
+        (tmp_path / rel / "pyproject.toml").write_text(f'[project]\nname = "{name}"\nversion = "0.0.1"\n')
+    return root
+
+
+@pytest.mark.unit
+def test_main_writes_without_prompting(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = _mini_workspace(tmp_path)
+    monkeypatch.setattr("builtins.input", lambda *_: pytest.fail("bump_version must not prompt"))
+
+    assert bump_version.main(["0.0.2", "--root", str(root)]) == 0
+    assert 'version = "0.0.2"' in (tmp_path / "subdir-a/alpha/pyproject.toml").read_text()
+
+
+@pytest.mark.unit
+def test_main_dry_run_writes_nothing(tmp_path: Path) -> None:
+    root = _mini_workspace(tmp_path)
+
+    assert bump_version.main(["0.0.2", "--root", str(root), "--dry-run"]) == 0
+    assert 'version = "0.0.1"' in (tmp_path / "subdir-a/alpha/pyproject.toml").read_text()
+
+
+@pytest.mark.unit
+def test_main_no_longer_takes_yes(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit):
+        bump_version.main(["0.0.2", "--root", str(_mini_workspace(tmp_path)), "--yes"])
+
+
 @pytest.mark.unit
 def test_rewrite_haybale_toml_bumps_top_level_version() -> None:
     src = 'name = "alpha"\nid = "alpha"\nversion = "0.0.1"\nlabel = "Alpha"\n'

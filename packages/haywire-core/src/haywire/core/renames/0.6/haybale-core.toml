@@ -1,7 +1,7 @@
 # Key renames of haybale-core in release 0.6.
 #
 # Apply to a project's graphs with:
-#   uv run haywire rename --map <this file> --apply
+#   uv run haywire rename --map <this file>
 # The rules behind the names: docs/reference/component-naming.md.
 # One entry covers a parameterized type's whole family: ARRAY[INT] and
 # POOLED[CALLBACK] keep their element in the recipe, under the family's key.

@@ -39,46 +39,25 @@ __all__ = [
 ]
 
 
-def _confirm(question: str) -> bool:
-    try:
-        return input(f"{question} [y/N] ").strip().lower() in ("y", "yes")
-    except (EOFError, KeyboardInterrupt):
-        return False
-
-
 def run_rename_cli(
     *,
     old_library: str,
     new_name: str,
     workspace_root: Path,
-    apply: bool,
+    dry_run: bool = False,
     verbose: bool = False,
-    assume_yes: bool = False,
 ) -> int:
-    """Preflight, then optionally execute. Returns a process exit code."""
-    plan, needs_prefix_confirm = plan_rename(old_library, new_name, Path(workspace_root))
+    """Preflight, then execute unless *dry_run*. Never prompts. Returns a process exit code."""
+    plan = plan_rename(old_library, new_name, Path(workspace_root))
     print(render_plan(plan, verbose=verbose))
 
     if not plan.ok:
         return 1
 
-    if not apply:
+    if dry_run:
         print("Dry run — nothing was changed.")
-        print("Re-run with --apply to perform the rename.")
+        print("Re-run without --dry-run to perform the rename.")
         return 0
-
-    if not assume_yes:
-        if needs_prefix_confirm and not _confirm(
-            f'"{plan.new_dist}" does not start with "haybale-" or "hay-". Continue?'
-        ):
-            print("Aborted.")
-            return 1
-        if not _confirm(
-            f"Rename {plan.old_dist} → {plan.new_dist}, rewriting {plan.total_changes} "
-            f"reference(s) and running `uv sync`. Proceed?"
-        ):
-            print("Aborted.")
-            return 1
 
     ok, message = execute_plan(plan, sink=print)
     print(message)
@@ -98,31 +77,24 @@ def run_key_map_cli(
     *,
     map_path: Path,
     workspace_root: Path,
-    apply: bool,
+    dry_run: bool = False,
     verbose: bool = False,
-    assume_yes: bool = False,
 ) -> int:
-    """Preflight a key-map rename, then optionally apply it. Returns a process exit code."""
+    """Preflight a key-map rename, then apply it unless *dry_run*. Never prompts. Returns an exit code."""
     plan = plan_key_map(Path(map_path), Path(workspace_root))
     print(render_key_map_plan(plan, verbose=verbose))
 
     if not plan.ok:
         return 1
 
-    if not apply:
+    if dry_run:
         print("Dry run — nothing was changed.")
-        print("Re-run with --apply to rewrite the graphs.")
+        print("Re-run without --dry-run to rewrite the graphs.")
         return 0
 
     if not plan.graph_changes:
         print("No graph holds a key from the map — nothing to do.")
         return 0
-
-    if not assume_yes and not _confirm(
-        f"Rewrite {plan.total_changes} key(s) in {len(plan.graph_changes)} graph(s). Proceed?"
-    ):
-        print("Aborted.")
-        return 1
 
     ok, message = execute_key_map(plan)
     print(message)

@@ -263,7 +263,7 @@ before the next step.
 STOP. Do NOT ask for confirmation, do NOT commit, do NOT push:
 
 ```bash
-uv run python scripts/bump_version.py <NEW_VERSION> --yes
+uv run python scripts/bump_version.py <NEW_VERSION>
 ```
 
 Tell the user:
@@ -288,14 +288,14 @@ Offer three options:
 - **No, abort.** Switch back with `git switch master` and delete the empty branch
   with `git branch -d release/v<NEW_VERSION>`; just stop.
 - **Apply the bump but don't commit/push yet.** Runs
-  `scripts/bump_version.py <NEW_VERSION> --yes`, then stops. The user can inspect
+  `scripts/bump_version.py <NEW_VERSION>`, then stops. The user can inspect
   the files, then re-invoke `/haywire-release <NEW_VERSION>` to finish (Step 6 is
   idempotent), or `git checkout packages barn uv.lock` to roll back.
 
 ### Step 6 — apply the bump and commit
 
 ```bash
-uv run python scripts/bump_version.py <NEW_VERSION> --yes
+uv run python scripts/bump_version.py <NEW_VERSION>
 ```
 
 (Idempotent if already applied in step 5's middle option.)
@@ -535,7 +535,7 @@ If the user invoked `/haywire-release --dry-run <VERSION>`:
 
 - Steps 0–4 run identically (what the release would ship, get target, CI check,
   release branch, preview diff).
-- Step 5 applies the bump (`scripts/bump_version.py <VERSION> --yes`) so the working
+- Step 5 applies the bump (`scripts/bump_version.py <VERSION>`) so the working
   tree contains the actual changes that would ship, then STOPS without asking for
   confirmation. The user sees:
 

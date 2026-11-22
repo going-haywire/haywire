@@ -15,7 +15,7 @@ def _run(ws: Path, old: str, new: str):
     from haywire_studio.packaging.rename.execute import execute_plan
     from haywire_studio.packaging.rename.planner import plan_rename
 
-    plan, _ = plan_rename(old, new, ws)
+    plan = plan_rename(old, new, ws)
     assert plan.ok, plan.blockers
     with patch("haywire_studio.packaging.rename.execute.subprocess.run") as run:
         run.return_value.returncode = 0
@@ -61,7 +61,7 @@ def test_patches_module_shaped_telemetry_fields_end_to_end(tmp_path):
     """execute_plan threads plan.old_module/new_module through to
     apply_graphs, so library.module_name, library.folder_path, and
     identity.module — write-only telemetry the loader never reads, but
-    worth keeping fresh — are rewritten by a real --apply run, not just by
+    worth keeping fresh — are rewritten by a real run, not just by
     the unit-level patch_graph_tree call."""
     ws = _workspace(tmp_path)
     graph_path = ws / "flows" / "g.haywire"
@@ -125,7 +125,7 @@ def test_uv_sync_failure_reports_source_rename_succeeded(tmp_path):
     from haywire_studio.packaging.rename.planner import plan_rename
 
     ws = _workspace(tmp_path)
-    plan, _ = plan_rename("hay-src", "hay-dst", ws)
+    plan = plan_rename("hay-src", "hay-dst", ws)
 
     with patch("haywire_studio.packaging.rename.execute.subprocess.run") as run:
         run.return_value.returncode = 1
@@ -144,7 +144,7 @@ def test_malformed_toml_returns_failure_not_exception(tmp_path):
     from haywire_studio.packaging.rename.planner import plan_rename
 
     ws = _workspace(tmp_path)
-    plan, _ = plan_rename("hay-src", "hay-dst", ws)
+    plan = plan_rename("hay-src", "hay-dst", ws)
     assert plan.ok, plan.blockers
 
     # Phase 2 edits the library's own haybale.toml first (already renamed by
@@ -242,7 +242,7 @@ def test_missing_entry_points_section_fails_cleanly(tmp_path):
     sp.run(["git", "add", "-A"], cwd=ws, check=True)
     sp.run(["git", "commit", "-qm", "strip entry-points"], cwd=ws, check=True)
 
-    plan, _ = plan_rename("hay-src", "hay-dst", ws)
+    plan = plan_rename("hay-src", "hay-dst", ws)
     assert plan.ok, plan.blockers
 
     with patch("haywire_studio.packaging.rename.execute.subprocess.run") as run:
@@ -298,7 +298,7 @@ def test_missing_uv_binary_returns_failure_not_exception(tmp_path):
     from haywire_studio.packaging.rename.planner import plan_rename
 
     ws = _workspace(tmp_path)
-    plan, _ = plan_rename("hay-src", "hay-dst", ws)
+    plan = plan_rename("hay-src", "hay-dst", ws)
 
     with patch(
         "haywire_studio.packaging.rename.execute.subprocess.run",

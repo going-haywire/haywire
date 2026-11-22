@@ -30,10 +30,9 @@ def register(subparsers: argparse._SubParsersAction) -> None:
         help="Use editable local sources from this dev repo instead of PyPI",
     )
     parser.add_argument(
-        "-y",
-        "--yes",
+        "--dry-run",
         action="store_true",
-        help="Skip the confirmation prompt and scaffold immediately",
+        help="Print the project structure that would be generated and create nothing",
     )
     parser.set_defaults(handler=_run)
 
@@ -63,13 +62,11 @@ def _run(args: argparse.Namespace) -> int:
     lib_name = _resolve_distname(args.name, args.distname)
     module_name = _distmodule(lib_name)
 
-    if not args.yes:
-        print("The following project structure will be generated:\n")
-        print(render_scaffold_tree(args.name, lib_name, module_name))
-        reply = input("ok? [y/N] ").strip().lower()
-        if reply not in ("y", "yes"):
-            print("Aborted.")
-            return 1
+    print("The following project structure will be generated:\n")
+    print(render_scaffold_tree(args.name, lib_name, module_name))
+    if args.dry_run:
+        print("Dry run — nothing was created. Re-run without --dry-run to scaffold it.")
+        return 0
 
     dev_repo = _get_dev_repo_root() if args.dev else None
     init_project(

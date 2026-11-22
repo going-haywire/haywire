@@ -163,7 +163,7 @@ The tool computes `state` (`share --status --json`). `init` writes the playbook 
 
 | State | Detected when | Exact command | Expected output | Next |
 |---|---|---|---|---|
-| NO_PROJECT | no `pyproject.toml` | `haywire init <name> --distname haybale-<final> -y` (ask the owner for the final name and for git vs PyPI first; **never accept the `hay-` default if the project will be shared**) | `Project '<name>' created` + human checklist | NO_REMOTE |
+| NO_PROJECT | no `pyproject.toml` | `haywire init <name> --distname haybale-<final>` (ask the owner for the final name and for git vs PyPI first; **never accept the `hay-` default if the project will be shared**) | `Project '<name>' created` + human checklist | NO_REMOTE |
 | NO_REMOTE | no `origin` | `STOP`: owner creates the GitHub repo and gives the URL; then `git remote add origin <url> && git push -u origin <default>` | push succeeds | DIRTY or READY |
 | DIRTY_TREE | `git status --porcelain` non-empty | `git checkout uv.lock` if only that changed, else commit the work | clean | `--status` again |
 | WRONG_BRANCH | not on default | `git switch <default>` | on default | `--status` |
