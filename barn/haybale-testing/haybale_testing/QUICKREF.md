@@ -1,4 +1,4 @@
-# haybale-testing — component index (v0.6.0)
+# haybale-testing — component index (v0.6.1)
 
 ## node
 - `haybale-testing:node:AddFloatProbeNode` — Add Float Probe — Test arithmetic node — adds two float values  _tags: test, math, add, float, arithmetic_
