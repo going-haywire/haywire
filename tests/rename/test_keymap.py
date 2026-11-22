@@ -256,6 +256,27 @@ def test_nested_subgraphs_and_adapter_chains_are_rewritten(tmp_path):
 
 
 @pytest.mark.unit
+def test_the_declarations_table_is_rekeyed_in_order(tmp_path):
+    from haywire_studio.packaging.rename.graphs import KeyMapRewriter, patch_graph_keys
+
+    data = {
+        "declarations": {
+            "haybale-core:node:BeginPlayNode": {
+                "p": {"recipe": {"registry_key": "haybale-core:type:ArrayType"}}
+            },
+            "haybale-other:node:Kept": {},
+        }
+    }
+    count, leftovers = patch_graph_keys(data, KeyMapRewriter(_renames(tmp_path)))
+
+    assert list(data["declarations"]) == ["haybale-core:node:BeginPlayEventNode", "haybale-other:node:Kept"]
+    assert data["declarations"]["haybale-core:node:BeginPlayEventNode"]["p"]["recipe"] == {
+        "registry_key": "haybale-core:type:ARRAY"
+    }
+    assert (count, leftovers) == (2, [])
+
+
+@pytest.mark.unit
 def test_counts_per_key_and_copies(tmp_path):
     _, count, _, rewriter = _patched(tmp_path)
 
