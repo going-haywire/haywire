@@ -69,7 +69,9 @@ def test_token_prints_an_agent_principal_s_token_alone(monkeypatch, path, capsys
     _run(["user", "add", "builder", "--agent"], monkeypatch, path)
     capsys.readouterr()
     assert _run(["user", "token", "builder"], monkeypatch, path) == 0
-    assert capsys.readouterr().out == load_document(path).auth.find("builder").token + "\n"
+    agent = load_document(path).auth.find("builder")
+    assert agent is not None
+    assert capsys.readouterr().out == agent.token + "\n"
 
 
 def test_token_refuses_a_user_principal(monkeypatch, path, capsys):
