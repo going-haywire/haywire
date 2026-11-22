@@ -5268,8 +5268,16 @@
 <code>&lt;dist&gt;:&lt;kind&gt;:&lt;ClassName&gt;</code> (<code>haybale-core:node:BeginPlayEventNode</code>). On load, the
 graph loader looks a component up by that key and nothing else. If you rename a
 node, type or widget class, its key changes too, so every graph that still holds
-the old key stops loading. Nothing maps old keys to new ones at runtime.</p>
-<p><code>haywire rename --map &lt;file&gt;</code> migrates the graphs once. You write a <strong>key map</strong>
+the old key stops loading.</p>
+<p><strong>The 0.6 renames migrate on load.</strong> Haywire 0.6 renamed components across
+<code>haywire-core</code> and the bundled libraries. Their key maps ship inside
+<code>haywire-core</code> (<code>haywire/core/renames/0.6/</code>), and graph file format v6 applies
+them to every file saved before 0.6 as it loads: open the graph and it has the
+new keys, and it keeps them on its next save. You don't need to run anything
+for those renames.</p>
+<p>For any other rename, such as your own library's, <code>haywire rename --map &lt;file&gt;</code>
+migrates the graphs once. Use it too to rewrite files on disk without opening
+them in the studio. You write a <strong>key map</strong>
 that lists each old key and its new key. The command finds every graph in the
 project and rewrites the keys the map lists.</p>
 <p>To rename a whole library (its distribution name, not single components), see
@@ -5336,6 +5344,10 @@ for a component that moved to another library.</p>
 <td>The whole value equals an <code>old</code> key, at any depth, nested subgraphs included</td>
 </tr>
 <tr>
+<td>The keys of the <code>declarations</code> table</td>
+<td>The key equals an <code>old</code> key; if the table already holds the new key too, its own entry wins</td>
+</tr>
+<tr>
 <td><code>class_name</code>, <code>registry_id</code> beside a renamed <code>registry_key</code></td>
 <td>They equal the old class name (a node's <code>identity</code>, a port's <code>kwargs</code>)</td>
 </tr>
@@ -5396,6 +5408,10 @@ byte-identical.</p>
 <h2 id="5-confirming-the-result">5. Confirming the result<a class="headerlink" href="#5-confirming-the-result" title="Permanent link">&para;</a></h2>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>verify
 </span></code></pre></div>
+<p><code>verify</code> reads the files as they are on disk. A graph saved before 0.6 that
+you haven't opened and saved since lists the 0.6 old keys as unresolved,
+although it loads with the new ones; <code>haywire rename --map</code> with the bundled
+maps, or a save from the studio, rewrites the file.</p>
 <p>After <code>--apply</code>, the graphs hold the new keys, so <code>verify</code> passes once the
 renamed classes are installed. If you migrate graphs before you rename the
 classes, <code>verify</code> lists exactly the new keys as unresolved until you do.</p>
