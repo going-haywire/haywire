@@ -32,5 +32,6 @@ level: architectural
 
 - The umbrella folder is never a studio project and never gets a `CLAUDE.md`: agents also read `CLAUDE.md` files from parent folders, so one there would reach every repository's sessions.
 - A repository missing on a machine has to be dropped from the umbrella's `pyproject.toml` locally before `uv sync`.
+  - **Amended 2026-11-22:** `bin/umbrella-sync` writes the umbrella's `pyproject.toml`, `uv.lock` and `haywire.code-workspace` from the repositories cloned on each machine, and none of them is tracked: machines with different libraries would otherwise overwrite each other's. Each machine resolves its own third-party versions; the repositories' tracked locks are what CI tests.
 - Code that lists every installed distribution sees an overlaid package twice during an overlay run; library discovery through entry points does not.
 - Hot reload works on the sibling repositories' files, since their modules load from their real folders.
