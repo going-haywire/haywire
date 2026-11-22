@@ -6859,13 +6859,18 @@ Macro is registered and placed.</p>
 <td>Farmhand (unqualified, when the plugin specifically is meant)</td>
 </tr>
 <tr>
+<td><strong>Farmhand bridge</strong> (<code>haywire farmhand bridge</code>)</td>
+<td>The stdio MCP server that connects an agent session to its own project's studio. A harness starts it from the repository's committed MCP config (<code>.mcp.json</code>), so it runs in that place's Haywire environment and matches its version. It is up before any studio: its server instructions index the docs pages marked <code>serve: product</code>, and it serves the baked docs. It finds the project's studio through <code>studio.json</code> (or one folder down), connects when the studio comes up, forwards its tools and resources with <code>list_changed</code>, and drops them when it stops. A studio that requires a token gets the <strong>Farmhand principal</strong>'s, read from the roster by the bridge itself.</td>
+<td>proxy (that is the npm package it replaces), gateway</td>
+</tr>
+<tr>
 <td><strong>Farmhand proxy</strong></td>
-<td>stdio MCP server (npm <code>@going-haywire/farmhand-proxy</code>). Claude Code spawns it at session start to bridge the Farmhand server's HTTP <code>/mcp</code>, forwarding tool/resource calls and re-emitting <code>list_changed</code> so studio tools appear mid-session with no reconnect. Reads <code>auth_required</code> from <code>&lt;ws&gt;/.haywire/studio.json</code> and sends no <code>Authorization</code> header when it is <code>false</code>; when <code>true</code>, the operator supplies a roster agent token out of band. There is no token file any more (ADR 0028) — runs in down-mode (a <code>farmhand_studio_status</code> sentinel) until the studio comes up.</td>
-<td>bridge, gateway (gateway is the SDK's word for the pattern, not this component)</td>
+<td>The earlier npm stdio server (<code>@going-haywire/farmhand-proxy</code>) of the Claude plugin, replaced by the <strong>Farmhand bridge</strong>. Its studio discovery has not worked since ADR 0028 (it looks for <code>studio.json</code> next to the removed token file).</td>
+<td>bridge (that is its replacement)</td>
 </tr>
 <tr>
 <td><strong>Studio identity sidecar</strong> (<code>studio.json</code>)</td>
-<td>The self-describing JSON the studio writes to <code>&lt;workspace&gt;/.haywire/studio.json</code> when it mounts the Farmhand endpoint: <code>pid</code>, <code>port</code>, <code>project</code>, <code>project_path</code>, <code>started_at</code>, <code>host</code>, <code>role</code>, <code>url</code>, <code>auth_required</code>. Lets a later process (the farmhand-plugin's startup script) identify which project owns the studio on a port, decide to reuse / ask / clean up, and know whether to attach a bearer token without a probe request. Gitignored, machine-local; written only when <code>farmhand.enabled</code>. <code>auth_required</code> is a hint, never a credential — it says whether a token is expected, not what it is.</td>
+<td>The self-describing JSON the studio writes to <code>&lt;workspace&gt;/.haywire/studio.json</code> when it mounts the Farmhand endpoint: <code>pid</code>, <code>port</code>, <code>project</code>, <code>project_path</code>, <code>started_at</code> (the process's own start, so a recycled pid is told apart), <code>host</code>, <code>role</code>, <code>url</code>, <code>auth_required</code>. Lets a later process (the <strong>Farmhand bridge</strong>, <code>haywire</code> CLI guards) identify which project owns the studio on a port, decide to reuse / ask / clean up, and know whether to attach a bearer token without a probe request. Gitignored, machine-local; written only when <code>farmhand.enabled</code>. <code>auth_required</code> is a hint, never a credential — it says whether a token is expected, not what it is.</td>
 <td>pid file (studioctl's is a bare integer; this is structured identity)</td>
 </tr>
 <tr>
@@ -7606,6 +7611,11 @@ Macro is registered and placed.</p>
 <td><strong>Agent Principal</strong></td>
 <td>A <strong>Principal</strong> that authenticates with a bearer token; reaches the studio through the Farmhand <code>/mcp</code> mount. May be scoped to one workspace</td>
 <td>Bot, service account, API key</td>
+</tr>
+<tr>
+<td><strong>Farmhand principal</strong></td>
+<td>The <strong>Agent Principal</strong> named <code>farmhand</code> (or <code>$FARMHAND_PRINCIPAL</code>) whose token the <strong>Farmhand bridge</strong> sends to a local studio that requires one. The user creates it once per machine with <code>haywire user add farmhand --agent --tier &lt;tier&gt;</code> in their own terminal and so chooses what agents may do; the token never passes through an agent session.</td>
+<td>developer principal, worktree token</td>
 </tr>
 <tr>
 <td><strong>Roster</strong></td>

@@ -5406,6 +5406,9 @@
 <li>
 <p><strong><code>see-also</code></strong> — relative paths (not bare doc_template names) to related pages. Keep it short — the pages a reader would plausibly bounce to next, not everything tangentially related.</p>
 </li>
+<li>
+<p><strong><code>serve</code></strong> (optional) — <code>product</code> puts the page in the index the Farmhand bridge hands every agent session at its start (<code>haywire farmhand bridge</code>, one line per page: path, title, <code>scope</code>). Mark the pages an agent should read before a task, not every page: the rest stays reachable through the docs manifest. A marked page's <code>scope</code> is what the agent sees, so make it say when to read the page.</p>
+</li>
 </ul>
 <h2 id="3-linking-to-live-source-code">3. Linking to live source code<a class="headerlink" href="#3-linking-to-live-source-code" title="Permanent link">&para;</a></h2>
 <p>Two different mechanisms exist for pulling code into a doc page. Use the right one for the job — don't hand-copy a snippet that either mechanism already covers, since a hand-copy silently drifts from the code the moment it changes.</p>

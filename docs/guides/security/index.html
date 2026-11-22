@@ -5829,8 +5829,11 @@ request.</p>
 sits behind the same authentication gate as everything else: a bearer token
 is required whenever authentication is on, and the studio cannot be exposed
 with authentication off (<a href="#4-opening-the-studio-up">§4</a>). An agent
-connects with a roster token, minted by <code>haywire user add &lt;name&gt; --agent
---tier edit</code>, the same roster that authenticates a browser session.</p>
+connects with a roster token, the same roster that authenticates a browser
+session. An agent in the project connects through the Farmhand bridge, which
+sends the token of the agent principal <code>farmhand</code> itself (create it once with
+<code>haywire user add farmhand --agent --tier edit</code>), so the token never passes
+through the agent.</p>
 <h3 id="restrict_to_loopback"><code>restrict_to_loopback</code><a class="headerlink" href="#restrict_to_loopback" title="Permanent link">&para;</a></h3>
 <p>This is the setting most likely to matter to you without your knowing it
 exists, so it gets called out explicitly rather than left to a settings
@@ -6047,12 +6050,13 @@ now the only way to fix it.</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>add<span class="w"> </span>&lt;name&gt;<span class="w"> </span>--tier<span class="w"> </span><span class="o">{</span>view,operate,edit,admin<span class="o">}</span><span class="w">      </span><span class="c1"># a password-holding user</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>add<span class="w"> </span>&lt;name&gt;<span class="w"> </span>--agent<span class="w"> </span>--tier<span class="w"> </span><span class="o">{</span>view,operate,edit,admin<span class="o">}</span><span class="w"> </span><span class="c1"># a token-holding agent</span>
 </span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>add<span class="w"> </span>&lt;name&gt;<span class="w"> </span>--agent<span class="w"> </span>--tier<span class="w"> </span>edit<span class="w"> </span>--workspace<span class="w"> </span>&lt;path&gt;<span class="w"> </span><span class="c1"># scoped to one project</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>list
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>tier<span class="w"> </span>&lt;name&gt;<span class="w"> </span><span class="o">{</span>view,operate,edit,admin<span class="o">}</span>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>passwd<span class="w"> </span>&lt;name&gt;
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>remove<span class="w"> </span>&lt;name&gt;
-</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>auth<span class="w"> </span>status
-</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>auth<span class="w"> </span>disable
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>token<span class="w"> </span>&lt;name&gt;<span class="w">                                      </span><span class="c1"># an agent&#39;s token, nothing else</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>list
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>tier<span class="w"> </span>&lt;name&gt;<span class="w"> </span><span class="o">{</span>view,operate,edit,admin<span class="o">}</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>passwd<span class="w"> </span>&lt;name&gt;
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>remove<span class="w"> </span>&lt;name&gt;
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>auth<span class="w"> </span>status
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>auth<span class="w"> </span>disable
 </span></code></pre></div>
 <p>Once signed in, an admin can do all of this from the studio itself — the
 account menu behind the <code>account_circle</code> icon at the bottom of the action
@@ -6064,10 +6068,14 @@ sessions and MCP agents, the latter by last-seen time rather than a
 possibly-stale online/offline flag).</p>
 <p>Every mutation — CLI or UI — goes through the same document, so the two
 surfaces can never disagree about who's allowed in.</p>
-<p>An agent principal's token is the credential an MCP client presents; connect
-with <code>claude mcp add --transport http farmhand http://127.0.0.1:8124/mcp
---header "Authorization: Bearer &lt;token&gt;"</code>, or with no header at all when
-authentication is off.</p>
+<p>An agent principal's token is the credential an MCP client presents. No
+command prints it unasked: <code>haywire user add</code> and the studio's startup line
+leave it out, so neither a terminal an agent reads nor the studio's log holds
+it. An agent in the project needs none of this (the Farmhand bridge sends the
+<code>farmhand</code> principal's token itself). For an agent elsewhere, fill the token
+in on your own terminal: <code>claude mcp add --transport http farmhand
+http://127.0.0.1:8124/mcp --header "Authorization: Bearer $(haywire user token
+&lt;name&gt;)"</code>, or no header at all when authentication is off.</p>
 <h3 id="what-each-tier-and-the-lock-allow">What each tier and the lock allow<a class="headerlink" href="#what-each-tier-and-the-lock-allow" title="Permanent link">&para;</a></h3>
 <p>Tiers are cumulative: <code>view</code> &lt; <code>operate</code> &lt; <code>edit</code> &lt; <code>admin</code>.</p>
 <ul>
