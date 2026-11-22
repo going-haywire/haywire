@@ -50,7 +50,8 @@ jobs:
 
       - name: Agent files
         run: |
-          changed=$(gh pr diff "$NUMBER" --name-only)
+          # The files API, not `gh pr diff`: the diff refuses a PR over 300 files.
+          changed=$(gh api --paginate "repos/$GH_REPO/pulls/$NUMBER/files" --jq '.[].filename')
           echo "$changed" | grep -qE '^(CLAUDE\.md|AGENTS\.md|\.mcp\.json|\.claude/|\.github/|plugins/)' || exit 0
           gh pr edit "$NUMBER" --add-label "agent files"
           marker="<!-- pr-intake:agent-files -->"
