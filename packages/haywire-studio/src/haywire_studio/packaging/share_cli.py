@@ -35,6 +35,7 @@ from haywire.core.publishing.pipeline import (
     SharePipeline,
     TagCollisionError,
 )
+from haywire.core.publishing.pipeline.steps import dependencies as steps_dependencies
 from haywire.core.publishing.pipeline.steps import release_pr, release_state
 from haywire.core.publishing.url import derive_pull_request_url, derive_share_url_only
 from haywire_studio.playbook import State
@@ -440,7 +441,10 @@ def _run_publish(
         # floor: nothing here can compute the oldest version that works.
         # Removals and floor changes are NOT touched — optional, and one is
         # lossy.
-        additions: dict[Path, list[str]] = {d.lib_dir: list(d.pyproject_missing) for d in report.drifted}
+        additions: dict[Path, list[str]] = {
+            d.lib_dir: steps_dependencies.with_inherited_markers(d.lib_dir, d.pyproject_missing)
+            for d in report.drifted
+        }
         for lib_dir, entries in additions.items():
             for dep in entries:
                 print(f"  + {lib_dir.name}: {dep}")

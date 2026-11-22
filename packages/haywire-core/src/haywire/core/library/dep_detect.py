@@ -23,12 +23,14 @@ import ast
 import importlib.metadata
 import importlib.util
 import sys
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
 import toml
+from packaging.requirements import InvalidRequirement, Requirement
+from packaging.utils import canonicalize_name
 
 from haywire.core.tomlio import edit_toml
 
@@ -355,6 +357,91 @@ def _classify(top_level: set[str], self_module: str | None, libraries: HaywireLi
         resolved=resolved,
         unresolved=unresolved,
     )
+
+
+def _installed_requires(dist: str) -> list[str] | None:
+    try:
+        return importlib.metadata.requires(dist)
+    except importlib.metadata.PackageNotFoundError:
+        return None
+
+
+def _parse(entry: str) -> Requirement | None:
+    try:
+        return Requirement(entry)
+    except InvalidRequirement:
+        return None
+
+
+def _join(markers: frozenset[str]) -> str:
+    """One marker that holds when all of *markers* hold."""
+    parts = sorted(markers)
+    if len(parts) == 1:
+        return parts[0]
+    return " and ".join(f"({part})" for part in parts)
+
+
+def inherited_marker(
+    dist: str,
+    declared: list[str],
+    *,
+    requires: Callable[[str], list[str] | None] | None = None,
+) -> str | None:
+    """The environment marker *dist* takes from the declared dependencies that bring it in.
+
+    Walks the installed requirements of every *declared* entry, transitively. An
+    import such as ``Foundation`` (``pyobjc-framework-Cocoa``) that only a
+    ``sys_platform == 'darwin'`` dependency pulls in is macOS-only too, though no
+    ``if`` in the source says so: declaring it without the marker breaks every
+    other platform's install.
+
+    Args:
+        dist: The distribution to declare.
+        declared: The library's ``[project] dependencies`` entries.
+        requires: Returns a distribution's requirement strings, ``None`` when it is
+            not installed. Defaults to ``importlib.metadata.requires``.
+
+    Returns:
+        The marker, or ``None`` when *dist* needs none: some unmarked path brings it
+        in, or no declared dependency brings it in at all. Requirements behind an
+        ``extra`` are not followed.
+    """
+    requires = requires or _installed_requires
+    target = canonicalize_name(dist)
+    paths: set[frozenset[str]] = set()
+    for entry in declared:
+        root = _parse(entry)
+        if root is None:
+            continue
+        start = frozenset({str(root.marker)}) if root.marker else frozenset()
+        if canonicalize_name(root.name) == target:
+            paths.add(start)
+            continue
+        queue: list[tuple[str, frozenset[str]]] = [(root.name, start)]
+        seen: set[str] = set()
+        while queue:
+            name, markers = queue.pop()
+            if canonicalize_name(name) in seen:
+                continue
+            seen.add(canonicalize_name(name))
+            for raw in requires(name) or []:
+                child = _parse(raw)
+                if child is None:
+                    continue
+                marker = str(child.marker) if child.marker else None
+                if marker and "extra" in marker:
+                    continue
+                child_markers = markers | {marker} if marker else markers
+                if canonicalize_name(child.name) == target:
+                    paths.add(child_markers)
+                else:
+                    queue.append((child.name, child_markers))
+    if not paths or frozenset() in paths:
+        return None
+    alternatives = sorted(_join(markers) for markers in paths)
+    if len(alternatives) == 1:
+        return alternatives[0]
+    return " or ".join(f"({alternative})" for alternative in alternatives)
 
 
 def set_pyproject_dependencies(lib_dir: Path, dependencies: list[str]) -> None:

@@ -97,7 +97,7 @@ Every write to a library's `[project] dependencies` lives in `steps/dependencies
 
 - `apply_framework(specifier)` — the `haywire-core` entry, and nothing else. The one authored floor in the flow.
 - `apply_removals({lib: [dist, …]})` — drops unused declarations the author ticked.
-- `apply_additions({lib: [entry, …]})` — declares undeclared imports with the author's chosen pins. Skips distributions already declared: an addition never restates an existing floor.
+- `apply_additions({lib: [entry, …]})` — declares undeclared imports with the author's chosen pins. Skips distributions already declared: an addition never restates an existing floor. An entry without a marker takes the one `inherited_marker()` finds by walking the installed requirements of the declared dependencies: a distribution that only platform-marked dependencies bring in carries their marker.
 - `apply_linked_registrations({lib: [name, …]})` — adds imported haywire libraries to `linked_libraries` in `haybale.toml`. **Applied without asking**, at the framework step so it lands exactly once. There is nothing to decide: `detect_deps` emits a name here only when the source imports it *and* it resolves to an installed registered library, so every entry is provably true, carries no version specifier, and narrows nothing for consumers. It is *reported* on the Findings and Confirm screens rather than done silently, because it edits a hand-authored declaration rather than a generated one.
 - `apply_floors({lib: [entry, …]})` — rewrites only the floors the author actively changed.
 

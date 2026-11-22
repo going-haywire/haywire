@@ -95,6 +95,13 @@ are left untouched, because removing is lossy and nothing here can compute the
 oldest version that still works. Use the Share editor when you want to decide
 those.
 
+A declared import takes the environment marker of the declared dependencies that bring it
+in. `Foundation` comes from `pyobjc-framework-Cocoa`, which only
+`syphon-python; sys_platform == 'darwin'` requires, so it is declared
+`pyobjc-framework-Cocoa; sys_platform == "darwin"` and Linux installs skip it. An import
+that an unmarked dependency brings in, or that nothing declared brings in, is declared
+without a marker.
+
 `--dry-run` reports preconditions, findings and the version it would cut, and
 writes nothing. Preconditions are *reported* rather than enforced there, so it
 stays useful on a feature branch or a PR checkout.

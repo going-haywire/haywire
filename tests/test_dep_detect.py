@@ -409,3 +409,57 @@ def test_set_pyproject_dependencies_raises_on_malformed_toml(tmp_path: Path) -> 
 
     with pytest.raises(toml.TomlDecodeError):
         set_pyproject_dependencies(lib, ["foo>=1"])
+
+
+# ── inherited_marker: an import only a marked dependency brings in ─────────
+
+_STREAM_REQUIRES = {
+    "syphon-python": ["pyobjc-framework-Metal>=10", "pyobjc-framework-Cocoa>=10", "numpy"],
+    "pyobjc-framework-Metal": ["pyobjc-core>=10", "pyobjc-framework-Cocoa>=10"],
+    "numpy": [],
+    "nicegui": ["fastapi>=0.100", "pywebview>=5 ; extra == 'native'"],
+}
+
+
+def _marker(dist: str, declared: list[str], requires=_STREAM_REQUIRES) -> str | None:
+    from haywire.core.library.dep_detect import inherited_marker
+
+    return inherited_marker(dist, declared, requires=requires.get)
+
+
+@pytest.mark.unit
+def test_a_dist_only_a_darwin_dependency_brings_in_is_darwin_only() -> None:
+    declared = ["syphon-python>=0.2.0; sys_platform == 'darwin'", "nicegui"]
+
+    assert _marker("pyobjc-framework-Cocoa", declared) == 'sys_platform == "darwin"'
+    assert _marker("pyobjc-framework-Metal", declared) == 'sys_platform == "darwin"'
+
+
+@pytest.mark.unit
+def test_an_unmarked_path_needs_no_marker() -> None:
+    declared = ["syphon-python; sys_platform == 'darwin'", "numpy"]
+
+    assert (
+        _marker("numpy", ["syphon-python; sys_platform == 'darwin'", "nicegui"])
+        == 'sys_platform == "darwin"'
+    )
+    assert (
+        _marker("pyobjc-core", ["syphon-python; sys_platform == 'darwin'", "pyobjc-framework-Metal"]) is None
+    )
+    assert _marker("numpy", declared) is None
+
+
+@pytest.mark.unit
+def test_a_dist_nothing_declared_brings_in_needs_no_marker() -> None:
+    assert _marker("requests", ["syphon-python; sys_platform == 'darwin'"]) is None
+    assert _marker("pywebview", ["nicegui"]) is None
+
+
+@pytest.mark.unit
+def test_markers_along_a_path_are_combined() -> None:
+    requires = {"outer": ["inner ; python_version < '3.13'"], "inner": []}
+
+    assert (
+        _marker("inner", ["outer ; sys_platform == 'darwin'"], requires=requires)
+        == '(python_version < "3.13") and (sys_platform == "darwin")'
+    )

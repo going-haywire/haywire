@@ -33,10 +33,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from haywire.core.library.dep_detect import find_module_dir
+from haywire.core.library.dep_detect import find_module_dir, inherited_marker
 from haywire.core.library.dep_edit import add_dependencies, remove_dependencies, set_dependency
 from haywire.core.library.haybale_toml import HAYBALE_TOML, union_linked_libraries
-from haywire.core.marketstall.requirement import CORE
+from haywire.core.marketstall.requirement import CORE, dependency_name
+from haywire.core.publishing.manifest.reader import read_manifest_lenient
 from haywire.core.publishing.pipeline.errors import ManifestError
 from haywire.core.publishing.pipeline.fixes import _MANIFEST_FAILURE_TYPES
 from haywire.core.publishing.pipeline.steps.framework import parse_specifier
@@ -86,6 +87,22 @@ def apply_removals(pipeline: SharePipeline, removals: dict[Path, list[str]]) -> 
     return pipeline.record(written)
 
 
+def with_inherited_markers(lib_dir: Path, entries: list[str]) -> list[str]:
+    """*entries*, each without a marker given the one its distribution inherits.
+
+    A distribution that only a platform-marked declared dependency brings in
+    (``pyobjc-framework-Cocoa`` through ``syphon-python; sys_platform ==
+    'darwin'``) gets that marker; see :func:`inherited_marker`. An entry that
+    already carries a marker is kept as the author wrote it.
+    """
+    declared = list(read_manifest_lenient(lib_dir).get("project", {}).get("dependencies", []))
+    marked: list[str] = []
+    for entry in entries:
+        marker = None if ";" in entry else inherited_marker(dependency_name(entry), declared)
+        marked.append(f"{entry}; {marker}" if marker else entry)
+    return marked
+
+
 def apply_additions(
     pipeline: SharePipeline,
     pyproject_entries: dict[Path, list[str]],
@@ -96,7 +113,8 @@ def apply_additions(
     the author already chose each one's pin via the screen's per-item control,
     so this writes them verbatim rather than deciding specifiers itself.
     Distributions already declared are skipped by ``add_dependencies``: an
-    addition never restates an existing floor.
+    addition never restates an existing floor. Each entry without a marker
+    takes the one it inherits (:func:`with_inherited_markers`).
 
     ``haybale.toml``'s ``linked_libraries`` is NOT written here — see
     :func:`apply_linked_registrations`, which needs no author input.
@@ -106,7 +124,7 @@ def apply_additions(
         if not entries:
             continue
         try:
-            add_dependencies(lib_dir, entries)
+            add_dependencies(lib_dir, with_inherited_markers(lib_dir, entries))
         except _MANIFEST_FAILURE_TYPES as exc:
             raise ManifestError(str(exc)) from exc
         written.append(lib_dir / "pyproject.toml")
