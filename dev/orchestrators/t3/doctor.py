@@ -103,6 +103,15 @@ def fix(repo: Path) -> None:
         print("Still to do by hand, in T3:", *(f"- {g}" for g in manual), sep="\n")
 
 
+def setup_command(repo: Path) -> str:
+    """Return ``t3.json``'s worktree setup command, or core's when ``t3.json`` names none."""
+    try:
+        wanted = json.loads((repo / "t3.json").read_text(encoding="utf-8"))["scripts"]
+        return next(w["command"] for w in wanted if w.get("runOnWorktreeCreate"))
+    except (OSError, ValueError, KeyError, StopIteration):
+        return "python3 scripts/worktree_setup.py"
+
+
 def hook(repo: Path, unfinished: int | None) -> None:
     """Print the agent's line and the developer's ``user: `` lines, nothing when the setup is complete."""
     _, _, fixable, manual = check(repo)
@@ -110,7 +119,7 @@ def hook(repo: Path, unfinished: int | None) -> None:
         manual.insert(
             0,
             f"the worktree setup did not finish within {unfinished} s (if T3 never ran it, the t3.json"
-            " scripts are not imported): run `python3 scripts/worktree_setup.py` in this worktree now",
+            f" scripts are not imported): run `{setup_command(repo)}` in this worktree now",
         )
     gaps = [f"{g} [fix]" for g in fixable] + manual
     if not gaps:

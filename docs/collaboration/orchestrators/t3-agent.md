@@ -32,29 +32,17 @@ imported into the T3 project (*The user's T3 settings*), runs
 `t3.json` sets `async: false` on it so that T3 holds the agent until it exits, but the
 import drops that field (pingdotgg/t3code#40325), so T3 starts the agent alongside it until
 `async: false` is set again (*The user's T3 settings*). Either way the session-start
-hook waits until the worktree has its `.venv` and studio port (up to 5 minutes). Do not run
+hook waits until the worktree's setup has finished (up to 5 minutes). Do not run
 the script again while T3's run is still going.
 
-**A library task.** T3 cannot place a worktree beside the repositories, which a library
-worktree needs. The lead creates it from the library's main folder with
-`git worktree add ../<repo>-<name> -b <kind>/<name> origin/<default branch>`, runs
-`uv sync` there and gives its studio a port, then starts the thread with
-`t3_thread_launch` and `workspaceStrategy: existing_worktree` on that folder. T3 runs no
-create script for a worktree it did not create. The thread binds to the folder (confirmed by
-the five S4 library tasks, #201).
-
-**The plugin in a library worktree.** A library task has the workflow pointer skill and its hooks (the merge
-guard, the dangerous-git block) only if the `haywire-dev` plugin is installed for its folder:
-a project-scope install belongs to one folder, and a new worktree is another one. Without it,
-the skill is an "Unknown skill" and no hook runs (until #212 gives each library its own adapters). So before starting the thread, the lead
-installs it in the new worktree:
-
-```sh
-cd ../<repo>-<name>
-claude plugin install haywire-dev@going-haywire --scope project
-```
-
-The task checks at its start that the skill loads, and reports *Blocked* if it does not.
+**A library task** runs like a core task: T3 creates the worktree in its own folder, and the
+library's `t3.json` runs the setup through the library's main folder, which links core beside
+the worktree before `uv sync` (*Parallel sessions* in the workflow). The library's committed
+`.claude/settings.json` and `.mcp.json` then give the session its hooks and the Farmhand
+bridge, with nothing to install. Only for the full studio with every library does the lead
+create the worktree beside the repositories itself (`git worktree add ../<repo>-<name> …`) and
+start the thread on it with `workspaceStrategy: existing_worktree`; T3 runs no create script
+for a worktree it did not create, so the lead runs the setup there.
 
 ## Messages
 

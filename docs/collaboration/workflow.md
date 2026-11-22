@@ -320,8 +320,8 @@ Then run the tests of both sides' areas before committing the merge.
 Each task runs in its own worktree (another folder on its own branch, sharing the
 history) with its own session. Two sessions in one folder overwrite each other's
 uncommitted work and branch switches. The setup below is the maintainer's;
-`scripts/worktree_setup.py` assumes `origin` is `going-haywire/haywire`. A contributor
-uses plain `git worktree add <folder> -b <branch> upstream/master` and `uv sync` there.
+`worktree_setup.py` starts the branch from `origin`'s default branch. A contributor uses
+plain `git worktree add <folder> -b <branch> upstream/master` and `uv sync` there.
 
 **Starting one.** The main folder stays on an up-to-date `master` and holds no task work:
 it is where worktrees branch from. An orchestrator creates the worktree its own way
@@ -335,12 +335,17 @@ git worktree add <folder> -b <kind>/<name> origin/master
 yet (an orchestrator may run it on creation; it is safe to run again):
 
 ```sh
-python3 scripts/worktree_setup.py
+python3 scripts/worktree_setup.py                       # core
+python3 "$(git rev-parse --path-format=absolute --git-common-dir)/../../haywire-repo/dev/scripts/worktree_setup.py"   # an org library
 ```
 
-It starts the branch from the latest `origin/master` (if the branch has no commits yet;
-otherwise it reports how far behind it is), runs `uv sync`, and gives the studio its own
-port in `.haywire/settings.json`. A
+It starts the branch from the latest default branch of `origin` (if the branch has no
+commits yet; otherwise it reports how far behind it is); in a library it links core beside
+the worktree (`../haywire-repo`) when the worktree is not already beside it, so the
+library's development project and its hooks find core wherever the orchestrator put the
+worktree; it runs `uv sync`, gives the worktree's studio a port of its own in
+`.haywire/settings.json`, and last writes `haywire-setup-done` into the worktree's git folder. Each
+repository's `t3.json` names its own line, so T3 runs it on creation. A
 session started in the worktree still reads the main folder's memory; CodeGraph indexes
 only the main folder, so search with grep there.
 
@@ -351,18 +356,13 @@ only the main folder, so search with grep there.
 - Run only the tests of the area changed; CI runs the whole suite. Browser tests in two
   worktrees at once are fine: each checkout has its own harness ports.
 - A library in another repository (spandrel, visiongraph, …) gets a worktree per task like
-  any other, placed **beside the repositories**, not in an orchestrator's own worktree
-  folder: its development project reaches core by relative `../haywire-repo/...` paths,
-  which resolve only there. From the library's main folder, then `uv sync` in the worktree
-  (a library has no `worktree_setup.py`):
+  any other, wherever the orchestrator puts it: the setup links core beside it. Its own
+  studio (core and this library) is `uv run haywire studio start` in the worktree.
 
-  ```sh
-  git worktree add ../<repo>-<name> -b <kind>/<name> origin/<default branch>
-  ```
-
-  Run its code in the full studio with ADR 0081's overlay, from inside the worktree (the
-  studio's project is the folder it starts in), with a studio port of its own in the
-  worktree's `.haywire/settings.json`:
+  For the full studio with every library (ADR 0081's overlay), the worktree has to sit
+  beside the repositories, where the umbrella environment is: create it from the library's
+  main folder with `git worktree add ../<repo>-<name> -b <kind>/<name> origin/<default
+  branch>`, run the setup there, then from inside the worktree:
 
   ```sh
   cd ../<repo>-<name>
@@ -398,7 +398,7 @@ orchestrator only translates to:
 
 | Event | The neutral part |
 |---|---|
-| Created | `python3 scripts/worktree_setup.py` in the new worktree (core; a library: *In a library repository*) |
+| Created | `worktree_setup.py` in the new worktree (*Parallel sessions*; each repository's `t3.json` names its line) |
 | Viewed | `tasks.py`, below |
 | Message the lead | The report rule, below |
 | Merged | `finish.py <branch>` (*Finishing as the maintainer*, step 5) |
@@ -409,8 +409,7 @@ orchestrator. Call another agent by that name; a tool's own address only in brac
 **The lead starts a task**, from the main folder on an up-to-date `master`: it creates the
 worktree on a new `<kind>/<name>` branch from `origin/master`, makes sure
 `worktree_setup.py` ran there, and starts the task's session in it with the brief, each the
-orchestrator's way. A library task's worktree goes beside the repositories (*Parallel
-sessions*).
+orchestrator's way.
 
 The brief holds the issue (URL), the branch, the acceptance points, the report rule below
 and where to report (the lead's name or address). Tell the task to read this page first.
@@ -440,12 +439,13 @@ them, its session.
 
 The org's libraries (`going-haywire/haybale-*`) follow the same steps. Their process files
 come from [going-haywire/.github](https://github.com/going-haywire/.github) (the library
-`CONTRIBUTING.md`, the reusable CI); this page and the hooks come from core beside it
-(until #212, through the `haywire-dev` plugin, installed once per machine). What differs:
+`CONTRIBUTING.md`, the reusable CI); this page, the hooks and the Farmhand bridge come from
+core beside it, through the library's committed files (`.claude/settings.json`, `.mcp.json`,
+`[tool.haywire.agents]` in `pyproject.toml`, `t3.json`). What differs:
 
 - **Layout.** The library is cloned beside core (`../haywire-repo`), which its development
-  project reaches by relative paths. A task's worktree goes beside the repositories, set up
-  as in *Parallel sessions*.
+  project and its committed hooks reach by relative paths. A task's worktree can be anywhere:
+  its setup links core beside it (*Parallel sessions*).
 - **Checks** are the library's own, in the library
   [CONTRIBUTING.md](https://github.com/going-haywire/.github/blob/main/CONTRIBUTING.md#checks),
   each with `uv run --frozen`.
