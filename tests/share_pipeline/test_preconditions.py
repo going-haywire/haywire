@@ -1376,3 +1376,49 @@ def test_an_untracked_lockfile_still_counts(project: Path) -> None:
 
     assert report.failure is not None
     assert "uv.lock" in report.failure.message
+
+
+# ── .haywire/settings.json is local state, not work to protect ──────────────
+
+
+def test_untracked_local_settings_keep_the_tree_clean(project: Path) -> None:
+    (project / ".haywire").mkdir(exist_ok=True)
+    (project / ".haywire" / "settings.json").write_text('{"studio": {"port": 8131}}')
+
+    report = SharePipeline(project).check_preconditions()
+
+    assert report.ok, report.failures
+
+
+def test_modified_tracked_local_settings_keep_the_tree_clean(project: Path) -> None:
+    (project / ".haywire").mkdir(exist_ok=True)
+    (project / ".haywire" / "settings.json").write_text("{}")
+    _commit(project, "settings")
+    (project / ".haywire" / "settings.json").write_text('{"studio": {"port": 8131}}')
+
+    assert SharePipeline(project).check_preconditions().ok
+
+
+def test_another_file_beside_local_settings_still_counts(project: Path) -> None:
+    (project / ".haywire").mkdir(exist_ok=True)
+    (project / ".haywire" / "settings.json").write_text("{}")
+    (project / ".haywire" / "host.toml").write_text("")
+
+    report = SharePipeline(project).check_preconditions()
+
+    assert report.failure is not None
+    assert ".haywire/host.toml" in report.failure.message
+    assert "settings.json" not in report.failure.message
+
+
+def test_commit_dirty_tree_leaves_local_settings_out(project: Path) -> None:
+    (project / ".haywire").mkdir(exist_ok=True)
+    (project / ".haywire" / "settings.json").write_text("{}")
+    (project / "untracked.txt").write_text("scratch")
+
+    SharePipeline(project).apply_precondition_fix("commit_dirty_tree", message="wip")
+
+    status = subprocess.run(
+        ["git", "status", "--porcelain", "-uall"], cwd=project, check=True, capture_output=True, text=True
+    ).stdout
+    assert status.strip() == "?? .haywire/settings.json"

@@ -2,8 +2,9 @@
 
 Later phases depend on earlier ones, so the first error stops the run.
 A clean tree was proven in planning, so everything dirty afterwards is this
-run's own work and ``git checkout . && git clean -fd`` restores the start
-state exactly. The command never runs that itself.
+run's own work and RECOVERY restores the start state exactly. RECOVERY
+leaves ``.haywire/settings.json`` alone, as the clean-tree check ignored it.
+The command never runs that itself.
 """
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ from .graphs import apply_graphs
 from .model import FileChange, RenamePlan
 from .pysource import apply_python
 
-RECOVERY = "git checkout . && git clean -fd"
+RECOVERY = "git checkout -- . ':!.haywire/settings.json' && git clean -fd -e .haywire/settings.json"
 
 
 def _retarget(changes: Iterable[FileChange], old_root: Path, new_root: Path) -> None:

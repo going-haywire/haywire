@@ -16,7 +16,7 @@ from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.library.haybale_toml import HAYBALE_TOML, read_raw
 from haywire.core.marketstall.host_providers import resolve_host, ssh_to_https
 from haywire.core.publishing.generate import pyproject_drift
-from haywire.core.publishing.git import git, git_remote
+from haywire.core.publishing.git import WHOLE_TREE_BUT_LOCAL_STATE, git, git_remote
 from haywire.core.publishing.manifest.errors import InvalidOsDeclarationError, ManifestReadError
 from haywire.core.publishing.manifest.os_field import describe_os_fix, invalid_os_values
 from haywire.core.publishing.manifest.reader import read_manifest
@@ -176,8 +176,13 @@ def check(pipeline: SharePipeline) -> PreconditionsReport:
     # wizard writes anything, any dirt found after a later-step failure is
     # provably this run's own writes, which is what makes a blanket revert
     # safe (see steps/rollback.py). git status --porcelain covers staged,
-    # unstaged, and untracked files.
-    dirty = git(["status", "--porcelain"], cwd=pipeline.repo_root, timeout=10.0)
+    # unstaged, and untracked files; -uall lists an untracked .haywire/ file by
+    # file, so that LOCAL_STATE alone in it doesn't show as the folder.
+    dirty = git(
+        ["status", "--porcelain", "-uall", "--", *WHOLE_TREE_BUT_LOCAL_STATE],
+        cwd=pipeline.repo_root,
+        timeout=10.0,
+    )
     if dirty.ok and dirty.stdout.strip():
         # A modified lockfile is not work to protect: the bump relocks and commits it anyway.
         dirty_files = [

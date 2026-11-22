@@ -13,14 +13,14 @@ from .model import Blocker, Warning_
 
 #: Prefixes a project library conventionally carries. ``haywire-`` is
 #: deliberately absent — the framework owns it, so a user library aiming
-#: there gets the confirmation prompt rather than a silent pass.
+#: there gets a warning in the plan rather than a silent pass.
 CONVENTIONAL_PREFIXES = ("haybale-", "hay-")
 
 
 def validate_target(new_dist: str) -> tuple[str, list[Blocker], bool]:
     """Validate the target distribution name.
 
-    Returns ``(normalized_name, blockers, needs_prefix_confirm)``. The name is
+    Returns ``(normalized_name, blockers, unconventional)``. The name is
     taken verbatim except for surrounding whitespace, which is always
     stripped before validating OR using it — a name is either the trimmed
     name the user meant, or it is rejected; accidental padding is never
@@ -148,9 +148,11 @@ def check_clean_tree(workspace_root: Path) -> list[Blocker]:
     This is what makes ``git checkout . && git clean -fd`` a complete
     rollback: if the tree is proven clean before the rename writes anything,
     everything dirty afterwards is provably the rename's own work. Same
-    reasoning as the share pipeline (steps/preconditions.py:115).
+    reasoning as the share pipeline (steps/preconditions.py). The one file
+    left out is ``LOCAL_STATE``, which a rename never writes and RECOVERY
+    leaves alone.
     """
-    from haywire.core.publishing.git import git
+    from haywire.core.publishing.git import WHOLE_TREE_BUT_LOCAL_STATE, git
 
     if not git(["--version"], cwd=workspace_root, timeout=10.0).ok:
         return [
@@ -171,7 +173,11 @@ def check_clean_tree(workspace_root: Path) -> list[Blocker]:
             )
         ]
 
-    status = git(["status", "--porcelain"], cwd=workspace_root, timeout=10.0)
+    status = git(
+        ["status", "--porcelain", "-uall", "--", *WHOLE_TREE_BUT_LOCAL_STATE],
+        cwd=workspace_root,
+        timeout=10.0,
+    )
     if status.ok and status.stdout.strip():
         files = [line[3:].strip() for line in status.stdout.splitlines() if line.strip()]
         listed = "\n".join(f"  {f}" for f in files)

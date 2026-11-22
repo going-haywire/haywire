@@ -108,3 +108,49 @@ def test_same_name_blocks(tmp_path):
     (tmp_path / "barn" / "hay-src").mkdir(parents=True)
     blockers, _ = check_collisions(tmp_path, "hay-src", "hay-src")
     assert blockers
+
+
+def _repo(tmp_path):
+    import subprocess
+
+    for args in (["init", "-q"], ["config", "user.email", "t@t.test"], ["config", "user.name", "T"]):
+        subprocess.run(["git", *args], cwd=tmp_path, check=True)
+    (tmp_path / "seed.txt").write_text("seed")
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-qm", "seed"], cwd=tmp_path, check=True)
+    return tmp_path
+
+
+@pytest.mark.unit
+def test_clean_tree_ignores_local_settings(tmp_path):
+    from haywire_studio.packaging.rename.checks import check_clean_tree
+
+    ws = _repo(tmp_path)
+    (ws / ".haywire").mkdir()
+    (ws / ".haywire" / "settings.json").write_text('{"studio": {"port": 8131}}')
+
+    assert check_clean_tree(ws) == []
+
+
+@pytest.mark.unit
+def test_clean_tree_still_counts_other_haywire_files(tmp_path):
+    from haywire_studio.packaging.rename.checks import check_clean_tree
+
+    ws = _repo(tmp_path)
+    (ws / ".haywire").mkdir()
+    (ws / ".haywire" / "settings.json").write_text("{}")
+    (ws / ".haywire" / "marketplace.toml").write_text("")
+
+    blockers = check_clean_tree(ws)
+
+    assert len(blockers) == 1
+    assert ".haywire/marketplace.toml" in blockers[0].message
+    assert "settings.json" not in blockers[0].message
+
+
+@pytest.mark.unit
+def test_recovery_leaves_local_settings_alone():
+    from haywire_studio.packaging.rename.execute import RECOVERY
+
+    assert "-- . ':!.haywire/settings.json'" in RECOVERY
+    assert "-e .haywire/settings.json" in RECOVERY

@@ -33,6 +33,15 @@ HARDENED_ENV: dict[str, str] = {
 }
 
 
+#: The project's own settings file, local to one checkout: it holds a worktree's studio
+#: port. No share or rename run writes it, so their clean-tree checks ignore it and their
+#: undo, and the share wizard's commit-everything fix, leave it alone.
+LOCAL_STATE = ".haywire/settings.json"
+
+#: Pathspec for "the whole repository except :data:`LOCAL_STATE`", to append after ``--``.
+WHOLE_TREE_BUT_LOCAL_STATE = (".", f":(exclude){LOCAL_STATE}")
+
+
 @dataclass(frozen=True)
 class GitResult:
     """Outcome of one git invocation. ``ok`` is True iff returncode == 0."""

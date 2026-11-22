@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 import toml
 
 from haywire.core.library.haybale_toml import HaybaleTomlError
-from haywire.core.publishing.git import git
+from haywire.core.publishing.git import WHOLE_TREE_BUT_LOCAL_STATE, git
 from haywire.core.publishing.manifest.errors import ManifestReadError
 from haywire.core.publishing.manifest.os_field import strip_undeclarable_os_values
 from haywire.core.publishing.pipeline.errors import (
@@ -86,7 +86,8 @@ def _fix_add_origin(pipeline: SharePipeline, **kwargs: str) -> None:
 def _fix_commit_dirty_tree(pipeline: SharePipeline, **kwargs: str) -> None:
     """Handler for fix_id="commit_dirty_tree". Requires a `message` kwarg.
 
-    `git add -A && git commit -m <message>`, whole repo — deliberately not
+    `git add -A && git commit -m <message>`, whole repo except `LOCAL_STATE`
+    (which the precondition ignores too) — deliberately not
     scoped to `barn/`, matching the precondition probe's own "whole repo,
     period" scope (steps/preconditions.py). This is the one act-fix that
     talks about the *entire* working tree rather than one library, because
@@ -101,7 +102,7 @@ def _fix_commit_dirty_tree(pipeline: SharePipeline, **kwargs: str) -> None:
             "apply_precondition_fix('commit_dirty_tree', ...) requires a message kwarg."
         )
 
-    added = git(["add", "-A"], cwd=pipeline.repo_root, timeout=30.0)
+    added = git(["add", "-A", "--", *WHOLE_TREE_BUT_LOCAL_STATE], cwd=pipeline.repo_root, timeout=30.0)
     if not added.ok:
         raise PreconditionsError(
             [
