@@ -253,12 +253,12 @@ sequenceDiagram
 | **S0** | `docs/reference/component-naming.md` holds §2, linked from the node, datatype and widget canons and from the haybale canon. The glossary's `CALLBACK_<NAME>` rule and the `_FRAME` note get updated. A naming check is added to `haywire docs`' coverage report, so every library, external ones included, sees violations | `haywire docs --all` lists exactly the rows in §3 |
 | **S1** | The rename package gains a key-map mode, `haywire rename --map <file>`. The file lists `[[rename]] old="lib:kind:Name" new="lib:kind:Name"` entries. It matches exact keys in `KEY_FIELDS`/`LIST_KEY_FIELDS`, rewrites `class_name`/`registry_id`/`module` alongside for tidiness, and uses the same discovery, dry run and drift report as today. The map for this release ships in haywire-core, so external libraries can apply it | It migrates a copy of every repo graph, and `haywire verify` passes |
 | **S2** | One PR per library: builtin, haybale-core, audio, image, example + TEST_A, testing. Each PR renames the class and its module, the `widget_keys` constant and the label, then runs `/check-rename`, migrates graphs with S1, runs `haywire docs --all` and the docs bake, then `haywire verify`. A renamed `haywire.api` name is removed outright, with no `_DEPRECATED` entry (D9); the barn-lib PRs add no shims either. Each PR adds its own map file to `haywire/core/renames/0.6/` | CI green, `verify` clean |
-| **S3** | `/haywire-release` with a minor bump to 0.6.0, and release notes that list the map | Tag published |
-| **S4** | visiongraph, spandrel, protokol, stream, comfyui: raise `haywire-core>=0.6`, run `haywire rename --map` (the core map plus the lib's own), apply the lib's own renames from §3, regenerate docs, publish. Libraries ship no rename map of their own (decided 2026-11-21): their graphs are migrated once with the core map plus a throwaway entry list; nothing ships. | Each lib's `verify` and CI green |
+| **S3** | `/haywire-release` with a minor bump to 0.6.0, and release notes that list the map. Before it: graphs saved before 0.6 migrate on load via graph format v6, which applies the bundled 0.6 maps (decided 2026-11-22, option A) | Tag published |
+| **S4** | visiongraph, spandrel, protokol, stream, comfyui: raise `haywire-core>=0.6`, run `haywire rename --map` (the core map plus the lib's own), apply the lib's own renames from §3, regenerate docs, publish. Libraries ship no rename map of their own (decided 2026-11-21): their graphs are migrated once with the core map plus a throwaway entry list; nothing ships. The core map's keys also migrate on load (format v6, see S3); only the lib's own renames need the CLI. | Each lib's `verify` and CI green |
 | **S5** | The naming check fails CI for in-repo libs, with an allow-list for accepted exceptions (`GraphNode`). For external libs it stays a coverage line | – |
 
-No runtime key aliases. Per your call, graphs get migrated once and the
-loader stays as it is.
+No runtime key aliases. Per your call, graphs get migrated once; for the
+0.6 maps that migration is graph format v6, at load (S3).
 
 ## 5. Decisions (settled 2026-11-21)
 

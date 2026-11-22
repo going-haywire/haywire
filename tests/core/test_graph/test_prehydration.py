@@ -1,12 +1,13 @@
 """Tests for the .haywire format migration chain.
 
 The fixtures under ``fixtures/prehydration/`` are real saved graphs frozen at
-older format versions (v0, v2, v3), so a broken upgrader fails the suite
+older format versions (v0, v2, v3, v4), so a broken upgrader fails the suite
 rather than silently corrupting a load.
 """
 
 from __future__ import annotations
 
+import gzip
 import json
 from pathlib import Path
 
@@ -15,6 +16,7 @@ import pytest
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.graph.prehydration import CURRENT_FORMAT_VERSION, prehydrate
 from haywire.core.graph.prehydration.upgrader import UnknownGraphFormat, validate
+from haywire.core.renames import KeyMapRewriter, bundled_renames, load_bundled_key_maps
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "prehydration"
 
@@ -373,3 +375,89 @@ def test_v5_marks_a_node_whose_ports_it_cannot_tell_from_code():
 
     assert out["nodes"]["n1"]["node_data"]["legacy_ports"] is True
     assert "legacy_ports" not in out["nodes"]["n2"]["node_data"]
+
+
+# ---------------------------------------------------------------------------
+# v6: the 0.6 registry key renames
+# ---------------------------------------------------------------------------
+
+
+def _v5_graph(node_key: str, type_key: str, widget_key: str, element_key: str) -> dict:
+    """A v5 document whose node, port type, widget, recipe and declaration name the given keys."""
+    port = {
+        "kwargs": {"id": "items", "registry_key": type_key, "class_name": type_key.rsplit(":", 1)[1]},
+        "recipe": {"registry_key": type_key, "element_type": {"registry_key": element_key}},
+        "widget_key": widget_key,
+        "chain_adapter_keys": [element_key],
+    }
+    node = {
+        "node_id": "n1",
+        "registry_key": node_key,
+        "node_data": {"ports": {"items": port}, "props": {}, "store": {}},
+    }
+    return _base(
+        format_version=5,
+        requires={},
+        nodes={"n1": node},
+        declarations={node_key: {"items": {"recipe": {"registry_key": type_key}}}},
+    )
+
+
+_OLD = (
+    "haybale-core:node:BeginPlayNode",
+    "haybale-core:type:ArrayType",
+    "haywire-core:widget:SwitchWidget",
+    "haybale-image:type:IMAGE_RGB",
+)
+_NEW = (
+    "haybale-core:node:BeginPlayEventNode",
+    "haybale-core:type:ARRAY",
+    "haywire-core:widget:ToggleWidget",
+    "haybale-image:type:RGB_IMAGE",
+)
+
+
+def test_v6_renames_every_old_key():
+    data = _v5_graph(*_OLD)
+    data["subgraphs"] = {"k": _v5_graph(*_OLD)}
+    out = prehydrate(data)
+
+    assert out["format_version"] == CURRENT_FORMAT_VERSION == 6
+    # No 0.6 adapter is renamed; a mapped type key in the list shows the list is rewritten.
+    assert out == {**_v5_graph(*_NEW), "format_version": 6, "subgraphs": {"k": _v5_graph(*_NEW)}}
+    assert out["nodes"]["n1"]["node_data"]["ports"]["items"]["kwargs"]["class_name"] == "ARRAY"
+
+
+def test_v6_leaves_a_graph_with_new_keys_alone():
+    out = prehydrate(_v5_graph(*_NEW))
+
+    assert out == {**_v5_graph(*_NEW), "format_version": 6}
+
+
+def test_v6_keeps_the_declaration_saved_under_the_new_key():
+    data = _v5_graph(*_OLD)
+    data["declarations"][_NEW[0]] = {"saved": "by 0.6"}
+    out = prehydrate(data)
+
+    assert out["declarations"] == {_NEW[0]: {"saved": "by 0.6"}}
+
+
+def test_a_graph_saved_before_0_6_loads_with_the_new_keys():
+    """``loop_pre_0_6`` is ``graphs/loop.haywire`` as it was before the 0.6 renames.
+
+    Gzipped, so that ``haywire verify`` and ``haywire rename``, which find graphs by
+    content, do not report its old keys.
+    """
+    out = prehydrate(json.loads(gzip.decompress((FIXTURES / "loop_pre_0_6.haywire.gz").read_bytes())))
+    text = json.dumps(out)
+
+    assert not KeyMapRewriter(list(bundled_renames("0.6"))).mentions(text)
+    assert '"haybale-core:node:BeginPlayEventNode"' in text
+    assert '"haybale-core:type:POOLED"' in text
+
+
+def test_the_bundled_key_maps_are_well_formed():
+    renames, problems = load_bundled_key_maps("0.6")
+
+    assert problems == []
+    assert len(renames) == len({rename.old for rename in renames}) > 40

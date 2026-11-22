@@ -5,6 +5,7 @@ scope: Migrating saved graphs after component classes are renamed, with `haywire
 see-also:
   - ./rename-library.md
   - ../reference/glossary.md
+  - ../adr/0091-a-release-that-renames-components-migrates-graphs-on-load.md
 ---
 
 # Renaming components — Author guide
@@ -13,9 +14,18 @@ Every saved graph records each component it uses by its **registry key**,
 `<dist>:<kind>:<ClassName>` (`haybale-core:node:BeginPlayEventNode`). On load, the
 graph loader looks a component up by that key and nothing else. If you rename a
 node, type or widget class, its key changes too, so every graph that still holds
-the old key stops loading. Nothing maps old keys to new ones at runtime.
+the old key stops loading.
 
-`haywire rename --map <file>` migrates the graphs once. You write a **key map**
+**The 0.6 renames migrate on load.** Haywire 0.6 renamed components across
+`haywire-core` and the bundled libraries. Their key maps ship inside
+`haywire-core` (`haywire/core/renames/0.6/`), and graph file format v6 applies
+them to every file saved before 0.6 as it loads: open the graph and it has the
+new keys, and it keeps them on its next save. You don't need to run anything
+for those renames.
+
+For any other rename, such as your own library's, `haywire rename --map <file>`
+migrates the graphs once. Use it too to rewrite files on disk without opening
+them in the studio. You write a **key map**
 that lists each old key and its new key. The command finds every graph in the
 project and rewrites the keys the map lists.
 
@@ -72,6 +82,7 @@ for a component that moved to another library.
 | Field                                                | Rewritten when                                                                                           |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `registry_key`, `widget_key`, `chain_adapter_keys`   | The whole value equals an `old` key, at any depth, nested subgraphs included                              |
+| The keys of the `declarations` table                 | The key equals an `old` key; if the table already holds the new key too, its own entry wins               |
 | `class_name`, `registry_id` beside a renamed `registry_key` | They equal the old class name (a node's `identity`, a port's `kwargs`)                            |
 | `module` beside a renamed `registry_key`             | The entry sets `old_module`/`new_module` and the value equals `old_module`                               |
 
@@ -139,6 +150,11 @@ byte-identical.
 ```sh
 uv run haywire verify
 ```
+
+`verify` reads the files as they are on disk. A graph saved before 0.6 that
+you haven't opened and saved since lists the 0.6 old keys as unresolved,
+although it loads with the new ones; `haywire rename --map` with the bundled
+maps, or a save from the studio, rewrites the file.
 
 After `--apply`, the graphs hold the new keys, so `verify` passes once the
 renamed classes are installed. If you migrate graphs before you rename the

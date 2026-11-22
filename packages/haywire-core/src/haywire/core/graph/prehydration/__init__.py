@@ -18,9 +18,10 @@ from .v2 import UpgradeVersionTwo
 from .v3 import UpgradeVersionThree
 from .v4 import UpgradeVersionFour
 from .v5 import UpgradeVersionFive
+from .v6 import UpgradeVersionSix
 
 #: Head of the chain — the newest version. Adding a version repoints this.
-_HEAD: Upgrader = UpgradeVersionFive()
+_HEAD: Upgrader = UpgradeVersionSix()
 
 #: Derived from the chain head, never written by hand, so the two cannot drift.
 CURRENT_FORMAT_VERSION: int = _HEAD.to_version
@@ -33,6 +34,7 @@ __all__ = [
     "UpgradeVersionFive",
     "UpgradeVersionFour",
     "UpgradeVersionOne",
+    "UpgradeVersionSix",
     "UpgradeVersionThree",
     "UpgradeVersionTwo",
     "Upgrader",

@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from haywire.core.renames import KeyRename
+
+__all__ = ["Blocker", "FileChange", "KeyMapPlan", "KeyRename", "Occurrence", "RenamePlan", "Warning_"]
+
 
 @dataclass(frozen=True)
 class Occurrence:
@@ -75,30 +79,6 @@ class RenamePlan:
                 *self.dependent_changes,
             )
         )
-
-
-@dataclass(frozen=True)
-class KeyRename:
-    """One entry of a key map: a component's registry key, before and after.
-
-    *old_module*/*new_module* are dotted module paths, set together when the
-    component's module moved; ``None`` leaves a saved ``module`` as it is.
-    """
-
-    old: str
-    new: str
-    old_module: str | None = None
-    new_module: str | None = None
-
-    @property
-    def old_name(self) -> str:
-        """The class name the old key ends in."""
-        return self.old.rsplit(":", 1)[1]
-
-    @property
-    def new_name(self) -> str:
-        """The class name the new key ends in."""
-        return self.new.rsplit(":", 1)[1]
 
 
 @dataclass

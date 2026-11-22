@@ -17,8 +17,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
+from haywire.core.renames import KEY_FIELDS, LIST_KEY_FIELDS, is_registry_key
+
 from .rename.discovery import find_graph_files
-from .rename.graphs import KEY_FIELDS, LIST_KEY_FIELDS, is_registry_key
 
 #: Answers "is this registry key known to the loaded libraries?"
 Resolver = Callable[[str], bool]
