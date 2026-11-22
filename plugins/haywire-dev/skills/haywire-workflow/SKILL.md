@@ -114,9 +114,18 @@ finds instead is a wasted round.
 1. **Write few Checks**: only what needs a person's eyes or hands, from the issue's or
    plan's acceptance points. One `check` per behaviour, `do` what the user does,
    `expect` what they should see.
-2. **Run it** as a Questionnaire in this worktree's studio: the loop is in the
-   `haywire-live-studio` skill (*Live check with a Questionnaire*), the format in
-   [docs/reference/questionnaire.md](https://github.com/going-haywire/haywire/blob/master/docs/reference/questionnaire.md).
+2. **Run it** as a Questionnaire in this worktree's studio (the format:
+   [docs/reference/questionnaire.md](https://github.com/going-haywire/haywire/blob/master/docs/reference/questionnaire.md)):
+   1. `uv run haywire studio start` from inside the worktree, so the user tests this
+      branch's code. Its tools appear through the Farmhand bridge;
+      `farmhand_studio_status` says why when they don't.
+   2. `haybale-studio_post_questionnaire` with a title naming the change. Keep each
+      Check to one action and one observable result; hide one that depends on an
+      earlier Check with `visibleIf`, or a failure upstream turns it `blocked`.
+   3. Tell the user it waits in the studio's aside, with the URL `haywire studio start`
+      printed, and wait for them to say they are done.
+   4. `haybale-studio_get_findings`, then `haybale-studio_get_errors` with `since_seq` =
+      `ledger_seq.posted`. `uv run haywire studio stop` once the round is recorded.
 3. **A failed Check** means your confidence was wrong: fix it and verify the fix yourself
    as above. Ask the user before posting another round, with only the Checks that
    failed.
@@ -358,9 +367,9 @@ only the main folder, so search with grep there.
   keeps the umbrella's `uv.lock` as it is.
 - `~/.haywire` (global settings, security document, models, volumes) is shared too: a
   library installed or a setting changed there is seen by every task.
-- A worktree drives only its own studio, started with
-  `.claude/skills/haywire-live-studio/scripts/studioctl start` from inside the worktree,
-  on the port `worktree_setup.py` gave it; 8124 is the main folder's studio.
+- A worktree drives only its own studio: `uv run haywire studio start` from inside the
+  worktree. Each folder keeps a port of its own (8124 is the main folder's); when another
+  folder's studio holds it, `start` takes the next free one and keeps it.
 
 **A second machine** works on its own clone: [second-machine.md](second-machine.md).
 

@@ -39,8 +39,8 @@ corpus is `10x256n_5x224e` and `10x512n_5x448e`.
   missing, and the result looks plausible. Use `paintcheck.py`.
 - **A synthetic event cannot see a blocked main thread.** A wheel dispatched
   from a probe runs only once the thread is free.
-- **Keep the measurement off your own studio and graph.** `studioctl start`
-  reuses whatever studio holds the port, including your interactive one. A
+- **Keep the measurement off your own studio and graph.** `haywire studio start`
+  reuses this folder's running studio, including your interactive one. A
   probe that presses a mouse button can commit edges or move nodes in the
   fixture graph; check `git status` after a run. A graph is restored on page
   load only if it is listed in the active haystack (`last_haystack_name` in
