@@ -5417,24 +5417,16 @@ imported into the T3 project (<em>The user's T3 settings</em>), runs
 <code>t3.json</code> sets <code>async: false</code> on it so that T3 holds the agent until it exits, but the
 import drops that field (pingdotgg/t3code#40325), so T3 starts the agent alongside it until
 <code>async: false</code> is set again (<em>The user's T3 settings</em>). Either way the session-start
-hook waits until the worktree has its <code>.venv</code> and studio port (up to 5 minutes). Do not run
+hook waits until the worktree's setup has finished (up to 5 minutes). Do not run
 the script again while T3's run is still going.</p>
-<p><strong>A library task.</strong> T3 cannot place a worktree beside the repositories, which a library
-worktree needs. The lead creates it from the library's main folder with
-<code>git worktree add ../&lt;repo&gt;-&lt;name&gt; -b &lt;kind&gt;/&lt;name&gt; origin/&lt;default branch&gt;</code>, runs
-<code>uv sync</code> there and gives its studio a port, then starts the thread with
-<code>t3_thread_launch</code> and <code>workspaceStrategy: existing_worktree</code> on that folder. T3 runs no
-create script for a worktree it did not create. The thread binds to the folder (confirmed by
-the five S4 library tasks, #201).</p>
-<p><strong>The plugin in a library worktree.</strong> A library task has the workflow pointer skill and its hooks (the merge
-guard, the dangerous-git block) only if the <code>haywire-dev</code> plugin is installed for its folder:
-a project-scope install belongs to one folder, and a new worktree is another one. Without it,
-the skill is an "Unknown skill" and no hook runs (until #212 gives each library its own adapters). So before starting the thread, the lead
-installs it in the new worktree:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">cd</span><span class="w"> </span>../&lt;repo&gt;-&lt;name&gt;
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>claude<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>haywire-dev@going-haywire<span class="w"> </span>--scope<span class="w"> </span>project
-</span></code></pre></div>
-<p>The task checks at its start that the skill loads, and reports <em>Blocked</em> if it does not.</p>
+<p><strong>A library task</strong> runs like a core task: T3 creates the worktree in its own folder, and the
+library's <code>t3.json</code> runs the setup through the library's main folder, which links core beside
+the worktree before <code>uv sync</code> (<em>Parallel sessions</em> in the workflow). The library's committed
+<code>.claude/settings.json</code> and <code>.mcp.json</code> then give the session its hooks and the Farmhand
+bridge, with nothing to install. Only for the full studio with every library does the lead
+create the worktree beside the repositories itself (<code>git worktree add ../&lt;repo&gt;-&lt;name&gt; …</code>) and
+start the thread on it with <code>workspaceStrategy: existing_worktree</code>; T3 runs no create script
+for a worktree it did not create, so the lead runs the setup there.</p>
 <h2 id="messages">Messages<a class="headerlink" href="#messages" title="Permanent link">&para;</a></h2>
 <p>A task reports with <code>t3_thread_send</code> to the lead's thread id, which its brief carries; the
 message arrives as the lead's next input, no polling. The lead links each task's PR to the

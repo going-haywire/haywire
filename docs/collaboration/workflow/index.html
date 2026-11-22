@@ -5818,8 +5818,8 @@ in: <code>origin/master</code> for the maintainer, <code>upstream/master</code> 
 <p>Each task runs in its own worktree (another folder on its own branch, sharing the
 history) with its own session. Two sessions in one folder overwrite each other's
 uncommitted work and branch switches. The setup below is the maintainer's;
-<code>scripts/worktree_setup.py</code> assumes <code>origin</code> is <code>going-haywire/haywire</code>. A contributor
-uses plain <code>git worktree add &lt;folder&gt; -b &lt;branch&gt; upstream/master</code> and <code>uv sync</code> there.</p>
+<code>worktree_setup.py</code> starts the branch from <code>origin</code>'s default branch. A contributor uses
+plain <code>git worktree add &lt;folder&gt; -b &lt;branch&gt; upstream/master</code> and <code>uv sync</code> there.</p>
 <p><strong>Starting one.</strong> The main folder stays on an up-to-date <code>master</code> and holds no task work:
 it is where worktrees branch from. An orchestrator creates the worktree its own way
 (<em>Lead and tasks</em>); without one, any folder outside the main folder will do:</p>
@@ -5827,11 +5827,16 @@ it is where worktrees branch from. An orchestrator creates the worktree its own 
 </span></code></pre></div>
 <p><strong>First thing in a new worktree</strong>, with the system Python since there is no environment
 yet (an orchestrator may run it on creation; it is safe to run again):</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>python3<span class="w"> </span>scripts/worktree_setup.py
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>python3<span class="w"> </span>scripts/worktree_setup.py<span class="w">                       </span><span class="c1"># core</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>python3<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>git<span class="w"> </span>rev-parse<span class="w"> </span>--path-format<span class="o">=</span>absolute<span class="w"> </span>--git-common-dir<span class="k">)</span><span class="s2">/../../haywire-repo/dev/scripts/worktree_setup.py&quot;</span><span class="w">   </span><span class="c1"># an org library</span>
 </span></code></pre></div>
-<p>It starts the branch from the latest <code>origin/master</code> (if the branch has no commits yet;
-otherwise it reports how far behind it is), runs <code>uv sync</code>, and gives the studio its own
-port in <code>.haywire/settings.json</code>. A
+<p>It starts the branch from the latest default branch of <code>origin</code> (if the branch has no
+commits yet; otherwise it reports how far behind it is); in a library it links core beside
+the worktree (<code>../haywire-repo</code>) when the worktree is not already beside it, so the
+library's development project and its hooks find core wherever the orchestrator put the
+worktree; it runs <code>uv sync</code>, gives the worktree's studio a port of its own in
+<code>.haywire/settings.json</code>, and last writes <code>haywire-setup-done</code> into the worktree's git folder. Each
+repository's <code>t3.json</code> names its own line, so T3 runs it on creation. A
 session started in the worktree still reads the main folder's memory; CodeGraph indexes
 only the main folder, so search with grep there.</p>
 <p><strong>Rules while tasks run side by side:</strong></p>
@@ -5841,18 +5846,15 @@ only the main folder, so search with grep there.</p>
 <li>Run only the tests of the area changed; CI runs the whole suite. Browser tests in two
   worktrees at once are fine: each checkout has its own harness ports.</li>
 <li>A library in another repository (spandrel, visiongraph, …) gets a worktree per task like
-  any other, placed <strong>beside the repositories</strong>, not in an orchestrator's own worktree
-  folder: its development project reaches core by relative <code>../haywire-repo/...</code> paths,
-  which resolve only there. From the library's main folder, then <code>uv sync</code> in the worktree
-  (a library has no <code>worktree_setup.py</code>):</li>
+  any other, wherever the orchestrator puts it: the setup links core beside it. Its own
+  studio (core and this library) is <code>uv run haywire studio start</code> in the worktree.</li>
 </ul>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>git<span class="w"> </span>worktree<span class="w"> </span>add<span class="w"> </span>../&lt;repo&gt;-&lt;name&gt;<span class="w"> </span>-b<span class="w"> </span>&lt;kind&gt;/&lt;name&gt;<span class="w"> </span>origin/&lt;default<span class="w"> </span>branch&gt;
-</span></code></pre></div>
-<p>Run its code in the full studio with ADR 0081's overlay, from inside the worktree (the
-  studio's project is the folder it starts in), with a studio port of its own in the
-  worktree's <code>.haywire/settings.json</code>:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="nb">cd</span><span class="w"> </span>../&lt;repo&gt;-&lt;name&gt;
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>uv<span class="w"> </span>run<span class="w"> </span>--frozen<span class="w"> </span>--project<span class="w"> </span>..<span class="w"> </span>--with-editable<span class="w"> </span>barn/&lt;library&gt;<span class="w"> </span>haywire<span class="w"> </span>--no-browser
+<p>For the full studio with every library (ADR 0081's overlay), the worktree has to sit
+  beside the repositories, where the umbrella environment is: create it from the library's
+  main folder with <code>git worktree add ../&lt;repo&gt;-&lt;name&gt; -b &lt;kind&gt;/&lt;name&gt; origin/&lt;default
+  branch&gt;</code>, run the setup there, then from inside the worktree:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="nb">cd</span><span class="w"> </span>../&lt;repo&gt;-&lt;name&gt;
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>uv<span class="w"> </span>run<span class="w"> </span>--frozen<span class="w"> </span>--project<span class="w"> </span>..<span class="w"> </span>--with-editable<span class="w"> </span>barn/&lt;library&gt;<span class="w"> </span>haywire<span class="w"> </span>--no-browser
 </span></code></pre></div>
 <p>The studio loads the library from the worktree and hot reload follows its files. <code>--frozen</code>
   keeps the umbrella's <code>uv.lock</code> as it is.
@@ -5886,7 +5888,7 @@ orchestrator only translates to:</p>
 <tbody>
 <tr>
 <td>Created</td>
-<td><code>python3 scripts/worktree_setup.py</code> in the new worktree (core; a library: <em>In a library repository</em>)</td>
+<td><code>worktree_setup.py</code> in the new worktree (<em>Parallel sessions</em>; each repository's <code>t3.json</code> names its line)</td>
 </tr>
 <tr>
 <td>Viewed</td>
@@ -5907,8 +5909,7 @@ orchestrator. Call another agent by that name; a tool's own address only in brac
 <p><strong>The lead starts a task</strong>, from the main folder on an up-to-date <code>master</code>: it creates the
 worktree on a new <code>&lt;kind&gt;/&lt;name&gt;</code> branch from <code>origin/master</code>, makes sure
 <code>worktree_setup.py</code> ran there, and starts the task's session in it with the brief, each the
-orchestrator's way. A library task's worktree goes beside the repositories (<em>Parallel
-sessions</em>).</p>
+orchestrator's way.</p>
 <p>The brief holds the issue (URL), the branch, the acceptance points, the report rule below
 and where to report (the lead's name or address). Tell the task to read this page first.</p>
 <p><strong>A task reports to the lead</strong> through the orchestrator's messages, one line each, with
@@ -5932,12 +5933,13 @@ them, its session.</p>
 <h2 id="in-a-library-repository">In a library repository<a class="headerlink" href="#in-a-library-repository" title="Permanent link">&para;</a></h2>
 <p>The org's libraries (<code>going-haywire/haybale-*</code>) follow the same steps. Their process files
 come from <a href="https://github.com/going-haywire/.github">going-haywire/.github</a> (the library
-<code>CONTRIBUTING.md</code>, the reusable CI); this page and the hooks come from core beside it
-(until #212, through the <code>haywire-dev</code> plugin, installed once per machine). What differs:</p>
+<code>CONTRIBUTING.md</code>, the reusable CI); this page, the hooks and the Farmhand bridge come from
+core beside it, through the library's committed files (<code>.claude/settings.json</code>, <code>.mcp.json</code>,
+<code>[tool.haywire.agents]</code> in <code>pyproject.toml</code>, <code>t3.json</code>). What differs:</p>
 <ul>
 <li><strong>Layout.</strong> The library is cloned beside core (<code>../haywire-repo</code>), which its development
-  project reaches by relative paths. A task's worktree goes beside the repositories, set up
-  as in <em>Parallel sessions</em>.</li>
+  project and its committed hooks reach by relative paths. A task's worktree can be anywhere:
+  its setup links core beside it (<em>Parallel sessions</em>).</li>
 <li><strong>Checks</strong> are the library's own, in the library
   <a href="https://github.com/going-haywire/.github/blob/main/CONTRIBUTING.md#checks">CONTRIBUTING.md</a>,
   each with <code>uv run --frozen</code>.</li>

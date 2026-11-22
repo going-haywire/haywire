@@ -5383,12 +5383,12 @@ use it is in <a href="../t3-agent/">its agent page</a>.</p>
    agent's <code>t3_project_update</code>: on most installs T3 runs the scripts kept in its
    <code>settings.json</code>, and that tool writes elsewhere
    (<a href="https://github.com/pingdotgg/t3code/issues/14991">pingdotgg/t3code#14991</a>).</li>
-<li><strong>Worktree setup</strong> runs <code>python3 scripts/worktree_setup.py</code> when T3 creates a
-     worktree. <code>t3.json</code> sets <code>async: false</code> on it so that T3 holds the agent until it
+<li><strong>Worktree setup</strong> runs the repository's setup line (core: <code>python3
+     scripts/worktree_setup.py</code>) when T3 creates a worktree. <code>t3.json</code> sets <code>async: false</code> on it so that T3 holds the agent until it
      exits, but the import drops that field
      (<a href="https://github.com/pingdotgg/t3code/issues/40325">pingdotgg/t3code#40325</a>); set it
      again after importing (below). Either way the session-start hook waits until the
-     worktree has its environment and studio port, up to 5 minutes.</li>
+     worktree's setup has finished, up to 5 minutes.</li>
 <li><strong>Finish merged task</strong> runs each time a worktree thread settles: from the main folder
      it runs <code>finish</code> on the thread's branch, which removes the worktree and both branches
      once the PR is merged, and refuses before.</li>
