@@ -460,8 +460,13 @@ Every command-line tool (a `haywire` subcommand, a script under `scripts/` or a 
 when the real run would go ahead. No `input()` y/N, and no `--yes`, `--apply` or `--force`
 to get past one.
 
-One exception: a command that deletes something it can't restore lists by default and
-acts on `--yes` (`finish.py --sweep`).
+Two exceptions:
+
+- A command that deletes something it can't restore lists by default and acts on `--yes`
+  (`finish.py --sweep`).
+- Credentials are typed, never passed as flags, which would leave them in the shell's
+  history: `haywire auth` asks for the username and password (`getpass` for the password),
+  and `haywire user` for a new password. It asks nothing else.
 
 **Why**: an agent's shell keeps stdin open and sends nothing, so a prompt hangs the run
 (`haywire rename --map` in the S4 library tasks, #201). A tool's safety is its own checks
