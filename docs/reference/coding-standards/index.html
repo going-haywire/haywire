@@ -5059,6 +5059,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#cs-l4-a-command-that-changes-things-never-prompts-it-acts-and-dry-run-previews" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-L4 · A command that changes things never prompts; it acts, and --dry-run previews
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -5961,6 +5972,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#cs-l4-a-command-that-changes-things-never-prompts-it-acts-and-dry-run-previews" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-L4 · A command that changes things never prompts; it acts, and --dry-run previews
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -6385,6 +6407,36 @@ planned). <strong>Scope</strong>: repo.</p>
 </table>
 <p><strong>Why</strong>: a <code>logger.error</code> on a ledger pathway is a failure the Errors editor never shows
 (errors-arch §6). <strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
+<h3 id="cs-l4-a-command-that-changes-things-never-prompts-it-acts-and-dry-run-previews">CS-L4 · A command that changes things never prompts; it acts, and <code>--dry-run</code> previews<a class="headerlink" href="#cs-l4-a-command-that-changes-things-never-prompts-it-acts-and-dry-run-previews" title="Permanent link">&para;</a></h3>
+<p>Every command-line tool (a <code>haywire</code> subcommand, a script under <code>scripts/</code> or a skill's
+<code>scripts/</code>) takes all it needs from its flags. Run plainly, it does the work. With
+<code>--dry-run</code> it runs the same checks, prints what it would do, writes nothing, and exits 0
+when the real run would go ahead. No <code>input()</code> y/N, and no <code>--yes</code>, <code>--apply</code> or <code>--force</code>
+to get past one.</p>
+<p>Two exceptions:</p>
+<ul>
+<li>A command that deletes something it can't restore lists by default and acts on <code>--yes</code>
+  (<code>finish.py --sweep</code>).</li>
+<li>Credentials are typed, never passed as flags, which would leave them in the shell's
+  history: <code>haywire auth</code> asks for the username and password (<code>getpass</code> for the password),
+  and <code>haywire user</code> for a new password. It asks nothing else.</li>
+</ul>
+<p><strong>Why</strong>: an agent's shell keeps stdin open and sends nothing, so a prompt hangs the run
+(<code>haywire rename --map</code> in the S4 library tasks, #201). A tool's safety is its own checks
+and its undo (a clean tree before a rewrite, a rollback on failure), not a question the
+user answers by reflex.</p>
+<p><strong>Example</strong>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># ✗</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">yes</span> <span class="ow">and</span> <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Proceed? [y/N] &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="k">return</span> <span class="mi">1</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="c1"># ✓</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">render_plan</span><span class="p">(</span><span class="n">plan</span><span class="p">))</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">dry_run</span><span class="p">:</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Dry run — nothing was changed.&quot;</span><span class="p">)</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    <span class="k">return</span> <span class="mi">0</span>
+</span></code></pre></div>
+<p><strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
 <hr />
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>

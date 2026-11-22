@@ -2018,10 +2018,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#51-dry-run-the-default" class="md-nav__link">
+  <a href="#51-dry-run" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5.1 Dry run (the default)
+        5.1 Dry run
       
     </span>
   </a>
@@ -5287,10 +5287,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#51-dry-run-the-default" class="md-nav__link">
+  <a href="#51-dry-run" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5.1 Dry run (the default)
+        5.1 Dry run
       
     </span>
   </a>
@@ -5382,16 +5382,16 @@
 will show you if there are any uncommitted changes. If there are, commit them:</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>git<span class="w"> </span>add<span class="w"> </span>-A<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;wip before rename&quot;</span>
 </span></code></pre></div>
-<p>Then run the rename command:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>rename<span class="w"> </span>hay-old-name<span class="w"> </span>haybale-new-name<span class="w"> </span>--verbose
+<p>Then look at what the rename would do:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>rename<span class="w"> </span>hay-old-name<span class="w"> </span>haybale-new-name<span class="w"> </span>--dry-run<span class="w"> </span>--verbose
 </span></code></pre></div>
-<p>Run without <code>--apply</code>, this is a dry run: a full preflight report of what
-would change, and nothing is written. When it looks right:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>rename<span class="w"> </span>hay-old-name<span class="w"> </span>haybale-new-name<span class="w"> </span>--apply
+<p>With <code>--dry-run</code> you get a full preflight report of what would change, and
+nothing is written. When it looks right, run it without the flag:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>rename<span class="w"> </span>hay-old-name<span class="w"> </span>haybale-new-name
 </span></code></pre></div>
-<p>You'll be asked to confirm once (twice if the target name doesn't start with
-<code>haybale-</code> or <code>hay-</code> — see <a href="#3-choosing-a-name">§3</a>). Add <code>--yes</code> to skip the
-prompts for scripting. When it finishes:</p>
+<p>It doesn't ask for confirmation. If the target name doesn't start with
+<code>haybale-</code> or <code>hay-</code>, the report shows a warning (see
+<a href="#3-choosing-a-name">§3</a>). When it finishes:</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>verify<span class="w">        </span><span class="c1"># confirm every graph&#39;s keys still resolve</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>git<span class="w"> </span>diff<span class="w">                     </span><span class="c1"># review what changed</span>
 </span></code></pre></div>
@@ -5479,11 +5479,11 @@ you what a human still needs to look at.</p>
 <p>Both names are taken <strong>verbatim</strong> — the old name exactly as it appears in
 <code>barn/</code>, and the new name exactly as you want it. Nothing is reconstructed
 or auto-prefixed on your behalf.</p>
-<p><code>haybale-</code> and <code>hay-</code> are treated as conventional; a target starting with
-either needs no extra confirmation. Anything else — including a bare name,
-or one starting with <code>haywire-</code> (the framework's own reserved prefix) —
-still works, but you're asked to confirm it's not a typo before the rename
-proceeds.</p>
+<p><code>haybale-</code> and <code>hay-</code> are treated as conventional. Anything else, including
+a bare name or one starting with <code>haywire-</code> (the framework's own reserved
+prefix), still works, but the report warns about it so that you can check
+it's not a typo. Run with <code>--dry-run</code> first to see the warning before
+anything changes.</p>
 <p>Before it runs, the target name is checked against five namespaces it could
 collide with, any of which blocks the rename:</p>
 <ol>
@@ -5503,14 +5503,17 @@ local library will shadow it — sometimes deliberate, so it's reported and
 the rename proceeds.</p>
 <h2 id="4-what-has-to-be-true-before-you-rename">4. What has to be true before you rename<a class="headerlink" href="#4-what-has-to-be-true-before-you-rename" title="Permanent link">&para;</a></h2>
 <p><code>haywire rename</code>'s preflight is strictly read-only — it writes nothing,
-not even a temp file — so you can run it (without <code>--apply</code>) as often as
+not even a temp file — so you can run it with <code>--dry-run</code> as often as
 you like to see what it would do.</p>
 <p><strong>A clean working tree.</strong> <code>git status --porcelain</code> must be empty across the
 <em>whole</em> repository, not just the library being renamed. There is no
 <code>--allow-dirty</code> escape hatch. This is what makes git the complete rollback:
 if the tree is proven clean before anything is written, everything dirty
 afterward is provably this run's own work, and <code>git checkout . &amp;&amp; git clean
--fd</code> restores the start state exactly. If the rename fails partway through —
+-fd</code> restores the start state exactly. The one exception is
+<code>.haywire/settings.json</code>, the project's local settings (a worktree's studio
+port, for one): a rename never writes it, so the check ignores it and the
+rollback leaves it alone. If the rename fails partway through —
 every phase after the first can fail without corrupting what came before —
 the failure message always repeats this exact recovery command.</p>
 <p>If your tree is dirty, the report names every changed file and the fix:</p>
@@ -5523,24 +5526,19 @@ plans to — including, for the two directory renames, write access on the
 <em>parent</em> directory (that's where the rename operation itself happens), not
 just the directory being moved.</p>
 <h2 id="5-running-it">5. Running it<a class="headerlink" href="#5-running-it" title="Permanent link">&para;</a></h2>
-<h3 id="51-dry-run-the-default">5.1 Dry run (the default)<a class="headerlink" href="#51-dry-run-the-default" title="Permanent link">&para;</a></h3>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>rename<span class="w"> </span>haybale-old-name<span class="w"> </span>haybale-new-name<span class="w"> </span>--verbose
+<h3 id="51-dry-run">5.1 Dry run<a class="headerlink" href="#51-dry-run" title="Permanent link">&para;</a></h3>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>rename<span class="w"> </span>haybale-old-name<span class="w"> </span>haybale-new-name<span class="w"> </span>--dry-run<span class="w"> </span>--verbose
 </span></code></pre></div>
 <p>Prints the full preflight report and changes nothing. Without <code>--verbose</code>,
 each category (library config, Python sources, graphs, dependents) shows a
 count; <code>--verbose</code> lists every file and, for unrecognized occurrences, every
 site.</p>
 <h3 id="52-applying-it">5.2 Applying it<a class="headerlink" href="#52-applying-it" title="Permanent link">&para;</a></h3>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>rename<span class="w"> </span>haybale-old-name<span class="w"> </span>haybale-new-name<span class="w"> </span>--apply
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>rename<span class="w"> </span>haybale-old-name<span class="w"> </span>haybale-new-name
 </span></code></pre></div>
-<p>Confirmation happens up to twice, unless <code>--yes</code> is passed:</p>
-<ol>
-<li>Only if the target name needs the prefix confirmation from
-   <a href="#3-choosing-a-name">§3</a>.</li>
-<li>Always: a summary of the distribution names, the reference count, and
-   that <code>uv sync</code> will run — your final "go".</li>
-</ol>
-<p>The rename then runs in five phases, each one stopping immediately (with the
+<p>There is no confirmation prompt: running the command without <code>--dry-run</code> is
+the "go". The report it prints first is the same one <code>--dry-run</code> shows.</p>
+<p>The rename runs in five phases, each one stopping immediately (with the
 recovery hint) if it fails:</p>
 <ol>
 <li>Rename the module directory.</li>

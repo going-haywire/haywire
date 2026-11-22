@@ -5285,8 +5285,8 @@ project and rewrites the keys the map lists.</p>
 graph discovery and safety rules.</p>
 <h2 id="1-the-short-version">1. The short version<a class="headerlink" href="#1-the-short-version" title="Permanent link">&para;</a></h2>
 <p>Stop the studio, commit everything, then:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>rename<span class="w"> </span>--map<span class="w"> </span>renames.toml<span class="w"> </span>--verbose<span class="w">     </span><span class="c1"># dry run: what would change</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>rename<span class="w"> </span>--map<span class="w"> </span>renames.toml<span class="w"> </span>--apply<span class="w">       </span><span class="c1"># rewrite the graphs</span>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>rename<span class="w"> </span>--map<span class="w"> </span>renames.toml<span class="w"> </span>--dry-run<span class="w"> </span>--verbose<span class="w">   </span><span class="c1"># what would change</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>rename<span class="w"> </span>--map<span class="w"> </span>renames.toml<span class="w">                       </span><span class="c1"># rewrite the graphs</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>git<span class="w"> </span>diff<span class="w">                                               </span><span class="c1"># review, then commit</span>
 </span></code></pre></div>
 <p>The map is any TOML file, anywhere on disk. A library that publishes a
@@ -5361,9 +5361,18 @@ for a component that moved to another library.</p>
 <code>haybale-image:type:IMAGE_RGB</code> doesn't touch <code>haybale-image:type:IMAGE_RGBA</code>,
 and one for <code>haybale-core:node:BeginPlayNode</code> doesn't touch
 <code>haybale-testing:node:TestBeginPlayNode</code>.</p>
-<p><code>class_name</code>, <code>registry_id</code> and <code>module</code> are descriptive copies: the loader
-never reads them back. They're rewritten so that a migrated graph doesn't show
-stale names.</p>
+<p><code>class_name</code>, <code>registry_id</code>, <code>module</code> and <code>label</code> are descriptive copies: the
+loader never reads them back. <code>class_name</code> and <code>registry_id</code> are rewritten so
+that a migrated graph doesn't show stale names.</p>
+<p>Two copies can stay stale, and the report doesn't list them:</p>
+<ul>
+<li><strong><code>module</code></strong>, when the class moved to another module and the entry has no
+  <code>old_module</code>/<code>new_module</code> pair. Give the pair whenever the module changed.</li>
+<li><strong><code>label</code></strong>, the class's default title saved in a node's <code>identity</code>, is
+  never rewritten. A renamed class with a new label shows its old one until
+  you edit the file. A title the user gave the node is stored elsewhere and
+  isn't affected.</li>
+</ul>
 <h3 id="parameterized-types">Parameterized types<a class="headerlink" href="#parameterized-types" title="Permanent link">&para;</a></h3>
 <p><code>ArrayType[INT]</code>, <code>PooledType[ArrayType[STRING]]</code> and <code>OPTIONAL[INT]</code> save as
 the family's own key, with the element in a nested <code>element_type</code>:</p>
@@ -5397,12 +5406,13 @@ text and is left as it is.</p>
 (<a href="../rename-library/#4-what-has-to-be-true-before-you-rename">Renaming a library §4</a>):
 the studio is stopped and the whole working tree is clean, so <code>git checkout .</code>
 undoes the run.</p>
-<p>The dry run (the default) prints, for each map entry found, how many keys it
+<p><code>--dry-run</code> prints, for each map entry found, how many keys it
 rewrites and in how many graphs, then the graph files, the number of
 descriptive copies and the unrecognized occurrences. Entries found in no graph
 are counted, and <code>--verbose</code> lists them. That's normal for a map that covers
 more libraries than the project uses.</p>
-<p><code>--apply</code> asks once to confirm (<code>--yes</code> skips it), then rewrites the graphs.
+<p>Without <code>--dry-run</code>, the same report is printed and the graphs are rewritten.
+There is no confirmation prompt.
 Each file keeps its own formatting: every value the map doesn't list stays
 byte-identical.</p>
 <h2 id="5-confirming-the-result">5. Confirming the result<a class="headerlink" href="#5-confirming-the-result" title="Permanent link">&para;</a></h2>
@@ -5412,7 +5422,7 @@ byte-identical.</p>
 you haven't opened and saved since lists the 0.6 old keys as unresolved,
 although it loads with the new ones; <code>haywire rename --map</code> with the bundled
 maps, or a save from the studio, rewrites the file.</p>
-<p>After <code>--apply</code>, the graphs hold the new keys, so <code>verify</code> passes once the
+<p>After the run, the graphs hold the new keys, so <code>verify</code> passes once the
 renamed classes are installed. If you migrate graphs before you rename the
 classes, <code>verify</code> lists exactly the new keys as unresolved until you do.</p>
 

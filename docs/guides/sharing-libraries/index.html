@@ -5744,6 +5744,12 @@ unambiguously correct — while <strong>unused declarations</strong> and <strong
 are left untouched, because removing is lossy and nothing here can compute the
 oldest version that still works. Use the Share editor when you want to decide
 those.</p>
+<p>A declared import takes the environment marker of the declared dependencies that bring it
+in. <code>Foundation</code> comes from <code>pyobjc-framework-Cocoa</code>, which only
+<code>syphon-python; sys_platform == 'darwin'</code> requires, so it is declared
+<code>pyobjc-framework-Cocoa; sys_platform == "darwin"</code> and Linux installs skip it. An import
+that an unmarked dependency brings in, or that nothing declared brings in, is declared
+without a marker.</p>
 <p><code>--dry-run</code> reports preconditions, findings and the version it would cut, and
 writes nothing. Preconditions are <em>reported</em> rather than enforced there, so it
 stays useful on a feature branch or a PR checkout.</p>
@@ -5762,10 +5768,12 @@ missing tag if needed and pushes. It never writes a new version. A marker file,
 whose tag step failed); it is removed when the push succeeds.</p>
 <p><code>--first-release</code> creates the PyPI project(s) when the project declares <code>distribute = "pypi"</code>; see <a href="../publish-to-pypi/#6-the-first-release">publish-to-pypi §6</a>.</p>
 <p><code>--status</code> prints the state and ends with a <code>STATE:</code> line: <code>READY</code>, <code>RELEASED</code>,
-<code>NOTHING_TO_RELEASE</code>, <code>UNPUSHED</code>, <code>RELEASE_PR_OPEN</code>, <code>RELEASE_MERGED</code>, <code>STALE_MARKER</code>,
+<code>NOTHING_TO_RELEASE</code>, <code>UNPUSHED</code>, <code>RELEASE_BRANCH_PUSHED</code>, <code>RELEASE_PR_OPEN</code>,
+<code>RELEASE_MERGED</code>, <code>STALE_MARKER</code>,
 <code>NEEDS_HUMAN</code> or <code>BLOCKED</code>. Every refusal ends with one <code>NEXT:</code>, <code>DONE:</code> or <code>STOP:</code> line.</p>
-<p><code>RELEASE_PR_OPEN</code> and <code>RELEASE_MERGED</code> belong to the release-PR mode (§7.2): a
-<code>release/v&lt;X&gt;</code> branch waits on <code>origin</code>, or its PR was merged and the version has no tag.
+<p><code>RELEASE_BRANCH_PUSHED</code>, <code>RELEASE_PR_OPEN</code> and <code>RELEASE_MERGED</code> belong to the release-PR
+mode (§7.2): <code>share --pr</code> pushed <code>release/v&lt;X&gt;</code> but could not open its PR, a <code>release/v&lt;X&gt;</code>
+branch waits on <code>origin</code>, or its PR was merged and the version has no tag.
 <code>share --resume</code> handles the second: it tags the merged commit and pushes the tag alone.</p>
 <h3 id="24-exit-codes-and-json">2.4 Exit codes and <code>--json</code><a class="headerlink" href="#24-exit-codes-and-json" title="Permanent link">&para;</a></h3>
 <p>Every mode exits with a stable code, so a script or an agent can branch on it:</p>
@@ -5906,7 +5914,8 @@ which re-runs every check from the top.</p>
 <p>Setting up either is entirely between you and your git host — see your host's own documentation: <a href="https://docs.github.com/en/authentication">GitHub's guide to authenticating with the CLI/HTTPS</a> or <a href="https://docs.gitlab.com/auth/">GitLab's guide to credentials</a> cover both paths and the most common failures. This guide only covers what haywire itself checks, not general git credential troubleshooting.</p>
 <h3 id="42-publish-from-the-default-branch">4.2 Publish from the default branch<a class="headerlink" href="#42-publish-from-the-default-branch" title="Permanent link">&para;</a></h3>
 <p><code>haywire share</code> refuses to publish from anything but the repository's default
-branch. There is no escape hatch — the rule is unconditional. It guarantees
+branch. There is no escape hatch, except for a release through a pull request
+(§7.2), which tags nothing on the current branch. It guarantees
 every published entry reflects a state that will still exist and keep
 receiving fixes after the run. For the full rationale, and why tag-pinning
 did not relax the rule, see
@@ -6177,10 +6186,19 @@ to it. Pass <code>--pr</code>:</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span>patch<span class="w"> </span>--pr
 </span></code></pre></div>
 <p>The run does everything the plain run does (bump, docs, marketstall), but commits on
-<code>release/v&lt;version&gt;</code>, pushes only that branch, makes no tag, and prints the host's link that
-opens the pull request. Your checkout returns to the default branch, untouched. The run ends
-with <code>STATE: RELEASE_PR_OPEN</code>; until the PR is merged, <code>--status</code> says so and a second
-<code>share</code> is refused.</p>
+<code>release/v&lt;version&gt;</code>, pushes only that branch, makes no tag, and opens the pull request with
+the <a href="https://cli.github.com">GitHub CLI</a> (<code>gh</code>), titled like the commit (<code>chore: share
+v&lt;version&gt;</code>). Your checkout returns to the default branch, untouched. The run ends with
+<code>STATE: RELEASE_PR_OPEN</code> and a <code>PR:</code> line; until the PR is merged, <code>--status</code> says so and a
+second <code>share</code> is refused.</p>
+<p><code>--pr</code> runs from any branch whose <code>HEAD</code> is exactly origin's default branch, not only from
+the default branch itself. A worktree can't check out the default branch while the main
+folder has it, so run it there on a branch with nothing of its own, brought up to date
+(<code>git fetch origin &amp;&amp; git merge --ff-only origin/&lt;default&gt;</code>). The PR still goes into the
+default branch.</p>
+<p>Without <code>gh</code>, signed in (<code>gh auth login</code>) and on a GitHub remote, the run cannot open the PR.
+It ends with <code>STATE: RELEASE_BRANCH_PUSHED</code> instead, prints the host's link that opens it,
+and gives the <code>gh pr create</code> command on its <code>NEXT:</code> line.</p>
 <p>The merge is the release. Two things tag the merge commit and publish it:</p>
 <ul>
 <li><strong>The generated <code>publish.yml</code></strong> (GitHub): a push to the default branch that changes the
