@@ -1,4 +1,4 @@
-"""The single planner. Both the dry run and --apply call this, so the plan
+"""The single planner. Both the dry run and the real run call this, so the plan
 printed and the plan executed cannot diverge."""
 
 from __future__ import annotations
@@ -19,13 +19,10 @@ from .model import Blocker, FileChange, RenamePlan, Warning_
 from .pysource import plan_python
 
 
-def plan_rename(old_dist: str, new_dist: str, workspace_root: Path) -> tuple[RenamePlan, bool]:
-    """Enumerate every change and every blocker. Writes nothing.
-
-    Returns ``(plan, needs_prefix_confirm)``.
-    """
+def plan_rename(old_dist: str, new_dist: str, workspace_root: Path) -> RenamePlan:
+    """Enumerate every change, every blocker and every warning. Writes nothing."""
     workspace_root = Path(workspace_root)
-    new_dist, name_blockers, needs_confirm = validate_target(new_dist)
+    new_dist, name_blockers, unconventional = validate_target(new_dist)
 
     old_module = module_of(old_dist)
     new_module = module_of(new_dist)
@@ -43,7 +40,9 @@ def plan_rename(old_dist: str, new_dist: str, workspace_root: Path) -> tuple[Ren
 
     plan.blockers += name_blockers
     if name_blockers:
-        return plan, needs_confirm
+        return plan
+    if unconventional:
+        plan.warnings.append(Warning_(message=f'"{new_dist}" does not start with "haybale-" or "hay-".'))
 
     plan.blockers += check_clean_tree(workspace_root)
 
@@ -54,7 +53,7 @@ def plan_rename(old_dist: str, new_dist: str, workspace_root: Path) -> tuple[Ren
                 remedy=f"ls {workspace_root / 'barn'}   # to see available libraries",
             )
         )
-        return plan, needs_confirm
+        return plan
 
     collision_blockers, collision_warnings = check_collisions(workspace_root, old_dist, new_dist)
     plan.blockers += collision_blockers
@@ -113,4 +112,4 @@ def plan_rename(old_dist: str, new_dist: str, workspace_root: Path) -> tuple[Ren
             )
         )
 
-    return plan, needs_confirm
+    return plan

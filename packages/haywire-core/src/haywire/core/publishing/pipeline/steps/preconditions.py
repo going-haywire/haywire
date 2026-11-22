@@ -16,7 +16,7 @@ from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.library.haybale_toml import HAYBALE_TOML, read_raw
 from haywire.core.marketstall.host_providers import resolve_host, ssh_to_https
 from haywire.core.publishing.generate import pyproject_drift
-from haywire.core.publishing.git import git, git_remote
+from haywire.core.publishing.git import WHOLE_TREE_BUT_LOCAL_STATE, git, git_remote
 from haywire.core.publishing.manifest.errors import InvalidOsDeclarationError, ManifestReadError
 from haywire.core.publishing.manifest.os_field import describe_os_fix, invalid_os_values
 from haywire.core.publishing.manifest.reader import read_manifest
@@ -176,8 +176,13 @@ def check(pipeline: SharePipeline) -> PreconditionsReport:
     # wizard writes anything, any dirt found after a later-step failure is
     # provably this run's own writes, which is what makes a blanket revert
     # safe (see steps/rollback.py). git status --porcelain covers staged,
-    # unstaged, and untracked files.
-    dirty = git(["status", "--porcelain"], cwd=pipeline.repo_root, timeout=10.0)
+    # unstaged, and untracked files; -uall lists an untracked .haywire/ file by
+    # file, so that LOCAL_STATE alone in it doesn't show as the folder.
+    dirty = git(
+        ["status", "--porcelain", "-uall", "--", *WHOLE_TREE_BUT_LOCAL_STATE],
+        cwd=pipeline.repo_root,
+        timeout=10.0,
+    )
     if dirty.ok and dirty.stdout.strip():
         # A modified lockfile is not work to protect: the bump relocks and commits it anyway.
         dirty_files = [
@@ -499,15 +504,19 @@ def check(pipeline: SharePipeline) -> PreconditionsReport:
         )
 
     default_branch: str | None = None
+    remote_head: str | None = None
     # Absent when the remote has never had anything pushed to it (an empty
     # repo has no HEAD to symref) — that is "nothing has ever been shared",
     # not a failure, so default_branch simply stays None and the
     # non-default-branch check below is skipped.
     for line in reachable.stdout.splitlines():
         left, sep, right = line.partition("\t")
-        if sep and right.strip() == "HEAD" and left.startswith("ref: refs/heads/"):
+        if not sep or right.strip() != "HEAD":
+            continue
+        if left.startswith("ref: refs/heads/"):
             default_branch = left.removeprefix("ref: refs/heads/").strip()
-            break
+        else:
+            remote_head = left.strip()
 
     symbolic = git(["symbolic-ref", "-q", "HEAD"], cwd=pipeline.repo_root, timeout=10.0)
     if not symbolic.ok:
@@ -538,12 +547,23 @@ def check(pipeline: SharePipeline) -> PreconditionsReport:
                 default_branch=default_branch,
             )
         if current != default_branch:
-            return PreconditionsReport(
-                failures=[_wrong_branch_failure(pipeline, current=current, default=default_branch)],
-                remote_url=remote_url,
-                barn_libraries=barn_libraries,
-                default_branch=default_branch,
+            # A release PR tags nothing on this branch: its commit goes on a fresh
+            # release branch, and CI tags the merge on the default branch. So any
+            # branch at origin's default tip will do, a worktree's task branch included.
+            wrong = (
+                _release_base_failure(
+                    pipeline, current=current, default=default_branch, remote_head=remote_head
+                )
+                if pipeline.pr_mode
+                else _wrong_branch_failure(pipeline, current=current, default=default_branch)
             )
+            if wrong is not None:
+                return PreconditionsReport(
+                    failures=[wrong],
+                    remote_url=remote_url,
+                    barn_libraries=barn_libraries,
+                    default_branch=default_branch,
+                )
 
     released = release_state.detect(pipeline.repo_root)
     if released.kind is not release_state.ReleaseKind.NONE:
@@ -764,7 +784,8 @@ def _already_released_failure(state: release_state.ReleaseState) -> Precondition
             ),
             remedy=(
                 "A second release now would collide with it. The owner merges the PR, or closes it "
-                f"and deletes {state.branch} on origin.\nSTOP: wait for the merge."
+                f"and deletes {state.branch} on origin. If no PR exists for {state.branch} yet, "
+                "open it first (`gh pr create`, or the host's compare page).\nSTOP: wait for the merge."
             ),
             code="release_pr_open",
             human_only=True,
@@ -915,6 +936,28 @@ def _detached_head_failure(pipeline: SharePipeline) -> PreconditionFailure:
             "  git switch -c my-branch\n\n"
             "then publish from there."
         ),
+    )
+
+
+def _release_base_failure(
+    pipeline: SharePipeline, *, current: str, default: str, remote_head: str | None
+) -> PreconditionFailure | None:
+    """``None`` when *current* sits exactly at origin's *default* tip, where a release PR starts.
+
+    Ahead would put unreviewed commits into the release, behind would release an
+    old state: both refused.
+    """
+    head = git(["rev-parse", "HEAD"], cwd=pipeline.repo_root, timeout=10.0)
+    if remote_head is not None and head.ok and head.stdout.strip() == remote_head:
+        return None
+    return PreconditionFailure(
+        message=f"`{current}` is not at the latest `{default}` on origin.",
+        remedy=(
+            f"A release PR is built from origin's `{default}` as it is now. Run `share --pr` on "
+            f"`{default}` itself, or on a branch with nothing of its own, brought up to date:\n\n"
+            f"  git fetch origin && git merge --ff-only origin/{default}"
+        ),
+        next_command=f"git fetch origin && git merge --ff-only origin/{default}",
     )
 
 

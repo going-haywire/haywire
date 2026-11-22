@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import os
+import shutil
 from typing import TYPE_CHECKING
 
-from haywire.core.publishing.git import git, git_remote
+from haywire.core.publishing.git import git, git_remote, run
 from haywire.core.publishing.pipeline.errors import CommitError, PipelineStateError
 
 if TYPE_CHECKING:
@@ -42,6 +44,37 @@ def start(pipeline: SharePipeline) -> str:
     if not made.ok:
         raise CommitError(f"Could not create branch {branch}: {made.stderr.strip()}", stderr=made.stderr)
     return branch
+
+
+def pull_request_args(version: str, *, base: str, title: str) -> list[str]:
+    """The ``gh`` command line that opens the release PR of *version* into *base*."""
+    body = f"Release v{version}, committed by `haywire share --pr`. Merging it publishes v{version}."
+    head = branch_name(version)
+    return ["gh", "pr", "create", "--base", base, "--head", head, "--title", title, "--body", body]
+
+
+def open_pull_request(pipeline: SharePipeline, *, base: str, title: str) -> tuple[str | None, str | None]:
+    """Open the release PR of the pushed release branch with the GitHub CLI.
+
+    Returns:
+        ``(url, None)`` when the PR was opened, else ``(None, reason)``: ``gh`` is
+        not installed, not signed in, the remote is not on GitHub, or ``gh``
+        refused for another reason it states.
+    """
+    assert pipeline.version is not None
+    if shutil.which("gh") is None:
+        return None, "The GitHub CLI (gh) is not installed, so the PR was not opened."
+    created = run(
+        pull_request_args(pipeline.version, base=base, title=title),
+        cwd=pipeline.repo_root,
+        timeout=60.0,
+        env={**os.environ, "GH_PROMPT_DISABLED": "1"},
+    )
+    if not created.ok:
+        detail = (created.stderr or created.stdout).strip().splitlines()
+        return None, f"gh could not open the PR: {detail[-1] if detail else 'no output'}"
+    lines = created.stdout.strip().splitlines()
+    return (lines[-1] if lines else None), None
 
 
 def leave(pipeline: SharePipeline) -> None:

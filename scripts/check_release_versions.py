@@ -110,8 +110,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  - {problem}", file=sys.stderr)
         if args.expect:
             print(
-                f"\nRun `uv run python scripts/bump_version.py {args.expect} --yes` "
-                "and commit before tagging.",
+                f"\nRun `uv run python scripts/bump_version.py {args.expect}` and commit before tagging.",
                 file=sys.stderr,
             )
         return 1

@@ -138,6 +138,31 @@ def test_additions_never_restate_an_existing_floor(project: Path) -> None:
     assert _deps(lib) == ["haywire-core~=0.0.1", "numpy>=2.0"]
 
 
+def test_an_addition_inherits_the_marker_of_the_dependency_that_brings_it(project: Path) -> None:
+    """haybale-stream's case: pyobjc only comes with the macOS-only syphon-python."""
+    lib = project / "barn" / "haybale-alpha"
+    _write_deps(lib, ["syphon-python>=0.2.0; sys_platform == 'darwin'"])
+    requires = {"syphon-python": ["pyobjc-framework-Cocoa>=10"]}
+
+    with patch("haywire.core.library.dep_detect._installed_requires", side_effect=requires.get):
+        SharePipeline(project).apply_additions(
+            {
+                lib: [
+                    "pyobjc-framework-Cocoa",
+                    "numpy>=2.0",
+                    "pyobjc-framework-Metal; sys_platform == 'win32'",
+                ]
+            }
+        )
+
+    assert _deps(lib) == [
+        "syphon-python>=0.2.0; sys_platform == 'darwin'",
+        'pyobjc-framework-Cocoa; sys_platform == "darwin"',
+        "numpy>=2.0",
+        "pyobjc-framework-Metal; sys_platform == 'win32'",
+    ]
+
+
 def test_removals_drop_only_the_named_dists(project: Path) -> None:
     lib = project / "barn" / "haybale-alpha"
     _write_deps(lib, ["numpy>=1.0", "haywire-core~=0.0.1", "toml"])

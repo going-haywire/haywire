@@ -375,7 +375,7 @@ def test_dry_run_reports_counts_and_writes_nothing(tmp_path, capsys):
 
     ws = _workspace(tmp_path)
     before = (ws / "flows" / "g.haywire").read_text()
-    code = run_key_map_cli(map_path=tmp_path / "map.toml", workspace_root=ws, apply=False)
+    code = run_key_map_cli(map_path=tmp_path / "map.toml", workspace_root=ws, dry_run=True)
 
     out = capsys.readouterr().out
     assert code == 0
@@ -384,7 +384,7 @@ def test_dry_run_reports_counts_and_writes_nothing(tmp_path, capsys):
     assert "3 key(s) in 1 graph(s)" in out
     assert "15 change(s) in 1 file" in out
     assert "Not rewritten: Python sources" in out
-    assert "--apply" in out
+    assert "without --dry-run" in out
 
 
 @pytest.mark.unit
@@ -393,23 +393,23 @@ def test_dirty_tree_blocks(tmp_path, capsys):
 
     ws = _workspace(tmp_path)
     (ws / "stray.txt").write_text("x")
-    code = run_key_map_cli(map_path=tmp_path / "map.toml", workspace_root=ws, apply=True, assume_yes=True)
+    code = run_key_map_cli(map_path=tmp_path / "map.toml", workspace_root=ws)
 
     assert code == 1
     assert "not clean" in capsys.readouterr().out
 
 
 @pytest.mark.unit
-def test_apply_declined_at_confirm_changes_nothing(tmp_path):
+def test_apply_never_prompts(tmp_path):
     from haywire_studio.packaging.rename import run_key_map_cli
 
     ws = _workspace(tmp_path)
-    before = (ws / "flows" / "g.haywire").read_text()
-    with patch("builtins.input", return_value="n"):
-        code = run_key_map_cli(map_path=tmp_path / "map.toml", workspace_root=ws, apply=True)
+    with patch("builtins.input", side_effect=AssertionError("must not prompt")):
+        code = run_key_map_cli(map_path=tmp_path / "map.toml", workspace_root=ws)
 
-    assert code == 1
-    assert (ws / "flows" / "g.haywire").read_text() == before
+    assert code == 0
+    graph = (ws / "flows" / "g.haywire").read_text()
+    assert '"registry_key": "haybale-core:node:BeginPlayNode"' not in graph
 
 
 @pytest.mark.unit
@@ -424,9 +424,7 @@ def test_apply_then_inverse_map_is_byte_identical(tmp_path, ascii_only):
     graph = ws / "flows" / "g.haywire"
     seed = graph.read_bytes()
 
-    assert (
-        run_key_map_cli(map_path=tmp_path / "map.toml", workspace_root=ws, apply=True, assume_yes=True) == 0
-    )
+    assert run_key_map_cli(map_path=tmp_path / "map.toml", workspace_root=ws) == 0
     assert '"registry_key": "haybale-core:node:BeginPlayNode"' not in graph.read_text()
     assert (ws / "flows" / "untouched.haywire").read_text().startswith('{"graph_id"')
     subprocess.run(["git", "commit", "-qam", "applied"], cwd=ws, check=True)
@@ -437,10 +435,7 @@ def test_apply_then_inverse_map_is_byte_identical(tmp_path, ascii_only):
         if "old_module" in entry:
             inverse += [f'old_module = "{entry["new_module"]}"', f'new_module = "{entry["old_module"]}"']
     (tmp_path / "inverse.toml").write_text("\n".join(inverse) + "\n")
-    assert (
-        run_key_map_cli(map_path=tmp_path / "inverse.toml", workspace_root=ws, apply=True, assume_yes=True)
-        == 0
-    )
+    assert run_key_map_cli(map_path=tmp_path / "inverse.toml", workspace_root=ws) == 0
 
     assert graph.read_bytes() == seed
 
@@ -459,9 +454,7 @@ def test_verify_resolves_after_apply_once_the_new_keys_exist(tmp_path):
     known = (present - olds) | {rename.new for rename in renames}
 
     assert run_verify_cli(workspace_root=ws, resolver=lambda key: key in known) == 1
-    assert (
-        run_key_map_cli(map_path=tmp_path / "map.toml", workspace_root=ws, apply=True, assume_yes=True) == 0
-    )
+    assert run_key_map_cli(map_path=tmp_path / "map.toml", workspace_root=ws) == 0
     assert run_verify_cli(workspace_root=ws, resolver=lambda key: key in known) == 0
 
 
@@ -475,15 +468,21 @@ def _parse(*argv: str) -> argparse.Namespace:
 
 @pytest.mark.unit
 def test_cli_map_routes_to_key_map_mode(tmp_path):
-    args = _parse("--map", str(tmp_path / "map.toml"), "--apply", "--verbose")
+    args = _parse("--map", str(tmp_path / "map.toml"), "--dry-run", "--verbose")
     with patch("haywire_studio.packaging.rename.run_key_map_cli", return_value=0) as run:
         assert args.handler(args) == 0
 
     kwargs = run.call_args.kwargs
     assert kwargs["map_path"] == tmp_path / "map.toml"
-    assert kwargs["apply"]
+    assert kwargs["dry_run"]
     assert kwargs["verbose"]
-    assert not kwargs["assume_yes"]
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("flag", ["--apply", "--yes"])
+def test_cli_no_longer_takes_apply_or_yes(flag):
+    with pytest.raises(SystemExit):
+        _parse("--map", "m.toml", flag)
 
 
 @pytest.mark.unit

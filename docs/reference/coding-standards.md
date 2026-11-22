@@ -452,6 +452,43 @@ planned). **Scope**: repo.
 **Why**: a `logger.error` on a ledger pathway is a failure the Errors editor never shows
 (errors-arch §6). **Enforced by**: review. **Scope**: repo.
 
+### CS-L4 · A command that changes things never prompts; it acts, and `--dry-run` previews
+
+Every command-line tool (a `haywire` subcommand, a script under `scripts/` or a skill's
+`scripts/`) takes all it needs from its flags. Run plainly, it does the work. With
+`--dry-run` it runs the same checks, prints what it would do, writes nothing, and exits 0
+when the real run would go ahead. No `input()` y/N, and no `--yes`, `--apply` or `--force`
+to get past one.
+
+Two exceptions:
+
+- A command that deletes something it can't restore lists by default and acts on `--yes`
+  (`finish.py --sweep`).
+- Credentials are typed, never passed as flags, which would leave them in the shell's
+  history: `haywire auth` asks for the username and password (`getpass` for the password),
+  and `haywire user` for a new password. It asks nothing else.
+
+**Why**: an agent's shell keeps stdin open and sends nothing, so a prompt hangs the run
+(`haywire rename --map` in the S4 library tasks, #201). A tool's safety is its own checks
+and its undo (a clean tree before a rewrite, a rollback on failure), not a question the
+user answers by reflex.
+
+**Example**:
+
+```python
+# ✗
+if not args.yes and input("Proceed? [y/N] ").strip().lower() != "y":
+    return 1
+
+# ✓
+print(render_plan(plan))
+if args.dry_run:
+    print("Dry run — nothing was changed.")
+    return 0
+```
+
+**Enforced by**: review. **Scope**: repo.
+
 ---
 
 ## See also

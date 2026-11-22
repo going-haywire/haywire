@@ -68,5 +68,8 @@ def execute_key_map(plan: KeyMapPlan) -> tuple[bool, str]:
     try:
         apply_key_map_graphs(plan.graph_changes, plan.renames)
     except (OSError, ValueError) as exc:
-        return False, f"Failed to patch graphs: {exc}\nRecover with:\n  git checkout ."
+        return (
+            False,
+            f"Failed to patch graphs: {exc}\nRecover with:\n  git checkout -- . ':!.haywire/settings.json'",
+        )
     return True, f"Rewrote {plan.total_changes} key(s) in {len(plan.graph_changes)} graph(s)."

@@ -33,6 +33,15 @@ HARDENED_ENV: dict[str, str] = {
 }
 
 
+#: The project's own settings file, local to one checkout: it holds a worktree's studio
+#: port. No share or rename run writes it, so their clean-tree checks ignore it and their
+#: undo, and the share wizard's commit-everything fix, leave it alone.
+LOCAL_STATE = ".haywire/settings.json"
+
+#: Pathspec for "the whole repository except :data:`LOCAL_STATE`", to append after ``--``.
+WHOLE_TREE_BUT_LOCAL_STATE = (".", f":(exclude){LOCAL_STATE}")
+
+
 @dataclass(frozen=True)
 class GitResult:
     """Outcome of one git invocation. ``ok`` is True iff returncode == 0."""
@@ -104,15 +113,15 @@ def git_remote(args: list[str], *, cwd: Path, timeout: float = 60.0) -> GitResul
     return _run(["git", *args], cwd=cwd, timeout=timeout, env=_hardened_env())
 
 
-def run(cmd: list[str], *, cwd: Path, timeout: float) -> GitResult:
-    """Run an arbitrary non-git command synchronously, with the ambient environment.
+def run(cmd: list[str], *, cwd: Path, timeout: float, env: dict[str, str] | None = None) -> GitResult:
+    """Run an arbitrary non-git command synchronously, with the ambient environment or *env*.
 
     Same contract as :func:`git` (nothing raises, everything comes back as a
     :class:`GitResult`) for a non-git subprocess that doesn't need streaming —
-    currently ``uv lock``. Like ``git``, this is a purely local call: no
-    prompt-disabling env is applied.
+    ``uv lock``, and ``gh pr create``, which passes an *env* that disables its
+    prompts. No prompt-disabling env is applied otherwise.
     """
-    return _run(cmd, cwd=cwd, timeout=timeout, env=None)
+    return _run(cmd, cwd=cwd, timeout=timeout, env=env)
 
 
 async def git_remote_streaming(

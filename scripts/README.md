@@ -27,11 +27,8 @@ says when.
 # Preview what would change.
 uv run python scripts/bump_version.py 0.0.2 --dry-run
 
-# Apply with confirmation prompt.
+# Apply (never prompts).
 uv run python scripts/bump_version.py 0.0.2
-
-# Apply without prompting (CI / scripts).
-uv run python scripts/bump_version.py 0.0.2 --yes
 ```
 
 Reads `[tool.haywire.release]` in the workspace root `pyproject.toml` for the canonical

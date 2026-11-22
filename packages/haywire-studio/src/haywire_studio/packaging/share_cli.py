@@ -21,6 +21,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import shlex
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -34,6 +35,7 @@ from haywire.core.publishing.pipeline import (
     SharePipeline,
     TagCollisionError,
 )
+from haywire.core.publishing.pipeline.steps import dependencies as steps_dependencies
 from haywire.core.publishing.pipeline.steps import release_pr, release_state
 from haywire.core.publishing.url import derive_pull_request_url, derive_share_url_only
 from haywire_studio.playbook import State
@@ -322,8 +324,8 @@ def _run_dry(pipeline: SharePipeline, out: Outcome) -> None:
         }
 
 
-def _push_release_branch(pipeline: SharePipeline, out: Outcome, *, base: str) -> None:
-    """Push the release branch only, then print the host's link that opens the PR."""
+def _push_release_branch(pipeline: SharePipeline, out: Outcome, *, base: str, title: str) -> None:
+    """Push the release branch only, then open its PR, or say how to open it."""
     branch = release_pr.branch_name(pipeline.version or "")
     try:
         push = asyncio.run(pipeline.apply_push(on_output=lambda line: print(f"  {line}")))
@@ -337,15 +339,26 @@ def _push_release_branch(pipeline: SharePipeline, out: Outcome, *, base: str) ->
         print(f"STATE: {out.state}")
         return
     print(f"✓ Pushed {push.branch} to {push.remote}; nothing went to {base}")
-    out.state, out.exit_code, out.version = State.RELEASE_PR_OPEN.value, EXIT_OK, pipeline.version
+    out.exit_code, out.version = EXIT_OK, pipeline.version
+    pr_url, reason = release_pr.open_pull_request(pipeline, base=base, title=title)
+    if pr_url:
+        out.state, out.pr_url = State.RELEASE_PR_OPEN.value, pr_url
+        print(f"✓ Opened the release PR\nPR: {pr_url}")
+        print(f"Release PR open, not merged: merge it to release v{pipeline.version}.")
+        print(f"STATE: {out.state}")
+        return
+    out.state = State.RELEASE_BRANCH_PUSHED.value
+    out.next_command = shlex.join(
+        release_pr.pull_request_args(pipeline.version or "", base=base, title=title)
+    )
+    print(f"⚠ {reason}")
     url, warning = derive_pull_request_url(pipeline.repo_root, head=branch, base=base)
     if url:
-        out.pr_url = url
-        print(f"PR: {url}")
+        print(f"Open it here: {url}")
     elif warning:
         print(f"⚠ {warning}")
-    print(f"Release PR open, not merged: open the PR, then merge it to release v{pipeline.version}.")
-    print("STATE: RELEASE_PR_OPEN")
+    print(f"NEXT: {out.next_command}")
+    print(f"STATE: {out.state}")
 
 
 def _run_publish(
@@ -428,7 +441,10 @@ def _run_publish(
         # floor: nothing here can compute the oldest version that works.
         # Removals and floor changes are NOT touched — optional, and one is
         # lossy.
-        additions: dict[Path, list[str]] = {d.lib_dir: list(d.pyproject_missing) for d in report.drifted}
+        additions: dict[Path, list[str]] = {
+            d.lib_dir: steps_dependencies.with_inherited_markers(d.lib_dir, d.pyproject_missing)
+            for d in report.drifted
+        }
         for lib_dir, entries in additions.items():
             for dep in entries:
                 print(f"  + {lib_dir.name}: {dep}")
@@ -470,7 +486,8 @@ def _run_publish(
         print(f"✓ Committed {result.sha[:8]} and tagged {result.tag}")
 
     if pipeline.pr_mode:
-        _push_release_branch(pipeline, out, base=pipeline.start_branch or "")
+        base = (preconditions.default_branch if preconditions else None) or pipeline.start_branch or ""
+        _push_release_branch(pipeline, out, base=base, title=plan.message)
         return
 
     push = asyncio.run(pipeline.apply_push(on_output=lambda line: print(f"  {line}")))

@@ -65,3 +65,35 @@ def test_revert_leaves_committed_history_untouched(tmp_path: Path) -> None:
     ).stdout
     assert "first" in log
     assert len(log.strip().splitlines()) == 1
+
+
+def test_revert_leaves_untracked_local_settings_alone(tmp_path: Path) -> None:
+    repo = tmp_path / "repo4"
+    _init_repo(repo)
+    (repo / "seed.txt").write_text("seed")
+    _commit(repo)
+    settings = repo / ".haywire" / "settings.json"
+    settings.parent.mkdir()
+    settings.write_text('{"studio": {"port": 8131}}')
+
+    (repo / ".haywire" / "written_by_a_step.toml").write_text("x")
+    (repo / "seed.txt").write_text("modified by a failed pipeline run")
+    revert_working_tree(SharePipeline(repo))
+
+    assert settings.read_text() == '{"studio": {"port": 8131}}'
+    assert not (repo / ".haywire" / "written_by_a_step.toml").exists()
+    assert (repo / "seed.txt").read_text() == "seed"
+
+
+def test_revert_keeps_edits_to_tracked_local_settings(tmp_path: Path) -> None:
+    repo = tmp_path / "repo5"
+    _init_repo(repo)
+    settings = repo / ".haywire" / "settings.json"
+    settings.parent.mkdir()
+    settings.write_text("{}")
+    _commit(repo)
+
+    settings.write_text('{"studio": {"port": 8131}}')
+    revert_working_tree(SharePipeline(repo))
+
+    assert settings.read_text() == '{"studio": {"port": 8131}}'

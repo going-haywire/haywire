@@ -1,7 +1,7 @@
 # Key renames of haybale-testing in release 0.6 (rule N9: <X>ProbeNode, never a Test prefix).
 #
 # Apply to a project's graphs with:
-#   uv run haywire rename --map <this file> --apply
+#   uv run haywire rename --map <this file>
 # The rules behind the names: docs/reference/component-naming.md.
 
 [[rename]]

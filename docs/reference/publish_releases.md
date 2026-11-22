@@ -148,7 +148,7 @@ To run the local phase manually (without the skill):
 ```sh
 gh run list --branch master --workflow CI --limit 1   # gate: CI passed on master
 git switch -c release/v0.0.2
-uv run python scripts/bump_version.py 0.0.2 --yes     # bump every pyproject
+uv run python scripts/bump_version.py 0.0.2     # bump every pyproject
 uv lock                                                # re-pin uv.lock
 uv run python scripts/bake_docs.py --version v0.0.2    # bake docs (AFTER the bump)
 git add -u                                             # baked dir is gitignored

@@ -67,7 +67,7 @@ def test_plan_finds_graph_outside_graphs_folder(tmp_path):
     from haywire_studio.packaging.rename.planner import plan_rename
 
     ws = _workspace(tmp_path)
-    plan, _ = plan_rename("hay-src", "hay-dst", ws)
+    plan = plan_rename("hay-src", "hay-dst", ws)
 
     assert plan.ok, plan.blockers
     assert len(plan.graph_changes) == 1
@@ -79,7 +79,7 @@ def test_plan_enumerates_every_change_kind(tmp_path):
     from haywire_studio.packaging.rename.planner import plan_rename
 
     ws = _workspace(tmp_path)
-    plan, _ = plan_rename("hay-src", "hay-dst", ws)
+    plan = plan_rename("hay-src", "hay-dst", ws)
 
     assert plan.old_module == "hay_src"
     assert plan.new_module == "hay_dst"
@@ -94,7 +94,7 @@ def test_dirty_tree_blocks_the_plan(tmp_path):
     ws = _workspace(tmp_path)
     (ws / "dirt.txt").write_text("x")
 
-    assert not plan_rename("hay-src", "hay-dst", ws)[0].ok
+    assert not plan_rename("hay-src", "hay-dst", ws).ok
 
 
 @pytest.mark.unit
@@ -102,18 +102,20 @@ def test_missing_source_library_blocks(tmp_path):
     from haywire_studio.packaging.rename.planner import plan_rename
 
     ws = _workspace(tmp_path)
-    plan, _ = plan_rename("hay-nope", "hay-dst", ws)
+    plan = plan_rename("hay-nope", "hay-dst", ws)
 
     assert not plan.ok
     assert any("does not exist" in b.message for b in plan.blockers)
 
 
 @pytest.mark.unit
-def test_unconventional_target_flags_confirm(tmp_path):
+def test_unconventional_target_warns(tmp_path):
     from haywire_studio.packaging.rename.planner import plan_rename
 
     ws = _workspace(tmp_path)
-    assert plan_rename("hay-src", "forecast", ws)[1]
+    plan = plan_rename("hay-src", "forecast", ws)
+    assert plan.ok
+    assert any('"forecast" does not start with' in w.message for w in plan.warnings)
 
 
 @pytest.mark.unit
@@ -126,5 +128,5 @@ def test_storage_dir_warning_is_emitted(tmp_path, monkeypatch):
     (fake_home / ".haywire" / "db" / "hay_src").mkdir(parents=True)
     monkeypatch.setattr(planner.Path, "home", classmethod(lambda cls: fake_home))
 
-    plan, _ = planner.plan_rename("hay-src", "hay-dst", ws)
+    plan = planner.plan_rename("hay-src", "hay-dst", ws)
     assert any("hay_src" in w.message for w in plan.warnings)

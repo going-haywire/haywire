@@ -23,7 +23,7 @@ sequenceDiagram
     You->>Repo: commit everything (clean tree)
     You->>CLI: haywire rename hay-old haybale-new (dry run)
     CLI-->>You: what would change
-    You->>CLI: ① the name: rename … --apply
+    You->>CLI: ① the name: rename …
     CLI->>Repo: library, imports, every graph
     You->>CLI: haywire verify, restart the studio
     You->>You: share: Share an update / Create and first share

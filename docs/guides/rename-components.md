@@ -38,8 +38,8 @@ graph discovery and safety rules.
 Stop the studio, commit everything, then:
 
 ```sh
-uv run haywire rename --map renames.toml --verbose     # dry run: what would change
-uv run haywire rename --map renames.toml --apply       # rewrite the graphs
+uv run haywire rename --map renames.toml --dry-run --verbose   # what would change
+uv run haywire rename --map renames.toml                       # rewrite the graphs
 git diff                                               # review, then commit
 ```
 
@@ -91,9 +91,18 @@ Only whole values match, never part of one. A map entry for
 and one for `haybale-core:node:BeginPlayNode` doesn't touch
 `haybale-testing:node:TestBeginPlayNode`.
 
-`class_name`, `registry_id` and `module` are descriptive copies: the loader
-never reads them back. They're rewritten so that a migrated graph doesn't show
-stale names.
+`class_name`, `registry_id`, `module` and `label` are descriptive copies: the
+loader never reads them back. `class_name` and `registry_id` are rewritten so
+that a migrated graph doesn't show stale names.
+
+Two copies can stay stale, and the report doesn't list them:
+
+- **`module`**, when the class moved to another module and the entry has no
+  `old_module`/`new_module` pair. Give the pair whenever the module changed.
+- **`label`**, the class's default title saved in a node's `identity`, is
+  never rewritten. A renamed class with a new label shows its old one until
+  you edit the file. A title the user gave the node is stored elsewhere and
+  isn't affected.
 
 ### Parameterized types
 
@@ -135,13 +144,14 @@ The rules are the same as for a library rename
 the studio is stopped and the whole working tree is clean, so `git checkout .`
 undoes the run.
 
-The dry run (the default) prints, for each map entry found, how many keys it
+`--dry-run` prints, for each map entry found, how many keys it
 rewrites and in how many graphs, then the graph files, the number of
 descriptive copies and the unrecognized occurrences. Entries found in no graph
 are counted, and `--verbose` lists them. That's normal for a map that covers
 more libraries than the project uses.
 
-`--apply` asks once to confirm (`--yes` skips it), then rewrites the graphs.
+Without `--dry-run`, the same report is printed and the graphs are rewritten.
+There is no confirmation prompt.
 Each file keeps its own formatting: every value the map doesn't list stays
 byte-identical.
 
@@ -156,6 +166,6 @@ you haven't opened and saved since lists the 0.6 old keys as unresolved,
 although it loads with the new ones; `haywire rename --map` with the bundled
 maps, or a save from the studio, rewrites the file.
 
-After `--apply`, the graphs hold the new keys, so `verify` passes once the
+After the run, the graphs hold the new keys, so `verify` passes once the
 renamed classes are installed. If you migrate graphs before you rename the
 classes, `verify` lists exactly the new keys as unresolved until you do.

@@ -54,11 +54,6 @@ def _prompt_password() -> str:
     return getpass.getpass("Password: ")
 
 
-def _confirm(prompt: str) -> bool:
-    """Yes/no prompt. Patched in tests."""
-    return input(f"{prompt} [y/N] ").strip().lower() in {"y", "yes"}
-
-
 def _studio_is_running() -> bool:
     """True when this workspace has a live studio process.
 
