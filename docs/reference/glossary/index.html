@@ -6855,7 +6855,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Claude plugin</strong> (<code>claude-plugin</code>)</td>
-<td>The <strong>Claude-Code-only</strong> plugin distributed from <code>github.com/going-haywire/claude-plugin</code>: the <strong>Farmhand proxy</strong> plus beginner <strong>onboarding skills</strong>. A graduating on-ramp (bootstrap → first graph → first library → first share), not a permanent power-user surface — that remains the <code>haywire-live-studio</code> skill. The proxy alone is portable to any MCP harness.</td>
+<td>The <strong>Claude-Code-only</strong> plugin distributed from <code>github.com/going-haywire/claude-plugin</code>: the <strong>Farmhand proxy</strong> plus beginner <strong>onboarding skills</strong>. A graduating on-ramp (bootstrap → first graph → first library → first share), not a permanent power-user surface — that is the <strong>Farmhand bridge</strong> with <code>haywire studio</code>. The proxy alone is portable to any MCP harness.</td>
 <td>Farmhand (unqualified, when the plugin specifically is meant)</td>
 </tr>
 <tr>
@@ -6871,7 +6871,7 @@ Macro is registered and placed.</p>
 <tr>
 <td><strong>Studio identity sidecar</strong> (<code>studio.json</code>)</td>
 <td>The self-describing JSON the studio writes to <code>&lt;workspace&gt;/.haywire/studio.json</code> when it mounts the Farmhand endpoint: <code>pid</code>, <code>port</code>, <code>project</code>, <code>project_path</code>, <code>started_at</code> (the process's own start, so a recycled pid is told apart), <code>host</code>, <code>role</code>, <code>url</code>, <code>auth_required</code>. Lets a later process (the <strong>Farmhand bridge</strong>, <code>haywire</code> CLI guards) identify which project owns the studio on a port, decide to reuse / ask / clean up, and know whether to attach a bearer token without a probe request. Gitignored, machine-local; written only when <code>farmhand.enabled</code>. <code>auth_required</code> is a hint, never a credential — it says whether a token is expected, not what it is.</td>
-<td>pid file (studioctl's is a bare integer; this is structured identity)</td>
+<td>pid file (<code>haywire studio start</code>'s <code>.haywire/studio.pid</code> is a bare integer; this is structured identity)</td>
 </tr>
 <tr>
 <td><strong>Security document</strong> (<code>security.json</code>)</td>
