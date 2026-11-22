@@ -1,16 +1,17 @@
 """Load and save failures reach the error ledger; the fallbacks stay."""
 
+from __future__ import annotations
+
 import json
 import os
 
 import pytest
 
+from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.errors.ledger import ErrorLedger, get_error_ledger, set_error_ledger
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.core.edge.edge_wrapper import EdgeWrapper
-
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration

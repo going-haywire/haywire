@@ -16,6 +16,8 @@ press-drag-release path (``handleMouseUp`` does not commit). Covered here:
 - rejection: clicking two outlets makes no edge (canvas honors validity)
 """
 
+from __future__ import annotations
+
 import re
 
 import pytest

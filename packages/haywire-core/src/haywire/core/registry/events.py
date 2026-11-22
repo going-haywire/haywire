@@ -4,10 +4,13 @@ Separate from ``base`` so a registry module may depend on this vocabulary
 without importing the module-reload machinery.
 """
 
-from typing import Protocol, TypeVar
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field as dc_field
+from dataclasses import dataclass
+from dataclasses import field as dc_field
 from enum import Enum
+from typing import Protocol
 
 from ..library.identity import LibraryIdentity
 from .identity import BaseIdentity
@@ -63,6 +66,3 @@ class RegisteredClass(Protocol):
 
     @property
     def class_library(self) -> LibraryIdentity: ...
-
-
-T = TypeVar("T", bound=RegisteredClass)

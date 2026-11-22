@@ -25,13 +25,13 @@ class TestCopySelectionMenuPanel(BasePanel):
     actions: TestSelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         edit = ctx.data[EditState]
         return bool(edit.selected_nodes or edit.selected_edges)
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         with layout:
@@ -52,12 +52,12 @@ class TestPasteSelectionMenuPanel(BasePanel):
     actions: TestSelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return ctx.data[EditState].clipboard is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         with layout:

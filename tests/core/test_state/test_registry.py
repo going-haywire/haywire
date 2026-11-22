@@ -1,5 +1,7 @@
 """Unit tests for StateRegistry."""
 
+from __future__ import annotations
+
 from typing import cast
 
 from haywire.core.library.identity import LibraryIdentity

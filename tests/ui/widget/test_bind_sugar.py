@@ -1,8 +1,11 @@
-import pytest
+from __future__ import annotations
+
 from typing import Any
 
+import pytest
+
 from haywire.ui.widget.base import BaseWidget
-from tests.ui.widget._sync_fixtures import make_float_port, _RecordingElement
+from tests.ui.widget._sync_fixtures import _RecordingElement, make_float_port
 
 pytestmark = pytest.mark.unit
 

@@ -15,12 +15,15 @@ classes captured at decoration time, and a panel may host a surface from a
 library that reloads on its own schedule (docs/adr/0009-surface-id-stable-key.md).
 """
 
+from __future__ import annotations
+
 import inspect
 import logging
-from typing import Dict, Iterable, List, Optional, Set, TYPE_CHECKING
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
-from haywire.core.registry.base import BaseRegistry
 from haywire.core.library.identity import LibraryIdentity
+from haywire.core.registry.base import BaseRegistry
 
 from .base import BasePanel
 
@@ -54,8 +57,8 @@ class PanelRegistry(BaseRegistry[BasePanel]):
             return False
 
     def _register_class(
-        self, cls: type[BasePanel], library_identity: Optional[LibraryIdentity] = None
-    ) -> "str | None":
+        self, cls: type[BasePanel], library_identity: LibraryIdentity | None = None
+    ) -> str | None:
         registry_key = cls.class_identity.registry_key
         result = super()._register(registry_key, cls, library_identity)
         if result:
@@ -69,7 +72,7 @@ class PanelRegistry(BaseRegistry[BasePanel]):
             self._report_cycles(cls)
         return result
 
-    def _unregister_class(self, registry_key: str) -> "type[BasePanel] | None":
+    def _unregister_class(self, registry_key: str) -> type[BasePanel] | None:
         return super()._unregister(registry_key)
 
     # ------------------------------------------------------------------
@@ -94,7 +97,7 @@ class PanelRegistry(BaseRegistry[BasePanel]):
         # time the walk reaches `start` again. Reaching `start` a second time
         # means this registration closed a cycle.
         seen: set[str] = set()
-        frontier: list[tuple[str | None, "type[BasePanel] | None", str | None]] = [
+        frontier: list[tuple[str | None, type[BasePanel] | None, str | None]] = [
             (getattr(h, "id", None), cls, start) for h in getattr(identity, "hosts", ())
         ]
         while frontier:
@@ -129,14 +132,14 @@ class PanelRegistry(BaseRegistry[BasePanel]):
     # Query API
     # ------------------------------------------------------------------
 
-    def get_panels(self, surface: type) -> List[type[BasePanel]]:
+    def get_panels(self, surface: type) -> list[type[BasePanel]]:
         """Panels on ``surface``, matched by ``id``, sorted by ``order``.
 
         The single panel query. There is no display/action fork any more —
         which panels a surface yields depends on the surface id alone.
         """
         wanted_id = getattr(surface, "id", None)
-        result: List[type[BasePanel]] = []
+        result: list[type[BasePanel]] = []
         for cls in self._all_panel_classes():
             identity = getattr(cls, "class_identity", None)
             if identity is None:
@@ -148,7 +151,7 @@ class PanelRegistry(BaseRegistry[BasePanel]):
         result.sort(key=lambda c: getattr(getattr(c, "class_identity", None), "order", 100))
         return result
 
-    def get_root_surfaces(self) -> List[type["Surface"]]:
+    def get_root_surfaces(self) -> list[type[Surface]]:
         """Surfaces named by some panel's ``surface=`` and by no panel's ``hosts=``.
 
         Deduped by id. Read from the **panel catalog**, never from
@@ -161,7 +164,7 @@ class PanelRegistry(BaseRegistry[BasePanel]):
         *discovers* its list rather than naming it.
         """
         hosted_ids: set[str] = set()
-        named: Dict[str, type["Surface"]] = {}
+        named: dict[str, type[Surface]] = {}
         for cls in self._all_panel_classes():
             identity = getattr(cls, "class_identity", None)
             if identity is None:
@@ -176,7 +179,7 @@ class PanelRegistry(BaseRegistry[BasePanel]):
                     hosted_ids.add(hosted_id)
         return [surface for surface_id, surface in named.items() if surface_id not in hosted_ids]
 
-    def get_redraw_signals(self, surface: type) -> Set[type["Signal"]]:
+    def get_redraw_signals(self, surface: type) -> set[type[Signal]]:
         """Union of ``redraw_on`` across ``surface``'s whole ``hosts=`` tree.
 
         Walks surface → its panels → the surfaces those panels host,
@@ -189,7 +192,7 @@ class PanelRegistry(BaseRegistry[BasePanel]):
         Transient hosts (context menus) subscribe to nothing and never call
         this.
         """
-        signals: Set[type["Signal"]] = set()
+        signals: set[type[Signal]] = set()
         visited: set[str] = set()
         frontier = [getattr(surface, "id", None)]
         while frontier:

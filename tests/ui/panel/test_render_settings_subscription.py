@@ -13,18 +13,17 @@ is pure callback bookkeeping on the model, observable on Settings._subscriptions
 (callback -> cell adapters).
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest
-
-
 from nicegui import Client, ui
 from nicegui.page import page as page_deco
 
+from haybale_testing.nodes.testbed.settings_probe import SettingsProbeNode
 from haywire.core.settings import SettingsRegistry
 from haywire.ui.panel.render_utils import render_settings
-from haybale_testing.nodes.testbed.settings_probe import SettingsProbeNode
-
 from tests.ui.panel.render_ctx import make_render_ctx
 
 pytestmark = pytest.mark.unit

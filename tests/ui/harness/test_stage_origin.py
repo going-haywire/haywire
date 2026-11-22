@@ -4,6 +4,8 @@ Drives the ``/graph-stage`` harness route: one on-stage node at stage ``(0, 0)``
 the requested channel.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

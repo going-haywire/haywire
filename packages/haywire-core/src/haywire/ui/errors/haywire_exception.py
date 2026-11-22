@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import os
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
+
 from nicegui import ui
 
-from haywire.ui import elements as hui
 from haywire.core.errors.haywire_exception import HaywireException
+from haywire.ui import elements as hui
 from haywire.ui.utils import _open_file_in_editor
 
 
@@ -15,7 +19,7 @@ def _create_detail_row(
     monospace: bool = False,
     file_path: str | None = None,
     line_number: int | None = None,
-    on_open_in_studio: Callable[[str, "int | None"], None] | None = None,
+    on_open_in_studio: Callable[[str, int | None], None] | None = None,
 ):
     """Helper to create a consistent detail row with optional file open button"""
     classes = "text-xs " + ("font-mono" if monospace else "")
@@ -57,7 +61,7 @@ def render_error_details(
     error: HaywireException,
     parent_container=None,
     *,
-    on_open_in_studio: Callable[[str, "int | None"], None] | None = None,
+    on_open_in_studio: Callable[[str, int | None], None] | None = None,
 ) -> Any:
     """
     Render detailed error information for a HaywireException.

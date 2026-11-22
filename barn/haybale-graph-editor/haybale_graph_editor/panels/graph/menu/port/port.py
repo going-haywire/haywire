@@ -18,20 +18,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
-
-from haywire.api import PortOrigin, ShowWidgetStrategy, get_widget_class
-
 from haybale_graph_editor.panels.graph.menu.component_rows import component_row, identity_of, key_and_label
-from haybale_graph_editor.surfaces import PinEditMenu, PinMenu, PinWidgetMenu, PortActions
 from haybale_graph_editor.states.edit_state import EditState
-
+from haybale_graph_editor.surfaces import PinEditMenu, PinMenu, PinWidgetMenu, PortActions
+from haywire.api import PortOrigin, ShowWidgetStrategy, get_widget_class
+from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
 
 
-def _type_identity(ctx: "SessionContext") -> Any | None:
+def _type_identity(ctx: SessionContext) -> Any | None:
     """The identity of the active pin's data type, or None."""
     port = ctx.data[EditState].active_port
     if port is None:
@@ -39,7 +36,7 @@ def _type_identity(ctx: "SessionContext") -> Any | None:
     return identity_of(port.stored_type)
 
 
-def _widget_identity(ctx: "SessionContext") -> Any | None:
+def _widget_identity(ctx: SessionContext) -> Any | None:
     """The identity of the widget editing the active pin, or None.
 
     ``widget_key`` is resolved through the global widget registry rather than
@@ -72,10 +69,10 @@ class PinEditMenuPanel(BasePanel):
     actions: PortActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _type_identity(ctx) is not None or _widget_identity(ctx) is not None
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             with hui.submenu_row("Edit Source", icon=hui.icon.node_source):
                 self.render_surface(PinEditMenu, ctx)
@@ -94,10 +91,10 @@ class PortTypeMenuPanel(BasePanel):
     actions: PortActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _type_identity(ctx) is not None
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         port = ctx.data[EditState].active_port
         fallback = getattr(port.stored_type, "__name__", "") if port is not None else ""
         key, label = key_and_label(_type_identity(ctx), fallback)
@@ -122,16 +119,16 @@ class PortWidgetMenuPanel(BasePanel):
     actions: PortActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _widget_identity(ctx) is not None
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         key, label = key_and_label(_widget_identity(ctx))
         with layout:
             component_row(ctx, label, key, hui.icon.widget)
 
 
-def _promoted_setting(ctx: "SessionContext"):
+def _promoted_setting(ctx: SessionContext):
     """The (bag, descriptor) behind the active pin, or ``None``.
 
     ``None`` for an unpromoted pin, a pin with no node, or one matching no
@@ -175,7 +172,7 @@ class ResetSettingMenuPanel(BasePanel):
     _LABEL = "Reset to default"
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         resolved = _promoted_setting(ctx)
         if resolved is None:
             return False
@@ -184,7 +181,7 @@ class ResetSettingMenuPanel(BasePanel):
         # disable" rule the settings row applies to its own Reset.
         return bag._is_locally_set(descriptor._attr_name)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         port = ctx.data[EditState].active_port
         if port is None:
             return
@@ -195,7 +192,7 @@ class ResetSettingMenuPanel(BasePanel):
                 on_click=lambda pid=port.id: self.actions.reset_setting(pid),
             )
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             hui.menu_row(
                 self._LABEL,
@@ -228,7 +225,7 @@ class ClearSettingMenuPanel(BasePanel):
     _LABEL = "Set to none"
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         resolved = _promoted_setting(ctx)
         if resolved is None:
             return False
@@ -238,7 +235,7 @@ class ClearSettingMenuPanel(BasePanel):
         # Nothing left to do once the value already IS absent.
         return getattr(bag, descriptor._attr_name) is not None
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         port = ctx.data[EditState].active_port
         if port is None:
             return
@@ -250,7 +247,7 @@ class ClearSettingMenuPanel(BasePanel):
                 on_click=lambda pid=port.id: self.actions.clear_setting(pid),
             )
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             hui.menu_row(
                 self._LABEL,
@@ -287,13 +284,13 @@ class DetachSettingMenuPanel(BasePanel):
     }
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         port = ctx.data[EditState].active_port
         return port is not None and port.is_user_removable()
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         port = ctx.data[EditState].active_port
@@ -306,7 +303,7 @@ class DetachSettingMenuPanel(BasePanel):
                 on_click=lambda: self.actions.remove_port(port.id),
             )
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         """The greyed form, on a pin the node's author declared."""
         port = ctx.data[EditState].active_port
         label = self._LABELS[port.origin] if port is not None else "Remove pin"
@@ -344,16 +341,16 @@ class PinShowWidgetMenuPanel(BasePanel):
     _LABEL = "Show widget"
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         port = ctx.data[EditState].active_port
         return port is not None and port.promoted
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             with hui.submenu_row(self._LABEL, icon=hui.icon.widget):
                 self.render_surface(PinWidgetMenu, ctx)
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         """The greyed form, on a pin that was never promoted."""
         with layout:
             hui.menu_row(
@@ -380,11 +377,11 @@ class HidePinMenuPanel(BasePanel):
     actions: PortActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         port = ctx.data[EditState].active_port
         return port is not None and not port.promoted and not port.is_fold
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         port = ctx.data[EditState].active_port
         if port is None:
             return
@@ -418,7 +415,7 @@ class PortShowWidgetStrategyPanel(BasePanel):
         (ShowWidgetStrategy.NEVER, "Never"),
     )
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         port = ctx.data[EditState].active_port
         if port is None:
             return

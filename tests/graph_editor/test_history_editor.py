@@ -12,6 +12,9 @@ from nicegui import ui
 from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
+from haybale_graph_editor.editors.history_editor import HistoryEditor, graph_path
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import GraphAppState
 from haywire.core.access import AccessTier
 from haywire.core.graph.editor import Editor
 from haywire.core.session.handlers import _REDRAW_ON_ATTR
@@ -20,10 +23,6 @@ from haywire.core.undo.base_action import ActionBase
 from haywire.core.undo.config import UndoConfig
 from haywire.core.undo.origin import StepOrigin
 from haywire.ui.editor.identity import SlotName
-
-from haybale_graph_editor.editors.history_editor import HistoryEditor, graph_path
-from haybale_graph_editor.states.edit_state import EditState
-from haybale_graph_editor.states.graph_app_state import GraphAppState
 
 pytestmark = pytest.mark.unit
 

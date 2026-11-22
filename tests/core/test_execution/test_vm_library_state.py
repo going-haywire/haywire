@@ -1,5 +1,7 @@
 """Tests verifying HaywireVM populates ExecutionContext.app_data from its container."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 from haywire.core.execution.vm import HaywireVM

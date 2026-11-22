@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from haywire.ui.panel.context_menu_base import BaseContextMenuProvider
 
@@ -25,7 +25,7 @@ class SessionFileMenuProvider(BaseContextMenuProvider):
     # Intent
     # ------------------------------------------------------------------
 
-    def on_file_context(self, pos: Tuple[float, float], path: Path) -> None:
+    def on_file_context(self, pos: tuple[float, float], path: Path) -> None:
         """User right-clicked a file at screen position ``pos``."""
         from haybale_studio.states.file_browser_state import FileBrowserState
         from haybale_studio.surfaces import FileMenu
@@ -48,7 +48,7 @@ class SessionFileMenuProvider(BaseContextMenuProvider):
 
     def reveal(
         self,
-        editor_cls: "type[BaseEditor]",
+        editor_cls: type[BaseEditor],
         binding_id: Any,
         label: str,
     ) -> None:

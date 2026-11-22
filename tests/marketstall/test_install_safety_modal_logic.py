@@ -18,9 +18,9 @@ def test_record_block_via_resolve_target(tmp_path) -> None:
     """End-to-end: resolve_block_target + record_block_on_source writes the block."""
     from haywire.core.marketstall import (
         add_stall_subscription_to_global,
+        parse_global_marketplace,
         record_block_on_source,
         resolve_block_target,
-        parse_global_marketplace,
     )
 
     global_path = tmp_path / "marketplace.toml"
@@ -40,9 +40,9 @@ def test_record_block_via_aggregator_fallback(tmp_path) -> None:
     """Transitive case: via doesn't match any subscription; fallback to aggregator."""
     from haywire.core.marketstall import (
         add_market_subscription_to_global,
+        parse_global_marketplace,
         record_block_on_source,
         resolve_block_target,
-        parse_global_marketplace,
     )
 
     global_path = tmp_path / "marketplace.toml"

@@ -6,29 +6,31 @@ Direction is determined by the is_inlet field (True for inlet, False for outlet)
 """
 
 from __future__ import annotations
+
 import copy
 import logging
 import threading
+from collections.abc import Callable
 from dataclasses import MISSING, dataclass, field, fields
-from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from haywire.core.types.enums import PortOrigin, PortType, ShowWidgetStrategy, StoreStrategy
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.errors.haywire_exception import HaywireException
-from haywire.core.types.identity import DataTypeIdentity
-from haywire.core.types.interface import IType
-from haywire.core.types.wire import WILDCARD, WireRole, WireType, wire_type_of
-from haywire.core.types.utils import is_type_owned, serialize_element_type, type_owned_kwargs
+from haywire.core.types.enums import PortOrigin, PortType, ShowWidgetStrategy, StoreStrategy
 
 # Import the new DataField classes
 from haywire.core.types.fields import DataField
+from haywire.core.types.identity import DataTypeIdentity
+from haywire.core.types.interface import IType
 from haywire.core.types.link_set import LinkSet
 from haywire.core.types.pipe import Pipe, Pipes
+from haywire.core.types.utils import is_type_owned, serialize_element_type, type_owned_kwargs
+from haywire.core.types.wire import WILDCARD, WireRole, WireType, wire_type_of
 
 if TYPE_CHECKING:
+    from haywire.core.node import NodeData
     from haywire.core.node.node_wrapper import NodeWrapper
     from haywire.core.types.registry import TypeRegistry
-    from haywire.core.node import NodeData
 
 
 def _same_value(a: Any, b: Any) -> bool:
@@ -113,7 +115,7 @@ class DataPort(DataTypeIdentity):
     """The edges leaving this port. Filled for an outlet or a swinglet."""
 
     # Outlet-specific
-    _pipes: Optional[Pipes] = field(default=None, repr=False, metadata={"serialize": False})
+    _pipes: Pipes | None = field(default=None, repr=False, metadata={"serialize": False})
 
     single_link: bool = False
     """Narrow this port to one link where its link ceiling allows many; see ``takes_many_links``.
@@ -126,7 +128,7 @@ class DataPort(DataTypeIdentity):
     use_mode: str = "optional"
 
     # Internal: Store default override for field creation
-    default: Optional[Dict[str, Any]] = field(default=None, repr=False)
+    default: dict[str, Any] | None = field(default=None, repr=False)
 
     def __hash__(self) -> int:
         """Hash by port id so DataPort can be used in sets."""
@@ -186,13 +188,13 @@ class DataPort(DataTypeIdentity):
     # HIERARCHY & ORGANIZATION
     # ========================================================================
 
-    parent_fold: Optional[str] = None
+    parent_fold: str | None = None
     """ID of parent group port, None if top-level"""
 
     order: int = 0
     """Display order within parent"""
 
-    owner: Optional[str] = None
+    owner: str | None = None
     """ID of the grown port this companion exists for, None if it stands on its own.
 
     A companion goes with its owner: removing the owner removes it, whichever path
@@ -236,13 +238,13 @@ class DataPort(DataTypeIdentity):
     # CALLBACKS
     # ========================================================================
 
-    on_change: Optional[str] = None
+    on_change: str | None = None
     """Callback identifier to invoke when port value changes (e.g., 'reconfigure_ports')"""
 
-    on_connect: Optional[str] = None
+    on_connect: str | None = None
     """Callback identifier to invoke when connection is made"""
 
-    on_disconnect: Optional[str] = None
+    on_disconnect: str | None = None
     """Callback identifier to invoke when connection is broken"""
 
     widget: dict[str, Any] | None = field(default=None, repr=False, metadata={"serialize": False})
@@ -264,9 +266,9 @@ class DataPort(DataTypeIdentity):
     ``False`` makes every write to it need level mode ``edit``."""
 
     # Runtime reference (not serialized)
-    _wrapper: Optional["NodeWrapper"] = field(default=None, repr=False, metadata={"serialize": False})
+    _wrapper: NodeWrapper | None = field(default=None, repr=False, metadata={"serialize": False})
 
-    _node: Optional["NodeData"] = field(default=None, repr=False, metadata={"serialize": False})
+    _node: NodeData | None = field(default=None, repr=False, metadata={"serialize": False})
     """Reference to parent node (for callbacks)"""
 
     def __post_init__(self):
@@ -583,7 +585,7 @@ class DataPort(DataTypeIdentity):
         if self.on_change is not None:
             self._trigger_callback(self.on_change, self.get_value())
 
-    def _mark_as_data_dirty(self, pipe: "Pipe | None" = None) -> None:
+    def _mark_as_data_dirty(self, pipe: Pipe | None = None) -> None:
         """
         Mark the port as data dirty and inform the node.
 
@@ -688,7 +690,7 @@ class DataPort(DataTypeIdentity):
             cls._REFRESHABLE = cached  # type: ignore[attr-defined]
         return cached
 
-    def refresh_from(self, spec_port: "DataPort") -> None:
+    def refresh_from(self, spec_port: DataPort) -> None:
         """Apply a freshly built port's declarative fields to this live port.
 
         The same-type half of a ``rejig`` refresh: ``NodeData.add`` calls this
@@ -718,7 +720,7 @@ class DataPort(DataTypeIdentity):
 
         self._derive_wire()
 
-    def adopt_state_from(self, existing: "DataPort") -> None:
+    def adopt_state_from(self, existing: DataPort) -> None:
         """Transplant edge state and display order from a port being replaced.
 
         Called by ``NodeData.add`` when a re-added port id resolves to a
@@ -907,10 +909,10 @@ class DataPort(DataTypeIdentity):
     def from_spec(
         cls,
         spec: dict,
-        type_registry: "TypeRegistry",
-        wrapper: "NodeWrapper",
-        node: "NodeData",
-    ) -> "DataPort":
+        type_registry: TypeRegistry,
+        wrapper: NodeWrapper,
+        node: NodeData,
+    ) -> DataPort:
         """
         Create a DataPort from a PortSpec dict.
 

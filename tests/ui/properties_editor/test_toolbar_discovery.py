@@ -13,7 +13,6 @@ from haywire.core.library.identity import LibraryIdentity
 from haywire.ui.panel import BasePanel, PanelRegistry, panel
 from haywire.ui.surface import Presentation, Surface
 
-
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
     label="fake",
     version="0.1",
@@ -77,6 +76,7 @@ class _HostedPanel(BasePanel):
 def _stub_wrapper():
     """Minimal wrapper stand-in — toolbar discovery never reads it."""
     from typing import cast
+
     from haywire.ui.editor.wrapper import EditorWrapper
 
     return cast(EditorWrapper, object())

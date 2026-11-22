@@ -5,9 +5,11 @@ This module defines the fundamental interfaces that all undo system components
 must implement, following the three-layer separation of concerns architecture.
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .origin import HistoryEntry, HistoryMove, StepOrigin
@@ -37,7 +39,7 @@ class IAction(ABC):
         """
         pass
 
-    def can_merge(self, other: "IAction") -> bool:
+    def can_merge(self, other: IAction) -> bool:
         """
         Check if this action can be merged with another action.
 
@@ -49,7 +51,7 @@ class IAction(ABC):
         """
         return False
 
-    def merge(self, other: "IAction") -> Optional["IAction"]:
+    def merge(self, other: IAction) -> IAction | None:
         """
         Merge this action with another action.
 
@@ -96,7 +98,7 @@ class IHistoryManager(ABC):
     """
 
     @abstractmethod
-    def add_action(self, action: IAction, *, origin: "StepOrigin | None" = None) -> bool:
+    def add_action(self, action: IAction, *, origin: StepOrigin | None = None) -> bool:
         """
         Execute ``action`` and add it to the history.
 
@@ -118,7 +120,7 @@ class IHistoryManager(ABC):
         merge_owner: object | None,
         idle_s: float = ...,
         *,
-        origin: "StepOrigin | None" = None,
+        origin: StepOrigin | None = None,
     ) -> bool:
         """
         Execute a value write and record it, amending the newest step while a merge run lasts.
@@ -138,7 +140,7 @@ class IHistoryManager(ABC):
         pass
 
     @abstractmethod
-    def record_executed(self, action: IAction, *, origin: "StepOrigin | None" = None) -> None:
+    def record_executed(self, action: IAction, *, origin: StepOrigin | None = None) -> None:
         """
         Add an action that has already been applied to the history, without running it.
 
@@ -164,7 +166,7 @@ class IHistoryManager(ABC):
         pass
 
     @abstractmethod
-    def undo(self, *, origin: "StepOrigin | None" = None) -> bool:
+    def undo(self, *, origin: StepOrigin | None = None) -> bool:
         """
         Undo the most recent action or action group.
 
@@ -176,7 +178,7 @@ class IHistoryManager(ABC):
         pass
 
     @abstractmethod
-    def redo(self, *, origin: "StepOrigin | None" = None) -> bool:
+    def redo(self, *, origin: StepOrigin | None = None) -> bool:
         """
         Redo the most recently undone action or action group.
 
@@ -221,7 +223,7 @@ class IHistoryManager(ABC):
         pass
 
     @abstractmethod
-    def get_undo_description(self) -> Optional[str]:
+    def get_undo_description(self) -> str | None:
         """
         Get description of the next action that would be undone.
 
@@ -231,7 +233,7 @@ class IHistoryManager(ABC):
         pass
 
     @abstractmethod
-    def get_redo_description(self) -> Optional[str]:
+    def get_redo_description(self) -> str | None:
         """
         Get description of the next action that would be redone.
 
@@ -241,7 +243,7 @@ class IHistoryManager(ABC):
         pass
 
     @abstractmethod
-    def snapshot(self) -> list["HistoryEntry"]:
+    def snapshot(self) -> list[HistoryEntry]:
         """
         Return the history as read-only rows, oldest first.
 
@@ -252,7 +254,7 @@ class IHistoryManager(ABC):
         pass
 
     @abstractmethod
-    def last_move(self) -> Optional["HistoryMove"]:
+    def last_move(self) -> HistoryMove | None:
         """Return the latest successful undo or redo since the last ``clear()``, or ``None``."""
         pass
 

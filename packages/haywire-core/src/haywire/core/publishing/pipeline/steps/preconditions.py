@@ -127,7 +127,7 @@ def _path_candidates(project_root: Path, field: str) -> list[str]:
     return found
 
 
-def check(pipeline: "SharePipeline") -> PreconditionsReport:
+def check(pipeline: SharePipeline) -> PreconditionsReport:
     """Verify everything needed to publish. Stops at the FIRST failure.
 
     Reports rather than raises so the wizard's first panel can explain why
@@ -726,7 +726,7 @@ def _unanswered_floor_warning(names: list[str]) -> str:
     return "Could not confirm on PyPI that a release satisfies the requirements on: " + ", ".join(names)
 
 
-def _already_released_failure(state: "release_state.ReleaseState") -> PreconditionFailure:
+def _already_released_failure(state: release_state.ReleaseState) -> PreconditionFailure:
     """Refuse a second release of the same change, saying what to do instead.
 
     Every message ends in one ``NEXT:``, ``DONE:`` or ``STOP:`` line so a
@@ -849,7 +849,7 @@ def _escaping_path_sources_failure(escaping: list[tuple[str, str, str]]) -> Prec
     )
 
 
-def _branches_containing_head(pipeline: "SharePipeline") -> list[str]:
+def _branches_containing_head(pipeline: SharePipeline) -> list[str]:
     """Branch names that already contain the current commit.
 
     ``git branch --contains HEAD`` prefixes each line ``"* "`` (current) or
@@ -867,7 +867,7 @@ def _branches_containing_head(pipeline: "SharePipeline") -> list[str]:
     return names
 
 
-def _detached_head_failure(pipeline: "SharePipeline") -> PreconditionFailure:
+def _detached_head_failure(pipeline: SharePipeline) -> PreconditionFailure:
     """The detached-HEAD failure, offering an in-place switch when it is safe.
 
     Two situations wear the same name and need opposite advice:
@@ -918,7 +918,7 @@ def _detached_head_failure(pipeline: "SharePipeline") -> PreconditionFailure:
     )
 
 
-def _wrong_branch_failure(pipeline: "SharePipeline", *, current: str, default: str) -> PreconditionFailure:
+def _wrong_branch_failure(pipeline: SharePipeline, *, current: str, default: str) -> PreconditionFailure:
     """On a branch that is not the remote's default. Same shape as detached HEAD.
 
     Publishing is default-branch-only (see the arch doc's §5), and the safe

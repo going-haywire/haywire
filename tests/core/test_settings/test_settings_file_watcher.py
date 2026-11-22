@@ -6,6 +6,8 @@ settings path whose parent directory does not exist raised FileNotFoundError
 under the inotify backend (macOS FSEvents tolerated it, so it only bit in CI).
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest

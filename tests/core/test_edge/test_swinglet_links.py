@@ -1,14 +1,15 @@
 """A swinglet links at either end of an edge; one edge joins two pins, whichever way they were dragged."""
 
+from __future__ import annotations
+
 import pytest
 
-from haywire.core.errors import Refusal
 from haybale_testing.nodes.testbed.swinglet_probe import (
     SwingletControlProbeNode,
     SwingletPassProbeNode,
     SwingletVisualProbeNode,
 )
-
+from haywire.core.errors import Refusal
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration

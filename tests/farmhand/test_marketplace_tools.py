@@ -5,6 +5,8 @@ and are exercised manually, not in CI. Only the offline catalog/docs rows are
 covered here.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from tests.farmhand.conftest import call_tool_json

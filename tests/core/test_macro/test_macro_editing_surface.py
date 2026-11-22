@@ -5,6 +5,8 @@ unlocked. A Group's interior opens as an ordinary level. The macro document
 opens for editing only when its library is editable (decision 18).
 """
 
+from __future__ import annotations
+
 import json
 from typing import Any, cast
 

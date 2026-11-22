@@ -33,7 +33,7 @@ def _boundary(graph: BaseGraph, *, is_input: bool) -> NodeWrapper:
     return wrapper
 
 
-def _card(wrapper: NodeWrapper) -> "GraphNode":
+def _card(wrapper: NodeWrapper) -> GraphNode:
     """The wrapper's node, typed as the GraphNode it is."""
     return cast("GraphNode", wrapper.node)
 
@@ -80,8 +80,8 @@ def _stamp_data_interface(definition: SubgraphDefinition) -> tuple[NodeWrapper, 
 
 def _stamp_control_interface(definition: SubgraphDefinition) -> None:
     """Give the definition a control crossing on top of a data outlet."""
-    from haywire.barn.builtin.types import EXEC
     from haybale_testing.types.test_types import TEST_FLOAT
+    from haywire.barn.builtin.types import EXEC
 
     input_node = _boundary(definition, is_input=True)
     output_node = _boundary(definition, is_input=False)

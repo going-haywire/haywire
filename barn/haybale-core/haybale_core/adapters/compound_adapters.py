@@ -1,9 +1,9 @@
-from typing import Any, List
-from typing_extensions import override
+from __future__ import annotations
 
-from haywire.api import BaseAdapter, adapter
+from typing import Any, override
 
 from haybale_core.types.array_type import ARRAY
+from haywire.api import BaseAdapter, adapter
 
 
 @adapter(
@@ -34,7 +34,7 @@ class ArrayArrayAdapter(BaseAdapter):
     """
 
     @override
-    def convert(self, value: List[Any]) -> List[Any]:
+    def convert(self, value: list[Any]) -> list[Any]:
         """
         Transform each element or pass through.
 

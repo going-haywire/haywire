@@ -9,6 +9,8 @@ Serialized under the ``'props'`` key in graph JSON; restored before nodes
 on load.
 """
 
+from __future__ import annotations
+
 from haywire.barn.builtin.types import BOOL, CHOICES
 from haywire.barn.builtin.widget_keys import ARROW_HEAD_WIDGET
 from haywire.core.edge.arrow_heads import head_size_choices
@@ -19,9 +21,9 @@ from haywire.core.skin.settings import (
     NodeDefaultSkinSettings,
     _layout_direction_choices,
     _node_detail_choices,
+    _node_theme_choices,
     _patch_skin_choices,
     _stage_skin_choices,
-    _node_theme_choices,
 )
 
 

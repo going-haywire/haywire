@@ -1,5 +1,7 @@
 """Reblocker, StreamResampler, DriftController and the channel operations."""
 
+from __future__ import annotations
+
 import numpy as np
 import pytest
 

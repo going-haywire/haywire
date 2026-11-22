@@ -12,8 +12,8 @@ does.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from haywire.core.publishing.barn import barn_library_dirs
 from haywire.core.publishing.marketstall import MarketstallWriteResult
@@ -27,8 +27,8 @@ from haywire.core.publishing.pipeline.results import (
     DriftReport,
     FrameworkPlan,
     PreconditionsReport,
-    ShareDecisions,
     PushResult,
+    ShareDecisions,
     VersionPlan,
 )
 from haywire.core.publishing.pipeline.steps import commit as steps_commit

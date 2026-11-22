@@ -1,5 +1,7 @@
 """list_files: name patterns, case-insensitive, hidden names skipped, symlinks kept inside the root."""
 
+from __future__ import annotations
+
 import importlib
 import logging
 from pathlib import Path, PurePosixPath

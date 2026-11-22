@@ -1,9 +1,11 @@
 """CALLBACK — the subscription name a listener registers under."""
 
+from __future__ import annotations
+
 from haywire.core.types import StoreStrategy, type
 
-from .specs import STRING
 from ..wires import CallbackWire
+from .specs import STRING
 
 
 @type(

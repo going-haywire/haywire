@@ -1,7 +1,9 @@
 """List Files, Loop Array and Step Array: list a folder, then go through the list at once or step by step."""
 
+from __future__ import annotations
+
 import importlib
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 
@@ -31,7 +33,7 @@ def _edge(graph: Any, src: Any, outlet: str, dst: Any, inlet: str) -> None:
 class _Runner:
     """Assembles a graph once and fires its flows on one VM."""
 
-    def __init__(self, graph: Any, bail: Optional[str] = None):
+    def __init__(self, graph: Any, bail: str | None = None):
         graph.force_validation()
         self.flows = FlowAssemblyManager().assemble_graph(graph)
         self.vm = HaywireVM(exception_bail=(lambda: bail) if bail is not None else None)

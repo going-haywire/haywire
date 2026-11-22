@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 import threading
-from typing import TypeVar, Generic, Callable, List, Optional, Iterator
+from collections.abc import Callable, Iterator
+from typing import TypeVar
 
 T = TypeVar("T")
 H = Callable[[T], None]
 
 
-class Event(Generic[T]):
+class Event[T]:
     """
     A generic event class that allows you to register and trigger event handlers,
     and also provides a way to wait for the next event to be fired.
@@ -19,8 +22,8 @@ class Event(Generic[T]):
         Initialize the Event instance with an empty list of handlers
         and a threading event to allow waiting for events.
         """
-        self._handlers: List[H] = []
-        self._latest_value: Optional[T] = None
+        self._handlers: list[H] = []
+        self._latest_value: T | None = None
         self._event_trigger = threading.Event()
 
     def append(self, handler: H) -> None:
@@ -166,7 +169,7 @@ class Event(Generic[T]):
         """
         self.invoke(value)
 
-    def wait(self, timeout: Optional[float] = None) -> Optional[T]:
+    def wait(self, timeout: float | None = None) -> T | None:
         """
         Wait for the next event to be fired, with an optional timeout.
 
@@ -188,7 +191,7 @@ class Event(Generic[T]):
             # Return None if the timeout is reached
             return None
 
-    def stream(self, timeout: Optional[float] = None) -> Iterator[Optional[T]]:
+    def stream(self, timeout: float | None = None) -> Iterator[T | None]:
         """
         Continuously yield the value whenever the event is triggered, with an optional timeout.
 

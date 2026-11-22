@@ -16,6 +16,8 @@ Three registry queries, all routing on ``Surface.id``:
     that surface's whole ``hosts=`` tree.
 """
 
+from __future__ import annotations
+
 from .identity import PanelIdentity
 from .layout import PanelLayout
 from .base import BasePanel

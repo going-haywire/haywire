@@ -17,10 +17,13 @@ FILL into CSS, and it is total — every reachable field combination yields a
 valid ``background`` value, so a hand-edited graph cannot break a render.
 """
 
+from __future__ import annotations
+
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from haywire.api import BaseType, DataWire, type as type_decorator
+from haywire.api import BaseType, DataWire
+from haywire.api import type as type_decorator
 
 FILL_WIDGET = "haybale-example:widget:FillWidget"
 """The widget's registry key. Spelled out rather than imported from a shared
@@ -109,7 +112,7 @@ class FILL(BaseType):
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "FILL":
+    def from_dict(cls, data: dict) -> FILL:
         """Rebuild from stored JSON, tolerating anything a hand edit produced."""
         if not isinstance(data, dict):
             return cls()

@@ -9,8 +9,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from haywire.core.library.registry import LibraryRegistry
 from haywire.core.library.install_type import InstallType
+from haywire.core.library.registry import LibraryRegistry
 
 
 def _make_lib_mock(library_id: str) -> MagicMock:

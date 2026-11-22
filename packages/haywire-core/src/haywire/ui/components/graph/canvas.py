@@ -6,15 +6,18 @@ all client-side graph canvas interactions with the enhanced event system.
 
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Any, Callable, Mapping, Optional
+from collections.abc import Callable, Mapping
 from pathlib import Path
+from typing import Any
 
 from nicegui import ui
 
 from haywire.core.access import LevelMode
 from haywire.core.edge.settings import EdgeDefaultSettings
-from haywire.ui.components.graph.event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
+from haywire.ui.components.graph.event_definitions import GRAPH_EVENT_REGISTRY, BaseGraphEvent
 from haywire.ui.components.graph.settings import CanvasSettings
 from haywire.ui.components.zoom.settings import EditorPanZoomSettings
 
@@ -57,7 +60,7 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
 
     def __init__(
         self,
-        on_canvas_event: Optional[Callable[[BaseGraphEvent], None]] = None,
+        on_canvas_event: Callable[[BaseGraphEvent], None] | None = None,
         zoom_container=None,
         canvas_width: int = 8000,
         canvas_height: int = 8000,

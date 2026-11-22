@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Callable, Dict, List, Tuple, Type, TypeVar
+from collections.abc import Callable
+from typing import TypeVar
 
 from haywire.core.errors import report_failure
 
 from .signal import Signal
-
 
 # Handler signature: ``(signal) -> None``. The ``ctx`` parameter described in
 # the design doc is bound at subscribe-time on the ``Session`` layer (so the
@@ -38,11 +38,11 @@ class SignalBus:
         # function object, even when two methods share a name across a
         # subclass override — so duplicates would only arise from direct
         # misuse of ``bus.subscribe``.
-        self._handlers: Dict[Type[Signal], List[SignalHandler]] = defaultdict(list)
+        self._handlers: dict[type[Signal], list[SignalHandler]] = defaultdict(list)
 
     def subscribe(
         self,
-        signal_type: Type[S],
+        signal_type: type[S],
         handler: Callable[[S], None],
     ) -> Callable[[], None]:
         """Subscribe ``handler`` to signals of exactly ``signal_type``.
@@ -116,14 +116,14 @@ class SignalBus:
     # author surface.
     # ------------------------------------------------------------------
 
-    def subscriber_count(self, signal_type: Type[Signal]) -> int:
+    def subscriber_count(self, signal_type: type[Signal]) -> int:
         """Return the number of handlers currently subscribed to ``signal_type``.
 
         Used by tests and diagnostics. Not part of the author API.
         """
         return len(self._handlers.get(signal_type, ()))
 
-    def subscribed_types(self) -> Tuple[Type[Signal], ...]:
+    def subscribed_types(self) -> tuple[type[Signal], ...]:
         """Return every signal class that currently has at least one handler.
 
         Used by tests and diagnostics. Not part of the author API.

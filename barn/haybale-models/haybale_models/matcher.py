@@ -1,5 +1,7 @@
 """Variant matching: which resources fit a preference, which entries fit a filter."""
 
+from __future__ import annotations
+
 from collections.abc import Sequence
 from typing import Any
 

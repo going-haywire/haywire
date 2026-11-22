@@ -2,15 +2,17 @@
 alongside InstallType ("how did this reach the environment").
 """
 
+from __future__ import annotations
+
 from haybale_marketplace.library_origin import (
     LibraryOrigin,
     compute_library_origin,
     is_project_library,
 )
+from haywire.core.library.haybale import Haybale
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
-from haywire.core.library.haybale import Haybale
 
 
 def _identity(folder_path: str) -> LibraryIdentity:

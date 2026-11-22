@@ -1,11 +1,13 @@
 # tests/ui/panel/test_panel_decorator.py
 """@panel(surface=..., hosts=...) — validation and identity."""
 
+from __future__ import annotations
+
 from typing import Protocol, runtime_checkable
 
 import pytest
 
-from haywire.core.signals import SelectionMoved, GraphDataMutated
+from haywire.core.signals import GraphDataMutated, SelectionMoved
 from haywire.ui.panel import BasePanel, panel
 from haywire.ui.surface import Surface
 

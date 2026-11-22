@@ -1,5 +1,7 @@
 """FarmhandContext: DI accessors, broadcast, offload, fence, progress."""
 
+from __future__ import annotations
+
 import asyncio
 import threading
 

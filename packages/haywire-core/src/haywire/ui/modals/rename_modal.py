@@ -13,13 +13,14 @@ own initial ``value`` — re-confirming the same name is always "same", never
 "existing".
 """
 
-from typing import Callable, Iterable, Optional
+from __future__ import annotations
+
+from collections.abc import Callable, Iterable
 
 from nicegui import ui
 
 from haywire.ui import elements as hui
 from haywire.ui.components.popup import Popup
-
 
 DEFAULT_CLASSIFY = {
     "same": "Save",
@@ -33,10 +34,10 @@ def rename_modal(
     title: str,
     value: str,
     existing: Iterable[str] = (),
-    classify: Optional[dict[str, str]] = None,
+    classify: dict[str, str] | None = None,
     allow_overwrite: bool = True,
     on_confirm: Callable[[str], None],
-    on_cancel: Optional[Callable[[], None]] = None,
+    on_cancel: Callable[[], None] | None = None,
 ) -> Popup:
     """Open a name-prompt modal and return the opened :class:`Popup`.
 

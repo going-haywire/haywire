@@ -1,5 +1,7 @@
 """Every graph of one tree validates under one lock, so a host and its Subgraphs never validate at once."""
 
+from __future__ import annotations
+
 import threading
 import time
 

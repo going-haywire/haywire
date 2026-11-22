@@ -1,5 +1,7 @@
 """HaystackSettings — per-workspace settings for haystack scalars."""
 
+from __future__ import annotations
+
 
 def test_can_set_and_read_last_haystack_name():
     from haybale_haystack.settings.haystack_settings import HaystackSettings

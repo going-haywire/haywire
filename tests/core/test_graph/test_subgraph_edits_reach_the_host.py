@@ -22,7 +22,6 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import ThreadingTimerScheduler
 from haywire.core.graph.subgraph import SubgraphDefinition
 from haywire.core.graph.types import ChangeReason
-
 from tests.conftest import make_node
 from tests.wait import wait_until
 
@@ -132,8 +131,8 @@ class TestLoadingIsNotAnEdit:
     @pytest.fixture
     def loaded(self, graph_with_library_system: BaseGraph, tmp_path):
         """A saved graph carrying a Subgraph, loaded back as the studio opens one."""
-        from haywire.barn.builtin.types import FLOAT
         from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
+        from haywire.barn.builtin.types import FLOAT
 
         source = graph_with_library_system
         definition = source.add_subgraph(

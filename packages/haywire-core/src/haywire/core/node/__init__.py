@@ -3,6 +3,8 @@
 Node system for Haywire.
 """
 
+from __future__ import annotations
+
 from .identity import NodeIdentity
 from .info import NodeInfo
 from .data import NodeData

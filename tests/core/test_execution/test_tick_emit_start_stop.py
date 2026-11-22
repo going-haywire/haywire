@@ -1,13 +1,13 @@
 """TickEmit start/stop from several threads at once (node-owned thread contract, ADR 0064)."""
 
+from __future__ import annotations
+
 import threading
 from types import SimpleNamespace
-from typing import List
 
 import pytest
 
 from haywire.core.graph.base import BaseGraph
-
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration
@@ -25,13 +25,13 @@ def _context():
     return SimpleNamespace(control_pin="start", emit_callback=lambda **kwargs: None)
 
 
-def _tick_threads() -> List[threading.Thread]:
+def _tick_threads() -> list[threading.Thread]:
     return [t for t in threading.enumerate() if t.name.startswith("TickEmit-") and t.is_alive()]
 
 
-def _together(n: int, fn) -> List[BaseException]:
+def _together(n: int, fn) -> list[BaseException]:
     barrier = threading.Barrier(n)
-    errors: List[BaseException] = []
+    errors: list[BaseException] = []
 
     def run():
         barrier.wait()

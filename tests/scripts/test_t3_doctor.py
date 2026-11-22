@@ -1,5 +1,7 @@
 """The T3 slot's doctor.py against a stand-in T3 home and checkout."""
 
+from __future__ import annotations
+
 import json
 import subprocess
 import sys

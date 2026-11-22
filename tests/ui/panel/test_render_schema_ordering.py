@@ -8,17 +8,17 @@ sorting by (category, order, setting_key) because it aggregates keys across
 independent classes with no shared declaration sequence.
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest
-
 from nicegui import Client, ui
 
+from haywire.barn.builtin.types import STRING
 from haywire.core.settings import SettingsRegistry, setting
 from haywire.core.settings.settings_framework import FrameworkSettings
-from haywire.barn.builtin.types import STRING
-from haywire.ui.panel.render_utils import render_schema, render_keys
-
+from haywire.ui.panel.render_utils import render_keys, render_schema
 from tests.ui.panel.render_ctx import make_render_ctx
 
 pytestmark = pytest.mark.integration

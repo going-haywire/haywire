@@ -1,5 +1,7 @@
 """``ChangeReason.mutates_structure``: which batches must wait for the frame barrier (ADR 0064)."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.graph.types import ChangeReason

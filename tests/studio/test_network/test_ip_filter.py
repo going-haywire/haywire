@@ -1,5 +1,7 @@
 """IPAllowlistMiddleware: synthetic ASGI scopes, no live server needed."""
 
+from __future__ import annotations
+
 import asyncio
 
 import pytest

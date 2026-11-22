@@ -11,8 +11,9 @@ Imports and ``__all__`` only; the one function serves deprecated names. ``hui`` 
 """
 
 # haywire.api comes first: it fixes the import order of the core packages.
-import haywire.api  # noqa: F401
+from __future__ import annotations
 
+import haywire.api  # noqa: F401
 from haywire.barn.builtin.surfaces import (
     AccountMenuSurface,
     AppSettingsSurface,
@@ -71,7 +72,7 @@ from haywire.core.signals import (
     Undo,
     signal_field,
 )
-from haywire.core.state import AppState, LibraryState, StateRegistry, SessionState, state
+from haywire.core.state import AppState, LibraryState, SessionState, StateRegistry, state
 from haywire.ui import elements as hui
 from haywire.ui.access_stamp import stamp_requires
 from haywire.ui.editor import BaseEditor, EditorRegistry, OpenBehavior, SlotName, editor

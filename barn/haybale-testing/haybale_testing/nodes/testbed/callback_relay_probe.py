@@ -1,5 +1,7 @@
 """Test-only node that relays a callback value as soon as it is written."""
 
+from __future__ import annotations
+
 from typing import Any
 
 from haywire.api import CALLBACK, BaseNode, ExecutionContext, NodeType, node

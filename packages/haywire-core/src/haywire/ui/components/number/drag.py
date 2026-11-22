@@ -8,8 +8,11 @@ Features:
 - Configurable min, max, step, precision, prefix, suffix
 """
 
+from __future__ import annotations
+
 import math
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from nicegui import ui
 
@@ -28,7 +31,7 @@ class NumberDrag(ui.element, component="drag.vue"):
         prefix: str = "",
         suffix: str = "",
         sensitivity: float = 1.0,
-        on_change: Optional[Callable[..., Any]] = None,
+        on_change: Callable[..., Any] | None = None,
     ) -> None:
         super().__init__()
         self._props["model-value"] = value

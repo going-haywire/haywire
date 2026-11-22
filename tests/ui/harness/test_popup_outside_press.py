@@ -1,5 +1,7 @@
 """An open context menu takes no input outside its card: a press there closes it and reaches the page."""
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page, expect
 

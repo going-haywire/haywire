@@ -5,6 +5,8 @@ draws the ones named here. Heads come from ``haywire.core.edge.arrow_heads``.
 """
 
 #: The style fields the canvas draws, in the order a bag usually declares them.
+from __future__ import annotations
+
 STYLE_FIELDS: tuple[str, ...] = (
     "color",
     "width",

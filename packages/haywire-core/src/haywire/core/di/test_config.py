@@ -5,17 +5,21 @@ Test-specific DI configuration for Haywire.
 Provides lightweight configurations for different test scenarios.
 """
 
+from __future__ import annotations
+
 import tempfile
 from pathlib import Path
-from typing import Optional, List, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
 from injector import Injector
 
 from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, FLOAT, INT, STRING
+
 from ..settings import (
-    SettingsRegistry,
-    SettingValue,
     FrameworkSettings,
     Settings,
+    SettingsRegistry,
+    SettingValue,
     setting,
 )
 
@@ -66,14 +70,14 @@ class TestingWidgetSettings(FrameworkSettings, namespace="test.widgets"):
 
 
 def create_test_injector(
-    workspace_root: Optional[str] = None,
-    library_paths: Optional[List[str]] = None,
+    workspace_root: str | None = None,
+    library_paths: list[str] | None = None,
     enable_file_watching: bool = False,
     load_libraries: bool = False,
-    settings_path: Optional[str] = None,
+    settings_path: str | None = None,
     watch_settings: bool = False,
     use_temp_settings: bool = True,
-    workspace_settings_path: Optional[str] = None,
+    workspace_settings_path: str | None = None,
 ) -> Injector:
     """
     Create a test-specific DI injector with minimal overhead.
@@ -109,15 +113,15 @@ def create_test_injector(
 
 
 def create_test_library_system(
-    workspace_root: Optional[str] = None,
-    library_paths: Optional[List[str]] = None,
+    workspace_root: str | None = None,
+    library_paths: list[str] | None = None,
     load_libraries: bool = True,
     enable_file_watching: bool = False,
-    settings_path: Optional[str] = None,
+    settings_path: str | None = None,
     watch_settings: bool = False,
     use_temp_settings: bool = True,
-    workspace_settings_path: Optional[str] = None,
-) -> "LibrarySystemService":
+    workspace_settings_path: str | None = None,
+) -> LibrarySystemService:
     """
     Create library system for integration tests.
 
@@ -146,8 +150,8 @@ def create_test_library_system(
 
 
 def create_test_settings_registry(
-    predefined_settings: Optional[dict] = None, register_builtins: bool = True
-) -> "SettingsRegistry":
+    predefined_settings: dict | None = None, register_builtins: bool = True
+) -> SettingsRegistry:
     """
     Create an isolated settings registry for unit tests.
 
@@ -184,9 +188,9 @@ def create_test_settings_registry(
 
 def create_test_bag(
     bag_cls: type | None = None,
-    predefined_local: Optional[dict[str, Any]] = None,
-    predefined_global: Optional[dict[str, Any]] = None,
-) -> tuple["SettingsRegistry", Any]:
+    predefined_local: dict[str, Any] | None = None,
+    predefined_global: dict[str, Any] | None = None,
+) -> tuple[SettingsRegistry, Any]:
     """
     Create an isolated registry + Settings instance for unit tests.
 
@@ -244,11 +248,11 @@ class SettingsTestContext:
         # Original settings restored automatically
     """
 
-    def __init__(self, registry: "SettingsRegistry"):
+    def __init__(self, registry: SettingsRegistry):
         self.registry = registry
         self._original_values: dict = {}
 
-    def __enter__(self) -> "SettingsTestContext":
+    def __enter__(self) -> SettingsTestContext:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):

@@ -8,8 +8,6 @@ from typing import Any
 
 import pytest
 
-from haywire.core.farmhand import FarmhandContext, FarmhandError
-
 from haybale_studio.farmhands.questionnaire import StudioGetFindingsTool, StudioPostQuestionnaireTool
 from haybale_studio.questionnaire.definition import (
     failed_checks,
@@ -24,6 +22,7 @@ from haybale_studio.states.questionnaire_state import (
     QuestionnaireState,
     RequiredUnanswered,
 )
+from haywire.core.farmhand import FarmhandContext, FarmhandError
 
 pytestmark = pytest.mark.unit
 

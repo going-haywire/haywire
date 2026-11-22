@@ -13,9 +13,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.api.workbench import Surface
-
 from haybale_graph_editor.surfaces.selection import SelectionActions
+from haywire.api.workbench import Surface
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -52,7 +51,7 @@ class SelectionToolbar(Surface):
     banded = True
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         from haybale_graph_editor.states.edit_state import EditState
 
         edit = ctx.data[EditState]

@@ -29,22 +29,22 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Coroutine
+from typing import TYPE_CHECKING, Any
 
 from nicegui import ui
 
+from haybale_marketplace.library_origin import is_project_library
+from haywire.api.workbench import hui
 from haywire.core.library.dep_detect import HaywireLibrarySource, find_module_dir
 from haywire.core.library.haybale_toml import read_haybale, read_haybale_toml_lenient
 from haywire.core.library.identity import LibraryReloadAction
 from haywire.core.library.info import LibraryInfo
 from haywire.core.publishing.drift.detect import detect_share_drift
-from haywire.api.workbench import hui
 from haywire.ui.components.popup import Popup
 from haywire.ui.modals import info_modal
-
-from haybale_marketplace.library_origin import is_project_library
 
 if TYPE_CHECKING:
     from haybale_marketplace.library_manager import LibraryManager
@@ -104,8 +104,8 @@ def _refresh_linked_libraries(
 def build_edit_dialog(
     lib: LibraryInfo,
     marketplace_path: str | None,
-    manager: "LibraryManager",
-    context: "SessionContext",
+    manager: LibraryManager,
+    context: SessionContext,
     on_save: Callable[[dict], Coroutine[Any, Any, None]],
 ) -> Popup:
     """Build the Edit dialog — all identity fields immediately editable.

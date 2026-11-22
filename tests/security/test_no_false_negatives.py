@@ -19,12 +19,13 @@ These tests attack that specific failure from four directions:
    while a CRITICAL sits below it.
 """
 
+from __future__ import annotations
+
 import itertools
 
 import pytest
 
 from haywire.core.access import AccessTier
-
 from haywire_studio.network.names import LocalNames
 from haywire_studio.network.tls_operations import TlsState, TlsStatus
 from haywire_studio.security.document import FarmhandPolicy, NetworkPolicy, SecurityDocument

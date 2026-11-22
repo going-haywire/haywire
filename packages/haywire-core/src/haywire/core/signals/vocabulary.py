@@ -31,11 +31,11 @@ return ``False`` when the subscriber holds a stale class reference.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import ClassVar, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from haywire.core.access.tier import AccessTier
 
-from .signal import Signal, CommandSignal, EditorCommand
+from .signal import CommandSignal, EditorCommand, Signal
 
 if TYPE_CHECKING:
     from haywire.ui.editor.base import BaseEditor
@@ -80,8 +80,8 @@ class RevealGraphInstance(Signal):
     """
 
     graph_id: str
-    node_id: Optional[str] = None
-    edge_id: Optional[str] = None
+    node_id: str | None = None
+    edge_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -337,8 +337,8 @@ class RevealSignal(CommandSignal):
             ``class_identity.label`` if omitted.
     """
 
-    binding_id: Optional[str] = None
-    label: Optional[str] = None
+    binding_id: str | None = None
+    label: str | None = None
 
 
 # --8<-- [start:reveal]
@@ -357,7 +357,7 @@ class Reveal(RevealSignal):
         label: See :class:`RevealSignal`.
     """
 
-    editor: "type[BaseEditor]"
+    editor: type[BaseEditor]
 
 
 # --8<-- [end:reveal]
@@ -527,7 +527,7 @@ class Paste(EditorCommand):
     command_id: ClassVar[str] = "paste"
     label: ClassVar[str] = "Paste"
     default_keys: ClassVar[tuple[str, ...]] = ("Mod+V",)
-    native_event: ClassVar[Optional[str]] = "paste"
+    native_event: ClassVar[str | None] = "paste"
 
     text: str = ""
 

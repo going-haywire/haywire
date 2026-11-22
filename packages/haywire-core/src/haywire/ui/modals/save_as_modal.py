@@ -22,8 +22,10 @@ with the resolved :class:`pathlib.Path` and the raw input string. The raw
 input is useful for re-opening the modal after a stacked confirm-cancel.
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import Callable, Optional, Sequence
 
 from nicegui import ui
 
@@ -38,7 +40,7 @@ def save_as_modal(
     initial_path: str,
     suffixes: Sequence[str] = (),
     on_confirm: Callable[[Path, str], None],
-    on_cancel: Optional[Callable[[], None]] = None,
+    on_cancel: Callable[[], None] | None = None,
 ) -> Popup:
     """Open a Save-As modal and return the opened :class:`Popup`.
 
@@ -142,7 +144,7 @@ def save_as_modal(
                 suffix_label.set_visibility(not raw.endswith(selected_suffix))
 
         # Path input + optional suffix selector, side by side
-        suffix_label: Optional[ui.label] = None
+        suffix_label: ui.label | None = None
         with ui.row().classes("w-full items-center gap-2 flex-nowrap"):
             path_input = hui.input_field(
                 label="Path within workspace",

@@ -1,9 +1,10 @@
 """An edge's wire type comes from its ports, and nothing about it is saved."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.graph.subgraph import SubgraphDefinition
-
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration

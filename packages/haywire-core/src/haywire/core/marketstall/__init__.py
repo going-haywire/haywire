@@ -4,6 +4,8 @@ Implements the section vocabulary ([[markets]], [[stalls]], [[haybales]], [[heap
 [[caches]]), the host-provider abstraction, and the URL resolution/refresh pipeline.
 """
 
+from __future__ import annotations
+
 from haywire.core.marketstall.cache import (
     cache_read,
     cache_write,

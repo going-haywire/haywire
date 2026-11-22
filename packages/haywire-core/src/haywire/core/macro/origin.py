@@ -1,5 +1,7 @@
 """The macro a detached placement was made from."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 
@@ -20,7 +22,7 @@ class MacroOrigin:
         return {"key": self.key, "hash": self.hash}
 
     @classmethod
-    def from_dict(cls, data: dict[str, str]) -> "MacroOrigin":
+    def from_dict(cls, data: dict[str, str]) -> MacroOrigin:
         """Build an origin from the dict ``to_dict`` returns.
 
         Raises:

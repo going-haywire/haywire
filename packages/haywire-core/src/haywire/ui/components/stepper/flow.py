@@ -15,7 +15,8 @@ nothing behind.
 from __future__ import annotations
 
 import logging
-from typing import Callable, ClassVar, Optional, Sequence
+from collections.abc import Callable, Sequence
+from typing import ClassVar
 
 from nicegui.elements.log import Log
 
@@ -53,7 +54,7 @@ class StepFlow:
         self.log_lines: list[str] = []
 
         self.on_render: Callable[[], None] | None = None
-        self._log_element: Optional[Log] = None
+        self._log_element: Log | None = None
 
     # ── state transitions ────────────────────────────────────────────────────
 

@@ -5,10 +5,9 @@ Extends BaseRegistry for library folder scan and hot-reload support.
 """
 
 from __future__ import annotations
-from typing import Optional, Type
 
-from haywire.core.registry.base import BaseRegistry
 from haywire.core.library.identity import LibraryIdentity
+from haywire.core.registry.base import BaseRegistry
 
 from .workbench import BaseTheme
 
@@ -32,7 +31,7 @@ class ThemeRegistry(BaseRegistry[BaseTheme]):
     # BaseRegistry abstract methods
     # =========================================================================
 
-    def _class_filter(self, cls: Type) -> bool:
+    def _class_filter(self, cls: type) -> bool:
         """Accept BaseTheme subclasses with class_identity.
 
         Note: the base class declares `class_identity: ThemeClassIdentity = None`
@@ -47,7 +46,7 @@ class ThemeRegistry(BaseRegistry[BaseTheme]):
         )
 
     def _register_class(
-        self, cls: type[BaseTheme], library_identity: Optional[LibraryIdentity] = None
+        self, cls: type[BaseTheme], library_identity: LibraryIdentity | None = None
     ) -> str | None:
         registry_key = cls.class_identity.registry_key
         return super()._register(registry_key, cls, library_identity)
@@ -60,13 +59,13 @@ class ThemeRegistry(BaseRegistry[BaseTheme]):
     # =========================================================================
 
     def register_workbench(
-        self, cls: Type[BaseTheme], library_identity: LibraryIdentity | None = None
+        self, cls: type[BaseTheme], library_identity: LibraryIdentity | None = None
     ) -> str | None:
         """Register a BaseTheme class authored with @theme(theme_type='workbench')."""
         return self._register_class(cls, library_identity)
 
     def register_node_theme(
-        self, cls: Type[BaseTheme], library_identity: LibraryIdentity | None = None
+        self, cls: type[BaseTheme], library_identity: LibraryIdentity | None = None
     ) -> str | None:
         """Register a BaseTheme class authored with @theme(theme_type='node')."""
         return self._register_class(cls, library_identity)

@@ -1,5 +1,7 @@
 """Farmhand contribution seam (SDK-free): tools, registry, context."""
 
+from __future__ import annotations
+
 from haywire.core.farmhand.base import Farmhand
 from haywire.core.farmhand.context import FarmhandContext
 from haywire.core.farmhand.decorator import farmhand

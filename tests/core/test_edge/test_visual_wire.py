@@ -1,9 +1,10 @@
 """A VISUAL edge is drawn and saved but never executed: no adapter chain, no pipe, no propagation."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.types import WireRole
-
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration

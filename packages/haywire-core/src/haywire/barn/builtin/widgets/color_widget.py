@@ -1,11 +1,14 @@
 """ColorWidget — color picker for COLOR ports (and the COLOR setting type)."""
 
+from __future__ import annotations
+
 from typing import Any
+
 from nicegui import ui
 
-from haywire.ui.widget.decorator import widget
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.converters import PrimitiveUnwrappingConverter
+from haywire.ui.widget.decorator import widget
 
 
 @widget(description="Color picker widget")

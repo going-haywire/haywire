@@ -1,9 +1,11 @@
 """Tests for SessionContext."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 
-from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.core.session.context import SessionContext
+from haywire.core.state import LibraryStateContainer, StateRegistry
 
 
 class FakeApp:

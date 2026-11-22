@@ -23,13 +23,12 @@ from __future__ import annotations
 import asyncio
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Protocol
+from typing import TYPE_CHECKING, Protocol
 
+from haybale_graph_editor._promote_flow.copy import STEP_TITLES, STEPS
 from haywire.core.macro.promote import PromotableSubgraph
 from haywire.ui.components.popup import Popup
 from haywire.ui.components.stepper import StepFlow
-
-from haybale_graph_editor._promote_flow.copy import STEP_TITLES, STEPS
 
 if TYPE_CHECKING:
     from haywire.core.authoring.targets import AuthoringTarget
@@ -67,9 +66,9 @@ class PromoteFlow(StepFlow):
         source: PromoteSource,
         definition: PromotableSubgraph,
         node_id: str,
-        targets: list["AuthoringTarget"],
+        targets: list[AuthoringTarget],
         name: str = "",
-        popup: Optional[Popup] = None,
+        popup: Popup | None = None,
     ) -> None:
         super().__init__()
         self.source = source
@@ -83,9 +82,9 @@ class PromoteFlow(StepFlow):
         from haywire.core.macro.promote import suggest_name
 
         self.name: str = name or suggest_name(definition.label or "")
-        self.target: "AuthoringTarget | None" = targets[0] if targets else None
+        self.target: AuthoringTarget | None = targets[0] if targets else None
 
-        self.plan: "PromotionPlan | None" = None
+        self.plan: PromotionPlan | None = None
         self.registry_key: str | None = None
         self.placement_node_id: str | None = None
 

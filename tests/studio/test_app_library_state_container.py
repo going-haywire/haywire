@@ -1,5 +1,7 @@
 """Tests verifying HaywireApp exposes the LibraryStateContainer."""
 
+from __future__ import annotations
+
 from haywire.core.state import LibraryStateContainer
 
 

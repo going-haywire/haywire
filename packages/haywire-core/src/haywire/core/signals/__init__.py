@@ -8,6 +8,8 @@ Public surface:
 - Concrete signals (SelectionMoved, GraphDataMutated, ...) — the vocabulary
 """
 
+from __future__ import annotations
+
 from .signal import Signal, CommandSignal, EditorCommand
 from .bus import SignalBus, SignalHandler
 from .host import SignalSource

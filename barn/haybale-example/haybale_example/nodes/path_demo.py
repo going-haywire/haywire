@@ -4,6 +4,8 @@ Exists to show the path picker on a real card: a plain `PATH`, a `FILE_PATH`, a
 `FILE_PATH` limited to images, a `FOLDER_PATH`, and a `FILE_PATH` in save mode.
 """
 
+from __future__ import annotations
+
 from haywire.api import (
     FILE_PATH,
     FOLDER_PATH,

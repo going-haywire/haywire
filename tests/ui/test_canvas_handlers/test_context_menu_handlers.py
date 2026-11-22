@@ -6,9 +6,13 @@ IContextMenuProvider. The provider decides how to surface the menu
 (currently PopupContextMenu; future: session-context-driven panels).
 """
 
-import pytest
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
+import pytest
+
+from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map
 from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import (
     ContextMenuHandlers,
     IContextMenuProvider,
@@ -18,7 +22,6 @@ from haywire.ui.components.graph.event_definitions import (
     ContextMenuEdgeEvent,
     ContextMenuSelectedEvent,
 )
-from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map
 
 pytestmark = pytest.mark.unit
 

@@ -9,14 +9,16 @@ This module provides:
 - Consolidated drag, selection, and removal events
 """
 
+from __future__ import annotations
+
 import dataclasses
 import time
 from dataclasses import dataclass, field
-from typing import ClassVar, Dict, Any, List, Optional, Type
+from typing import Any, ClassVar
 
 # Global registry for all event types (every registered class is a BaseGraphEvent
 # subclass via the @graph_event decorator).
-GRAPH_EVENT_REGISTRY: "Dict[str, Type[BaseGraphEvent]]" = {}
+GRAPH_EVENT_REGISTRY: dict[str, type[BaseGraphEvent]] = {}
 
 
 def graph_event(event_type: str, category: str = "user", description: str = ""):
@@ -48,7 +50,7 @@ class BaseGraphEvent:
     category: ClassVar[str]
     description: ClassVar[str]
 
-    def to_dict(self, metadata: GraphEventMetadata | None = None) -> Dict[str, Any]:
+    def to_dict(self, metadata: GraphEventMetadata | None = None) -> dict[str, Any]:
         if metadata is None:
             metadata = GraphEventMetadata()
 
@@ -65,13 +67,13 @@ class BaseGraphEvent:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]):
+    def from_dict(cls, data: dict[str, Any]):
         """Create event instance from wire format"""
         event_data = data.get("data", {})
         # Only pass the actual event fields, not metadata
         return cls(**event_data)
 
-    def get_metadata_from_dict(self, data: Dict[str, Any]) -> GraphEventMetadata:
+    def get_metadata_from_dict(self, data: dict[str, Any]) -> GraphEventMetadata:
         """Extract metadata from wire format"""
         return GraphEventMetadata(
             source_session_id=data.get("source_session_id", "default"),
@@ -88,19 +90,19 @@ class BaseGraphEvent:
 @graph_event("userDragStart", category="user", description="User started dragging nodes")
 @dataclass
 class UserDragStartEvent(BaseGraphEvent):
-    nodes: List[str]  # List of node IDs being dragged
+    nodes: list[str]  # List of node IDs being dragged
 
 
 @graph_event("userDragUpdate", category="user", description="User is dragging nodes")
 @dataclass
 class UserDragUpdateEvent(BaseGraphEvent):
-    positions: Dict[str, Dict[str, float]]  # {nodeId: {x, y}} absolute snapped positions
+    positions: dict[str, dict[str, float]]  # {nodeId: {x, y}} absolute snapped positions
 
 
 @graph_event("userDragEnd", category="user", description="User finished dragging nodes")
 @dataclass
 class UserDragEndEvent(BaseGraphEvent):
-    nodes: List[str]  # List of node IDs that were dragged
+    nodes: list[str]  # List of node IDs that were dragged
 
 
 @graph_event(
@@ -116,8 +118,8 @@ class UserResizeEndEvent(BaseGraphEvent):
     size_adapt: str
     # Present only for top/left/relevant-corner drags that also moved the origin
     # (resize + move composition, opposite edge pinned). None = size-only commit.
-    posX: Optional[float] = None
-    posY: Optional[float] = None
+    posX: float | None = None
+    posY: float | None = None
 
 
 @graph_event(
@@ -132,18 +134,18 @@ class NodesMeasuredEvent(BaseGraphEvent):
     # same layout pass — one message per node made 200+ node graphs unusable.
     # Only the AUTO axes are reported; a manual axis is owned by the user and
     # is omitted (None) so measurement never overwrites it.
-    measurements: List[Dict[str, Any]]
+    measurements: list[dict[str, Any]]
 
 
 @graph_event("nodeCreateRequest", category="user", description="Request to create node from context menu")
 @dataclass
 class NodeCreateRequestEvent(BaseGraphEvent):
     registryKey: str
-    position: Dict[str, float]  # {x: float, y: float}
+    position: dict[str, float]  # {x: float, y: float}
     # Set when the canvas context menu was opened mid-drag from a pin.
     # The visual-layer handler uses it to auto-wire the new node to a
     # compatible port. Carries pin_id, node_id, pin_dir, wire, data_type.
-    pending_connection: Optional[Dict[str, str]] = None
+    pending_connection: dict[str, str] | None = None
 
 
 @graph_event(
@@ -154,7 +156,7 @@ class NodeCreateRequestEvent(BaseGraphEvent):
 @dataclass
 class SplitEdgeWithRerouteEvent(BaseGraphEvent):
     edge_id: str
-    position: Dict[str, float]  # {x: float, y: float} — where to place the reroute node
+    position: dict[str, float]  # {x: float, y: float} — where to place the reroute node
 
 
 @graph_event(
@@ -174,7 +176,7 @@ class DissolveRerouteEvent(BaseGraphEvent):
 )
 @dataclass
 class AddToStageEvent(BaseGraphEvent):
-    node_ids: List[str]
+    node_ids: list[str]
 
 
 @graph_event(
@@ -184,7 +186,7 @@ class AddToStageEvent(BaseGraphEvent):
 )
 @dataclass
 class RemoveFromStageEvent(BaseGraphEvent):
-    node_ids: List[str]
+    node_ids: list[str]
 
 
 @graph_event(
@@ -194,7 +196,7 @@ class RemoveFromStageEvent(BaseGraphEvent):
 )
 @dataclass
 class RestackEvent(BaseGraphEvent):
-    node_ids: List[str]
+    node_ids: list[str]
     how: str
     """A ``Restack`` value: ``"front"``, ``"back"``, ``"forward"`` or ``"backward"``."""
 
@@ -206,7 +208,7 @@ class RestackEvent(BaseGraphEvent):
 )
 @dataclass
 class ArrangeNodesEvent(BaseGraphEvent):
-    node_ids: List[str]
+    node_ids: list[str]
     """The start nodes; one keeps its position, several arrange every flow they touch. Empty
     for ``"all"``."""
     scope: str
@@ -233,7 +235,7 @@ class SelectConnectedEvent(BaseGraphEvent):
 )
 @dataclass
 class RotateNodesEvent(BaseGraphEvent):
-    node_ids: List[str]
+    node_ids: list[str]
     clockwise: bool
 
 
@@ -254,7 +256,7 @@ class TrimCanvasEvent(BaseGraphEvent):
 )
 @dataclass
 class CollapseToGroupEvent(BaseGraphEvent):
-    node_ids: List[str]
+    node_ids: list[str]
 
 
 @graph_event(
@@ -306,9 +308,9 @@ class PromoteToMacroEvent(BaseGraphEvent):
 class OpenNewNodeWizardEvent(BaseGraphEvent):
     # Where Place puts the new node: the canvas right-click point. None when
     # the wizard opens on a selected node, which Place puts the node beside.
-    position: Optional[Dict[str, float]] = None
+    position: dict[str, float] | None = None
     # The node whose class is cloned. None opens the wizard at its Source step.
-    node_id: Optional[str] = None
+    node_id: str | None = None
 
 
 @graph_event(
@@ -392,29 +394,29 @@ class CanvasMountedEvent(BaseGraphEvent):
 @graph_event("elementRedraw", category="user", description="redraw selected element")
 @dataclass
 class ElementRedrawEvent(BaseGraphEvent):
-    nodes: List[str]
-    edges: List[str]
+    nodes: list[str]
+    edges: list[str]
 
 
 @graph_event("elementReset", category="user", description="reset selected element")
 @dataclass
 class ElementResetEvent(BaseGraphEvent):
-    nodes: List[str]
-    edges: List[str]
+    nodes: list[str]
+    edges: list[str]
 
 
 @graph_event("elementRevalidate", category="user", description="revalidate selected element")
 @dataclass
 class ElementRevalidateEvent(BaseGraphEvent):
-    nodes: List[str]
-    edges: List[str]
+    nodes: list[str]
+    edges: list[str]
 
 
 @graph_event("selectionChanged", category="user", description="Selection state changed")
 @dataclass
 class SelectionChangedEvent(BaseGraphEvent):
-    selectedNodes: List[str]
-    selectedEdges: List[str]
+    selectedNodes: list[str]
+    selectedEdges: list[str]
     # The single active (primary) element, by kind. At most one is non-empty;
     # both empty means the selection has no primary (bulk/programmatic change).
     # Defaults keep existing positional call sites working.
@@ -457,15 +459,15 @@ class ToolbarActionEvent(BaseGraphEvent):
 @graph_event("userRemove", category="user", description="User wants to remove elements")
 @dataclass
 class UserRemoveEvent(BaseGraphEvent):
-    nodes: List[str]
-    edges: List[str]
+    nodes: list[str]
+    edges: list[str]
 
 
 @graph_event("userCopySelected", category="user", description="Copy selected elements to clipboard")
 @dataclass
 class UserCopySelectedEvent(BaseGraphEvent):
-    selectedNodes: List[str]
-    selectedEdges: List[str]
+    selectedNodes: list[str]
+    selectedEdges: list[str]
 
 
 @graph_event("contextMenuCanvas", category="user", description="Canvas context menu triggered")
@@ -504,8 +506,8 @@ class ContextMenuSelectedEvent(BaseGraphEvent):
     screenY: float
     canvasX: float
     canvasY: float
-    selectedNodes: List[str]
-    selectedEdges: List[str]
+    selectedNodes: list[str]
+    selectedEdges: list[str]
 
 
 @graph_event(
@@ -558,7 +560,7 @@ class UserPasteClipboardEvent(BaseGraphEvent):
 @dataclass
 class SyncNodeAdditionEvent(BaseGraphEvent):
     nodeId: str
-    position: Dict[str, float]
+    position: dict[str, float]
 
 
 @graph_event("syncNodeRemoval", category="sync", description="Sync node removal from UI")
@@ -571,7 +573,7 @@ class SyncNodeRemovalEvent(BaseGraphEvent):
 @dataclass
 class SyncNodePositionEvent(BaseGraphEvent):
     nodeId: str
-    position: Dict[str, float]
+    position: dict[str, float]
 
 
 @graph_event(
@@ -607,7 +609,7 @@ class SyncEdgeAdditionEvent(BaseGraphEvent):
     arrowAt: str = "inlet"  # ArrowAt value: where a computed head sits
     strokeDasharray: str = ""
     opacity: float = 1.0
-    style: Dict[str, Any] = field(default_factory=dict)  # declared width and heads
+    style: dict[str, Any] = field(default_factory=dict)  # declared width and heads
 
 
 @graph_event("syncEdgeRemoval", category="sync", description="Sync connection removal from UI")
@@ -619,11 +621,11 @@ class SyncEdgeRemovalEvent(BaseGraphEvent):
 @graph_event("syncSelections", category="sync", description="Sync selection state to UI")
 @dataclass
 class SyncSelectionsEvent(BaseGraphEvent):
-    nodes: List[str]
-    edges: List[str]
+    nodes: list[str]
+    edges: list[str]
     # Single active element to reconcile in the canvas: {"kind": "node"|"edge"|"", "id": str}.
     # {"kind": "", "id": ""} means "no primary" (clears any active highlight).
-    active: Dict[str, str] = field(default_factory=lambda: {"kind": "", "id": ""})
+    active: dict[str, str] = field(default_factory=lambda: {"kind": "", "id": ""})
 
 
 @graph_event("syncCanvasClear", category="sync", description="Clear entire canvas")
@@ -635,7 +637,7 @@ class SyncCanvasClearEvent(BaseGraphEvent):
 @graph_event("syncAllEdges", category="sync", description="Sync all connections to UI")
 @dataclass
 class SyncAllEdgesEvent(BaseGraphEvent):
-    edges: List[Dict[str, Any]]
+    edges: list[dict[str, Any]]
 
 
 @graph_event(

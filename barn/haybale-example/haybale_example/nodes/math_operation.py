@@ -3,9 +3,10 @@ Math operation node: applies a basic operation to two float values
 """
 
 # Import the node system base class
-from haywire.api import FLOAT, BaseNode, ExecutionContext, NodeType, NumberWidget, node
+from __future__ import annotations
 
 from haybale_example.types.math import MathOPs
+from haywire.api import FLOAT, BaseNode, ExecutionContext, NodeType, NumberWidget, node
 
 
 @node(

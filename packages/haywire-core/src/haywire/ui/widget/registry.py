@@ -1,10 +1,11 @@
-import inspect
-from typing import Optional
+from __future__ import annotations
 
-from haywire.core.errors.haywire_exception import HaywireException, ErrorSeverity
-from haywire.core.registry.lifecycle_event import LifeCycleEvent
+import inspect
+
+from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.base import BaseRegistry
+from haywire.core.registry.lifecycle_event import LifeCycleEvent
 from haywire.ui.widget.interface import IWidget
 
 from .globals import register_widget_globally, unregister_widget_globally
@@ -28,7 +29,7 @@ class WidgetRegistry(BaseRegistry[IWidget]):
             return False
 
     def _register_class(
-        self, cls: type[IWidget], library_identity: Optional[LibraryIdentity] = None
+        self, cls: type[IWidget], library_identity: LibraryIdentity | None = None
     ) -> str | None:
         """Register a UI widget with its metadata
 

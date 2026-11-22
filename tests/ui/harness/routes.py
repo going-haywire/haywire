@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import importlib
 from dataclasses import dataclass
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -28,7 +28,7 @@ from haywire.core.access import LevelMode
 from haywire.ui import elements as hui
 from haywire.ui.components.graph.canvas import GraphCanvasVue
 from haywire.ui.components.zoom.pan import ZoomPanContainer
-from haywire.ui.panel.render_utils import render_settings, render_schema
+from haywire.ui.panel.render_utils import render_schema, render_settings
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
@@ -592,11 +592,11 @@ def _harness_session(library_service, graph):
 
     Returns (session, app_state).
     """
+    from haybale_graph_editor.states.edit_state import EditState
     from haywire.core.di.context import get_workspace_root
     from haywire.core.session.session_manager import SessionManager
-    from haywire.core.signals import SignalDispatcher
     from haywire.core.session.workspace.manager import WorkspaceManager
-    from haybale_graph_editor.states.edit_state import EditState
+    from haywire.core.signals import SignalDispatcher
 
     app_state = _HarnessProjectState(library_service)
     session_manager = SessionManager(
@@ -749,7 +749,7 @@ def _record_navigation(manager, log) -> None:
     session.publish = _record
 
 
-def _build_theme_css(registry: "SettingsRegistry", theme_registry) -> str:
+def _build_theme_css(registry: SettingsRegistry, theme_registry) -> str:
     """The app's stylesheet: theme ``:root`` vars plus ``STATIC_CSS``.
 
     ``STATIC_CSS`` is what the studio itself injects (``shell.py``), and without
@@ -802,7 +802,7 @@ def _harness_session_context(library_service):
 def register_routes(library_service) -> None:
     """Register all harness routes with NiceGUI/FastAPI."""
 
-    registry: "SettingsRegistry" = library_service.get_settings_registry()
+    registry: SettingsRegistry = library_service.get_settings_registry()
     theme_registry = library_service.get_theme_registry()
     theme_css = _build_theme_css(registry, theme_registry)
 
@@ -1601,7 +1601,6 @@ def register_routes(library_service) -> None:
                 edge_sync_payload,
                 edge_visual_state,
             )
-
             from haywire.ui.components.graph.event_definitions import SyncAllEdgesEvent
 
             edge = _styled_edge()
@@ -2153,7 +2152,6 @@ def register_routes(library_service) -> None:
     @ui.page("/graph-level-mode")
     async def graph_level_mode_page(mode: str = "view"):
         from haybale_testing.nodes.testbed.fold_probe import FoldProbeNode
-
         from haywire.core.node.node_warning import NodeWarning
 
         graph, editor, card_id = _build_enter_graph(library_service)
@@ -2612,10 +2610,10 @@ def register_routes(library_service) -> None:
     async def graph_keymap_page(validation_delay_ms: float = 50.0):
         import json
 
-        from haywire.ui.components.keymap import KeymapListener
-        from haywire.ui.keymap import build_keymap
         from haybale_graph_editor.editors.graph_editor import GraphEditor
         from haybale_graph_editor.states.edit_state import EditState
+        from haywire.ui.components.keymap import KeymapListener
+        from haywire.ui.keymap import build_keymap
 
         graph, editor, _ = _build_size_graph(library_service.get_node_factory(), validation_delay_ms)
         clipboard_json = ui.label("").props('id="clipboard-json"').style("display: none")
@@ -2696,7 +2694,6 @@ def register_routes(library_service) -> None:
     async def inspector_gate_page(mode: str = "view"):
         from haybale_graph_editor.states.edit_state import EditState
         from haybale_graph_editor.surfaces import NodeInspector, PortInspector, SettingsInspector
-
         from haywire.barn.builtin.types import FLOAT
         from haywire.core.graph.editor import Editor
         from haywire.core.types.enums import PortOrigin
@@ -2766,8 +2763,6 @@ def register_routes(library_service) -> None:
         from pathlib import Path
         from types import SimpleNamespace
 
-        from haywire.core.volumes import VolumeStore, set_volume_store
-
         from haybale_models.download import DownloadQueue
         from haybale_models.editors.assisted_dialog import open_assisted_dialog
         from haybale_models.keys import MODELS_VOLUME
@@ -2775,6 +2770,7 @@ def register_routes(library_service) -> None:
         from haybale_models.sources import builtin_sources
         from haybale_models.store.index import ModelIndex
         from haybale_models.value.model_ref import ModelRef
+        from haywire.core.volumes import VolumeStore, set_volume_store
 
         folder = Path(tempfile.mkdtemp(prefix="hw-assisted-"))
         # A store of its own: the default one is the developer's real ~/.haywire/volumes.toml.
@@ -2809,10 +2805,6 @@ def register_routes(library_service) -> None:
         from types import SimpleNamespace
         from unittest.mock import MagicMock
 
-        from haywire.core.catalog import CatalogRegistry
-        from haywire.core.library.identity import LibraryIdentity
-        from haywire.core.volumes import VolumeStore, set_volume_store
-
         from haybale_graph_editor.states.graph_app_state import GraphAppState
         from haybale_models.download import DownloadQueue
         from haybale_models.editors.models_editor import ModelsEditor
@@ -2821,7 +2813,9 @@ def register_routes(library_service) -> None:
         from haybale_models.states.models_state import ModelsState
         from haybale_models.store.index import ModelIndex
         from haybale_models.store.records import FetchRecords
-
+        from haywire.core.catalog import CatalogRegistry
+        from haywire.core.library.identity import LibraryIdentity
+        from haywire.core.volumes import VolumeStore, set_volume_store
         from haywire.ui.app.shell import STATIC_CSS
 
         if theme_css:
@@ -2895,14 +2889,13 @@ def register_routes(library_service) -> None:
 
     @ui.page("/flow-meter")
     async def flow_meter_page():
+        from haybale_haystack.flow_meter import FlowMeterView
         from haywire.core.execution.flow_metrics import (
             FlowReading,
             GroupReading,
             MeterReading,
             Severity,
         )
-
-        from haybale_haystack.flow_meter import FlowMeterView
 
         def flow(flow_id: str, group: str, severity: Severity, load: float, **fields) -> FlowReading:
             values = {
@@ -2974,7 +2967,6 @@ def register_routes(library_service) -> None:
         from unittest.mock import MagicMock
 
         from haybale_studio.editors.volumes_editor import VolumesEditor
-
         from haywire.core.volumes import VolumeStore, set_volume_store
 
         if theme_css:

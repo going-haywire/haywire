@@ -1,9 +1,10 @@
 """A pin's icon kind comes from its wire type's pin_kind."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.types import PortType
-
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration
@@ -11,7 +12,6 @@ pytestmark = pytest.mark.integration
 
 def test_callback_and_control_pins_take_their_wire_types_kind(graph_with_library_system):
     from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
-
     from haywire.ui.skin.pin_icons import DEFAULT_PIN_ICONS
 
     node = make_node(graph_with_library_system, CallbackEmitProbeNode.class_identity.registry_key).node
@@ -22,7 +22,6 @@ def test_callback_and_control_pins_take_their_wire_types_kind(graph_with_library
 
 def test_a_config_port_resolves_to_no_icon(graph_with_library_system):
     from haybale_testing.nodes.testbed.fold_probe import FoldProbeNode
-
     from haywire.ui.skin.pin_icons import DEFAULT_PIN_ICONS
 
     node = make_node(graph_with_library_system, FoldProbeNode.class_identity.registry_key).node

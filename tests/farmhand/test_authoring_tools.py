@@ -6,6 +6,8 @@ the file watcher: it waits for the tool's write, then hands the registry the
 file event, so the registration the tools report is the real one.
 """
 
+from __future__ import annotations
+
 import asyncio
 import threading
 import time
@@ -19,7 +21,6 @@ from haywire.core.library.install_type import InstallType
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.registry.base import FileChangeEvent, FileEventType
-
 from tests.core.test_authoring import conftest as authoring
 from tests.wait import wait_until
 

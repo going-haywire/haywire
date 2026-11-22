@@ -17,6 +17,8 @@ Only the wire contract is asserted here. The other half — that
 already covered by mypy, since the parameter is typed.
 """
 
+from __future__ import annotations
+
 from dataclasses import fields, replace
 from types import SimpleNamespace
 from typing import cast

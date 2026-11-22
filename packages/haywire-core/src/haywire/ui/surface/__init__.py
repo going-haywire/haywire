@@ -10,6 +10,8 @@ reference surfaces via ``@panel(surface=…, hosts=…)`` and render them with
 imports this package; never the reverse.
 """
 
+from __future__ import annotations
+
 from .presentation import Presentation
 from .surface import Surface
 from .tree import all_surfaces, surface_by_id

@@ -8,10 +8,10 @@ re-evaluated after every change. Text commits on blur or Enter, not per keystrok
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import Any, Callable, Mapping, Optional
+from typing import Any
 
-from haywire.api.workbench import hui
 from nicegui import ui
 
 # make_sortable imports Sortable lazily, after the page's importmap was written.
@@ -27,6 +27,7 @@ from haybale_studio.questionnaire.definition import (
     missing_required,
     pages_of,
 )
+from haywire.api.workbench import hui
 
 OTHER = "other"
 """The value of a choice question's "Other" item; its text goes under ``<name>-Comment``."""
@@ -44,8 +45,8 @@ class _Field:
     wrapper: ui.element
     set_value: Callable[[Any], object]
     inputs: list[Any] = field(default_factory=list)
-    required_mark: Optional[ui.label] = None
-    error: Optional[ui.label] = None
+    required_mark: ui.label | None = None
+    error: ui.label | None = None
 
 
 class QuestionnaireForm:
@@ -86,8 +87,8 @@ class QuestionnaireForm:
         self._conditional: list[tuple[dict, ui.element]] = []
         self._applying = False
         self._number = 0
-        self._nav: Optional[ui.row] = None
-        self._progress: Optional[ui.linear_progress] = None
+        self._nav: ui.row | None = None
+        self._progress: ui.linear_progress | None = None
 
     # -- drawing -------------------------------------------------------------
 
@@ -310,7 +311,7 @@ def _build_boolean(form: QuestionnaireForm, element: dict) -> _Field:
     return _Field(element, toggle, lambda v: toggle.set_value(v if isinstance(v, bool) else None), [toggle])
 
 
-def _other_input(form: QuestionnaireForm, element: dict) -> Optional[ui.input]:
+def _other_input(form: QuestionnaireForm, element: dict) -> ui.input | None:
     if not element.get("showOtherItem"):
         return None
     key = f"{element['name']}-Comment"

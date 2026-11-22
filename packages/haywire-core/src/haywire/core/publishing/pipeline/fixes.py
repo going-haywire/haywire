@@ -8,14 +8,15 @@ clicks the modal's own "Restart Wizard" button to re-run
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 import toml
 
-from haywire.core.publishing.git import git
 from haywire.core.library.haybale_toml import HaybaleTomlError
+from haywire.core.publishing.git import git
 from haywire.core.publishing.manifest.errors import ManifestReadError
 from haywire.core.publishing.manifest.os_field import strip_undeclarable_os_values
 from haywire.core.publishing.pipeline.errors import (
@@ -40,7 +41,7 @@ if TYPE_CHECKING:
 _MANIFEST_FAILURE_TYPES = (ManifestReadError, HaybaleTomlError, toml.TomlDecodeError, OSError)
 
 
-def _fix_add_origin(pipeline: "SharePipeline", **kwargs: str) -> None:
+def _fix_add_origin(pipeline: SharePipeline, **kwargs: str) -> None:
     """Handler for fix_id="add_origin". Requires a `url` kwarg.
 
     The one input-taking repair (see the plan's "The rule"): running
@@ -82,7 +83,7 @@ def _fix_add_origin(pipeline: "SharePipeline", **kwargs: str) -> None:
     # there is nothing here for step 5's commit to stage.
 
 
-def _fix_commit_dirty_tree(pipeline: "SharePipeline", **kwargs: str) -> None:
+def _fix_commit_dirty_tree(pipeline: SharePipeline, **kwargs: str) -> None:
     """Handler for fix_id="commit_dirty_tree". Requires a `message` kwarg.
 
     `git add -A && git commit -m <message>`, whole repo — deliberately not
@@ -125,7 +126,7 @@ def _fix_commit_dirty_tree(pipeline: "SharePipeline", **kwargs: str) -> None:
     # pipeline itself wrote — there is nothing here for step 5's commit to stage.
 
 
-def _fix_strip_os(pipeline: "SharePipeline", **kwargs: str) -> None:
+def _fix_strip_os(pipeline: SharePipeline, **kwargs: str) -> None:
     """Handler for fix_id="strip_os". Requires a `lib_dir` kwarg: the barn
     library's directory, relative to `pipeline.repo_root` (e.g.
     "barn/haybale-alpha"), taken from the failing `PreconditionFailure.lib_dir`
@@ -154,7 +155,7 @@ def _haybale_toml_of(lib_dir: Path) -> Path:
     return module_dir / HAYBALE_TOML
 
 
-def _fix_clear_declared_path(pipeline: "SharePipeline", field: str, **kwargs: str) -> None:
+def _fix_clear_declared_path(pipeline: SharePipeline, field: str, **kwargs: str) -> None:
     """Remove a declared path that does not exist.
 
     The blunt repair: the author pointed at something that is not there, and
@@ -175,7 +176,7 @@ def _fix_clear_declared_path(pipeline: "SharePipeline", field: str, **kwargs: st
     pipeline.record([source])
 
 
-def _fix_set_declared_path(pipeline: "SharePipeline", field: str, **kwargs: str) -> None:
+def _fix_set_declared_path(pipeline: SharePipeline, field: str, **kwargs: str) -> None:
     """Point a declared path at something that exists.
 
     Requires a ``path`` kwarg — the wizard offers candidates it found on disk,
@@ -200,7 +201,7 @@ def _fix_set_declared_path(pipeline: "SharePipeline", field: str, **kwargs: str)
     pipeline.record([source])
 
 
-def _fix_sync_pyproject(pipeline: "SharePipeline", **kwargs: str) -> None:
+def _fix_sync_pyproject(pipeline: SharePipeline, **kwargs: str) -> None:
     """Regenerate a library's [project] fields from its haybale.toml.
 
     No per-field choice: haybale.toml wins, always. Offering a direction would
@@ -221,7 +222,7 @@ def _fix_sync_pyproject(pipeline: "SharePipeline", **kwargs: str) -> None:
     pipeline.record([lib_dir / "pyproject.toml"])
 
 
-def _fix_switch_branch(pipeline: "SharePipeline", **kwargs: str) -> None:
+def _fix_switch_branch(pipeline: SharePipeline, **kwargs: str) -> None:
     """Handler for fix_id="switch_branch". Requires a `branch` kwarg.
 
     Offered ONLY when the current commit is already contained in *branch* —

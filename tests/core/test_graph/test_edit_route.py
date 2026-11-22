@@ -16,7 +16,6 @@ from haywire.core.graph.scheduler import ThreadingTimerScheduler
 from haywire.core.graph.setting_owner import setting_owner
 from haywire.core.graph.types import ChangeReason
 from haywire.core.undo.config import UndoConfig
-
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration

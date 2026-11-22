@@ -21,7 +21,9 @@ Nodes access their settings via self.<inner_class_name>:
     self.settings._reset('strength')
 """
 
-from typing_extensions import dataclass_transform
+from __future__ import annotations
+
+from typing import dataclass_transform
 
 from .descriptor import graph, setting, shadow, watch
 from .settings import Settings

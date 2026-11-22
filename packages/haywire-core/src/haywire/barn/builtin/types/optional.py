@@ -1,9 +1,11 @@
 """OPTIONAL — a value of the wrapped IType, or absence."""
 
+from __future__ import annotations
+
 from typing import TypeVar
 
-from haywire.core.types import WrapperType, type
 from haywire.barn.builtin import widget_keys
+from haywire.core.types import WrapperType, type
 
 T = TypeVar("T")
 

@@ -1,12 +1,15 @@
 """A text chunk in PNG bytes: written before the pixels, readable without decoding them."""
 
+from __future__ import annotations
+
 import io
 
 import cv2
 import numpy as np
 import pytest
-from haybale_image.io.png_text import read_text_chunk, with_text_chunk
 from PIL import Image
+
+from haybale_image.io.png_text import read_text_chunk, with_text_chunk
 
 pytestmark = pytest.mark.unit
 

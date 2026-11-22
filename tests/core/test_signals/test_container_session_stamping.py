@@ -4,6 +4,8 @@ The dead-weakref / post-cleanup case is covered by unit tests in
 ``test_app_state_broadcast.py::test_session_state_signal_emit_silent_when_session_gone``.
 """
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 from haywire.core.state.base import SessionState

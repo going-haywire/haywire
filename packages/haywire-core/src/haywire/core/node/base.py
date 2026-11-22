@@ -1,15 +1,17 @@
 from __future__ import annotations
+
 import logging
-from typing import TYPE_CHECKING, Any, Optional
 from abc import abstractmethod
+from typing import TYPE_CHECKING, Any
 
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.node.legacy import LEGACY_PORTS_KEY
 from haywire.core.node.previous_setup import DECLARED_KEY
 from haywire.core.node.properties import NodeProperties  # re-exported for type hints
+from haywire.core.settings import Settings
+
 from ..execution.execution_context import ExecutionContext
 from .data import NodeData
-from haywire.core.settings import Settings
 
 if TYPE_CHECKING:
     from haywire.core.node import NodeWrapper
@@ -43,7 +45,7 @@ class BaseNode(NodeData):
             construction, so ``self.props`` is never this class.
             """
 
-    def __init__(self, node_id: str, wrapper: "NodeWrapper"):
+    def __init__(self, node_id: str, wrapper: NodeWrapper):
         """Initialize the node."""
         super().__init__(node_id, wrapper)
 
@@ -192,7 +194,7 @@ class BaseNode(NodeData):
         """
         pass
 
-    def _execute(self, context: "ExecutionContext") -> Optional[str]:
+    def _execute(self, context: ExecutionContext) -> str | None:
         """Run the worker and return the outlet ID to follow, or ``None``.
 
         Resolves every dirty port and calls ``on_validate()`` first. A data node
@@ -331,7 +333,7 @@ class BaseNode(NodeData):
         """Run whenever the graph is saved to disk, before the node is serialized."""
         pass
 
-    def on_class_reloaded(self, event: "LifeCycleEvent") -> bool:
+    def on_class_reloaded(self, event: LifeCycleEvent) -> bool:
         """Absorb a successful reload of this node's registry entry, or decline it.
 
         Declining takes the generic path: the node is rebuilt from current code

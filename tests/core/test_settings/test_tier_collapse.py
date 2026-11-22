@@ -1,6 +1,8 @@
 # tests/core/test_settings/test_tier_collapse.py
 """Tests for the P2 tier-collapse: OVERRIDE dropped, tiers are set-or-unset."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest

@@ -11,7 +11,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from haywire.core.access import AccessTier
-
 from haywire_studio.security.errors import SecurityError
 
 KIND_USER = "user"
@@ -62,7 +61,7 @@ class Principal:
         return data
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Principal":
+    def from_dict(cls, data: dict) -> Principal:
         try:
             tier = AccessTier(data["tier"])
         except (KeyError, ValueError) as exc:
@@ -133,7 +132,7 @@ class Roster:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Roster":
+    def from_dict(cls, data: dict) -> Roster:
         if not isinstance(data, dict):
             raise SecurityError("The 'auth' block must be a JSON object.")
         entries = data.get("principals", [])

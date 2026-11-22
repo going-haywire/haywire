@@ -21,7 +21,6 @@ from haybale_models.sources import ModelSource, SourceSet, prefix_of
 from haybale_models.sources.base import blob_name
 from haybale_models.store.index import ModelIndex
 from haybale_models.value.model_ref import ModelRef
-
 from haywire.api import CatalogEntry, CatalogRegistry, ModelFile, Resource
 
 logger = logging.getLogger(__name__)

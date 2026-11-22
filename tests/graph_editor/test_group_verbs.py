@@ -8,7 +8,6 @@ import pytest
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.editor import Editor
-
 from tests.conftest import make_node
 
 _PRINT = "haybale-testing:node:PrintProbeNode"

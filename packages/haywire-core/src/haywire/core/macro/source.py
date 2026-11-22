@@ -6,6 +6,8 @@ surfaces — the placement's context menu, the add-node menu, the library
 overview, ledger navigation — resolve it the same way.
 """
 
+from __future__ import annotations
+
 from collections.abc import Iterable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -26,7 +28,7 @@ def is_macro_key(registry_key: str) -> bool:
     return registry_key.split(":")[1:2] == [_MACRO_KIND]
 
 
-def is_macro_placement(node: "BaseNode") -> bool:
+def is_macro_placement(node: BaseNode) -> bool:
     """Whether ``node`` is a card standing for a macro.
 
     Its interior is runtime state rebuilt from the template, so it can be
@@ -40,7 +42,7 @@ def is_macro_placement(node: "BaseNode") -> bool:
     return bool(getattr(class_identity, "_is_macro_node", False))
 
 
-def modified_instance_origin(node: "BaseNode") -> MacroOrigin | None:
+def modified_instance_origin(node: BaseNode) -> MacroOrigin | None:
     """Return the origin of the Group ``node`` stands for, or ``None``.
 
     ``None`` for a node that is not a Graph-node, an unbound card, and a Group
@@ -53,7 +55,7 @@ def modified_instance_origin(node: "BaseNode") -> MacroOrigin | None:
     return getattr(definition, "origin", None)
 
 
-def macro_template(registry_key: str) -> "MacroTemplate | None":
+def macro_template(registry_key: str) -> MacroTemplate | None:
     """Return the template registered under ``registry_key``, or ``None`` when absent."""
     from haywire.core.di.config import get_library_system
 
@@ -93,7 +95,7 @@ def macro_source_path(registry_key: str) -> Path | None:
     return template.path if template is not None else None
 
 
-def count_placements(graphs: Iterable["BaseGraph"], registry_key: str) -> tuple[int, int]:
+def count_placements(graphs: Iterable[BaseGraph], registry_key: str) -> tuple[int, int]:
     """Count the placements of the macro ``registry_key`` across ``graphs``.
 
     Every Subgraph is searched at any depth, a placement's interior included.
@@ -112,7 +114,7 @@ def count_placements(graphs: Iterable["BaseGraph"], registry_key: str) -> tuple[
     return placements, holding
 
 
-def _placements_in(graph: "BaseGraph", registry_key: str) -> int:
+def _placements_in(graph: BaseGraph, registry_key: str) -> int:
     """Placements of ``registry_key`` in ``graph`` and every Subgraph beneath it."""
     found = sum(1 for wrapper in graph.node_wrappers.values() if wrapper.registry_key == registry_key)
     for definition in graph.subgraphs.values():

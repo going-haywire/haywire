@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from haywire.barn.builtin import widget_keys
 from haywire.core.types import PrimitiveField, PrimitiveType, type
-from ..wires import DataWire
 
+from ..wires import DataWire
 
 # ============================================================================
 # Numeric Types

@@ -9,12 +9,13 @@ No test in the "characterization" classes below touches ``_local_store`` or
 the per-field ``DataField`` cell mechanism.
 """
 
+from __future__ import annotations
+
 import pytest
 
-from haywire.core.settings import Settings, setting
-from haywire.core.di.test_config import create_test_bag
 from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, FLOAT, VEC2I
-
+from haywire.core.di.test_config import create_test_bag
+from haywire.core.settings import Settings, setting
 
 # ---------------------------------------------------------------------------
 # Fixtures — mirror test_settings.py

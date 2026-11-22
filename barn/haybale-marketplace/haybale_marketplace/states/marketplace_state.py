@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional
 
+from haywire.api.workbench import AppState, state
 from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall import (
     FetchedSources,
@@ -11,18 +11,25 @@ from haywire.core.marketstall import (
     MarketplaceFile,
     RefreshReport,
     ResolvedCatalog,
-    apply_refresh as runtime_apply,
-    fetch_sources as runtime_fetch_sources,
     parse_global_marketplace,
     parse_project_marketplace,
     record_block_on_source,
     record_preference,
     remove_block_on_source,
-    refresh as runtime_refresh,
     remove_stale_haybale_from_project,
+)
+from haywire.core.marketstall import (
+    apply_refresh as runtime_apply,
+)
+from haywire.core.marketstall import (
+    fetch_sources as runtime_fetch_sources,
+)
+from haywire.core.marketstall import (
+    refresh as runtime_refresh,
+)
+from haywire.core.marketstall import (
     resolve_catalog as runtime_resolve,
 )
-from haywire.api.workbench import AppState, state
 
 logger = logging.getLogger(__name__)
 
@@ -48,14 +55,13 @@ class MarketplaceState(AppState):
 
     def __init__(self) -> None:
         super().__init__()
-        self._workspace_root: Optional[Path] = None
-        self.last_report: Optional[RefreshReport] = None
-        self.global_marketplace_error: Optional[str] = None
+        self._workspace_root: Path | None = None
+        self.last_report: RefreshReport | None = None
+        self.global_marketplace_error: str | None = None
 
     def on_enable(self) -> None:
-        from haywire.core.di.context import get_workspace_root
-
         from haybale_marketplace.config import ensure_marketplace_config
+        from haywire.core.di.context import get_workspace_root
 
         ensure_marketplace_config()
         self._workspace_root = get_workspace_root()
@@ -100,7 +106,7 @@ class MarketplaceState(AppState):
 
         return GLOBAL_MARKETPLACE_DIR / "marketplace.toml"
 
-    def _project_path(self) -> Optional[Path]:
+    def _project_path(self) -> Path | None:
         if self._workspace_root is None:
             return None
         return self._workspace_root / ".haywire" / "marketplace.toml"
@@ -109,7 +115,7 @@ class MarketplaceState(AppState):
     # Read API
     # ------------------------------------------------------------------
 
-    def get_global(self) -> Optional[MarketplaceFile]:
+    def get_global(self) -> MarketplaceFile | None:
         """Parse the global marketplace file. None on malformed.
 
         On MalformedMarketplaceError, sets self.global_marketplace_error so the
@@ -158,7 +164,7 @@ class MarketplaceState(AppState):
     # anything drives these three in order. Only apply_refresh() mutates, so a
     # flow abandoned before it leaves the project file untouched.
 
-    def fetch_sources(self) -> Optional[FetchedSources]:
+    def fetch_sources(self) -> FetchedSources | None:
         """Phase 1 — fetch every subscription. Blocking: call in a thread.
 
         None when there is no project path, mirroring refresh()'s empty-report
@@ -193,7 +199,7 @@ class MarketplaceState(AppState):
         self.last_report = report
         return report
 
-    def installed_row(self, name: str) -> Optional[Haybale]:
+    def installed_row(self, name: str) -> Haybale | None:
         """The installed library's own declared metadata, or None.
 
         Reads ``haybale.toml`` off the installed package via the manager, so
@@ -249,7 +255,7 @@ class MarketplaceState(AppState):
     # Overview fetch (async)
     # ------------------------------------------------------------------
 
-    async def fetch_overview(self, pkg: Haybale, *, cache_dir: "Path | None" = None) -> "str | None":
+    async def fetch_overview(self, pkg: Haybale, *, cache_dir: Path | None = None) -> str | None:
         """Fetch OVERVIEW.md (or README fallback) for a marketplace-only package.
 
         Priority:
@@ -279,7 +285,7 @@ class MarketplaceState(AppState):
         from haywire.core.marketstall.cache import fetch_doc
         from haywire.core.marketstall.locate import module_dir_path, resolve_row_path
 
-        def _first_reachable(urls: list) -> "str | None":
+        def _first_reachable(urls: list) -> str | None:
             for url in urls:
                 body = fetch_doc(url, pkg.name, cache_dir=cache_dir)
                 if body:

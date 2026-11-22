@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional, cast
-
-from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
+from typing import Any, cast
 
 from haybale_graph_editor.states.graph_app_state import GraphAppState
+from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
 
 
 @dataclass
@@ -21,11 +20,11 @@ class _Editor:
 class _Container:
     binding_id: str
     editor: Any = field(default_factory=_Editor)
-    path: Optional[Path] = None
+    path: Path | None = None
     unsaved: bool = False
     display_name: str = "C"
 
-    def save(self, save_as: Optional[Path] = None) -> Optional[str]:
+    def save(self, save_as: Path | None = None) -> str | None:
         return None
 
 

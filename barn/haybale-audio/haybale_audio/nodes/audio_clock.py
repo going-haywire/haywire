@@ -1,22 +1,23 @@
 """Audio Clock — emits a silent block at a steady rate, to pace a mixer or any audio flow."""
 
+from __future__ import annotations
+
+from haybale_audio.emitter import BlockPump, deliver_to_subscribers, set_status
+from haybale_audio.value import AudioBlock
 from haywire.api import (
     EXEC,
     INT,
     STRING,
     BaseNode,
     ExecutionContext,
+    LabelWidget,
     NodeSettings,
     NodeType,
     Promotable,
-    LabelWidget,
     bag,
     node,
     setting,
 )
-
-from haybale_audio.emitter import BlockPump, deliver_to_subscribers, set_status
-from haybale_audio.value import AudioBlock
 
 
 class ClockSettings(NodeSettings):
@@ -80,8 +81,8 @@ class AudioClockNode(BaseNode):
     clock = bag(ClockSettings)
 
     def init(self) -> None:
-        from haybale_core.types import POOLED
         from haybale_audio.types.callback import AUDIO_CALLBACK
+        from haybale_core.types import POOLED
 
         self.add(EXEC.as_inlet("start", label="Start"))
         self.add(EXEC.as_inlet("stop", label="Stop"))

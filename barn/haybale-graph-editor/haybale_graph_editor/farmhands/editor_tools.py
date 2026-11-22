@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from haywire.api import PortType
 from haywire.api.workbench import (
     AccessTier,
     Farmhand,
@@ -27,11 +28,10 @@ from haywire.api.workbench import (
     farmhand,
     truncation_note,
 )
-from haywire.core.node.inspector import NodeInstanceInspector, PortInfo, SettingInfo, _port_type_key
 from haywire.core.graph.arrange import ArrangeGaps, ArrangeScope, arrange_layout
 from haywire.core.graph.edit_route import EditRoute
 from haywire.core.graph.setting_owner import SettingOwner
-from haywire.api import PortType
+from haywire.core.node.inspector import NodeInstanceInspector, PortInfo, SettingInfo, _port_type_key
 from haywire.core.undo.origin import StepOrigin
 
 _READ_ONLY = ToolAnnotations(read_only_hint=True)

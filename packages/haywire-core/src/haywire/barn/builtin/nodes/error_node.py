@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode
+from haywire.core.node import BaseNode, node
 
 # ============================================================================
 # Error Node (returned when a node cannot be loaded)

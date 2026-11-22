@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from nicegui import ui
 
@@ -22,8 +22,9 @@ from haywire.ui.panel.host_rendering import panel_accessible, poll_surface, rend
 from haywire.ui.panel.redraw_coordinator import PanelRedrawCoordinator
 
 if TYPE_CHECKING:
-    from haywire.api.workbench import SessionContext
     from nicegui.element import Element
+
+    from haywire.api.workbench import SessionContext
 
 logger = logging.getLogger(__name__)
 

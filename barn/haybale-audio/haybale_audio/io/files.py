@@ -1,5 +1,7 @@
 """Reading and writing audio files as AudioBlocks."""
 
+from __future__ import annotations
+
 import logging
 import time
 from pathlib import Path

@@ -1,3 +1,4 @@
+from __future__ import annotations
 from .annotation_text_widget import AnnotationTextWidget
 from .arrow_head_widget import ArrowHeadWidget
 from .basic_widgets import (

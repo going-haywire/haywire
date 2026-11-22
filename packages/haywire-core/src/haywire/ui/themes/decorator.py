@@ -15,7 +15,8 @@ Consistent with @node, @editor, @panel, @settings pattern:
 
 from __future__ import annotations
 
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from haywire.core.library.utils import THEME, derive_library_identity, reg_key
 from haywire.ui.themes.identity import ThemeClassIdentity

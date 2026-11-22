@@ -34,7 +34,6 @@ import shutil
 import sys
 import tomllib
 from pathlib import Path
-from typing import Optional
 
 import markdown
 from pymdownx.snippets import SnippetExtension, SnippetPreprocessor
@@ -174,7 +173,7 @@ def bake(out_dir: Path, version: str) -> int:
     return len(md_files)
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--version",

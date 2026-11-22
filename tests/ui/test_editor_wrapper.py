@@ -1,5 +1,7 @@
 """Tests for EditorWrapper and EditorWrapperState."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -56,8 +58,8 @@ def test_state_clear_errors_resets_runtime_and_instantiate():
 # Task 3: EditorWrapper construction, identity, cleanup
 # ---------------------------------------------------------------------------
 
-from haywire.ui.editor.wrapper import EditorWrapper  # noqa: E402
 from haywire.ui.editor.registry import EditorRegistry  # noqa: E402
+from haywire.ui.editor.wrapper import EditorWrapper  # noqa: E402
 
 
 def _wrapper(*, editor_cls: Any, **kwargs: Any) -> EditorWrapper:
@@ -219,9 +221,8 @@ def test_instantiate_captures_exception_into_error_instantiate():
 # Task 5: _on_lifecycle_event — hot-reload state transitions
 # ---------------------------------------------------------------------------
 
-from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType  # noqa: E402
 from haywire.core.library.identity import LibraryIdentity  # noqa: E402
-
+from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType  # noqa: E402
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
     label="fake",
@@ -733,6 +734,7 @@ def test_base_editor_handle_close_request_defaults_to_true():
             pass
 
     from typing import cast
+
     from haywire.ui.editor.wrapper import EditorWrapper
 
     editor = _MinimalEditor(cast(EditorWrapper, object()))

@@ -221,19 +221,20 @@ Summary on the first line, a blank line after it, sections as in CS-D3.
 
 `list[str]`, `X | None`, `A | B`, `Self`, `def f[T](x: T) -> T`, and `Callable` from
 `collections.abc`; never `List`, `Optional`, `Union` or a `TypeVar` for a plain generic.
-**Enforced by**: review (ruff `UP`, planned). **Scope**: repo.
+**Enforced by**: ruff `UP`. **Scope**: repo.
 
 ### CS-T2 · Every module starts with `from __future__ import annotations`
 
 Forward references then need no quotes: ✗ `-> "Graph"` ✓ `-> Graph`.
-**Enforced by**: review (ruff `I002` and `UP037`, planned). **Scope**: repo.
+**Enforced by**: ruff `I002` and `UP037`. **Scope**: repo.
 
 ### CS-T3 · A type in an annotation the framework reads at runtime is imported at runtime
 
 The framework resolves annotations with `get_type_hints` or `inspect.signature` on
 settings classes, state classes, Farmhand tools and node worker methods. With CS-T2,
-every annotation is a string resolved at that moment, so a name imported only under
-`TYPE_CHECKING` raises there, far from the import.
+every annotation is a string resolved at that moment against the module's globals, so a
+name imported only under `TYPE_CHECKING`, or a class defined inside a function (a test,
+typically), raises there, far from the import.
 
 ✗
 
@@ -342,7 +343,7 @@ except Exception:
 
 ### CS-I1 · Imports are sorted: standard library, third party, first party
 
-**Enforced by**: review (ruff `I` with `known-first-party`, planned). **Scope**: repo.
+**Enforced by**: ruff `I` with `known-first-party`. **Scope**: repo.
 
 ### CS-I2 · Dependencies point one way
 

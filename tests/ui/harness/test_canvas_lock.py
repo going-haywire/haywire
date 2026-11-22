@@ -4,6 +4,8 @@ Drives the ``/graph-lock`` harness route: one node on a real GraphCanvasManager
 dropped to level mode operate; ``refresh_mode`` pushes the ``levelMode`` prop to canvas.vue.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

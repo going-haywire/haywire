@@ -4,7 +4,10 @@ Unit tests for BaseGraph.
 Tests graph creation and basic operations.
 """
 
+from __future__ import annotations
+
 import pytest
+
 from haywire.core.graph.base import BaseGraph
 from haywire.core.library.utils import get_registry_id_from_key
 

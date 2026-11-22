@@ -11,6 +11,8 @@ especially the property that motivated the whole design, that two routes to the
 same visible state must agree.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import BOOL, FLOAT, INT, OPTIONAL

@@ -6,22 +6,24 @@ events map onto the same lifecycle a class registry emits, so a consumer
 subscribed to component changes cannot tell the two apart.
 """
 
-from typing import ClassVar, Dict, Optional, cast
-from abc import abstractmethod
+from __future__ import annotations
+
 import hashlib
 import logging
+from abc import abstractmethod
 from pathlib import Path
+from typing import ClassVar, cast
 
 from ..errors import HaywireException
 from ..library.identity import LibraryIdentity
 from .component import ComponentRegistry
-from .events import FileChangeEvent, FileEventType, T
+from .events import FileChangeEvent, FileEventType, RegisteredClass
 from .lifecycle_event import LifeCycleEvent, LifeCycleEventType
 
 logger = logging.getLogger(__name__)
 
 
-class DocumentRegistry(ComponentRegistry[T]):
+class DocumentRegistry[T: RegisteredClass](ComponentRegistry[T]):
     """A registry whose elements are parsed documents.
 
     A subclass sets :attr:`SUFFIX` and implements :meth:`_parse` and
@@ -41,9 +43,9 @@ class DocumentRegistry(ComponentRegistry[T]):
         super().__init__()
 
         # registry_key -> sha256 of the text last parsed successfully
-        self._hashes: Dict[str, str] = {}
+        self._hashes: dict[str, str] = {}
         # registry_key -> the file it came from
-        self._key_to_path: Dict[str, Path] = {}
+        self._key_to_path: dict[str, Path] = {}
 
     @abstractmethod
     def _parse(self, path: Path, text: str, library_identity: LibraryIdentity) -> T:
@@ -86,7 +88,7 @@ class DocumentRegistry(ComponentRegistry[T]):
         self,
         folder_path: str,
         library_identity: LibraryIdentity,
-        exclude_patterns: Optional[list[str]] = None,
+        exclude_patterns: list[str] | None = None,
     ):
         """Register every ``SUFFIX`` file directly inside ``folder_path``."""
         if folder_path in self._folder_to_library:
@@ -107,7 +109,7 @@ class DocumentRegistry(ComponentRegistry[T]):
         self,
         folder_path: str,
         library_identity: LibraryIdentity,
-        exclude_patterns: Optional[list[str]] = None,
+        exclude_patterns: list[str] | None = None,
     ):
         """Unregister everything ``folder_path`` contributed."""
         self._folder_to_library.pop(folder_path, None)
@@ -230,7 +232,7 @@ class DocumentRegistry(ComponentRegistry[T]):
         registry_key: str,
         event_type: LifeCycleEventType,
         library_identity: LibraryIdentity,
-        error: Optional[HaywireException] = None,
+        error: HaywireException | None = None,
     ) -> LifeCycleEvent:
         return LifeCycleEvent(
             registry_key=registry_key,

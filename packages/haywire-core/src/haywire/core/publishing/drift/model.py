@@ -1,5 +1,7 @@
 """The `DepDrift` data model — no logic, just the shape of a drift result."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from pathlib import Path
 

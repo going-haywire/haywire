@@ -8,16 +8,19 @@ or as rendered markdown for .md files. Binary files and oversized files
 show an appropriate message instead.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from nicegui import ui
 
 from haywire.api.workbench import AccessTier, BaseEditor, OpenBehavior, SlotName, editor, hui
 
 if TYPE_CHECKING:
-    from haywire.api.workbench import SessionContext
     from nicegui.element import Element
+
+    from haywire.api.workbench import SessionContext
 
 
 _MAX_DISPLAY_BYTES = 512 * 1024  # 512 KB
@@ -57,9 +60,9 @@ class FileViewerEditor(BaseEditor):
 
     def __init__(self, wrapper):
         super().__init__(wrapper)
-        self._last_file: Optional[Path] = None
+        self._last_file: Path | None = None
 
-    def _resolve_path(self) -> Optional[Path]:
+    def _resolve_path(self) -> Path | None:
         """Return the file path this tab is pinned to, via wrapper.binding_id."""
         if self.wrapper._binding_id is None:
             return None
@@ -71,7 +74,7 @@ class FileViewerEditor(BaseEditor):
     # descriptor's __set__) but never drives a redraw on this editor —
     # a different file means a different tab.
 
-    def on_focus(self, context: "SessionContext") -> None:
+    def on_focus(self, context: SessionContext) -> None:
         """Claim ownership of context.active_file when this tab becomes active.
 
         Reads ``self.wrapper._binding_id`` (the file path as a string) and
@@ -89,7 +92,7 @@ class FileViewerEditor(BaseEditor):
             return
         context.active_file = new_value
 
-    def draw(self, context: "SessionContext", container: "Element") -> None:
+    def draw(self, context: SessionContext, container: Element) -> None:
         self._last_file = self._resolve_path()
 
         with container:

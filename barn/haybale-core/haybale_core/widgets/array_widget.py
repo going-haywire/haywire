@@ -5,6 +5,8 @@ IType gets ``ARRAY[TheirType]`` rows without this file changing. A row
 talks to the list through ``_ItemModel``, which reads and writes one index.
 """
 
+from __future__ import annotations
+
 from typing import Any
 from uuid import uuid4
 
@@ -30,12 +32,12 @@ class _ItemField:
     changes the list cell's handler list while it dispatches.
     """
 
-    def __init__(self, outer: Any, item_cls: "type[IType]") -> None:
+    def __init__(self, outer: Any, item_cls: type[IType]) -> None:
         self.type_cls = item_cls
         self.on_changed: Event[Any] = Event[Any]()
         self._outer = outer
 
-    def get_stored_type(self) -> "type[IType]":
+    def get_stored_type(self) -> type[IType]:
         return self.type_cls
 
     def has_linked_value(self) -> bool:
@@ -53,7 +55,7 @@ class _ItemModel:
     """
 
     def __init__(
-        self, outer: Any, index: int, item_cls: "type[IType]", widget_config: dict, default: Any
+        self, outer: Any, index: int, item_cls: type[IType], widget_config: dict, default: Any
     ) -> None:
         self.id = f"{outer.id}__{index}"
         self.widget_config = widget_config
@@ -242,7 +244,7 @@ class ArrayWidget(BaseWidget):
 
     # ---- item type -------------------------------------------------------
 
-    def _item_type(self) -> "type[IType] | None":
+    def _item_type(self) -> type[IType] | None:
         """Return the item type of this list field (``STRING`` for ``ARRAY[STRING]``), or ``None``."""
         element = getattr(self.port.data.type_cls, "element_type_cls", None)
         if isinstance(element, type) and issubclass(element, IType):
@@ -250,7 +252,7 @@ class ArrayWidget(BaseWidget):
         return None
 
     @staticmethod
-    def _inner_widget_class(item_cls: "type[IType] | None") -> Any:
+    def _inner_widget_class(item_cls: type[IType] | None) -> Any:
         """Return the item type's declared widget class, or ``None``."""
         key = getattr(getattr(item_cls, "class_identity", None), "widget_key", None)
         return get_widget_class(key) if key else None

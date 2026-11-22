@@ -9,6 +9,8 @@ A primitive port's default must be a value its type accepts:
   HaywireException naming the port, not a bare ValueError from ``int()``
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest

@@ -1,8 +1,10 @@
 """``on_pin_removed`` and ``on_pin_restored``: a pin removal reaches its node through the undo step."""
 
-import pytest
-from haybale_testing.types.test_types import TEST_STRING
+from __future__ import annotations
 
+import pytest
+
+from haybale_testing.types.test_types import TEST_STRING
 from haywire.core.errors.ledger import ErrorLedger, get_error_ledger, set_error_ledger
 from haywire.core.graph.editor import Editor
 from haywire.core.node.promotion import remove_port

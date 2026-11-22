@@ -64,7 +64,7 @@ class Upgrader(ABC):
         """
 
     @abstractmethod
-    def _predecessor(self) -> "Upgrader":
+    def _predecessor(self) -> Upgrader:
         """The upgrader producing the version immediately below this one."""
 
     def upgrade(self, data: GraphDict) -> GraphDict:

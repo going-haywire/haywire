@@ -10,6 +10,8 @@ The page echoes the fill's rendered CSS (see the ``/fill-widget`` route), so
 assertions are about what the model holds, not what a control displays.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page, expect
 

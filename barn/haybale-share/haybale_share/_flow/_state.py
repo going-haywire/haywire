@@ -28,8 +28,8 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
+from haybale_share._flow.copy import STEP_TITLES, STEPS
 from haywire.core.publishing.pipeline import (
     CommitPlan,
     CommitResult,
@@ -47,8 +47,6 @@ from haywire.core.publishing.pipeline import (
 )
 from haywire.ui.components.popup import Popup
 from haywire.ui.components.stepper import StepFlow
-
-from haybale_share._flow.copy import STEP_TITLES, STEPS
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +71,7 @@ class ShareFlow(StepFlow):
     STEPS = STEPS
     STEP_TITLES = STEP_TITLES
 
-    def __init__(self, *, pipeline: SharePipeline, popup: Optional[Popup] = None) -> None:
+    def __init__(self, *, pipeline: SharePipeline, popup: Popup | None = None) -> None:
         super().__init__()
         self.pipeline = pipeline
         self.popup = popup

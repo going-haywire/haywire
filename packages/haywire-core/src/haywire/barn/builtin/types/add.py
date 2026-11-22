@@ -1,9 +1,11 @@
 """ADD — a pin that grows a new port from whatever connects to it."""
 
+from __future__ import annotations
+
 import builtins
 from dataclasses import dataclass
 from typing import Any as AnyValue
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 from haywire.core.types import BaseType, IType, PortType, StoreStrategy, type
 from haywire.core.types.base import _wrapped_identity
@@ -21,7 +23,7 @@ class ADDField(DataField):
     while ``type_cls`` stays ``ADD[STRING]`` for the identity and the glyph.
     """
 
-    def get_stored_type(self) -> "builtins.type[IType]":
+    def get_stored_type(self) -> builtins.type[IType]:
         element = getattr(self.type_cls, "element_type_cls", None)
         if element is not None and element is not self.type_cls:
             return element
@@ -64,7 +66,7 @@ class ADDField(DataField):
     # A placeholder holds nothing worth saving.
     store_strategy=StoreStrategy.NEVER,
 )
-class ADD(BaseType, Generic[T]):
+class ADD[T](BaseType):
     """A pin that grows a new port when something connects to it.
 
     Connecting is the point: the node reads the connection and replaces the pin
@@ -123,7 +125,7 @@ class ADD(BaseType, Generic[T]):
     _is_any = True
 
     #: Cache of parameterized classes; cleared by the @type decorator on reload.
-    _parameterized_cache: "dict[AnyValue, builtins.type]" = {}
+    _parameterized_cache: dict[AnyValue, builtins.type] = {}
 
     def __init__(self, value: AnyValue = None, **kwargs: AnyValue) -> None:
         """Wrap *value*, where ``None`` means "not filled yet"."""
@@ -142,7 +144,7 @@ class ADD(BaseType, Generic[T]):
         return None
 
     @classmethod
-    def __class_getitem__(cls, element_type_cls: "builtins.type[IType]"):
+    def __class_getitem__(cls, element_type_cls: builtins.type[IType]):
         """Return the parameterized ``ADD`` for *element_type_cls*, cached.
 
         The parameterization takes the element's colour while keeping ``ADD``'s

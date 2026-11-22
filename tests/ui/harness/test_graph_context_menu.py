@@ -1,5 +1,7 @@
 """Regression tests for graph canvas context-menu routing through the zoom viewport."""
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page, expect
 

@@ -17,8 +17,8 @@ import copy
 import logging
 from typing import TYPE_CHECKING
 
-from haywire.core.node import node, NodeType
 from haywire.core.graph.scheduler import SyncScheduler
+from haywire.core.node import NodeType, node
 from haywire.core.node.previous_setup import strip_previous_setups
 
 from .graph_node import GraphNode
@@ -62,7 +62,7 @@ class MacroNode(GraphNode):
     _forwards_content_changes = False
 
     @property
-    def identity(self) -> "NodeIdentity":
+    def identity(self) -> NodeIdentity:
         """The template's identity, not this class's.
 
         Every placement of every macro is an instance of this one class, so the
@@ -99,7 +99,7 @@ class MacroNode(GraphNode):
         self.instantiate_from_template()
         super().post_init()
 
-    def _template(self) -> "MacroTemplate | None":
+    def _template(self) -> MacroTemplate | None:
         """The registered template this card stands for, or ``None`` if absent."""
         wrapper = self.wrapper
         if wrapper is None:
@@ -162,7 +162,7 @@ class MacroNode(GraphNode):
         out of step with every other placement of the same macro.
         """
 
-    def on_class_reloaded(self, event: "LifeCycleEvent") -> bool:
+    def on_class_reloaded(self, event: LifeCycleEvent) -> bool:
         """Swap the interior for the reloaded template, keeping values and label.
 
         The generic rebuild would run ``init()`` and discard both. Reconciling

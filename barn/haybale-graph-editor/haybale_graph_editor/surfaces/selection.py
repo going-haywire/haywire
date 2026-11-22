@@ -17,9 +17,9 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 from haywire.api.workbench import Surface
 
 if TYPE_CHECKING:
+    from haywire.api.workbench import SessionContext
     from haywire.core.graph.arrange import ArrangeScope
     from haywire.core.graph.stacking import Restack
-    from haywire.api.workbench import SessionContext
 
 
 @runtime_checkable
@@ -74,14 +74,14 @@ class SelectionActions(Protocol):
     def remove_from_stage(self) -> None: ...
 
     # Stacking order of the whole selection, in the view the menu opened in.
-    def restack_selection(self, how: "Restack") -> None: ...
+    def restack_selection(self, how: Restack) -> None: ...
 
     # Flow verbs from start nodes. Arrange lays out the nodes `scope` covers:
     # one start node keeps its place, several (FLOW only) arrange every flow
     # they touch. Select acts on one node, offered only when it is the whole
     # selection, and replaces the selection with the nodes `scope` covers.
-    def arrange_from(self, node_ids: list[str], scope: "ArrangeScope") -> None: ...
-    def select_from(self, node_id: str, scope: "ArrangeScope") -> None: ...
+    def arrange_from(self, node_ids: list[str], scope: ArrangeScope) -> None: ...
+    def select_from(self, node_id: str, scope: ArrangeScope) -> None: ...
 
     # Turns the layout of the whole selection a quarter turn, in place.
     def rotate_selection(self, clockwise: bool) -> None: ...
@@ -99,7 +99,7 @@ class SelectionMenu(Surface):
     banded = True
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         from haybale_graph_editor.states.edit_state import EditState
 
         edit = ctx.data[EditState]

@@ -1,5 +1,7 @@
 """A pin's tooltip is drawn in the browser: hovering shows it without a server round trip."""
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page, expect
 

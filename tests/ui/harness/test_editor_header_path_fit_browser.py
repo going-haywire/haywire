@@ -1,5 +1,7 @@
 """An editor header's path crops its middle to fit a narrow slot, and shows in full once the slot widens."""
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

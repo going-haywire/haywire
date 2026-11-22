@@ -1,12 +1,15 @@
-import pytest
+from __future__ import annotations
+
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+from haywire.barn.builtin.types import STRING
 from haywire.barn.builtin.widgets import basic_widgets
 from haywire.barn.builtin.widgets.basic_widgets import MenuWidget
-from haywire.core.types.port import DataPort
 from haywire.core.types.enums import PortOrigin, PortType
-from haywire.barn.builtin.types import STRING
+from haywire.core.types.port import DataPort
 
 pytestmark = pytest.mark.unit
 

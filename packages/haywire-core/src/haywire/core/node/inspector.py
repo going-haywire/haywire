@@ -75,7 +75,7 @@ def _validator_fields(descriptor: Any) -> tuple[str | None, str | None]:
 class NodeInstanceInspector:
     """Wrap a built BaseNode and answer its schema questions."""
 
-    def __init__(self, node: "BaseNode") -> None:
+    def __init__(self, node: BaseNode) -> None:
         self._node = node
 
     def ports(self) -> list[PortInfo]:

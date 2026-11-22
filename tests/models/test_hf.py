@@ -12,10 +12,10 @@ from typing import Any
 import huggingface_hub
 import pytest
 
-from tests.models.conftest import make_hf_snapshot
 from haybale_models import hf
 from haybale_models.hf import HfUri, parse_hf
 from haybale_models.sources.base import blob_name
+from tests.models.conftest import make_hf_snapshot
 
 
 def test_parse_with_and_without_revision() -> None:

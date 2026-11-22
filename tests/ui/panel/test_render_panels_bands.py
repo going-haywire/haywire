@@ -1,5 +1,7 @@
 """Tests for render_panels — separators between the order bands of a banded surface."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from typing import Any, cast
 

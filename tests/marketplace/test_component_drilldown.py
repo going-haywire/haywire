@@ -8,8 +8,8 @@ import asyncio
 import pytest
 
 from haywire.core.farmhand import FarmhandContext
-from haywire.core.library.kinds import doc_filename
 from haywire.core.library.haybale import Haybale
+from haywire.core.library.kinds import doc_filename
 
 pytestmark = pytest.mark.integration
 

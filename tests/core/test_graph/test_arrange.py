@@ -11,11 +11,10 @@ from haywire.core.graph.arrange import (
     ArrangeScope,
     arrange_layout,
     arranged_nodes,
-    rotated_positions,
     connected_nodes,
+    rotated_positions,
 )
 from haywire.core.graph.editor import Editor
-
 from tests.conftest import make_node
 
 DOWN, UP, FLOW, ALL = ArrangeScope.DOWNSTREAM, ArrangeScope.UPSTREAM, ArrangeScope.FLOW, ArrangeScope.ALL

@@ -1,5 +1,7 @@
 """A row carries coordinates; locate turns them into whichever URL a caller needs."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.library.haybale import Haybale

@@ -6,6 +6,8 @@ decimal digit (e.g. "5.0"). NumberWidget.build() special-cases INT-stored
 ports to default precision=0, unless the caller explicitly configured one.
 """
 
+from __future__ import annotations
+
 import pytest
 from nicegui import ui
 

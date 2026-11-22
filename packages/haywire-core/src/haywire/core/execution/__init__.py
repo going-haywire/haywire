@@ -30,6 +30,8 @@ Usage:
     interpreter.stop_execution()
 """
 
+from __future__ import annotations
+
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.execution.interpreter import Interpreter
 from haywire.core.execution.vm import HaywireVM

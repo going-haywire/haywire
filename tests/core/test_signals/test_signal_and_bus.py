@@ -1,5 +1,7 @@
 """Tests for the Signal root class hierarchy."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest

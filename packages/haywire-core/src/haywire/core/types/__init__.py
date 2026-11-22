@@ -6,6 +6,8 @@ This module provides infrastructure for defining and managing data types
 nodes through inlet/outlet connections.
 """
 
+from __future__ import annotations
+
 from .interface import IType
 from .base import PrimitiveType, BaseType, CompoundType, WrapperType
 from .decorator import type

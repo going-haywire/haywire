@@ -1,5 +1,7 @@
 """``LibrarySystemService.get_component_doc_path`` finds the page ``haywire docs`` wrote."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 
 import pytest

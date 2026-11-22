@@ -1,6 +1,8 @@
 """End-to-end: promote a setting, wire an upstream outlet to the new inlet, confirm
 the driven value reaches the setting read-tier, then demote and confirm fallback."""
 
+from __future__ import annotations
+
 import pytest
 
 pytestmark = pytest.mark.integration

@@ -1,5 +1,7 @@
 """Toggle."""
 
+from __future__ import annotations
+
 from haybale_core.nodes.widgets.base import BaseWidgetNode
 from haywire.api import BOOL, TOGGLE_WIDGET, NodeType, node
 

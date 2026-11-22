@@ -22,7 +22,7 @@ import importlib
 
 import pytest
 
-from haywire.core.state import LibraryStateContainer, StateRegistry, SessionState
+from haywire.core.state import LibraryStateContainer, SessionState, StateRegistry
 
 _EDIT_STATE_MODULE = "haybale_graph_editor.states.edit_state"
 

@@ -13,13 +13,15 @@ Real NiceGUI elements need a Client slot context, hence the integration marker
 (same pattern as test_set_enabled.py).
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest
 from nicegui import Client
 
 from haywire.barn.builtin import widgets as builtin_widgets
-from haywire.barn.builtin.types import BOOL, CHOICES, FLOAT, INT, VEC3F, OPTIONAL
+from haywire.barn.builtin.types import BOOL, CHOICES, FLOAT, INT, OPTIONAL, VEC3F
 from haywire.barn.builtin.widgets.optional_widget import OptionalWidget
 from haywire.ui.panel.setting_widget_model import SettingWidgetModel
 from haywire.ui.widget.globals import WIDGET_REGISTRY

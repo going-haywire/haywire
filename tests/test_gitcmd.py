@@ -1,5 +1,7 @@
 """Tests for the hardened git subprocess helpers."""
 
+from __future__ import annotations
+
 import subprocess
 from dataclasses import FrozenInstanceError
 from pathlib import Path

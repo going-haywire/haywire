@@ -1,5 +1,7 @@
 """Unit tests for the bounded, sequence-numbered error ledger."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.errors.haywire_exception import HaywireException

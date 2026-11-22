@@ -5,6 +5,8 @@ and the field's identity — the (name, value, old) contract bag.subscribe
 promises rides on this payload.
 """
 
+from __future__ import annotations
+
 from haywire.barn.builtin.types import FLOAT
 from haywire.core.types.fields import FieldChange
 

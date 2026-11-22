@@ -203,43 +203,43 @@ def test_public_surface_imports_from_marketstall_package() -> None:
     naming the symbol, and mypy checks the names statically too.
     """
     from haywire.core.marketstall import (  # noqa: F401
-        # Dataclasses (Haybale/Deprecation live in haywire.core.library.haybale
-        # and are no longer re-exported here — see the layering test)
-        Subscription,
+        BareRepoUrlRejectedError,
+        DuplicateHeapNameError,
+        FetchResult,
+        InputForm,
+        # Errors
+        MalformedMarketplaceError,
         MarketplaceFile,
         ProjectMarketplaceFile,
         RefreshOutcome,
         RefreshReport,
-        FetchResult,
-        # Parsers
-        parse_global_marketplace,
-        parse_project_marketplace,
-        parse_marketstall_body,
-        parse_remote_marketplace_body,
-        # Serializers
-        serialize_global_marketplace,
-        serialize_project_marketplace,
-        # Refresh
-        refresh,
+        RemoteFetchError,
+        # Dataclasses (Haybale/Deprecation live in haywire.core.library.haybale
+        # and are no longer re-exported here — see the layering test)
+        Subscription,
+        add_heap_to_project,
         # Helpers
         add_market_subscription_to_global,
         add_stall_subscription_to_global,
-        add_heap_to_project,
-        remove_stale_haybale_from_project,
-        record_preference,
-        record_block_on_source,
-        detect_subscription_conflicts,
-        # Errors
-        MalformedMarketplaceError,
-        DuplicateHeapNameError,
-        RemoteFetchError,
-        # Platform
-        current_os,
-        haybale_supports_current_os,
         # URL resolution
         classify_input,
-        InputForm,
-        BareRepoUrlRejectedError,
+        # Platform
+        current_os,
+        detect_subscription_conflicts,
+        haybale_supports_current_os,
+        # Parsers
+        parse_global_marketplace,
+        parse_marketstall_body,
+        parse_project_marketplace,
+        parse_remote_marketplace_body,
+        record_block_on_source,
+        record_preference,
+        # Refresh
+        refresh,
+        remove_stale_haybale_from_project,
+        # Serializers
+        serialize_global_marketplace,
+        serialize_project_marketplace,
     )
 
 

@@ -24,12 +24,10 @@ Group without importing any display-only library.
 
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.graph.properties import GraphProperties
-from haywire.core.settings.descriptor import graph
-from haywire.core.skin.settings import _graph_node_patch_skin_choices, _graph_node_stage_skin_choices
 from haywire.core.graph.subgraph_crossing import (
     RELAY_HANDLER,
     boundary_port_id,
@@ -38,9 +36,11 @@ from haywire.core.graph.subgraph_crossing import (
     exit_crossing_id,
 )
 from haywire.core.graph.types import ChangeReason, ValidationResult
-from haywire.core.node import node, BaseNode, NodeType
-from haywire.core.types.wire import WireRole
+from haywire.core.node import BaseNode, NodeType, node
+from haywire.core.settings.descriptor import graph
+from haywire.core.skin.settings import _graph_node_patch_skin_choices, _graph_node_stage_skin_choices
 from haywire.core.types.enums import PortOrigin, PortType
+from haywire.core.types.wire import WireRole
 
 if TYPE_CHECKING:
     from haywire.core.graph.subgraph import SubgraphDefinition
@@ -76,7 +76,7 @@ class GraphNode(BaseNode):
 
     #: The definition this card is subscribed to, so the subscription can be
     #: moved when the card is re-bound.
-    _watched: "SubgraphDefinition | None" = None
+    _watched: SubgraphDefinition | None = None
 
     #: Whether an interior edit that only saves (a value edit, a move) marks the
     #: host unsaved. A card whose interior is never saved turns it off.
@@ -213,7 +213,7 @@ class GraphNode(BaseNode):
         self.reconcile_interface()
         self._watch_definition()
 
-    def resolve_definition(self) -> "SubgraphDefinition | None":
+    def resolve_definition(self) -> SubgraphDefinition | None:
         """Return the bound ``SubgraphDefinition``, or ``None`` if unbound or unknown.
 
         Resolved from the graph that owns this node, so a Graph-node nested
@@ -288,7 +288,7 @@ class GraphNode(BaseNode):
                     target.set_value(inlet.get_value())
 
     @staticmethod
-    def _boundary_ports(wrapper, port_type: PortType) -> list["DataPort"]:
+    def _boundary_ports(wrapper, port_type: PortType) -> list[DataPort]:
         """The boundary node's interface ports on one side, in display order.
 
         The growing slot is left out: it is the boundary node's own port, not
@@ -305,7 +305,7 @@ class GraphNode(BaseNode):
 
     def _mirror(
         self,
-        port: "DataPort",
+        port: DataPort,
         *,
         as_inlet: bool = False,
         as_outlet: bool = False,
@@ -338,7 +338,7 @@ class GraphNode(BaseNode):
         elif as_outlet:
             self.add(port.type_cls.as_outlet(pin_id, **kwargs))
 
-    def hb_relay(self, port: "DataPort", value: Any) -> None:
+    def hb_relay(self, port: DataPort, value: Any) -> None:
         """Copy an immediate inlet's write to the Subgraph Input's matching outlet at once."""
         if not port.is_immediate:
             return

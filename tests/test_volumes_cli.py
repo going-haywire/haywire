@@ -8,7 +8,6 @@ from pathlib import Path
 import pytest
 
 from haywire.core.volumes import PROJECT_KEY, VolumeEntry, VolumeStore, set_volume_store
-
 from haywire_studio.cli import volumescmd
 
 pytestmark = pytest.mark.unit

@@ -7,6 +7,8 @@ raise out of the VM loop, and the flow queue's frame-level handler logs it
 against the *flow* — so the frame is abandoned with no error on any node.
 """
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest

@@ -8,17 +8,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.core.graph.stacking import Restack
-from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
-
 from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.surfaces import SelectionActions, SelectionArrangeMenu, SelectionMenu
+from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
+from haywire.core.graph.stacking import Restack
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
 
 
-def _selection_has_a_node(ctx: "SessionContext") -> bool:
+def _selection_has_a_node(ctx: SessionContext) -> bool:
     """Whether the selection holds a node that exists in the active graph."""
     edit = ctx.data[EditState]
     graph = edit.active_graph
@@ -53,15 +52,15 @@ class ArrangeSelectionMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _selection_has_a_node(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             with hui.submenu_row("Arrange", icon=hui.icon.arrange):
                 self.render_surface(SelectionArrangeMenu, ctx)
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         """The static form, greyed — a row that does not expand."""
         with layout:
             hui.submenu_row("Arrange", icon=hui.icon.arrange, enabled=False)
@@ -76,10 +75,10 @@ class _RestackMenuPanel(BasePanel):
     row_icon: str
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _selection_has_a_node(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             hui.menu_row(self.row_label, icon=self.row_icon, on_click=self._restack)
 

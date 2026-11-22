@@ -1,5 +1,7 @@
 """Reblock, Resample, Select Channel and Mix to Mono nodes."""
 
+from __future__ import annotations
+
 import importlib
 from typing import Any
 from unittest.mock import MagicMock

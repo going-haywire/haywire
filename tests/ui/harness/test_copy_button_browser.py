@@ -14,6 +14,8 @@ covered by the unit tests in tests/ui/test_copy_button.py (Task 1) and by
 manual LAN verification (Task 4). See .insights/feedback_clipboard_secure_context.md.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page, expect
 

@@ -1,13 +1,15 @@
 # tests/core/test_debug/test_logging_configurator.py
 """Tests for LoggingConfigurator — applies DebugSettings log levels to Python logging."""
 
+from __future__ import annotations
+
 import logging
+
 import pytest
 
-from haywire.core.settings.registry import SettingsRegistry
+from haywire.core.debug.configurator import _GROUP_MAP, _ROOT_NAMESPACE, LoggingConfigurator
 from haywire.core.debug.debug_settings import DebugSettings
-from haywire.core.debug.configurator import LoggingConfigurator, _GROUP_MAP, _ROOT_NAMESPACE
-
+from haywire.core.settings.registry import SettingsRegistry
 
 # ---------------------------------------------------------------------------
 # Helpers

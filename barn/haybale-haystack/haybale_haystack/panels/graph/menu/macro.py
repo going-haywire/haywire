@@ -18,10 +18,9 @@ from haybale_graph_editor.editors.graph_editor import GraphEditor
 from haybale_graph_editor.panels._gating import is_macro_placement, is_modified_instance
 from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.surfaces import SelectionActions, SelectionMacroMenu
+from haybale_haystack.states.haystack_state import HaystackState
 from haywire.api import report_failure
 from haywire.api.workbench import BasePanel, PanelLayout, Reveal, hui, panel
-
-from haybale_haystack.states.haystack_state import HaystackState
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -48,10 +47,10 @@ class EditMacroMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return is_macro_placement(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         wrapper = ctx.data[EditState].active_node
         if wrapper is None:
             return
@@ -66,7 +65,7 @@ class EditMacroMenuPanel(BasePanel):
             )
 
 
-def _open_macro(ctx: "SessionContext", registry_key: str) -> None:
+def _open_macro(ctx: SessionContext, registry_key: str) -> None:
     """Open the macro behind ``registry_key`` and reveal its tab.
 
     Refused with the reason when the library's files are not the ones on disk:
@@ -127,10 +126,10 @@ class UpdateMacroMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return is_modified_instance(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         from haywire.core.macro.source import origin_label
 
         wrapper = ctx.data[EditState].active_node
@@ -179,7 +178,7 @@ def _update_refusal(registry_key: str, label: str, hs: HaystackState | None) -> 
     return None
 
 
-def _update_macro(ctx: "SessionContext", node_id: str) -> None:
+def _update_macro(ctx: SessionContext, node_id: str) -> None:
     """Swap the modified instance on ``node_id`` for a placement, and open its macro with its contents.
 
     The swap is one undoable step on the host graph. The macro's tab holds the
@@ -190,6 +189,7 @@ def _update_macro(ctx: "SessionContext", node_id: str) -> None:
     from nicegui import ui
 
     from haybale_graph_editor.states.graph_app_state import route_for
+    from haybale_haystack.graph_entry import EntryKind
     from haywire.core.macro.promote import macro_document
     from haywire.core.macro.source import (
         count_placements,
@@ -197,8 +197,6 @@ def _update_macro(ctx: "SessionContext", node_id: str) -> None:
         modified_instance_origin,
         origin_label,
     )
-
-    from haybale_haystack.graph_entry import EntryKind
 
     # Opening the macro redraws panels; the notices must not depend on this row's slot.
     client = ui.context.client

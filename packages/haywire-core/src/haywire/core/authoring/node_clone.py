@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 class AuthoringLibraries(HaywireLibrarySource, Protocol):
     """What :func:`plan_node` reads about installed libraries. Satisfied by ``LibraryRegistry``."""
 
-    def get_library_identity(self, library_registry_name: str) -> "LibraryIdentity": ...
+    def get_library_identity(self, library_registry_name: str) -> LibraryIdentity: ...
 
 
 class KeyLookup(Protocol):
@@ -153,7 +153,7 @@ def class_name_refusal(class_name: str) -> str | None:
     return None
 
 
-def default_fields(source_cls: "type[BaseNode]") -> NodeFields:
+def default_fields(source_cls: type[BaseNode]) -> NodeFields:
     """The fields the wizard opens with for ``source_cls``, read from its resolved identity.
 
     A clone's label is ``"<source label> Copy"``; a template's is
@@ -190,7 +190,7 @@ def is_clone_source(source_cls: Any) -> bool:
     return _readable_source_file(source_cls) is not None
 
 
-def list_clone_sources(node_infos: "list[NodeInfo]", resolve: Any) -> "list[NodeInfo]":
+def list_clone_sources(node_infos: list[NodeInfo], resolve: Any) -> list[NodeInfo]:
     """Filter visible node infos down to the classes :func:`is_clone_source` accepts.
 
     Args:
@@ -223,7 +223,7 @@ def _readable_source_file(source_cls: Any) -> Path | None:
 
 
 def plan_node(
-    source_cls: "type[BaseNode]",
+    source_cls: type[BaseNode],
     fields: NodeFields,
     target: AuthoringTarget,
     libraries: AuthoringLibraries,
@@ -302,7 +302,7 @@ def _field_refusal(fields: NodeFields, plan: NodePlan, registry: KeyLookup | Non
     return None
 
 
-def _module_name_for(path: Path, identity: "LibraryIdentity") -> str:
+def _module_name_for(path: Path, identity: LibraryIdentity) -> str:
     """The dotted module name the registry resolves ``path`` to, as ``resolve_module_name`` does."""
     try:
         rel = path.resolve().relative_to(Path(identity.folder_path).resolve())
@@ -557,7 +557,7 @@ def _apply(text: str, edits: list[_Edit], start: int, end: int) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def link_libraries(library: "BaseLibrary", names: list[str]) -> list[str]:
+def link_libraries(library: BaseLibrary, names: list[str]) -> list[str]:
     """Add ``names`` to the library's ``linked_libraries`` and refresh its identity in place.
 
     The refresh is synchronous, so a module the watcher registers afterwards
@@ -580,7 +580,7 @@ def link_libraries(library: "BaseLibrary", names: list[str]) -> list[str]:
     return added
 
 
-def write_node(plan: NodePlan, library: "BaseLibrary") -> Path:
+def write_node(plan: NodePlan, library: BaseLibrary) -> Path:
     """Write the planned node file. The only step that touches disk.
 
     First adds ``plan.linked_additions`` to the library's ``haybale.toml`` and

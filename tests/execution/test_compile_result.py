@@ -1,4 +1,5 @@
 # tests/execution/test_compile_result.py
+from __future__ import annotations
 
 
 def test_compile_result_ok_has_no_error():
@@ -19,6 +20,7 @@ def test_compile_result_failure_carries_message():
 
 def test_compile_result_is_frozen():
     import dataclasses
+
     from haywire.core.execution.compile_result import CompileResult
 
     r = CompileResult(ok=True, error=None)

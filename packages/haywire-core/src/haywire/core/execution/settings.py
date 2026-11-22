@@ -1,9 +1,11 @@
 # haywire/core/execution/settings.py
 """Execution behaviour preference singleton."""
 
+from __future__ import annotations
+
+from haywire.barn.builtin.types import BOOL
 from haywire.core.settings import setting
 from haywire.core.settings.settings_framework import FrameworkSettings
-from haywire.barn.builtin.types import BOOL
 
 
 # TODO: Setup Execution Settings

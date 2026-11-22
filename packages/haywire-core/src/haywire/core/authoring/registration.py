@@ -31,7 +31,7 @@ class RegistrationOutcome:
 
     status: RegistrationStatus
     registry_key: str | None = None
-    errors: "list[HaywireException]" = field(default_factory=list)
+    errors: list[HaywireException] = field(default_factory=list)
 
 
 class RegistrationWatch:
@@ -60,8 +60,8 @@ class RegistrationWatch:
 
     def __init__(
         self,
-        registry: "ComponentRegistry",
-        ledger: "ErrorLedger",
+        registry: ComponentRegistry,
+        ledger: ErrorLedger,
         module_name: str | None,
         registry_key: str | None = None,
     ) -> None:
@@ -77,7 +77,7 @@ class RegistrationWatch:
         self._future: asyncio.Future[RegistrationOutcome] | None = None
         self._since_seq = 0
 
-    def __enter__(self) -> "RegistrationWatch":
+    def __enter__(self) -> RegistrationWatch:
         self._loop = asyncio.get_running_loop()
         self._future = self._loop.create_future()
         self._since_seq = self._ledger.current_seq
@@ -94,7 +94,7 @@ class RegistrationWatch:
         assert self._future is not None, "enter the watch before awaiting its result"
         try:
             return await asyncio.wait_for(asyncio.shield(self._future), timeout_s)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return RegistrationOutcome(status="timeout")
 
     def _matches(self, event: LifeCycleEvent) -> bool:

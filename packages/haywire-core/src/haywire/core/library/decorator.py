@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import inspect
 import sys
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Type, TypeVar
+from typing import Any, TypeVar
 
 from .base import BaseLibrary
 from .haybale_toml import read_haybale_toml
@@ -15,7 +18,7 @@ from .utils import SYSTEM_LIBRARY_NAME
 T = TypeVar("T")
 
 
-def library(*, file_watcher: bool = False) -> Callable[[Type[T]], Type[T]]:
+def library(*, file_watcher: bool = False) -> Callable[[type[T]], type[T]]:
     """Register a class as a Haywire library.
 
     Always invoked with parentheses — ``@library(...)``; the bare ``@library``
@@ -56,7 +59,7 @@ def library(*, file_watcher: bool = False) -> Callable[[Type[T]], Type[T]]:
             ``version``) that belongs in ``haybale.toml``.
     """
 
-    def decorator(inner_cls: Type[T]) -> Type[T]:
+    def decorator(inner_cls: type[T]) -> type[T]:
         if not issubclass(inner_cls, BaseLibrary):
             raise TypeError(f"@library can only be applied to BaseLibrary subclasses, got {inner_cls}")
 

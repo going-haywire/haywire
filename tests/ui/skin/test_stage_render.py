@@ -13,7 +13,6 @@ from haywire.core.types.enums import LayoutDirection
 from haywire.ui.skin.base import BaseSkin
 from haywire.ui.skin.factory import SkinFactory
 from haywire.ui.skin.pin_render import render_pin
-
 from tests.conftest import make_edge, make_node
 
 pytestmark = [pytest.mark.integration]
@@ -28,7 +27,6 @@ def ctx(library_system, nicegui_slot_context):
 
 def _wrapper(graph):
     from haybale_testing.nodes.testbed.display_probe import DisplayProbeNode
-
     from haywire.barn.builtin.types import ANNOTATION, EXEC, FLOAT
 
     wrapper = graph.create_node_wrapper(DisplayProbeNode.class_identity.registry_key, position=(0, 0))
@@ -444,8 +442,8 @@ def test_the_split_skin_config_band_honours_fold_state_on_stage(ctx) -> None:
 
 
 def test_the_split_skin_draws_no_empty_config_band_on_stage(ctx) -> None:
-    from haywire.core.types.enums import ShowWidgetStrategy
     from haywire.barn.builtin.types import FLOAT
+    from haywire.core.types.enums import ShowWidgetStrategy
 
     wrapper = _wrapper(ctx[1])
     wrapper.node.add(

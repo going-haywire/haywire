@@ -51,14 +51,15 @@ Usage:
 """
 
 from __future__ import annotations
+
+import os
+import re
+import sys
+import time
+import traceback as tb_module
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, List, Dict, Any
-import sys
-import traceback as tb_module
-import re
-import time
-import os
+from typing import Any
 
 from ..library.identity import LibraryIdentity
 
@@ -93,7 +94,7 @@ _FRAMEWORK_PATHS = [
 ]
 
 
-def is_framework_code(filepath: str, framework_paths: Optional[List[str]] = None) -> bool:
+def is_framework_code(filepath: str, framework_paths: list[str] | None = None) -> bool:
     """
     Check if a file is part of the framework (not user code).
 
@@ -121,8 +122,8 @@ def is_framework_code(filepath: str, framework_paths: Optional[List[str]] = None
 
 
 def _find_decorator_frame(
-    traceback_frames: List[Dict[str, Any]], framework_paths: Optional[List[str]] = None
-) -> Optional[Dict[str, Any]]:
+    traceback_frames: list[dict[str, Any]], framework_paths: list[str] | None = None
+) -> dict[str, Any] | None:
     """
     Find a frame that contains a decorator application.
 
@@ -145,8 +146,8 @@ def _find_decorator_frame(
 
 
 def find_most_relevant_user_frame(
-    traceback_frames: List[Dict[str, Any]], exception: Exception, framework_paths: Optional[List[str]] = None
-) -> Optional[Dict[str, Any]]:
+    traceback_frames: list[dict[str, Any]], exception: Exception, framework_paths: list[str] | None = None
+) -> dict[str, Any] | None:
     """
     Find the most relevant user code frame.
 
@@ -203,7 +204,7 @@ def find_most_relevant_user_frame(
 
 def extract_extended_context(
     filename: str, line_number: int, context_lines: int = 10
-) -> tuple[str, List[tuple[int, str]], Optional[str], Optional[int]]:
+) -> tuple[str, list[tuple[int, str]], str | None, int | None]:
     """
     Extract extended context around an error line.
 
@@ -226,7 +227,7 @@ def extract_extended_context(
         - code_block_start: Line number where the code block starts
     """
     try:
-        with open(filename, "r", encoding="utf-8") as f:
+        with open(filename, encoding="utf-8") as f:
             lines = f.readlines()
 
         if line_number > len(lines) or line_number < 1:
@@ -299,13 +300,13 @@ def extract_extended_context(
 
         return context_type, source_context, highlighted_item, code_block_start
 
-    except (IOError, OSError):
+    except OSError:
         return "unknown", [], None, None
 
 
 def analyze_error_context(
-    traceback_frames: List[Dict[str, Any]], selected_frame: Dict[str, Any], exception: Exception
-) -> Dict[str, Any]:
+    traceback_frames: list[dict[str, Any]], selected_frame: dict[str, Any], exception: Exception
+) -> dict[str, Any]:
     """
     Analyze the error context to provide better insights.
 
@@ -365,12 +366,12 @@ _REVIEW_HIGHLIGHTED_LINE = "Review the highlighted line in your code"
 
 def enhance_error_message_for_context(
     context_type: str,
-    highlighted_item: Optional[str],
+    highlighted_item: str | None,
     original_message: str,
-    error_context: Dict[str, Any],
+    error_context: dict[str, Any],
     *,
-    line_number: Optional[int] = None,
-) -> tuple[str, List[str]]:
+    line_number: int | None = None,
+) -> tuple[str, list[str]]:
     """
     Generate contextual error message and suggestions.
 
@@ -466,59 +467,59 @@ class HaywireException(Exception):
     category: str = "Error"
     """Human-readable category (e.g., "Import Error", "Render Failed")"""
 
-    suggestions: List[str] = field(default_factory=list)
+    suggestions: list[str] = field(default_factory=list)
     """User actions they can take (shown in UI as action items)"""
 
     # ========================================================================
     # SOURCE LOCATION (for ErrorWidget code display)
     # ========================================================================
 
-    filename: Optional[str] = None
+    filename: str | None = None
     """File where error occurred"""
 
-    line_number: Optional[int] = None
+    line_number: int | None = None
     """Line number in file"""
 
-    source_line: Optional[str] = None
+    source_line: str | None = None
     """The actual line of code"""
 
-    source_context: List[tuple] = field(default_factory=list)
+    source_context: list[tuple] = field(default_factory=list)
     """Context lines: [(line_num, content), ...]"""
 
-    highlight_span: Optional[tuple] = None
+    highlight_span: tuple | None = None
     """(start_col, length) for highlighting specific text"""
 
     # ========================================================================
     # HAYWIRE CONTEXT (what was happening in the system)
     # ========================================================================
 
-    operation: Optional[str] = None
+    operation: str | None = None
     """Operation being performed: 'import', 'render', 'hot_reload', 'execute'"""
 
-    library_identity: Optional[LibraryIdentity] = None
+    library_identity: LibraryIdentity | None = None
     """Which library this relates to"""
 
-    registry_key: Optional[str] = None
+    registry_key: str | None = None
     """Node/widget/renderer registry key"""
 
-    module_name: Optional[str] = None
+    module_name: str | None = None
     """Python module name"""
 
-    node_id: Optional[str] = None
+    node_id: str | None = None
     """Which instance in the graph caused this error. A string node ID
     (e.g., ``node_1``, not a NodeWrapper). A string, not a node reference:
     the exception outlives the node."""
 
-    graph_id: Optional[str] = None
+    graph_id: str | None = None
     """Which graph the offending instance lives in: the graph's runtime ``graph_id``
     (a uuid4 minted per ``BaseGraph``), not its binding id.
     A string, not a graph reference: the exception outlives the graph."""
 
-    edge_id: Optional[str] = None
+    edge_id: str | None = None
     """The offending edge's id (adapter/edge errors). Self-encodes endpoints
     (``nodeA[out]->nodeB[in]``). A string, not an EdgeWrapper reference."""
 
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
     """What the error boundary that recorded this knew, by name: the file path, the
     action, the tool, the signal. Shown in the detailed report."""
 
@@ -526,26 +527,26 @@ class HaywireException(Exception):
     # TECHNICAL DETAILS (for advanced users / debugging)
     # ========================================================================
 
-    traceback_frames: List[Dict[str, Any]] = field(default_factory=list)
+    traceback_frames: list[dict[str, Any]] = field(default_factory=list)
     """Simplified traceback for UI: [{'file', 'line', 'function', 'code'}, ...]"""
 
-    original_exception: Optional[Exception] = None
+    original_exception: Exception | None = None
     """Original Python exception (for re-raising or advanced inspection)"""
 
-    context_type: Optional[str] = None
+    context_type: str | None = None
     """Type of code context: 'class', 'function', 'decorator', 'method_call', etc."""
 
-    highlighted_item: Optional[str] = None
+    highlighted_item: str | None = None
     """Name of class/function/decorator being worked on"""
 
-    error_context: Dict[str, Any] = field(default_factory=dict)
+    error_context: dict[str, Any] = field(default_factory=dict)
     """Additional context metadata from analysis"""
 
     # ========================================================================
     # METADATA (for UI behavior and filtering)
     # ========================================================================
 
-    timestamp: Optional[float] = None
+    timestamp: float | None = None
     """When error occurred (for event log sorting)"""
 
     is_dismissible: bool = True
@@ -557,7 +558,7 @@ class HaywireException(Exception):
     auto_retry: bool = False
     """Should system auto-retry on hot-reload?"""
 
-    tags: List[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
     """Tags for filtering: ['hot-reload', 'widget', 'import', etc.]"""
 
     # ========================================================================
@@ -579,10 +580,10 @@ class HaywireException(Exception):
     when an identical failure (same ``fingerprint()``) repeats while the entry is
     still unseen."""
 
-    last_seen_at: Optional[float] = None
+    last_seen_at: float | None = None
     """Timestamp of the most recent merged occurrence; None until one merges."""
 
-    ledger_fingerprint: Optional[tuple] = field(default=None, repr=False, compare=False)
+    ledger_fingerprint: tuple | None = field(default=None, repr=False, compare=False)
     """The ``fingerprint()`` the ledger computed when it first recorded this
     exception; ``None`` until then. Not serialized."""
 
@@ -635,7 +636,7 @@ class HaywireException(Exception):
         severity: ErrorSeverity = ErrorSeverity.ERROR,
         category: str = "Error",
         **kwargs,
-    ) -> "HaywireException":
+    ) -> HaywireException:
         """
         Create a new exception with minimal information.
 
@@ -653,7 +654,7 @@ class HaywireException(Exception):
         return cls(message=message, severity=severity, category=category, **kwargs)
 
     @classmethod
-    def _extract(cls, exception: Exception) -> Dict[str, Any]:
+    def _extract(cls, exception: Exception) -> dict[str, Any]:
         """
         Extract technical details from a Python exception.
 
@@ -772,7 +773,7 @@ class HaywireException(Exception):
             # Try to get some context
             if filename and line_number:
                 try:
-                    with open(filename, "r", encoding="utf-8") as f:
+                    with open(filename, encoding="utf-8") as f:
                         lines = f.readlines()
 
                     if line_number <= len(lines):
@@ -793,7 +794,7 @@ class HaywireException(Exception):
                                 pos = source_line.find(quoted_string)
                                 highlight_span = (pos, len(quoted_string))
                                 break
-                except (IOError, OSError, IndexError):
+                except (OSError, IndexError):
                     pass
 
         # Generate base messages
@@ -831,9 +832,9 @@ class HaywireException(Exception):
         message: str,
         *,
         severity: ErrorSeverity = ErrorSeverity.ERROR,
-        operation: Optional[str] = None,
+        operation: str | None = None,
         **kwargs,
-    ) -> "HaywireException":
+    ) -> HaywireException:
         """
         Create from a caught Python exception with auto-extraction.
 
@@ -881,15 +882,15 @@ class HaywireException(Exception):
     def enrich(
         self,
         *,
-        exception: Optional[Exception] = None,
-        registry_key: Optional[str] = None,
-        library_identity: Optional[LibraryIdentity] = None,
-        node_id: Optional[str] = None,
-        graph_id: Optional[str] = None,
-        edge_id: Optional[str] = None,
-        suggestions: Optional[List[str]] = None,
+        exception: Exception | None = None,
+        registry_key: str | None = None,
+        library_identity: LibraryIdentity | None = None,
+        node_id: str | None = None,
+        graph_id: str | None = None,
+        edge_id: str | None = None,
+        suggestions: list[str] | None = None,
         **kwargs,
-    ) -> "HaywireException":
+    ) -> HaywireException:
         """
         Add context as error propagates (chainable).
 
@@ -1038,7 +1039,7 @@ class HaywireException(Exception):
     # LOGGING / SERIALIZATION
     # ========================================================================
 
-    def log(self, logger=None) -> "HaywireException":
+    def log(self, logger=None) -> HaywireException:
         """Register in the error ledger and log the full report to the console.
 
         A repeat the ledger merges into an unseen entry logs one DEBUG line
@@ -1060,7 +1061,7 @@ class HaywireException(Exception):
             logger.error(self.format_detailed())
         return self
 
-    def is_interesting_frame(self, frame: Dict[str, Any]) -> bool:
+    def is_interesting_frame(self, frame: dict[str, Any]) -> bool:
         """Filter out uninteresting frames"""
         filepath = frame["file"]
 
@@ -1340,7 +1341,7 @@ class HaywireException(Exception):
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "HaywireException":
+    def from_dict(cls, data: dict) -> HaywireException:
         """Reconstruct from serialized form.
 
         Tolerant of to_dict()'s output: derived / non-constructor keys (``seq``,

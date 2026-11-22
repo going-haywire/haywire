@@ -7,6 +7,8 @@ Pairs the library's declared metadata (a ``Haybale``, read from its own
 discovered during scanning. Built for catalogued-but-absent libraries too.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -35,7 +37,7 @@ class LibraryInfo:
                       ``NOT_INSTALLED``.
     """
 
-    row: "Haybale"
+    row: Haybale
     identity: LibraryIdentity = field(default_factory=LibraryIdentity)
     enabled: bool = False
     install_type: InstallType = InstallType.NOT_INSTALLED

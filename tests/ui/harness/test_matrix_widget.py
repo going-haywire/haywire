@@ -1,5 +1,7 @@
 """The matrix widget, driven through a real browser."""
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page, expect
 

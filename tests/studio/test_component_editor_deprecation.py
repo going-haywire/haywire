@@ -1,6 +1,9 @@
 """ComponentDocsEditor renders a deprecation banner when identity.deprecation_warning is set."""
 
+from __future__ import annotations
+
 import inspect
+
 import pytest
 
 from haybale_studio.editors.component_docs_editor import ComponentDocsEditor

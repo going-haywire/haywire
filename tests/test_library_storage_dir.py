@@ -1,5 +1,7 @@
 """Tests for haywire.core.storage.library_storage_dir."""
 
+from __future__ import annotations
+
 import pytest
 
 

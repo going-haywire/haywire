@@ -6,14 +6,18 @@ into one batch, rebuilds whatever the batch requires, and notifies
 subscribers with a ``ValidationResult``.
 """
 
+from __future__ import annotations
+
+import logging
 import threading
 import time
-import logging
-from typing import Dict, List, Callable, Optional, Any, Protocol, TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Protocol
 
 from haywire.core.errors import report_failure
-from .types import ChangeReason, ValidationResult
+
 from .scheduler import ScheduleHandle, ThreadingTimerScheduler, ValidationScheduler
+from .types import ChangeReason, ValidationResult
 
 if TYPE_CHECKING:
     from ..edge.edge_wrapper import EdgeWrapper
@@ -54,9 +58,9 @@ class ValidationManager:
 
     def __init__(
         self,
-        graph: "BaseGraph",
+        graph: BaseGraph,
         debounce_ms: float = 50.0,
-        scheduler: Optional[ValidationScheduler] = None,
+        scheduler: ValidationScheduler | None = None,
     ):
         self._graph = graph
         self._debounce_ms = debounce_ms
@@ -67,24 +71,24 @@ class ValidationManager:
         self._dirty_graph: ChangeReason | None = None
         """If the whole graph is dirty, reason for it"""
 
-        self._dirty_nodes: Dict[str, ChangeReason] = {}
+        self._dirty_nodes: dict[str, ChangeReason] = {}
         """node_id -> reason for being dirty"""
 
-        self._dirty_edges: Dict[str, ChangeReason] = {}
+        self._dirty_edges: dict[str, ChangeReason] = {}
         """edge_id -> reason for being dirty"""
 
         # The lock guards every dirty-tracking mutation and is re-entrant, so a
         # synchronous scheduler can validate inside a mark_*_dirty call.
-        self._pending_handle: Optional[ScheduleHandle] = None
+        self._pending_handle: ScheduleHandle | None = None
         self._validation_lock = threading.RLock()
 
         # Lets _schedule_validation detect a batch that a synchronous scheduler
         # ran re-entrantly inside schedule().
         self._batch_generation = 0
 
-        self._callbacks: List[ValidationCallback] = []
+        self._callbacks: list[ValidationCallback] = []
 
-        self._execution_hold: Optional[ExecutionHold] = None
+        self._execution_hold: ExecutionHold | None = None
 
         self._validation_count = 0
         self._last_validation_time = 0.0
@@ -129,7 +133,7 @@ class ValidationManager:
             logger.info(f"Marked node dirty: {node_id} (reason: {reason.value})")
 
     @staticmethod
-    def _rebuild_edge(edge_wrapper: "EdgeWrapper") -> None:
+    def _rebuild_edge(edge_wrapper: EdgeWrapper) -> None:
         """Build *edge_wrapper* again, then link it if it works now or unlink it if it stopped working."""
         was_functional = edge_wrapper.is_functional()
         edge_wrapper.build()
@@ -164,7 +168,7 @@ class ValidationManager:
             self._callbacks.remove(callback)
             logger.debug(f"Removed validation subscriber: {getattr(callback, '__name__', repr(callback))}")
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Return the pipeline's counters.
 
         Returns:
@@ -194,7 +198,7 @@ class ValidationManager:
             }
 
     @property
-    def lock(self) -> "threading.RLock":
+    def lock(self) -> threading.RLock:
         """The lock a validation batch holds while it builds and housekeeps nodes.
 
         Take it before a ``NodeWrapper``'s own lock, never after: a batch takes
@@ -202,7 +206,7 @@ class ValidationManager:
         """
         return self._validation_lock
 
-    def force_immediate_validation(self) -> Optional[ValidationResult]:
+    def force_immediate_validation(self) -> ValidationResult | None:
         """Run a validation batch now and cancel any pending debounced run.
 
         Returns:
@@ -219,7 +223,7 @@ class ValidationManager:
 
             return self._validate_batch()
 
-    def set_execution_hold(self, hold: Optional[ExecutionHold]) -> None:
+    def set_execution_hold(self, hold: ExecutionHold | None) -> None:
         """Make structural batches of this graph tree wait for ``hold``'s frame barrier; ``None`` ends it.
 
         Set on the root graph's manager; a Subgraph's batches read it from there.
@@ -230,7 +234,7 @@ class ValidationManager:
         """Run ``fn`` on this graph's validation scheduler, after the current batch."""
         self._scheduler.schedule(0.0, fn)
 
-    def adopt_scheduler(self, scheduler: Optional[ValidationScheduler]) -> None:
+    def adopt_scheduler(self, scheduler: ValidationScheduler | None) -> None:
         """Run future batches on ``scheduler``, cancelling any pending one.
 
         For a Subgraph joining a host: the two graphs' validations reach each
@@ -249,7 +253,7 @@ class ValidationManager:
                 self._pending_handle = None
             self._scheduler = scheduler
 
-    def share_lock(self, lock: "threading.RLock") -> None:
+    def share_lock(self, lock: threading.RLock) -> None:
         """Validate under ``lock`` from now on: the lock of the graph tree this graph joins.
 
         Graphs of one tree then validate one batch at a time, whatever thread
@@ -299,7 +303,7 @@ class ValidationManager:
                 f"({len(self._dirty_nodes)} nodes, {len(self._dirty_edges)} edges)"
             )
 
-    def _tree_execution_hold(self) -> Optional[ExecutionHold]:
+    def _tree_execution_hold(self) -> ExecutionHold | None:
         root = self._graph.root_graph
         return root._validation._execution_hold if root is not self._graph else self._execution_hold
 
@@ -373,9 +377,9 @@ class ValidationManager:
                 f"{dirty_graph.value if dirty_graph else 'no graph change'}"
             )
 
-            validated_nodes: Dict[str, ChangeReason] = {}
-            validated_edges: Dict[str, ChangeReason] = {}
-            validated_graph: Optional[ChangeReason] = None
+            validated_nodes: dict[str, ChangeReason] = {}
+            validated_edges: dict[str, ChangeReason] = {}
+            validated_graph: ChangeReason | None = None
 
             if dirty_graph is not None:
                 if dirty_graph.requires_graph_reassembly():
@@ -526,7 +530,7 @@ class ValidationManager:
             return result
 
     @staticmethod
-    def _data_before_reload(node_wrapper: Any) -> Optional[Dict[str, Any]]:
+    def _data_before_reload(node_wrapper: Any) -> dict[str, Any] | None:
         """The node's data before its reload rebuild, or ``None`` for a stand-in or data that cannot be read.
 
         A stand-in's rebuild restores its kept data (ADR 0058), so it gets no previous setup.
@@ -540,7 +544,7 @@ class ValidationManager:
             return None
 
     @staticmethod
-    def _rebuild_reloaded(node_wrapper: Any, before: Dict[str, Any]) -> None:
+    def _rebuild_reloaded(node_wrapper: Any, before: dict[str, Any]) -> None:
         """Rebuild a node whose class was reloaded, from *before*, its data under the old class.
 
         The node keeps its data when the new class declares the ports the old one did.

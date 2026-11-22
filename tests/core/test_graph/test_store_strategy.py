@@ -9,6 +9,8 @@ Covers:
   widget/programmatic inlet set clears it. Owned entirely by set_value().
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.graph.base import BaseGraph

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from haywire.barn.builtin.types import BOOL, FLOAT, INT, STRING
 
 

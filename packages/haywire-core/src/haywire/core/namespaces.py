@@ -1,6 +1,8 @@
 """Centralized namespace and category definitions for settings."""
 
 # Namespace contants for FrameworkSetting schmeas.
+from __future__ import annotations
+
 NAMESPACE_DEBUG = "debug"
 NAMESPACE_LIBRARY_LOG = "debug.library"
 NAMESPACE_EDITOR_PAN_ZOOM = "editor.pan_zoom"

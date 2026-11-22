@@ -1,15 +1,16 @@
+from __future__ import annotations
+
 import logging
 import os
-import time
 import threading
+import time
+from collections.abc import Iterator
 
-from typing import Dict, Iterator, Set, Tuple, List, Optional
-
+from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 from watchdog.observers.api import BaseObserver
-from watchdog.events import FileSystemEventHandler
 
-from ..registry.base import HotReloadRegistry, FileChangeEvent, FileEventType
+from ..registry.base import FileChangeEvent, FileEventType, HotReloadRegistry
 from .identity import LibraryIdentity
 
 logger = logging.getLogger(__name__)
@@ -41,24 +42,24 @@ class LibraryFileHandler(FileSystemEventHandler):
 
     def __init__(self):
         # folder_path -> (library_identity, registry, debounce_delay)
-        self.folder_mappings: Dict[str, Tuple[LibraryIdentity, HotReloadRegistry, float]] = {}
+        self.folder_mappings: dict[str, tuple[LibraryIdentity, HotReloadRegistry, float]] = {}
         # library_root_path -> (library_identity, [registries], debounce_delay)
         # Fallback for files under the library root that don't match any
         # folder_mapping. Each registry decides via its own dependency graph
         # whether the changed file is relevant.
-        self.root_fallbacks: Dict[str, Tuple[LibraryIdentity, List[HotReloadRegistry], float]] = {}
+        self.root_fallbacks: dict[str, tuple[LibraryIdentity, list[HotReloadRegistry], float]] = {}
         # (file_path, registry_id) -> FileChangeEvent
-        self.pending_events: Dict[Tuple[str, int], FileChangeEvent] = {}
+        self.pending_events: dict[tuple[str, int], FileChangeEvent] = {}
         # (file_path, registry_id) -> timer
-        self.debounce_timers: Dict[Tuple[str, int], threading.Timer] = {}
+        self.debounce_timers: dict[tuple[str, int], threading.Timer] = {}
         # file_path -> expiry timestamp: suppresses DELETED for a file just
         # promoted by an atomic write (tmp → py), for which the OS may deliver
         # a spurious DELETE after the move event.
-        self._atomic_write_suppress: Dict[str, float] = {}
+        self._atomic_write_suppress: dict[str, float] = {}
         # Files known to exist on disk — seeded when a folder mapping is added
         # and maintained as CREATE/DELETE events flow through. Downgrades a
         # spurious CREATE (from an atomic write) to MODIFIED.
-        self._known_files: Set[str] = set()
+        self._known_files: set[str] = set()
         self._lock = threading.Lock()
 
     def add_folder_mapping(
@@ -85,7 +86,7 @@ class LibraryFileHandler(FileSystemEventHandler):
         self,
         root_path: str,
         library_identity: LibraryIdentity,
-        registries: List[HotReloadRegistry],
+        registries: list[HotReloadRegistry],
         debounce_delay: float = 0.5,
     ):
         """Register a library root as a fallback for files not covered by any folder_mapping.
@@ -105,7 +106,7 @@ class LibraryFileHandler(FileSystemEventHandler):
 
     def _get_matching_registries(
         self, file_path: str
-    ) -> List[Tuple[LibraryIdentity, HotReloadRegistry, float, bool]]:
+    ) -> list[tuple[LibraryIdentity, HotReloadRegistry, float, bool]]:
         """Find all registries that should receive events for this file.
 
         Returns:
@@ -114,7 +115,7 @@ class LibraryFileHandler(FileSystemEventHandler):
             the registry treats as a dependency change. A folder mapping
             shadows the fallbacks: when any matches, no fallback is consulted.
         """
-        matches: List[Tuple[LibraryIdentity, HotReloadRegistry, float, bool]] = []
+        matches: list[tuple[LibraryIdentity, HotReloadRegistry, float, bool]] = []
         for folder_path, mapping in self.folder_mappings.items():
             if file_path.startswith(folder_path):
                 library_identity, registry, debounce_delay = mapping
@@ -242,7 +243,7 @@ class LibraryFileHandler(FileSystemEventHandler):
                 self.debounce_timers[event_key] = timer
                 timer.start()
 
-    def _process_debounced_event(self, event_key: Tuple[str, int], registry: HotReloadRegistry):
+    def _process_debounced_event(self, event_key: tuple[str, int], registry: HotReloadRegistry):
         """Process the event after debounce delay"""
         with self._lock:
             if event_key not in self.pending_events:
@@ -284,7 +285,7 @@ class FileWatcher:
                 parent folder containing several libraries.
         """
         self.watch_path = watch_path
-        self.observer: Optional[BaseObserver] = None
+        self.observer: BaseObserver | None = None
         self.handler: LibraryFileHandler = LibraryFileHandler()
         self._lock = threading.Lock()
         self._is_started = False
@@ -326,7 +327,7 @@ class FileWatcher:
         self,
         root_path: str,
         library_identity: LibraryIdentity,
-        registries: List[HotReloadRegistry],
+        registries: list[HotReloadRegistry],
         debounce_delay: float = 0.5,
     ):
         """Register a library-root fallback for files outside every watched folder.
@@ -372,7 +373,7 @@ class FileWatcher:
         """Check if a folder is currently registered for routing"""
         return folder_path in self.handler.folder_mappings
 
-    def get_watched_folders(self) -> Set[str]:
+    def get_watched_folders(self) -> set[str]:
         """Get all currently registered folder paths"""
         return set(self.handler.folder_mappings.keys())
 

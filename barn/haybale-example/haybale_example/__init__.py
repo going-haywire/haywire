@@ -5,6 +5,8 @@ Minimal test library to demonstrate multi-library support.
 Contains one node, one widget, one adapter, and one data struct.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from haywire.api import (

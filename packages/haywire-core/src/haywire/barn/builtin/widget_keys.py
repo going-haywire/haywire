@@ -6,6 +6,8 @@ classes (which are NiceGUI-backed). Each constant MUST match the key derived
 by @widget for the class of the same name; test_widget_keys.py enforces it.
 """
 
+from __future__ import annotations
+
 NUMBER_WIDGET = "haywire-core:widget:NumberWidget"
 TEXT_WIDGET = "haywire-core:widget:TextWidget"
 TOGGLE_WIDGET = "haywire-core:widget:ToggleWidget"

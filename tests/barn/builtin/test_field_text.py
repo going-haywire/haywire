@@ -1,13 +1,15 @@
 """Fields as text: what can be stored, and how a bad field is named."""
 
+from __future__ import annotations
+
 import json
 
-import pytest
 import numpy as np
+import pytest
+
 from haybale_core.types.specs import LIST
 from haybale_image.types.image import RGB_IMAGE
 from haybale_image.value import ImageValue
-
 from haywire.barn.builtin.carrier import BundleValue
 from haywire.barn.builtin.field_text import can_be_saved, fields_from_text, fields_to_text
 from haywire.barn.builtin.types import BOOL, FLOAT, INT, MAT3, STRING, VEC3F

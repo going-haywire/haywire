@@ -5,8 +5,11 @@ API path, attaching a session via SessionManager, and reading via
 SessionDataNamespace all work end-to-end with the actual DI graph.
 """
 
-import pytest
+from __future__ import annotations
+
 from unittest.mock import MagicMock
+
+import pytest
 
 from haywire.core.di.config import LibrarySystemService, create_haywire_injector
 from haywire.core.library.identity import LibraryIdentity
@@ -14,14 +17,14 @@ from haywire.core.registry.lifecycle_event import (
     LifeCycleEvent,
     LifeCycleEventType,
 )
-from haywire.core.state import (
-    LibraryStateContainer,
-    StateRegistry,
-    SessionState,
-)
-from haywire.core.state.data_namespace import SessionDataNamespace
 from haywire.core.session.session_manager import SessionManager
 from haywire.core.signals import SignalDispatcher
+from haywire.core.state import (
+    LibraryStateContainer,
+    SessionState,
+    StateRegistry,
+)
+from haywire.core.state.data_namespace import SessionDataNamespace
 
 
 @pytest.mark.integration

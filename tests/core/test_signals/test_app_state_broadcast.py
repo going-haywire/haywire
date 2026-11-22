@@ -3,9 +3,10 @@
 Verifies routing: SessionContext/SessionState publish to the local bus;
 AppState broadcasts to every peer via SignalDispatcher."""
 
-from typing import Any, cast
+from __future__ import annotations
 
 import weakref
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 from haywire.core.signals import Signal, SignalSource

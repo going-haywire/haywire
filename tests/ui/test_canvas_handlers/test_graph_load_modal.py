@@ -7,8 +7,11 @@ be impossible for that whole window, and the overlay has to come down no matter
 how the load ends, or the user is stranded behind an undismissable backdrop.
 """
 
-import pytest
+from __future__ import annotations
+
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from haybale_graph_editor.editors.graph_canvas.graph_load_modal import (
     GraphLoadModal,

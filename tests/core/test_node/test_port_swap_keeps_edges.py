@@ -20,7 +20,6 @@ from __future__ import annotations
 import pytest
 
 from haywire.core.graph.base import BaseGraph
-
 from tests.conftest import make_node
 
 pytestmark = [pytest.mark.integration]

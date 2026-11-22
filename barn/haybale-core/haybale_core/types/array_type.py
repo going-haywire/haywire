@@ -7,8 +7,11 @@ Key changes:
 3. Clean and minimal - just declares field_class
 """
 
+from __future__ import annotations
+
+import builtins
 from dataclasses import dataclass, field
-from typing import Any, cast, List, Optional, Type, TypeVar
+from typing import Any, TypeVar, cast
 
 from haywire.api import (
     CompoundType,
@@ -59,7 +62,7 @@ class ARRAY(CompoundType[T]):
     - _configure_port: takes the element's colour
     """
 
-    field_class: "Optional[Type[DataField]]" = None  # Will be set to ArrayField after it's defined
+    field_class: builtins.type[DataField] | None = None  # Will be set to ArrayField after it's defined
 
     # Allows inlets, outlets, and configs
 
@@ -93,7 +96,7 @@ class ArrayField(DataField):
     Transfer: List[T] (unwrapped)
     """
 
-    _items: List[Any] = field(default_factory=list, init=False, repr=False)
+    _items: list[Any] = field(default_factory=list, init=False, repr=False)
 
     def __post_init__(self):
         """Initialize complex field with default instance"""
@@ -103,7 +106,7 @@ class ArrayField(DataField):
         initial_list = self.default_kwargs.get("value", [])
         self._items = initial_list
 
-    def _get_own(self) -> List[Any]:
+    def _get_own(self) -> list[Any]:
         """Return a copy of the list, e.g. ``[42.0, 3.14]`` or ``[MeshData(...)]``."""
         return list(self._items)
 
@@ -129,13 +132,13 @@ class ArrayField(DataField):
     def _own_to_dict(self) -> dict:
         """Return ``{"value": [...]}`` with each item as a field of the element type saves it."""
         # A compound's element is always an IType; `type | None` covers PrimitiveType[T].
-        element = cast("Type[IType]", self.type_cls.element_type_cls)
+        element = cast("builtins.type[IType]", self.type_cls.element_type_cls)
         return {"value": [element_to_dict(element, item) for item in self._items]}
 
     def _own_from_dict(self, data: dict) -> None:
         """Restore the items from ``_own_to_dict`` output."""
         # A compound's element is always an IType; `type | None` covers PrimitiveType[T].
-        element = cast("Type[IType]", self.type_cls.element_type_cls)
+        element = cast("builtins.type[IType]", self.type_cls.element_type_cls)
         self._items = [element_from_dict(element, item) for item in data.get("value", [])]
 
     # ========================================================================

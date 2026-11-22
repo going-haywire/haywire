@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
-
-from haywire.ui.components.stepper import Panel, show_step_flow
+from typing import TYPE_CHECKING, Any
 
 from haybale_graph_editor._new_node_flow._state import NewNodeFlow, NewNodeHost
 from haybale_graph_editor._new_node_flow.panels import (
@@ -14,10 +13,11 @@ from haybale_graph_editor._new_node_flow.panels import (
     _panel_result,
     _panel_source,
 )
+from haywire.ui.components.stepper import Panel, show_step_flow
 
 if TYPE_CHECKING:
-    from haywire.core.node.factory import NodeFactory
     from haywire.api.workbench import SessionContext
+    from haywire.core.node.factory import NodeFactory
 
 
 class EditorNewNodeHost:
@@ -29,7 +29,7 @@ class EditorNewNodeHost:
 
     def __init__(
         self,
-        context: "SessionContext",
+        context: SessionContext,
         position: tuple[float, float],
         create_node: Callable[[str, tuple[float, float]], None],
     ) -> None:
@@ -54,7 +54,7 @@ class EditorNewNodeHost:
 def new_node_flow(
     host: NewNodeHost,
     library_system: Any,
-    node_factory: "NodeFactory",
+    node_factory: NodeFactory,
     workspace_root: Path | None,
     *,
     source_cls: Any = None,
@@ -64,9 +64,9 @@ def new_node_flow(
     Offers only watched authoring targets: the wizard waits for the file
     watcher to register what it writes.
     """
+    from haywire.api import NodeRegistry
     from haywire.core.authoring import authoring_targets, list_clone_sources
     from haywire.core.errors.ledger import get_error_ledger
-    from haywire.api import NodeRegistry
 
     targets = [t for t in authoring_targets(library_system, NodeRegistry, workspace_root) if t.is_watched]
     menu = node_factory.get_menu_structure()

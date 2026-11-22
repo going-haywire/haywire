@@ -1,5 +1,7 @@
 """``BaseWidgetNode``, the base of the widget nodes."""
 
+from __future__ import annotations
+
 from typing import Any, ClassVar
 
 from haybale_core.keys import WIDGET_NODE_SKIN
@@ -8,9 +10,9 @@ from haywire.api import (
     CHOICES,
     COLOR,
     FONTS,
-    TEXT_H_ALIGNS,
     INT,
     OPTIONAL,
+    TEXT_H_ALIGNS,
     BaseNode,
     ExecutionContext,
     IType,
@@ -22,7 +24,6 @@ from haywire.api import (
     settings_fields,
     widget_node_stage_skin_choices,
 )
-
 
 #: Where the stage face puts the node label.
 LABEL_POSITIONS = ("left", "above", "hidden")

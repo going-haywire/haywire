@@ -19,18 +19,18 @@ made the same choice for the same reason.
 from __future__ import annotations
 
 import logging
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from haywire.core.access.tier import AccessTier
 
 logger = logging.getLogger(__name__)
 
-AccessResolver = Callable[[Optional[str]], AccessTier]
+AccessResolver = Callable[[str | None], AccessTier]
 
-_resolver: Optional[AccessResolver] = None
+_resolver: AccessResolver | None = None
 
 
-def set_access_resolver(fn: Optional[AccessResolver]) -> None:
+def set_access_resolver(fn: AccessResolver | None) -> None:
     """Install (or with ``None``, remove) the tier resolver.
 
     Called once by the studio when authentication is enabled. Passing ``None``
@@ -41,12 +41,12 @@ def set_access_resolver(fn: Optional[AccessResolver]) -> None:
     _resolver = fn
 
 
-def access_resolver() -> Optional[AccessResolver]:
+def access_resolver() -> AccessResolver | None:
     """The currently installed resolver, or ``None``. Mainly for snapshot/restore in tests."""
     return _resolver
 
 
-def resolve_tier(principal: Optional[str]) -> AccessTier:
+def resolve_tier(principal: str | None) -> AccessTier:
     """The tier ``principal`` holds *right now*.
 
     Returns ADMIN when no resolver is installed (authentication disabled).

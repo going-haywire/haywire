@@ -2,6 +2,8 @@
 Minimal node-flavoured theme fixture for testing the theme system.
 """
 
+from __future__ import annotations
+
 from haywire.api import BaseTheme, theme
 
 

@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
 from haywire.barn.builtin import widget_keys
 from haywire.core.types import StoreStrategy, type
 
-from .specs import BOOL
 from ..wires import DataWire
+from .specs import BOOL
 
 if TYPE_CHECKING:
     from haywire.core.types.port import DataPort
@@ -35,7 +37,7 @@ class FOLD(BOOL):
     """
 
     @classmethod
-    def _configure_port(cls, port: "DataPort", **context: Any) -> None:
+    def _configure_port(cls, port: DataPort, **context: Any) -> None:
         """Give the port the fold header widget, labelled and described like the port, and
         redraw its node card whenever the fold opens or closes.
 

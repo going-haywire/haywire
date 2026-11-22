@@ -5,10 +5,11 @@ Use for non-destructive notifications where no decision is required from
 the user (blocked actions, explanatory messages, status reports).
 """
 
+from __future__ import annotations
+
 from nicegui import ui
 
 from haywire.ui import elements as hui
-
 from haywire.ui.components.popup import Popup
 
 

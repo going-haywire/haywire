@@ -1,10 +1,11 @@
 """The link ceiling: how many edges a port may hold, set by the mechanism and narrowed by the port."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import ADD, CALLBACK, EXEC, FLOAT, INT, OPTIONAL
 from haywire.core.types import DataPort, PortType
-
 from tests.conftest import make_edge, make_node
 
 OUTLET, INLET = PortType.OUTLET, PortType.INLET

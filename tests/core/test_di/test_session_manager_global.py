@@ -1,5 +1,7 @@
 """Test that the ambient SessionManager global behaves like its peers."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest
@@ -18,7 +20,7 @@ def test_get_raises_before_set():
 
 
 def test_set_then_get_returns_same_instance():
-    from haywire.core.di.context import set_session_manager, get_session_manager
+    from haywire.core.di.context import get_session_manager, set_session_manager
 
     sm = MagicMock()
     set_session_manager(sm)
@@ -26,7 +28,7 @@ def test_set_then_get_returns_same_instance():
 
 
 def test_set_overwrites_previous():
-    from haywire.core.di.context import set_session_manager, get_session_manager
+    from haywire.core.di.context import get_session_manager, set_session_manager
 
     sm1 = MagicMock()
     sm2 = MagicMock()

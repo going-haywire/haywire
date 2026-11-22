@@ -1,5 +1,7 @@
 """Tests for `write_marketstall` (aggregates all barn/* libraries into marketstall.toml)."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest
@@ -90,7 +92,7 @@ def test_share_save_skips_dirs_without_pyproject(tmp_path: Path) -> None:
 
 
 def test_share_save_raises_when_no_barn(tmp_path: Path) -> None:
-    from haywire.core.publishing import write_marketstall, NoBarnError
+    from haywire.core.publishing import NoBarnError, write_marketstall
 
     repo = tmp_path / "no-barn-repo"
     repo.mkdir()

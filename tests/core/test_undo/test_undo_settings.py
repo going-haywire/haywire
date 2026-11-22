@@ -1,5 +1,7 @@
 """UndoSettings feeds UndoConfig's max_actions default."""
 
+from __future__ import annotations
+
 import pytest
 
 pytestmark = pytest.mark.unit

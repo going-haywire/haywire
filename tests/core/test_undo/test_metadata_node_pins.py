@@ -1,12 +1,14 @@
 """The Metadata node's pins follow its field lists, under undo, redo, save and load."""
 
+from __future__ import annotations
+
 import json
 
 import pytest
+
 from haybale_image.types.depth import DEPTH_BUFFER
 from haybale_image.types.image import GRAY_IMAGE, RGB_IMAGE
 from haybale_testing.types.test_types import TEST_FLOAT, TEST_INT
-
 from haywire.barn.builtin.nodes.metadata import MetadataNode
 from haywire.barn.builtin.types import BUNDLE, FIELD_LIST, INT
 from haywire.core.graph.base import BaseGraph

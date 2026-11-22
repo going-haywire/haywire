@@ -1,6 +1,8 @@
 # packages/haywire-core/src/haywire/ui/panel/layout.py
 """PanelLayout — the container handle passed to BasePanel.draw()."""
 
+from __future__ import annotations
+
 from typing import Any
 
 

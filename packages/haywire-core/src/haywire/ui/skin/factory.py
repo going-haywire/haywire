@@ -10,16 +10,17 @@ Enhanced with customer notification system for UINode hot reload support.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable, Dict
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from haywire.core.errors.haywire_exception import HaywireException
-from haywire.core.registry.lifecycle_event import LifeCycleEvent
 from haywire.core.node.node_wrapper import NodeWrapper
+from haywire.core.registry.lifecycle_event import LifeCycleEvent
 
 from ..widget.factory import WidgetFactory
 from .base import BaseSkin
-from .registry import SkinRegistry
 from .nodecard import UINodeCard
+from .registry import SkinRegistry
 
 if TYPE_CHECKING:
     from haywire.core.graph.edit_route import EditRoute
@@ -59,7 +60,7 @@ class SkinFactory:
         self._skin_registry.add_batch_event_subscriber(self._listen_on_skin_lifecycle_event)
 
         # Cache for BaseSkin instances by registry key
-        self._skin_instance_cache: Dict[str, BaseSkin] = {}
+        self._skin_instance_cache: dict[str, BaseSkin] = {}
 
         # Customer callbacks for factory hot reload notifications
         # mapping from node_id key to callback functions of each individual UINode

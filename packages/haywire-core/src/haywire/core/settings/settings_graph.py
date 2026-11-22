@@ -14,9 +14,9 @@ The Settings flavour parallel to NodeSettings:
   (a graph mirror), giving the framework < graph < node resolution chain.
 """
 
-from typing import TYPE_CHECKING
+from __future__ import annotations
 
-from typing_extensions import dataclass_transform
+from typing import TYPE_CHECKING, dataclass_transform
 
 from .descriptor import setting, shadow
 from .settings import Settings
@@ -36,9 +36,9 @@ class GraphSettings(Settings):
 
     def __init__(
         self,
-        registry: "SettingsRegistry | None" = None,
-        graph: "BaseGraph | None" = None,
+        registry: SettingsRegistry | None = None,
+        graph: BaseGraph | None = None,
     ) -> None:
         super().__init__(registry=registry, node=None)
         # Back-reference to the owning graph (None for standalone/test bags).
-        self._graph: "BaseGraph | None" = graph
+        self._graph: BaseGraph | None = graph

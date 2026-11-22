@@ -6,11 +6,11 @@ registry-owned cell. ``is_mirror`` collapses to ``bool(_mirror_key)``.
 
 from __future__ import annotations
 
+from haywire.barn.builtin.types import FLOAT
 from haywire.core.settings.descriptor import setting, shadow
 from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.settings.settings_framework import FrameworkSettings
 from haywire.core.settings.settings_node import NodeSettings
-from haywire.barn.builtin.types import FLOAT
 
 
 class _NoMirrorSchema(FrameworkSettings, namespace="test.nomirror"):

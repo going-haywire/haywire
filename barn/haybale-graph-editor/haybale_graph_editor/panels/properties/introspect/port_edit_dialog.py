@@ -16,24 +16,25 @@ Popup/dialog direction rule in ``docs/reference/design-guide.md``.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from nicegui import ui
 
 from haywire.api.workbench import hui
 from haywire.ui.components.popup import Popup
-from haywire.ui.utils import anchor_cleanup_to_element
 from haywire.ui.panel.port_default_widget_model import PortDefaultWidgetModel
+from haywire.ui.utils import anchor_cleanup_to_element
 
 if TYPE_CHECKING:
-    from haywire.core.graph.editor import Editor
     from haywire.api import DataPort
+    from haywire.core.graph.editor import Editor
 
 
 def open_port_edit_dialog(
-    port: "DataPort",
+    port: DataPort,
     node_id: str,
-    editor: "Editor",
+    editor: Editor,
     on_applied: Callable[[], None] | None = None,
     can_apply: Callable[[], bool] | None = None,
 ) -> Popup:
@@ -109,7 +110,7 @@ def open_port_edit_dialog(
 
 
 def _render_default_field(
-    port: "DataPort",
+    port: DataPort,
     staged: dict[str, Any],
 ) -> PortDefaultWidgetModel | None:
     """Render the default-value editor in the port's own widget, if it has one.

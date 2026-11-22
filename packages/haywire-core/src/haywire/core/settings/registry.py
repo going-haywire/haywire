@@ -16,20 +16,22 @@ Resolution priority (highest-priority *set* tier wins):
 """
 
 from __future__ import annotations
-from typing import Any, Callable, Iterator, Optional, Type
-import threading
-import logging
-import weakref
-from pathlib import Path
 
-from .value import SettingValue
-from .descriptor import setting
-from .persistence import SettingsFileStore
-from ..registry.base import BaseRegistry
+import logging
+import threading
+import weakref
+from collections.abc import Callable, Iterator
+from pathlib import Path
+from typing import Any
+
 from ..library.identity import LibraryIdentity
+from ..registry.base import BaseRegistry
 from ..types.fields import DataField
 from ..types.interface import IType
+from .descriptor import setting
+from .persistence import SettingsFileStore
 from .settings import Settings
+from .value import SettingValue
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +97,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         # One live DataField per definition — the cell every consumer of a
         # persistent setting binds. Created by cell_for(), kept current by the
         # _notify_subscribers write-through, dropped with its definition.
-        self._cells: dict[str, "DataField"] = {}
+        self._cells: dict[str, DataField] = {}
 
         # Track which definitions came from a settings file (vs code)
         self._file_defined: set[str] = set()
@@ -134,10 +136,10 @@ class SettingsRegistry(BaseRegistry[Settings]):
     # BaseRegistry abstract methods
     # =========================================================================
 
-    def _class_filter(self, cls: Type) -> bool:
+    def _class_filter(self, cls: type) -> bool:
         """Accept LibrarySettings and FrameworkSettings subclasses with class_identity."""
-        from .settings_library import LibrarySettings
         from .settings_framework import FrameworkSettings
+        from .settings_library import LibrarySettings
 
         return (
             isinstance(cls, type)
@@ -147,7 +149,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         )
 
     def _register_class(
-        self, cls: type[Settings], library_identity: Optional[LibraryIdentity] = None
+        self, cls: type[Settings], library_identity: LibraryIdentity | None = None
     ) -> str | None:
         """Register a schema class's fields, then the class itself in BaseRegistry.
 
@@ -181,7 +183,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
     # Schema field registration helpers
     # =========================================================================
 
-    def _register_schema_fields(self, schema_cls: type["Settings"]) -> None:
+    def _register_schema_fields(self, schema_cls: type[Settings]) -> None:
         """Register all descriptor fields from a schema class into the definitions."""
         for _name, descriptor in schema_cls._settings_descriptors().items():
             if not descriptor._setting_key:
@@ -190,7 +192,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
                 descriptor._setting_key, descriptor, category=descriptor._category or "root"
             )
 
-    def _notify_subscribers(self, changed: dict[str, "SettingValue"]) -> None:
+    def _notify_subscribers(self, changed: dict[str, SettingValue]) -> None:
         """
         Notify subscribers for a batch of changed keys and bring their cells current.
 
@@ -219,7 +221,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
                 for ref in dead:
                     self._subscribers[ns].remove(ref)
 
-    def _write_through_cells(self, changed: dict[str, "SettingValue"]) -> None:
+    def _write_through_cells(self, changed: dict[str, SettingValue]) -> None:
         """Bring registry-owned cells current for a batch of changed keys."""
         for key, value in changed.items():
             cell = self._cells.get(key)
@@ -274,7 +276,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         if is_new:
             self._notify_subscribers({name: SettingValue.unset()})
 
-    def _unregister_schema_fields(self, schema_cls: type["Settings"]) -> None:
+    def _unregister_schema_fields(self, schema_cls: type[Settings]) -> None:
         """Remove all descriptor fields of a schema class from definitions."""
         changed_keys: set[str] = set()
         with self._lock:
@@ -304,8 +306,9 @@ class SettingsRegistry(BaseRegistry[Settings]):
         returns the existing registry_key without raising.
         """
         if not hasattr(schema_cls, "class_identity"):
-            from .decorator import SettingsClassIdentity
             from haywire.core.library.utils import SETTING, derive_library_identity, reg_key
+
+            from .decorator import SettingsClassIdentity
 
             ns = schema_cls._namespace
             lib = library_identity or derive_library_identity(schema_cls)
@@ -327,7 +330,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
     # Subscriptions
     # =========================================================================
 
-    def subscribe(self, key: str | None, callback: Callable[[str, "SettingValue"], None]) -> None:
+    def subscribe(self, key: str | None, callback: Callable[[str, SettingValue], None]) -> None:
         """
         Subscribe *callback* to setting changes for *key*.
 
@@ -351,7 +354,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
             return  # already subscribed — deduplicate
         bucket.append(ref)
 
-    def unsubscribe(self, key: str | None, callback: Callable[[str, "SettingValue"], None]) -> None:
+    def unsubscribe(self, key: str | None, callback: Callable[[str, SettingValue], None]) -> None:
         """Remove a subscription registered with ``subscribe``."""
         bucket = self._subscribers.get(key, [])
         self._subscribers[key] = [r for r in bucket if r() is not callback]
@@ -572,7 +575,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         self._store_definition(name, d, category=category)
         logger.debug(f"Auto-defined setting from file: {name}")
 
-    def _resolve_itype_for_python_type(self, py_type: type) -> "type[IType] | None":
+    def _resolve_itype_for_python_type(self, py_type: type) -> type[IType] | None:
         """Resolve an inferred Python type to its registered IType.
 
         Prefers the global TypeRegistry; when that is unavailable (an isolated

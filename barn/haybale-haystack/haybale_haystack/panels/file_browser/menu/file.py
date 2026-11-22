@@ -17,8 +17,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haybale_haystack.states.haystack_state import HaystackState
-from haybale_studio.surfaces import FileActions, FileMenu
 from haybale_studio.states.file_browser_state import FileBrowserState
+from haybale_studio.surfaces import FileActions, FileMenu
 from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
 
 if TYPE_CHECKING:
@@ -41,13 +41,13 @@ class OpenInHaystackMenuPanel(BasePanel):
     actions: FileActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         f = ctx.data[FileBrowserState].right_clicked_file
         return f is not None and f.suffix.lower() in _GRAPH_EXTS
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         path = ctx.data[FileBrowserState].right_clicked_file

@@ -13,12 +13,11 @@ from fastapi.responses import JSONResponse
 from nicegui import app as nicegui_app
 from starlette.requests import ClientDisconnect
 
-from haywire.api.workbench import AccessTier, resolve_tier
-from haywire.api import report_failure
-
 from haybale_models.download import DownloadQueue
 from haybale_models.receive import ReceiveRefused, UploadReceiver
 from haybale_models.sources import DownloadCancelled, SourceFailed
+from haywire.api import report_failure
+from haywire.api.workbench import AccessTier, resolve_tier
 
 NAME_HEADER = "X-Hw-File-Name"
 """The request header holding the uploaded file's percent-encoded name."""

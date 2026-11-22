@@ -6,8 +6,9 @@ import asyncio
 import logging
 import sys
 import threading
+from collections.abc import Callable
 from types import TracebackType
-from typing import Any, Callable, Optional
+from typing import Any
 
 from nicegui import app, context, ui
 
@@ -33,12 +34,12 @@ class ErrorHooks:
         session_of: Maps a NiceGUI ``client.id`` to its session, or ``None`` if unknown.
     """
 
-    def __init__(self, session_of: Callable[[str], Optional[Session]]) -> None:
+    def __init__(self, session_of: Callable[[str], Session | None]) -> None:
         self._session_of = session_of
         self._installed = False
         self._prev_thread_hook: Any = None
         self._prev_sys_hook: Any = None
-        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._loop: asyncio.AbstractEventLoop | None = None
         self._prev_loop_handler: Any = None
 
     def on_ui_exception(self, exc: Exception) -> None:
@@ -107,7 +108,7 @@ class ErrorHooks:
         self._prev_thread_hook(args)
 
     def _on_uncaught(
-        self, exc_type: type[BaseException], exc: BaseException, tb: Optional[TracebackType]
+        self, exc_type: type[BaseException], exc: BaseException, tb: TracebackType | None
     ) -> None:
         if isinstance(exc, Exception):
             report_failure(exc, operation="Uncaught")
@@ -120,7 +121,7 @@ class ErrorHooks:
         except Exception:
             return None
 
-    def _session_for(self, client: Any) -> Optional[Session]:
+    def _session_for(self, client: Any) -> Session | None:
         if client is None:
             return None
         try:

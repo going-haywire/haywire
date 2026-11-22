@@ -4,22 +4,24 @@ Chains of stub control nodes run through the real ``HaywireVM`` control loop,
 so the kill flag is checked exactly where production checks it.
 """
 
+from __future__ import annotations
+
 import threading
 import time
+from collections.abc import Callable, Sequence
 from types import SimpleNamespace
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any
 
 import pytest
 
-from haywire.core.execution.execution_group import ExecutionGroup
 from haywire.core.execution.event_source import Trigger
+from haywire.core.execution.execution_group import ExecutionGroup
 from haywire.core.execution.flow import ControlFlowGraph, ControlNodeInfo, Flow, LocalizedDataFlow
-from haywire.core.execution.interpreter import Interpreter
 from haywire.core.execution.flow_queue import FlowQueue
+from haywire.core.execution.interpreter import Interpreter
 from haywire.core.execution.vm import HaywireVM
 from haywire.core.node.base import BaseNode
 from haywire.core.node.node_wrapper import NodeWrapper
-
 from tests.wait import wait_until
 
 
@@ -38,13 +40,13 @@ class _Node:
     on_frame_start = BaseNode.on_frame_start
     on_frame_end = BaseNode.on_frame_end
 
-    def __init__(self, node_id: str, ran: List[str], work: Optional[Callable[[Any], None]] = None):
+    def __init__(self, node_id: str, ran: list[str], work: Callable[[Any], None] | None = None):
         self.node_id = node_id
         self.wrapper = _wrapper()
         self.ran = ran
         self.work = work
 
-    def _execute(self, context) -> Optional[str]:
+    def _execute(self, context) -> str | None:
         self.ran.append(self.node_id)
         if self.work is not None:
             self.work(context)
@@ -52,7 +54,7 @@ class _Node:
 
 
 class _FrameEndNode(_Node):
-    def __init__(self, node_id: str, ran: List[str], work=None):
+    def __init__(self, node_id: str, ran: list[str], work=None):
         super().__init__(node_id, ran, work)
         self.frame_ends = 0
 
@@ -61,7 +63,7 @@ class _FrameEndNode(_Node):
 
 
 class _ShutdownNode(_Node):
-    def __init__(self, node_id: str, ran: List[str], work=None):
+    def __init__(self, node_id: str, ran: list[str], work=None):
         super().__init__(node_id, ran, work)
         self.shutdowns = 0
 
@@ -89,10 +91,8 @@ class _SharedDataNode(_Node):
         self.shutdowns += 1
 
 
-def _flow(
-    flow_id: str, nodes: Sequence[_Node], cycle: bool = False, data: Optional[List[Any]] = None
-) -> Flow:
-    infos: Dict[str, ControlNodeInfo] = {}
+def _flow(flow_id: str, nodes: Sequence[_Node], cycle: bool = False, data: list[Any] | None = None) -> Flow:
+    infos: dict[str, ControlNodeInfo] = {}
     for index, node in enumerate(nodes):
         if index + 1 < len(nodes):
             outlets = {"next": (nodes[index + 1].node_id, "in")}
@@ -121,7 +121,7 @@ def _enqueue(flow: Flow, key: str) -> bool:
 
 @pytest.mark.unit
 def test_kill_ends_frame_at_next_control_node():
-    ran: List[str] = []
+    ran: list[str] = []
     third = threading.Event()
 
     def park(context):
@@ -129,7 +129,7 @@ def test_kill_ends_frame_at_next_control_node():
         # n3 is still running when the kill comes, whenever this thread gets there.
         assert group.cancel.wait(30.0)
 
-    nodes: List[_Node] = [_FrameEndNode("n1", ran)]
+    nodes: list[_Node] = [_FrameEndNode("n1", ran)]
     nodes += [_Node(f"n{i}", ran, park if i == 3 else None) for i in range(2, 11)]
     flow = _flow("chain", nodes)
     group = _group(flow, HaywireVM(), "g")
@@ -146,9 +146,9 @@ def test_kill_ends_frame_at_next_control_node():
 @pytest.mark.unit
 def test_stop_timeout_escalates_to_kill():
     """A frame that never ends on its own is killed; queued triggers are dropped, on_shutdown runs once."""
-    ran: List[str] = []
+    ran: list[str] = []
     first = _ShutdownNode("n0", ran, lambda context: time.sleep(0.01))
-    nodes: List[_Node] = [first] + [_Node(f"n{i}", ran, lambda context: time.sleep(0.01)) for i in (1, 2)]
+    nodes: list[_Node] = [first] + [_Node(f"n{i}", ran, lambda context: time.sleep(0.01)) for i in (1, 2)]
     flow = _flow("loop", nodes, cycle=True)
     group = _group(flow, HaywireVM(), "g")
     group.start()

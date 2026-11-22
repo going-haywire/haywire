@@ -16,7 +16,6 @@ from haywire.core.graph.types import ChangeReason
 from haywire.core.node.layout import PATCH, STAGE, LayoutChannel
 from haywire.ui.components.graph.canvas import GraphCanvasVue
 from haywire.ui.skin.factory import SkinFactory
-
 from tests.conftest import edit_route, make_node
 
 pytestmark = pytest.mark.integration

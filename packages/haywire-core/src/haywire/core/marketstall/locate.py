@@ -37,7 +37,7 @@ def _ref_from_install_spec(install_spec: str) -> str | None:
 
 
 def resolve_row_path(
-    row: "Haybale",
+    row: Haybale,
     path: str,
     *,
     form: Literal["raw", "blob", "tree"],
@@ -82,7 +82,7 @@ def link_form(path: str) -> Literal["blob", "tree"]:
     return "tree" if path.endswith("/") else "blob"
 
 
-def module_dir_path(row: "Haybale") -> str:
+def module_dir_path(row: Haybale) -> str:
     """The row's module directory, relative to the git root — ``barn/x/haybale_x/``.
 
     Built from ``install_spec``'s ``#subdirectory=`` and the module name derived

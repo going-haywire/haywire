@@ -19,9 +19,8 @@ from haybale_models.matcher import candidates, entry_matches
 from haybale_models.resolver import ModelMissing, ResolvedModel, resolve
 from haybale_models.sources import prefix_of
 from haybale_models.value.model_ref import ModelRef
-
-from haywire.api.workbench import LevelMode, hui, set_hover_tip, stamp_requires
 from haywire.api import BaseWidget, CatalogEntry, VolumeError, volume_location, widget
+from haywire.api.workbench import LevelMode, hui, set_hover_tip, stamp_requires
 
 _CHUNK = 1024 * 1024
 _MODEL_SUFFIXES = frozenset({".safetensors", ".pth", ".pt", ".ckpt", ".onnx", ".bin", ".gguf"})

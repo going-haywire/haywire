@@ -15,7 +15,7 @@ import pytest
 
 from haywire_studio.app import HaywireApp
 from haywire_studio.network.ip_filter import IPAllowlistMiddleware
-from haywire_studio.security.document import SecurityDocument, NetworkPolicy
+from haywire_studio.security.document import NetworkPolicy, SecurityDocument
 
 pytestmark = pytest.mark.unit
 

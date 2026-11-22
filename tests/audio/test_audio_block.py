@@ -1,5 +1,7 @@
 """AudioBlock: planar float32, read-only, validated."""
 
+from __future__ import annotations
+
 import numpy as np
 import pytest
 

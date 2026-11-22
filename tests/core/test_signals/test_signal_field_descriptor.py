@@ -3,13 +3,16 @@ _seed_signal_fields. Exercises identity short-circuit, class-level
 synthetic class access, shadowing rejection, host validation, mutable-
 default deep-copy seeding."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest
+
 from haywire.core.signals import Signal, SignalSource, signal_field
 from haywire.core.signals.descriptor import (
-    iter_signal_fields,
     _seed_signal_fields,
+    iter_signal_fields,
 )
 
 

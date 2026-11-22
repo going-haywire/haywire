@@ -8,9 +8,6 @@ import threading
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from haywire.api.workbench import AppState, get_catalog_registry, get_library_state_container, state
-from haywire.api import CatalogRegistry, VolumeError, ensure_volume, library_storage_dir, volume_location
-
 from haybale_models.download import DownloadQueue
 from haybale_models.keys import HF_VOLUME, MODELS_VOLUME
 from haybale_models.pool import LoadedModels
@@ -19,6 +16,8 @@ from haybale_models.signals import ModelsChanged
 from haybale_models.sources import builtin_sources
 from haybale_models.store.index import ModelIndex
 from haybale_models.store.records import FetchRecords
+from haywire.api import CatalogRegistry, VolumeError, ensure_volume, library_storage_dir, volume_location
+from haywire.api.workbench import AppState, get_catalog_registry, get_library_state_container, state
 
 if TYPE_CHECKING:
     from haybale_models.needs import NeedsReport, NeedsWatcher
@@ -158,7 +157,6 @@ class ModelsState(AppState):
     def _start_needs(self) -> None:
         """Watch the open graphs for missing models; skipped when no graph registry exists."""
         from haybale_graph_editor.states.graph_app_state import GraphAppState
-
         from haybale_models.needs import NeedsWatcher
 
         try:

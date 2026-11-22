@@ -1,7 +1,10 @@
 """View Image — show an image on the node card."""
 
+from __future__ import annotations
+
 from typing import Any
 
+from haybale_image.value import ImageValue
 from haywire.api import (
     CHOICES,
     EXEC,
@@ -16,8 +19,6 @@ from haywire.api import (
     node,
     setting,
 )
-
-from haybale_image.value import ImageValue
 
 VIEW_MODES = ("stream", "still")
 

@@ -4,6 +4,8 @@ These themes exist solely to provide stable, known values in tests — they are
 not meant to look good in the UI.
 """
 
+from __future__ import annotations
+
 from haywire.api import BaseTheme, theme
 
 

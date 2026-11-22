@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import fcntl
 import shutil
 import subprocess
 from pathlib import Path
-
 from typing import Any, cast
 
 import pytest
+
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.library.registry import LibraryRegistry
 from haywire_studio.packaging.docs.generate import (

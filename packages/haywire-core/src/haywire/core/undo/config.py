@@ -8,6 +8,8 @@ that was never implemented; those were removed rather than left as knobs that
 silently did nothing.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 
 

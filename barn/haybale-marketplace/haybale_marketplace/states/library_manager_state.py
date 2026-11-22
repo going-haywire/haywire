@@ -13,11 +13,9 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional
-
-from haywire.api.workbench import AppState, state
 
 from haybale_marketplace.library_manager import LibraryManager
+from haywire.api.workbench import AppState, state
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +26,7 @@ class LibraryManagerState(AppState):
 
     def __init__(self) -> None:
         super().__init__()
-        self.manager: Optional[LibraryManager] = None
+        self.manager: LibraryManager | None = None
 
     def on_enable(self) -> None:
         from haywire.core.di.config import get_library_system
@@ -36,7 +34,7 @@ class LibraryManagerState(AppState):
 
         registry = get_library_system().get_library_registry()
         try:
-            workspace_root: Optional[Path] = get_workspace_root()
+            workspace_root: Path | None = get_workspace_root()
         except RuntimeError:
             workspace_root = None
         self.manager = LibraryManager(

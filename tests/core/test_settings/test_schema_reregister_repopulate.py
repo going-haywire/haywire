@@ -19,10 +19,10 @@ from pathlib import Path
 
 import pytest
 
+from haywire.barn.builtin.types import STRING
 from haywire.core.settings import setting
 from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.settings.settings_library import LibrarySettings
-from haywire.barn.builtin.types import STRING
 
 
 @pytest.fixture

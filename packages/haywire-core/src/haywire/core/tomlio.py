@@ -28,9 +28,10 @@ block leaves the file untouched, so a half-applied edit cannot be persisted.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 import toml
 import tomlkit

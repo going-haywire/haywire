@@ -4,6 +4,8 @@ The browser half (the real Enter and blur events) is in
 ``tests/ui/harness/test_list_widget.py``; these pin the server-side contract.
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest

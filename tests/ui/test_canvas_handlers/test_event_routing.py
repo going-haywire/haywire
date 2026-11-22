@@ -7,12 +7,15 @@ event dispatch to external handler objects instead of hosting every handler
 method itself.
 """
 
+from __future__ import annotations
+
 import pytest
-from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_event, build_event_handler_map
+
+from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map, handles_event
 from haywire.ui.components.graph.event_definitions import (
+    SelectionChangedEvent,
     UserDragStartEvent,
     UserDragUpdateEvent,
-    SelectionChangedEvent,
 )
 
 pytestmark = pytest.mark.unit

@@ -1,5 +1,7 @@
 """scripts/tasks.py against temporary repositories with worktrees and stand-in gh and hc."""
 
+from __future__ import annotations
+
 import json
 import os
 import subprocess

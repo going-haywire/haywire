@@ -4,6 +4,8 @@ VecMeta (length, element_type, component labels) is attached via widget metadata
 so the vec editor renders X/Y/Z component fields (wired in Plan 2).
 """
 
+from __future__ import annotations
+
 from typing import ClassVar
 
 from haywire.barn.builtin import widget_keys
@@ -18,6 +20,7 @@ from haywire.core.settings.types import (
 )
 from haywire.core.types import PrimitiveType
 from haywire.core.types import type as type_decorator
+
 from ..wires import DataWire
 
 

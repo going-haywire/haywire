@@ -1,5 +1,7 @@
 """render_error_details exposes an in-studio open hook."""
 
+from __future__ import annotations
+
 import inspect
 
 import pytest

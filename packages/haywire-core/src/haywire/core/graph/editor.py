@@ -1,48 +1,52 @@
+from __future__ import annotations
+
 import copy
 import logging
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, cast
+from collections.abc import Callable, Sequence
+from typing import Any, cast
+
+from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.errors import Refusal, report_failure
 from haywire.core.graph.base import BaseGraph
-from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.graph.setting_owner import SettingOwner
 from haywire.core.graph.stacking import Restack, restacked
+from haywire.core.node.factory import NodeFactory
 from haywire.core.node.layout import PATCH, LayoutChannel
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.core.node.factory import NodeFactory
 from haywire.core.types import Propagation
-from haywire.core.undo.interfaces import IAction, IHistoryManager
-from haywire.core.undo.history_manager import HistoryManager
-from haywire.core.undo.config import UndoConfig
-from haywire.core.undo.origin import StepOrigin
 from haywire.core.undo.actions.graph_actions import (
-    ResetSettingsAction,
-    SetSettingsAction,
-    stage_placement,
-    AddNodeAction,
-    MoveNodesAction,
-    MoveNodesToAction,
-    RemoveElementsAction,
-    RemovePortAction,
-    PromoteSettingAction,
     AddEdgeAction,
-    PasteClipboardAction,
-    SplitEdgeWithRerouteAction,
-    DissolveRerouteAction,
+    AddNodeAction,
     ClearMacroOriginAction,
     CollapseToGraphNodeAction,
     DetachPlacementFromMacroAction,
+    DissolveRerouteAction,
     ExpandGraphNodeAction,
+    MoveNodesAction,
+    MoveNodesToAction,
+    PasteClipboardAction,
     PromoteGroupToMacroAction,
+    PromoteSettingAction,
+    RemoveElementsAction,
+    RemovePortAction,
     ReorderPortsAction,
-    SetPortHiddenAction,
     ResetSettingAction,
+    ResetSettingsAction,
+    RestackNodesAction,
     SetEdgePropagationAction,
+    SetPortHiddenAction,
     SetPortMetadataAction,
     SetPropertyAction,
     SetSettingAction,
+    SetSettingsAction,
     SetStageMembershipAction,
-    RestackNodesAction,
+    SplitEdgeWithRerouteAction,
+    stage_placement,
 )
+from haywire.core.undo.config import UndoConfig
+from haywire.core.undo.history_manager import HistoryManager
+from haywire.core.undo.interfaces import IAction, IHistoryManager
+from haywire.core.undo.origin import StepOrigin
 
 logger = logging.getLogger(__name__)
 
@@ -56,15 +60,15 @@ class Editor:
     it, and fences the history after it.
     """
 
-    origin: Optional[StepOrigin] = None
+    origin: StepOrigin | None = None
 
     def __init__(
         self,
         graph: BaseGraph,
         node_factory: NodeFactory,
-        undo_config: Optional[UndoConfig] = None,
-        history_manager: Optional[IHistoryManager] = None,
-        origin: Optional[StepOrigin] = None,
+        undo_config: UndoConfig | None = None,
+        history_manager: IHistoryManager | None = None,
+        origin: StepOrigin | None = None,
     ):
         """Initialize the editor with the graph it edits.
 
@@ -103,7 +107,7 @@ class Editor:
         self.history_manager: IHistoryManager = history_manager
         self._node_factory = node_factory
 
-    def with_origin(self, origin: Optional[StepOrigin]) -> "Editor":
+    def with_origin(self, origin: StepOrigin | None) -> Editor:
         """Return an editor over the same graph and history that credits its steps to ``origin``.
 
         Returns ``self`` when ``origin`` is already this editor's.
@@ -123,10 +127,10 @@ class Editor:
     def create_wrapper(
         self,
         registry_key: str,
-        position: Tuple[float, float] = (3750, 3750),
+        position: tuple[float, float] = (3750, 3750),
         channel: LayoutChannel = PATCH,
-        patch_fallback: Optional[Tuple[float, float]] = None,
-    ) -> Optional[NodeWrapper]:
+        patch_fallback: tuple[float, float] | None = None,
+    ) -> NodeWrapper | None:
         """Create a node of type ``registry_key`` as one undoable action.
 
         Args:
@@ -162,14 +166,14 @@ class Editor:
 
     def paste_clipboard(
         self,
-        payload: Dict[str, Any],
+        payload: dict[str, Any],
         paste_x: float,
         paste_y: float,
         channel: LayoutChannel = PATCH,
-        patch_anchor: Optional[Tuple[float, float]] = None,
-        patch_fallback: Optional[Tuple[float, float]] = None,
-        stage_anchor: Optional[Tuple[float, float]] = None,
-    ) -> Optional[Tuple[List[str], List[str]]]:
+        patch_anchor: tuple[float, float] | None = None,
+        patch_fallback: tuple[float, float] | None = None,
+        stage_anchor: tuple[float, float] | None = None,
+    ) -> tuple[list[str], list[str]] | None:
         """Paste a clipboard payload at canvas position ``(paste_x, paste_y)`` as one undoable action.
 
         On the stage ``channel`` the pasted nodes land on stage, keeping their relative layout
@@ -205,7 +209,7 @@ class Editor:
             return None
 
     def move_nodes(
-        self, nodes: List[str], deltaX: float, deltaY: float, channel: LayoutChannel = PATCH
+        self, nodes: list[str], deltaX: float, deltaY: float, channel: LayoutChannel = PATCH
     ) -> bool:
         """Move every node in ``nodes`` by ``(deltaX, deltaY)`` in ``channel`` as one undoable action.
 
@@ -227,7 +231,7 @@ class Editor:
             logger.error(f"Error moving nodes by delta: {e}")
             return False
 
-    def move_nodes_to(self, positions: Dict[str, Dict[str, float]], channel: LayoutChannel = PATCH) -> bool:
+    def move_nodes_to(self, positions: dict[str, dict[str, float]], channel: LayoutChannel = PATCH) -> bool:
         """Move nodes to absolute positions in ``channel`` as one undoable action.
 
         Args:
@@ -248,7 +252,7 @@ class Editor:
             logger.error(f"Error moving nodes to absolute positions: {e}")
             return False
 
-    def add_to_stage(self, node_ids: List[str]) -> bool:
+    def add_to_stage(self, node_ids: list[str]) -> bool:
         """Put nodes on the graph's stage as one undoable action.
 
         Each node is placed below the nodes already on stage, in patch order. Nodes that are
@@ -259,7 +263,7 @@ class Editor:
         """
         return self._set_stage_membership(node_ids, True)
 
-    def remove_from_stage(self, node_ids: List[str]) -> bool:
+    def remove_from_stage(self, node_ids: list[str]) -> bool:
         """Take nodes off the graph's stage as one undoable action, keeping their stage rectangle.
 
         Nodes that are unknown or already off stage are skipped.
@@ -269,7 +273,7 @@ class Editor:
         """
         return self._set_stage_membership(node_ids, False)
 
-    def restack_nodes(self, node_ids: List[str], how: Restack, channel: LayoutChannel = PATCH) -> bool:
+    def restack_nodes(self, node_ids: list[str], how: Restack, channel: LayoutChannel = PATCH) -> bool:
         """Change the stacking order of nodes in ``channel``'s view as one undoable action.
 
         Ids that are unknown or not in the view are ignored. See ``Restack`` for the verbs.
@@ -295,7 +299,7 @@ class Editor:
             logger.error(f"Error changing stacking order: {e}")
             return False
 
-    def _set_stage_membership(self, node_ids: List[str], on_stage: bool) -> bool:
+    def _set_stage_membership(self, node_ids: list[str], on_stage: bool) -> bool:
         changing = []
         for node_id in dict.fromkeys(node_ids):
             wrapper = self.graph.get_node_wrapper(node_id)
@@ -427,7 +431,7 @@ class Editor:
         """
         return self._apply_value(ResetSettingsAction(self.graph, owners, name), record, merge_owner)
 
-    def reorder_ports(self, node_id: str, ordered_ids: List[str]) -> bool:
+    def reorder_ports(self, node_id: str, ordered_ids: list[str]) -> bool:
         """Reorder one sibling group of a node's ports as one undoable action.
 
         Args:
@@ -480,7 +484,7 @@ class Editor:
 
     def _report_apply_failure(self, exc: Exception, action: IAction) -> None:
         """Record a failed edit in the error ledger; a ``Refusal`` is not recorded."""
-        context: Dict[str, Any] = {"graph_id": self.graph.graph_id, "action": action.description}
+        context: dict[str, Any] = {"graph_id": self.graph.graph_id, "action": action.description}
         node_id = getattr(action, "node_id", None)
         if node_id:
             context["node_id"] = node_id
@@ -498,7 +502,7 @@ class Editor:
             self._report_apply_failure(e, action)
             return False
 
-    def reset_nodes(self, node_ids: List[str]) -> bool:
+    def reset_nodes(self, node_ids: list[str]) -> bool:
         """Rebuild the nodes through ``init()`` as one undo step; Undo puts them back exactly.
 
         Returns:
@@ -519,7 +523,7 @@ class Editor:
             return False
         return self.history_manager.add_action(action, origin=self.origin)
 
-    def apply_previous_setup(self, node_ids: List[str]) -> bool:
+    def apply_previous_setup(self, node_ids: list[str]) -> bool:
         """Rebuild the nodes from their previous setup as one undo step; Undo brings it back.
 
         Each node keeps its current position, stacking order and place on stage.
@@ -533,7 +537,7 @@ class Editor:
 
         return self._rebuild_previous_setup(node_ids, "Apply previous setup", setup_to_apply)
 
-    def dismiss_previous_setup(self, node_ids: List[str]) -> bool:
+    def dismiss_previous_setup(self, node_ids: list[str]) -> bool:
         """Drop the nodes' previous setup as one undo step; Undo brings it back.
 
         Returns:
@@ -542,7 +546,7 @@ class Editor:
         """
         from haywire.core.node.previous_setup import PREVIOUS_SETUP_KEY
 
-        def without_previous_setup(wrapper: Any) -> Dict[str, Any]:
+        def without_previous_setup(wrapper: Any) -> dict[str, Any]:
             data = wrapper.serialize()["node_data"]
             data.pop(PREVIOUS_SETUP_KEY, None)
             return data
@@ -550,7 +554,7 @@ class Editor:
         return self._rebuild_previous_setup(node_ids, "Dismiss previous setup", without_previous_setup)
 
     def _rebuild_previous_setup(
-        self, node_ids: List[str], verb: str, after_of: Callable[[Any], Optional[Dict[str, Any]]]
+        self, node_ids: list[str], verb: str, after_of: Callable[[Any], dict[str, Any] | None]
     ) -> bool:
         """Rebuild nodes that each hold a previous setup from ``after_of(wrapper)``, as one undo step."""
         from haywire.core.undo.actions.graph_actions import RebuildNodesAction, describe_rebuild
@@ -570,7 +574,7 @@ class Editor:
             return False
         return self.history_manager.add_action(action, origin=self.origin)
 
-    def set_port_metadata(self, node_id: str, port_id: str, **changes: Any) -> Tuple[bool, Optional[str]]:
+    def set_port_metadata(self, node_id: str, port_id: str, **changes: Any) -> tuple[bool, str | None]:
         """Edit a port's label, description and/or default, undo-recorded.
 
         One call is one undo step, however many fields it carries, so a dialog
@@ -626,7 +630,7 @@ class Editor:
             logger.error(f"Error removing port {port_id!r} on {node_id}: {e}")
             return False
 
-    def remove_elements(self, nodes: List[str], edges: List[str], release_pins: bool = True) -> bool:
+    def remove_elements(self, nodes: list[str], edges: list[str], release_pins: bool = True) -> bool:
         """Remove the given nodes and edges as one undoable action.
 
         A Subgraph's two boundary nodes are dropped from ``nodes`` rather than
@@ -680,15 +684,15 @@ class Editor:
         wrapper = self.graph.get_node_wrapper(node_id)
         return wrapper is not None and wrapper.node.behavior.is_boundary_node
 
-    def get_node_wrapper(self, node_id: str) -> Optional[NodeWrapper]:
+    def get_node_wrapper(self, node_id: str) -> NodeWrapper | None:
         """Get a node wrapper by ID."""
         return self.graph.get_node_wrapper(node_id)
 
-    def list_node_wrappers(self) -> List[NodeWrapper]:
+    def list_node_wrappers(self) -> list[NodeWrapper]:
         """Get a list of all node wrappers in the graph."""
         return list(self.graph.node_wrappers.values())
 
-    def get_available_node_regkeys(self) -> List[str]:
+    def get_available_node_regkeys(self) -> list[str]:
         """Get a list of all available node types from the factory."""
         return self._node_factory.node_registry.list_names()
 
@@ -725,11 +729,11 @@ class Editor:
     def split_edge_with_reroute(
         self,
         edge_id: str,
-        position: Tuple[float, float],
+        position: tuple[float, float],
         registry_key: str,
         channel: LayoutChannel = PATCH,
-        patch_fallback: Optional[Tuple[float, float]] = None,
-    ) -> Optional[str]:
+        patch_fallback: tuple[float, float] | None = None,
+    ) -> str | None:
         """Split a data edge and insert a reroute node of type ``registry_key`` at ``position``.
 
         Removes the original edge, creates the port-less reroute node, adds its
@@ -785,12 +789,12 @@ class Editor:
 
     def collapse_to_group(
         self,
-        node_ids: List[str],
+        node_ids: list[str],
         card_registry_key: str,
         input_registry_key: str,
         output_registry_key: str,
         label: str = "Group",
-    ) -> Tuple[Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None]:
         """Collapse ``node_ids`` into a Group as one undoable operation.
 
         The three registry keys name the Graph-node and boundary-node classes,
@@ -831,7 +835,7 @@ class Editor:
         macro_registry_key: str,
         description: str | None = None,
         drop_unmatched_edges: bool = False,
-    ) -> Tuple[Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None]:
         """Swap the Group on ``node_id`` for a placement of ``macro_registry_key``.
 
         One undoable operation. The macro file must already be written and
@@ -884,7 +888,7 @@ class Editor:
         self,
         node_id: str,
         card_registry_key: str,
-    ) -> Tuple[Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None]:
         """Swap the macro placement on ``node_id`` for a Group holding its interior.
 
         One undoable operation. The macro file and every other placement of it
@@ -965,7 +969,7 @@ class Editor:
             report_failure(e, operation="Apply edit", graph_id=self.graph.graph_id, action="Expand group")
             return False
 
-    def list_edges(self) -> List[EdgeWrapper]:
+    def list_edges(self) -> list[EdgeWrapper]:
         """Get a list of all connections in the graph."""
         return list(self.graph.edge_wrappers.values())
 

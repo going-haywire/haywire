@@ -1,5 +1,7 @@
 """scripts/release_sweep.py: name lists, import scan, Waits for line, reminders and floors reports."""
 
+from __future__ import annotations
+
 import json
 
 import pytest

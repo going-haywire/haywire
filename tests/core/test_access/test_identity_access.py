@@ -1,5 +1,7 @@
 """requires= on panel, editor and farmhand identities — and NOT on BaseIdentity."""
 
+from __future__ import annotations
+
 import dataclasses
 
 import pytest

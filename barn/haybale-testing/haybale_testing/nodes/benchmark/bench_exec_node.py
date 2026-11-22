@@ -8,6 +8,8 @@ EXEC inlet/outlet — so the number reflects the control-edge machinery, not nod
 work. Editing it shifts the baseline; add a new frozen node instead.
 """
 
+from __future__ import annotations
+
 from haywire.api import EXEC, BaseNode, ExecutionContext, NodeType, node
 
 

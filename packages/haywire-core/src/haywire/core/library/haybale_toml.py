@@ -20,7 +20,7 @@ from typing import Any
 
 import toml
 
-from haywire.core.tomlio import edit_toml, to_builtin, read_toml
+from haywire.core.tomlio import edit_toml, read_toml, to_builtin
 
 from .haybale import Deprecation, Haybale
 
@@ -186,10 +186,10 @@ def read_haybale_toml_lenient(package_dir: Path) -> dict[str, Any]:
 
 #: (path, mtime_ns) -> parsed row. Keyed on mtime, so an edit to the file
 #: invalidates the entry.
-_row_cache: dict[Path, tuple[int, "Haybale"]] = {}
+_row_cache: dict[Path, tuple[int, Haybale]] = {}
 
 
-def read_haybale(package_dir: Path) -> "Haybale":
+def read_haybale(package_dir: Path) -> Haybale:
     """The library's declared metadata, read from *package_dir*'s ``haybale.toml``.
 
     The same :class:`~haywire.core.library.haybale.Haybale` a marketstall feed
@@ -224,7 +224,7 @@ def read_haybale(package_dir: Path) -> "Haybale":
     return row
 
 
-def _row_from(data: dict) -> "Haybale":
+def _row_from(data: dict) -> Haybale:
     """Project a parsed document onto :class:`Haybale`, dropping wrong-typed values."""
 
     def _str(key: str) -> str:

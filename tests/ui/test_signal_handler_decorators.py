@@ -10,21 +10,21 @@ Covers:
 - Public re-export from haywire.core.session works (decorators are importable).
 """
 
+from __future__ import annotations
+
 import pytest
 
-
-from haywire.core.session import redraw_on, react_on
+from haywire.core.session import react_on, redraw_on
 from haywire.core.session.handlers import (
-    get_redraw_on_types,
     get_react_on_types,
+    get_redraw_on_types,
 )
 from haywire.core.signals import (
-    Signal,
-    SelectionMoved,
-    GraphDataMutated,
     ActiveGraphMoved,
+    GraphDataMutated,
+    SelectionMoved,
+    Signal,
 )
-
 
 # ---------------------------------------------------------------------------
 # @redraw_on
@@ -171,8 +171,8 @@ def test_undecorated_function_has_empty_metadata() -> None:
 
 def test_decorators_are_re_exported_from_session_package() -> None:
     """Authors should be able to ``from haywire.core.session import redraw_on, react_on``."""
-    from haywire.core.session import redraw_on as redraw_on_imported
     from haywire.core.session import react_on as react_on_imported
+    from haywire.core.session import redraw_on as redraw_on_imported
 
     assert redraw_on_imported is redraw_on
     assert react_on_imported is react_on

@@ -4,6 +4,8 @@ The editor answers for every level it has open, not just the one on screen, and
 opens a level for a Subgraph of this document that has none yet.
 """
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import MagicMock

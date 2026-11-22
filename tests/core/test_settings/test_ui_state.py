@@ -12,10 +12,12 @@ Tests for the UiState mechanism on Settings/setting():
   hiding) is tested in tests/ui/panel/test_ui_state_row_state.py.
 """
 
+from __future__ import annotations
+
 import logging
 
-from haywire.core.settings import Settings, UiState, setting
 from haywire.barn.builtin.types import BOOL, FLOAT
+from haywire.core.settings import Settings, UiState, setting
 
 
 class UiStateSettings(Settings):

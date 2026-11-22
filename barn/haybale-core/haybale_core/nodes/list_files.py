@@ -1,5 +1,7 @@
 """List Files — the files of a folder, as a list of paths."""
 
+from __future__ import annotations
+
 from haybale_core.file_listing import FileListing, folder_root, list_files
 from haywire.api import (
     EXEC,

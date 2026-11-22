@@ -1,5 +1,7 @@
 """The Properties row marks a promoted field as inlet-driven (data-promoted)."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest
@@ -7,7 +9,6 @@ from nicegui import Client, ui
 from nicegui import app as _app  # noqa: F401
 
 from haywire.ui.panel.render_utils import render_settings
-
 from tests.ui.panel.render_ctx import make_render_ctx, node_route
 
 pytestmark = pytest.mark.integration

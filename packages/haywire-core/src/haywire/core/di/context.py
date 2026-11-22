@@ -9,42 +9,44 @@ receive these via constructor injection::
     set_node_factory(factory)                  # write (DI providers only)
 """
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..node.factory import NodeFactory
     from ..adapter.factory import AdapterFactory
-    from ..types.registry import TypeRegistry
     from ..catalog.registry import CatalogRegistry
-    from ..settings import SettingsRegistry
-    from ..session.session_manager import SessionManager
-    from ..signals import SignalDispatcher
-    from ..state import LibraryStateContainer
     from ..errors.ledger import ErrorLedger
     from ..farmhand.activity import ActivityTracker
+    from ..node.factory import NodeFactory
+    from ..session.session_manager import SessionManager
+    from ..settings import SettingsRegistry
+    from ..signals import SignalDispatcher
+    from ..state import LibraryStateContainer
+    from ..types.registry import TypeRegistry
 
 
 # Module-level globals (not ContextVar): these are true app-wide singletons that must
 # be reachable from any thread, including the watchdog file-watcher thread used for
 # hot-reload. ContextVar broke hot-reload (a reload captured a different ContextVar
 # instance than the rest of the app).
-_node_factory: Optional["NodeFactory"] = None
-_adapter_factory: Optional["AdapterFactory"] = None
-_type_registry: Optional["TypeRegistry"] = None
-_catalog_registry: Optional["CatalogRegistry"] = None
-_settings_registry: Optional["SettingsRegistry"] = None
-_session_manager: Optional["SessionManager"] = None
-_signal_dispatcher: Optional["SignalDispatcher"] = None
-_workspace_root: Optional[Path] = None
-_library_state_container: Optional["LibraryStateContainer"] = None
+_node_factory: NodeFactory | None = None
+_adapter_factory: AdapterFactory | None = None
+_type_registry: TypeRegistry | None = None
+_catalog_registry: CatalogRegistry | None = None
+_settings_registry: SettingsRegistry | None = None
+_session_manager: SessionManager | None = None
+_signal_dispatcher: SignalDispatcher | None = None
+_workspace_root: Path | None = None
+_library_state_container: LibraryStateContainer | None = None
 # Process-wide diagnostic buffers, deliberately NOT reset on injector/hot-reload
 # rebuilds (unlike the singletons above) — a reload must not erase the record of
 # what happened before it. Both are "observable stores": lazily constructed on
 # first access, they own a listener list that an app-side bridge turns into a
 # cross-session signal. See errors/ledger.py and farmhand/activity.py.
-_error_ledger: Optional["ErrorLedger"] = None
-_activity_tracker: Optional["ActivityTracker"] = None
+_error_ledger: ErrorLedger | None = None
+_activity_tracker: ActivityTracker | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -52,37 +54,37 @@ _activity_tracker: Optional["ActivityTracker"] = None
 # ---------------------------------------------------------------------------
 
 
-def set_node_factory(factory: "NodeFactory") -> None:
+def set_node_factory(factory: NodeFactory) -> None:
     global _node_factory
     _node_factory = factory
 
 
-def set_adapter_factory(factory: "AdapterFactory") -> None:
+def set_adapter_factory(factory: AdapterFactory) -> None:
     global _adapter_factory
     _adapter_factory = factory
 
 
-def set_type_registry(registry: "TypeRegistry") -> None:
+def set_type_registry(registry: TypeRegistry) -> None:
     global _type_registry
     _type_registry = registry
 
 
-def set_catalog_registry(registry: "CatalogRegistry") -> None:
+def set_catalog_registry(registry: CatalogRegistry) -> None:
     global _catalog_registry
     _catalog_registry = registry
 
 
-def set_settings_registry(registry: "SettingsRegistry") -> None:
+def set_settings_registry(registry: SettingsRegistry) -> None:
     global _settings_registry
     _settings_registry = registry
 
 
-def set_session_manager(manager: "SessionManager") -> None:
+def set_session_manager(manager: SessionManager) -> None:
     global _session_manager
     _session_manager = manager
 
 
-def set_signal_dispatcher(dispatcher: "SignalDispatcher") -> None:
+def set_signal_dispatcher(dispatcher: SignalDispatcher) -> None:
     global _signal_dispatcher
     _signal_dispatcher = dispatcher
 
@@ -93,12 +95,12 @@ def set_workspace_root(path) -> None:
     _workspace_root = Path(path)
 
 
-def set_library_state_container(container: "LibraryStateContainer") -> None:
+def set_library_state_container(container: LibraryStateContainer) -> None:
     global _library_state_container
     _library_state_container = container
 
 
-def set_error_ledger(ledger: Optional["ErrorLedger"]) -> None:
+def set_error_ledger(ledger: ErrorLedger | None) -> None:
     """Replace the ambient ledger; ``None`` restores lazy construction.
 
     Provided for isolation — pass a fresh ``ErrorLedger()`` to sever a test
@@ -109,7 +111,7 @@ def set_error_ledger(ledger: Optional["ErrorLedger"]) -> None:
     _error_ledger = ledger
 
 
-def set_activity_tracker(tracker: Optional["ActivityTracker"]) -> None:
+def set_activity_tracker(tracker: ActivityTracker | None) -> None:
     """Replace the ambient activity tracker; ``None`` restores lazy construction.
 
     Same contract as :func:`set_error_ledger` — the two diagnostic buffers are
@@ -124,7 +126,7 @@ def set_activity_tracker(tracker: Optional["ActivityTracker"]) -> None:
 # ---------------------------------------------------------------------------
 
 
-def get_node_factory() -> "NodeFactory":
+def get_node_factory() -> NodeFactory:
     if _node_factory is None:
         raise RuntimeError(
             "NodeFactory not set in ambient context. Ensure DI is initialised before constructing nodes."
@@ -132,7 +134,7 @@ def get_node_factory() -> "NodeFactory":
     return _node_factory
 
 
-def get_adapter_factory() -> "AdapterFactory":
+def get_adapter_factory() -> AdapterFactory:
     if _adapter_factory is None:
         raise RuntimeError(
             "AdapterFactory not set in ambient context. Ensure DI is initialised before constructing edges."
@@ -140,7 +142,7 @@ def get_adapter_factory() -> "AdapterFactory":
     return _adapter_factory
 
 
-def get_type_registry() -> "TypeRegistry":
+def get_type_registry() -> TypeRegistry:
     if _type_registry is None:
         raise RuntimeError(
             "TypeRegistry not set in ambient context. Ensure DI is initialised before constructing nodes."
@@ -148,7 +150,7 @@ def get_type_registry() -> "TypeRegistry":
     return _type_registry
 
 
-def get_catalog_registry() -> "CatalogRegistry":
+def get_catalog_registry() -> CatalogRegistry:
     if _catalog_registry is None:
         raise RuntimeError(
             "CatalogRegistry not set in ambient context. Ensure DI is initialised before "
@@ -157,7 +159,7 @@ def get_catalog_registry() -> "CatalogRegistry":
     return _catalog_registry
 
 
-def get_settings_registry() -> "SettingsRegistry":
+def get_settings_registry() -> SettingsRegistry:
     if _settings_registry is None:
         raise RuntimeError(
             "SettingsRegistry not set in ambient context. "
@@ -166,7 +168,7 @@ def get_settings_registry() -> "SettingsRegistry":
     return _settings_registry
 
 
-def get_session_manager() -> "SessionManager":
+def get_session_manager() -> SessionManager:
     if _session_manager is None:
         raise RuntimeError(
             "SessionManager not set in ambient context. "
@@ -175,7 +177,7 @@ def get_session_manager() -> "SessionManager":
     return _session_manager
 
 
-def get_signal_dispatcher() -> "SignalDispatcher":
+def get_signal_dispatcher() -> SignalDispatcher:
     """The process-wide signal fan-out channel.
 
     For emitters that own no peer and cannot be injected — e.g.
@@ -200,7 +202,7 @@ def get_workspace_root() -> Path:
     return _workspace_root
 
 
-def get_library_state_container() -> "LibraryStateContainer":
+def get_library_state_container() -> LibraryStateContainer:
     if _library_state_container is None:
         raise RuntimeError(
             "LibraryStateContainer not set in ambient context. "
@@ -209,7 +211,7 @@ def get_library_state_container() -> "LibraryStateContainer":
     return _library_state_container
 
 
-def get_error_ledger() -> "ErrorLedger":
+def get_error_ledger() -> ErrorLedger:
     """Return the ambient ledger, lazily creating the process-wide default."""
     global _error_ledger
     if _error_ledger is None:
@@ -219,7 +221,7 @@ def get_error_ledger() -> "ErrorLedger":
     return _error_ledger
 
 
-def get_activity_tracker() -> "ActivityTracker":
+def get_activity_tracker() -> ActivityTracker:
     """Return the ambient Farmhand activity tracker, lazily creating the default.
 
     Lazy on purpose: constructing at import time would build the tracker before

@@ -1,5 +1,7 @@
 """The macro kind is wired into the maps every kind-generic consumer reads."""
 
+from __future__ import annotations
+
 import pytest
 
 pytestmark = pytest.mark.unit

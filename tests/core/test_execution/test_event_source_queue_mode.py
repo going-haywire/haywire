@@ -9,13 +9,14 @@ Driven entirely through library nodes + the Interpreter; no hand-built
 ``CallbackEvent``/``FlowQueue``.
 """
 
+from __future__ import annotations
+
 import pytest
 
-from haywire.core.execution.interpreter import Interpreter
-from haywire.core.execution.flow_queue import QueueMode
-from haywire.core.graph.base import BaseGraph
 from haywire.core.di.config import LibrarySystemService
-
+from haywire.core.execution.flow_queue import QueueMode
+from haywire.core.execution.interpreter import Interpreter
+from haywire.core.graph.base import BaseGraph
 from tests.conftest import make_edge, make_node
 
 

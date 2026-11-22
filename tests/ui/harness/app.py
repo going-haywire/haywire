@@ -15,14 +15,16 @@ Routes:
     POST /api/set?key=&value=  — write to SettingsRegistry (for test teardown)
 """
 
+from __future__ import annotations
+
 import os
 import sys
 import tempfile
 from pathlib import Path
 
-from nicegui import ui, app
+from nicegui import app, ui
 
-from haywire.core.di.config import create_library_system_service, set_library_system, set_global_injector
+from haywire.core.di.config import create_library_system_service, set_global_injector, set_library_system
 from haywire.core.di.context import set_workspace_root
 
 # Resolve barn/ relative to repo root (two levels up from tests/ui/harness/)

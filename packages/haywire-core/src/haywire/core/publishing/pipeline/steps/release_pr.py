@@ -17,7 +17,7 @@ def branch_name(version: str) -> str:
     return f"{BRANCH_PREFIX}{version}"
 
 
-def verify_branch_free(pipeline: "SharePipeline") -> None:
+def verify_branch_free(pipeline: SharePipeline) -> None:
     """Raise :class:`PipelineStateError` when the release branch exists locally or on ``origin``."""
     if pipeline.version is None:
         raise PipelineStateError("A release PR needs a version: run the bump first.")
@@ -33,7 +33,7 @@ def verify_branch_free(pipeline: "SharePipeline") -> None:
         )
 
 
-def start(pipeline: "SharePipeline") -> str:
+def start(pipeline: SharePipeline) -> str:
     """Create and switch to the release branch, carrying the working tree; return its name."""
     assert pipeline.version is not None
     pipeline.start_branch = pipeline.current_branch()
@@ -44,7 +44,7 @@ def start(pipeline: "SharePipeline") -> str:
     return branch
 
 
-def leave(pipeline: "SharePipeline") -> None:
+def leave(pipeline: SharePipeline) -> None:
     """Switch back to the branch the run started on. Best effort."""
     if pipeline.start_branch:
         git(["switch", pipeline.start_branch], cwd=pipeline.repo_root)

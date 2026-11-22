@@ -12,6 +12,8 @@ Same fixtures as the sibling promotion files: "haybale-testing:node:SettingsProb
 bag accessor "example", field "example_float".
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.node.promotion import (

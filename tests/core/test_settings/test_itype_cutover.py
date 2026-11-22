@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import pytest
 
-from haywire.core.settings import NodeSettings, setting
 from haywire.barn.builtin.types import FLOAT, STRING
+from haywire.core.settings import NodeSettings, setting
 
 
 def test_setting_accepts_itype():

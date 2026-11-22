@@ -1,10 +1,10 @@
-from typing import Any, Dict, List
-from typing_extensions import override
+from __future__ import annotations
 
-from haywire.api import BaseAdapter, adapter
+from typing import Any, override
 
 from haybale_core.types import ARRAY
 from haybale_example.types.string_map import STRING_MAP
+from haywire.api import BaseAdapter, adapter
 
 
 @adapter(
@@ -35,7 +35,7 @@ class MapsStringArrayAdapter(BaseAdapter):
     """
 
     @override
-    def convert(self, value: Dict[str, Any]) -> List[Any]:
+    def convert(self, value: dict[str, Any]) -> list[Any]:
         return list(value.values())
 
     @override

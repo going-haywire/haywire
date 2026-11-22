@@ -11,17 +11,15 @@ from typing import Any
 
 import pytest
 
-from haywire.core.catalog import ModelFile, Resource
-from haywire.core.farmhand.activity import get_activity_tracker
-from haywire.core.volumes import VolumeStore
-
-from tests.models.test_download import DATA, SHA, Env, spec, wait_until
-
 from haybale_models.receive import ReceiveRefused
 from haybale_models.resolver import FetchSpec, locate_resource
 from haybale_models.sources import DownloadCancelled, SourceFailed
 from haybale_models.status import resource_status
 from haybale_models.store.records import FetchRecords
+from haywire.core.catalog import ModelFile, Resource
+from haywire.core.farmhand.activity import get_activity_tracker
+from haywire.core.volumes import VolumeStore
+from tests.models.test_download import DATA, SHA, Env, spec, wait_until
 
 
 @pytest.fixture

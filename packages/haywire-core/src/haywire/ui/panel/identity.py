@@ -5,7 +5,7 @@ PanelIdentity dataclass for the Haywire panel system.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING
 
 from haywire.core.access import AccessTier
 from haywire.core.registry.identity import BaseIdentity
@@ -62,10 +62,10 @@ class PanelIdentity(BaseIdentity):
                 that does not declare is hidden below edit.
     """
 
-    icon: Optional[str] = None
+    icon: str | None = None
     order: int = 100
     default_open: bool = True
-    surface: Optional[type["Surface"]] = None
-    hosts: Tuple[type["Surface"], ...] = ()
-    redraw_on: Tuple[type["Signal"], ...] = ()
+    surface: type[Surface] | None = None
+    hosts: tuple[type[Surface], ...] = ()
+    redraw_on: tuple[type[Signal], ...] = ()
     requires: AccessTier = AccessTier.EDIT

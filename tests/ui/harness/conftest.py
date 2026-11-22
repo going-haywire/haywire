@@ -10,6 +10,8 @@ reset_setting (function-scoped):
     a setting to its original value after a test that mutated it.
 """
 
+from __future__ import annotations
+
 import os
 import subprocess
 import time

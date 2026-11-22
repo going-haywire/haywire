@@ -8,10 +8,11 @@ decoration time and a panel may host a surface from a library that reloads on
 its own schedule (docs/adr/0009-surface-id-stable-key.md).
 """
 
+from __future__ import annotations
+
 from haywire.core.library.identity import LibraryIdentity
 from haywire.ui.panel import BasePanel, PanelRegistry, panel
 from haywire.ui.surface import Surface
-
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
     label="fake",

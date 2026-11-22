@@ -1,5 +1,7 @@
 """HaystackSettings — per-workspace settings for the haystack library."""
 
+from __future__ import annotations
+
 from haywire.api import INT, STRING, LibrarySettings, setting, settings
 
 

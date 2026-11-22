@@ -1,5 +1,7 @@
 """Path Exists? — branch on whether a path is there."""
 
+from __future__ import annotations
+
 from haywire.api import (
     EXEC,
     PATH,

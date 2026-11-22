@@ -1,5 +1,7 @@
 """A port's edges in two sets: those ending at it (incoming) and those leaving it (outgoing)."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import CALLBACK, EXEC, FLOAT

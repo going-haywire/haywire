@@ -1,6 +1,8 @@
 # tests/ui/panel/test_panel_base.py
 """BasePanel base class: classmethod poll (default True); abstract draw; actions=None default."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest

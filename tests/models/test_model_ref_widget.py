@@ -16,17 +16,16 @@ from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
 from haywire.core.access import LevelMode
+from haywire.core.catalog import CatalogRegistry
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.scheduler import ThreadingTimerScheduler
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.catalog import CatalogRegistry
 from haywire.core.types.enums import PortType
 from haywire.core.types.port import DataPort
 from haywire.core.undo.config import UndoConfig
 from haywire.core.volumes import VolumeStore, volume_location
 from haywire.ui.widget.factory import WidgetFactory
-
 from tests.conftest import edit_route, make_node
 from tests.ui.user_wait import eventually
 

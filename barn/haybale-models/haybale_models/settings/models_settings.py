@@ -1,5 +1,7 @@
 """ModelsSettings — library-wide settings for model downloads."""
 
+from __future__ import annotations
+
 from haywire.api import INT, LibrarySettings, setting, settings
 
 

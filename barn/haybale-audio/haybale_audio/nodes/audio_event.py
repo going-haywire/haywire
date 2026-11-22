@@ -1,5 +1,7 @@
 """Audio Event — runs its flow for each audio block an audio emitter delivers."""
 
+from __future__ import annotations
+
 import logging
 
 from haywire.api import (
@@ -79,8 +81,8 @@ class AudioEventNode(BaseNode):
 
     def init(self) -> None:
         from haybale_audio.types.audio import AUDIO
-        from haybale_audio.types.callback import AUDIO_CALLBACK
         from haybale_audio.types.audio_exec import AUDIO_EXEC
+        from haybale_audio.types.callback import AUDIO_CALLBACK
 
         self.add(AUDIO_CALLBACK.as_outlet("listen_callback", label="Listen"))
         self.add(AUDIO_EXEC.as_outlet("block_ready", label="Block Ready"))

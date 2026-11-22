@@ -29,9 +29,9 @@ class EdgeActions(Protocol):
     def reconnect_active_edge(self) -> None: ...
     def can_reconnect_active_edge(self) -> bool: ...
     def split_edge_with_reroute(self, edge_id: str) -> None: ...
-    def edge_propagation(self, edge_id: str) -> "Propagation | None": ...
+    def edge_propagation(self, edge_id: str) -> Propagation | None: ...
     def edge_propagation_locked(self, edge_id: str) -> bool: ...
-    def toggle_edge_propagation(self, edge_id: str) -> "Propagation | None": ...
+    def toggle_edge_propagation(self, edge_id: str) -> Propagation | None: ...
 
 
 class EdgeInspector(Surface):
@@ -42,7 +42,7 @@ class EdgeInspector(Surface):
     presentation = Presentation(label="Edge", icon="cable")
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         from haybale_graph_editor.states.edit_state import EditState
 
         return ctx.data[EditState].active_edge is not None
@@ -59,7 +59,7 @@ class EdgeMenu(Surface):
     banded = True
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         from haybale_graph_editor.states.edit_state import EditState
 
         return ctx.data[EditState].active_edge is not None

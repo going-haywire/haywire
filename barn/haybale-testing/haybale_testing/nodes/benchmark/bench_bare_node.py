@@ -9,6 +9,8 @@ drift detection; if a new bench needs different ports, add a new frozen node
 instead of editing this one.
 """
 
+from __future__ import annotations
+
 from haywire.api import BaseNode, ExecutionContext, NodeType, node
 
 

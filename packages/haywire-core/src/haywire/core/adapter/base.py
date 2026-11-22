@@ -2,13 +2,16 @@
 Base adapter classes for type conversion
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, List, Optional, Type, TypeVar
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
 
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.registry.identity import BaseIdentity
 from haywire.core.library.utils import ADAPTER, derive_library_identity, reg_key
+from haywire.core.registry.identity import BaseIdentity
 
 if TYPE_CHECKING:
     from haywire.core.types.interface import IType
@@ -20,7 +23,7 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-def adapter(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
+def adapter(**kwargs: Any) -> Callable[[type[T]], type[T]]:
     """
     Decorator to register a class as a type adapter.
 
@@ -75,7 +78,7 @@ def adapter(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         class TempToKelvinAdapter(BaseAdapter): ...
     """
 
-    def decorator(inner_cls: Type[T]) -> Type[T]:
+    def decorator(inner_cls: type[T]) -> type[T]:
         if not issubclass(inner_cls, BaseAdapter):
             raise TypeError(f"@adapter can only be applied to BaseAdapter subclasses, got {inner_cls}")
 
@@ -109,8 +112,8 @@ class AdapterIdentity(BaseIdentity):
     IType-based: converts_from and converts_to are IType classes.
     """
 
-    converts_from: type["IType"]  # Source IType (FLOAT, TEMPERATURE, etc.)
-    converts_to: type["IType"]  # Target IType (INT, MeshData, etc.)
+    converts_from: type[IType]  # Source IType (FLOAT, TEMPERATURE, etc.)
+    converts_to: type[IType]  # Target IType (INT, MeshData, etc.)
     priority: int = 0  # Priority (higher = preferred)
 
 
@@ -158,7 +161,7 @@ class IAdapter(ABC):
         pass
 
     @abstractmethod
-    def _get_registry_keys(self) -> List[str]:
+    def _get_registry_keys(self) -> list[str]:
         """Get all registry keys in chain"""
         pass
 
@@ -215,7 +218,7 @@ class ReturnAdapter(IAdapter):
     def test(self, value: int) -> Any:
         return self.execute(value)
 
-    def _get_registry_keys(self) -> List[str]:
+    def _get_registry_keys(self) -> list[str]:
         """Terminal - no registry keys"""
         return []
 
@@ -244,7 +247,7 @@ class BaseAdapter(IAdapter):
         result = adapter.convert(25.0)  # float -> float (not FLOAT -> FLOAT)
     """
 
-    def __init__(self, child: Optional[IAdapter] = None):
+    def __init__(self, child: IAdapter | None = None):
         """Initialize adapter with child in chain"""
         self._chain: IAdapter = child if child is not None else ReturnAdapter()
 
@@ -285,7 +288,7 @@ class BaseAdapter(IAdapter):
     def test(self, value: int) -> Any:
         return self.execute(value)
 
-    def _get_registry_keys(self) -> List[str]:
+    def _get_registry_keys(self) -> list[str]:
         """
         Get all registry keys for this adapter and any nested adapters.
 

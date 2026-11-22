@@ -4,6 +4,8 @@ ForLoop Node - Standard loop construct for iteration.
 Executes loop body a specified number of times with index tracking.
 """
 
+from __future__ import annotations
+
 from haywire.api import EXEC, INT, BaseNode, ExecutionContext, NodeType, NumberWidget, node
 
 

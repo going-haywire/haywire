@@ -2,8 +2,11 @@
 Tests for the @node decorator, including inheritance behavior.
 """
 
+from __future__ import annotations
+
 import pytest
-from haywire.core.node import node, NodeType, BaseNode
+
+from haywire.core.node import BaseNode, NodeType, node
 
 
 def test_basic_node_decorator():

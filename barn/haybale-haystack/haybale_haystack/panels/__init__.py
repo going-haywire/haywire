@@ -1,3 +1,4 @@
+from __future__ import annotations
 from haybale_haystack.panels.file_browser.menu.file import OpenInHaystackMenuPanel
 from haybale_haystack.panels.properties.introspect.graph_run_settings_panel import GraphRunSettingsPanel
 

@@ -1,6 +1,9 @@
 """node_menu_builder surfaces deprecation_warning on deprecated node entries."""
 
+from __future__ import annotations
+
 import inspect
+
 import pytest
 
 from haybale_graph_editor.panels.node_menu_builder import NodeMenuBuilder

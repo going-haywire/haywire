@@ -5,6 +5,8 @@ appear on a production surface. One file per surface, holding the surface and
 the Protocol it names in ``provides``.
 """
 
+from __future__ import annotations
+
 from haybale_testing.surfaces.canvas import TestCanvasActions, TestCanvasMenu
 from haybale_testing.surfaces.edge import TestEdgeActions, TestEdgeMenu
 from haybale_testing.surfaces.node import TestNodeActions, TestNodeMenu

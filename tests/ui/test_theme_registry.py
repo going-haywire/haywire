@@ -1,13 +1,15 @@
 # tests/ui/test_theme_registry.py
 """Tests for ThemeRegistry typed accessors and registration."""
 
+from __future__ import annotations
+
 import pytest
+
+from haybale_testing.themes.node import TestNodeTheme
+from haybale_testing.themes.workbench import TestDarkTheme, TestLightTheme
+from haywire.ui.themes.decorator import theme
 from haywire.ui.themes.registry import ThemeRegistry
 from haywire.ui.themes.workbench import BaseTheme
-from haywire.ui.themes.decorator import theme
-from haybale_testing.themes.workbench import TestDarkTheme, TestLightTheme
-from haybale_testing.themes.node import TestNodeTheme
-
 
 # ---------------------------------------------------------------------------
 # Helpers — fresh registry per test

@@ -1,5 +1,7 @@
 """Step 5 — marketstall rebuild, commit file-scoping, tag. Real git, no mocks."""
 
+from __future__ import annotations
+
 import subprocess
 from pathlib import Path
 from unittest.mock import patch

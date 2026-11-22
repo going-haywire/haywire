@@ -7,17 +7,18 @@ to widget classes. This allows type validation during port creation without requ
 DI container access.
 """
 
-from typing import Dict, Type, Optional, TYPE_CHECKING
+from __future__ import annotations
 
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .interface import IWidget
 
 # Global widget class lookup
-WIDGET_REGISTRY: Dict[str, Type["IWidget"]] = {}
+WIDGET_REGISTRY: dict[str, type[IWidget]] = {}
 
 
-def register_widget_globally(registry_key: str, widget_cls: Type["IWidget"]) -> None:
+def register_widget_globally(registry_key: str, widget_cls: type[IWidget]) -> None:
     """
     Register a widget class globally for validation purposes.
 
@@ -39,7 +40,7 @@ def unregister_widget_globally(registry_key: str) -> None:
         del WIDGET_REGISTRY[registry_key]
 
 
-def get_widget_class(registry_key: str) -> Optional[Type["IWidget"]]:
+def get_widget_class(registry_key: str) -> type[IWidget] | None:
     """
     Get widget class by registry key.
 
@@ -52,7 +53,7 @@ def get_widget_class(registry_key: str) -> Optional[Type["IWidget"]]:
     return WIDGET_REGISTRY.get(registry_key)
 
 
-def list_all_widgets() -> Dict[str, Type["IWidget"]]:
+def list_all_widgets() -> dict[str, type[IWidget]]:
     """
     Get all registered widgets.
 

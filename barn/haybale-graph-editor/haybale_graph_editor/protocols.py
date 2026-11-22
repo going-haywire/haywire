@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from haywire.core.graph.editor import Editor
@@ -46,8 +46,8 @@ class GraphContainer(ABC):
     abstract because they are genuinely computed.
     """
 
-    editor: "Editor"
-    path: Optional[Path]
+    editor: Editor
+    path: Path | None
     unsaved: bool
 
     @property
@@ -59,7 +59,7 @@ class GraphContainer(ABC):
     def display_name(self) -> str: ...
 
     @abstractmethod
-    def save(self, save_as: Optional[Path] = None) -> Optional[str]:
+    def save(self, save_as: Path | None = None) -> str | None:
         """Persist the container.
 
         Args:
@@ -100,8 +100,8 @@ class SubgraphContainer(GraphContainer):
     def __init__(
         self,
         host: GraphContainer,
-        definition: "SubgraphDefinition",
-        node_factory: "NodeFactory",
+        definition: SubgraphDefinition,
+        node_factory: NodeFactory,
     ):
         """Open ``definition`` for editing, saving through ``host``.
 
@@ -120,7 +120,7 @@ class SubgraphContainer(GraphContainer):
         self.editor = Editor(definition, node_factory, history_manager=host.editor.history_manager)
 
     @staticmethod
-    def binding_id_for(host: GraphContainer, definition: "SubgraphDefinition") -> str:
+    def binding_id_for(host: GraphContainer, definition: SubgraphDefinition) -> str:
         """Return the ``binding_id`` a container over ``definition`` inside ``host`` has.
 
         Computed from ``host.binding_id`` and ``definition.key`` alone, so it is
@@ -138,7 +138,7 @@ class SubgraphContainer(GraphContainer):
         return self.definition.label
 
     @property
-    def path(self) -> Optional[Path]:  # type: ignore[override]
+    def path(self) -> Path | None:  # type: ignore[override]
         """The host's path — a Subgraph has no file of its own."""
         return self.host.path
 
@@ -155,7 +155,7 @@ class SubgraphContainer(GraphContainer):
             container = container.host
         return container
 
-    def save(self, save_as: Optional[Path] = None) -> Optional[str]:
+    def save(self, save_as: Path | None = None) -> str | None:
         """Save the host file; a Subgraph is serialized as part of it.
 
         Returns the host's new ``binding_id`` when the save rekeyed it, so the

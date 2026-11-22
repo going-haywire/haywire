@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from nicegui import ui
-
-from haywire.api.workbench import hui
-
-from haywire.ui.components.stepper import Panel, show_step_flow
 
 from haybale_marketplace.editors._refresh_flow._state import RefreshFlow, RefreshSource
 from haybale_marketplace.editors._refresh_flow.panels import (
@@ -18,6 +14,8 @@ from haybale_marketplace.editors._refresh_flow.panels import (
     _panel_resolved,
     _panel_sources,
 )
+from haywire.api.workbench import hui
+from haywire.ui.components.stepper import Panel, show_step_flow
 
 
 def show_refresh_flow(

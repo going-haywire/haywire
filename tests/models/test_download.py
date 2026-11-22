@@ -12,19 +12,17 @@ from typing import Any
 
 import pytest
 
-from haywire.core.farmhand.activity import get_activity_tracker
-from haywire.core.catalog import ModelFile, Resource
-from haywire.core.volumes import VolumeStore
-
-from tests.models.conftest import make_hf_snapshot
-from tests.wait import wait_until
-
 from haybale_models import hf
 from haybale_models.download import DownloadJob, DownloadQueue
 from haybale_models.resolver import FetchSpec
 from haybale_models.sources import builtin_sources
 from haybale_models.store.index import ModelIndex
 from haybale_models.value.model_ref import ModelRef
+from haywire.core.catalog import ModelFile, Resource
+from haywire.core.farmhand.activity import get_activity_tracker
+from haywire.core.volumes import VolumeStore
+from tests.models.conftest import make_hf_snapshot
+from tests.wait import wait_until
 
 DATA = bytes(range(256)) * 400  # ~100 kB
 SHA = hashlib.sha256(DATA).hexdigest()

@@ -450,9 +450,8 @@ class _StubRegistry:
 def test_manager_source_reads_the_install_type_by_distribution_name(install_types, expected) -> None:
     from types import SimpleNamespace
 
-    from haywire.core.library.install_type import InstallType
-
     from haybale_marketplace.editors._install_flow.chrome import ManagerInstallSource
+    from haywire.core.library.install_type import InstallType
 
     types = {lid: InstallType[name] if name else None for lid, name in install_types.items()}
     source = ManagerInstallSource(SimpleNamespace(registry=_StubRegistry(types)))

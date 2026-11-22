@@ -1,5 +1,7 @@
 """JSON-Schema derivation from Farmhand.run() signatures."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.farmhand.schema import _ANY_TYPE, derive_input_schema
@@ -54,9 +56,11 @@ def test_multi_arm_union_yields_anyof_not_empty():
     assert {"type": "boolean"} in prop["anyOf"]
 
 
-def test_unknown_type_yields_anyof_not_empty():
-    class Unrecognized: ...
+# Module level: get_type_hints resolves the string annotation against globals.
+class Unrecognized: ...
 
+
+def test_unknown_type_yields_anyof_not_empty():
     async def run(self, ctx, value: Unrecognized): ...
 
     schema = derive_input_schema(run)

@@ -1,5 +1,7 @@
 """HMAC-signed session cookie. The signature is the whole boundary — test it hard."""
 
+from __future__ import annotations
+
 import base64
 import json
 import stat

@@ -137,8 +137,9 @@ def test_importing_the_panel_registers_the_sortable_esm_module() -> None:
     ``nicegui-sortable`` entry and the bare specifier fails to resolve in the
     browser. Importing the panel must be enough to register it.
     """
-    import haybale_graph_editor.panels.properties.introspect.node_ports  # noqa: F401
     from nicegui import dependencies
+
+    import haybale_graph_editor.panels.properties.introspect.node_ports  # noqa: F401
 
     names = {m.name for m in dependencies.esm_modules.values()}
     assert "nicegui-sortable" in names
@@ -146,12 +147,11 @@ def test_importing_the_panel_registers_the_sortable_esm_module() -> None:
 
 def test_each_row_drags_by_a_grip_only() -> None:
     """A whole-row drag would swallow every click into a port's widget."""
-    from haywire.ui import elements as hui
-
     from haybale_graph_editor.panels.properties.introspect.node_ports import (
         _DRAG_HANDLE_CLASS,
         NodePortsPanel,
     )
+    from haywire.ui import elements as hui
 
     assert hui.icon.drag_handle
     source = inspect.getsource(NodePortsPanel._render_lane)
@@ -164,9 +164,8 @@ def test_each_row_drags_by_a_grip_only() -> None:
 
 def test_every_rendered_row_has_a_visible_grip() -> None:
     """The affordance is the feature: without a grip nothing says a row drags."""
-    from haywire.ui import elements as hui
-
     from haybale_graph_editor.panels.properties.introspect.node_ports import _DRAG_HANDLE_CLASS
+    from haywire.ui import elements as hui
 
     anchor = _render_lane([_FakePort("a", "A"), _FakePort("b", "B")])
     grips = [

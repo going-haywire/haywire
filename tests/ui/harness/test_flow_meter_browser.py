@@ -5,6 +5,8 @@ the end of the row, and a tooltip is filled when it opens (its ``before-show`` e
 cost no traffic until someone hovers a bar.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page, expect
 

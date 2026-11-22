@@ -61,7 +61,7 @@ class LibraryStateContainer:
         # session_id → Session ref for sessions attached via attach_session_with_ref.
         # Used to stamp instance.session when a new SessionState class is added
         # after the session is already alive (re-enable of a library).
-        self._session_refs: "dict[str, weakref.ReferenceType[Session]]" = {}
+        self._session_refs: dict[str, weakref.ReferenceType[Session]] = {}
         # registry_key → class. Lets us find the class behind a key for
         # instantiation (attach_session) and lifecycle (CLASS_RELOADED).
         self._class_by_registry_key: dict[str, type[LibraryState]] = {}
@@ -78,7 +78,7 @@ class LibraryStateContainer:
         # Set by bind_dispatcher (called once by the DI provider). Stays None
         # until then; _add_app_class only stamps AppStates when this is
         # non-None. See bind_dispatcher docstring.
-        self._dispatcher_ref: "weakref.ReferenceType[SignalDispatcher] | None" = None
+        self._dispatcher_ref: weakref.ReferenceType[SignalDispatcher] | None = None
 
     # ------------------------------------------------------------------
     # Public lookup API — used by AppDataNamespace
@@ -149,7 +149,7 @@ class LibraryStateContainer:
                 continue
             self._instantiate_session_state(cls, bag, session_id)
 
-    def attach_session_with_ref(self, session_id: str, session: "Session") -> None:
+    def attach_session_with_ref(self, session_id: str, session: Session) -> None:
         """Same as `attach_session`, but also stamps `self.session = weakref.ref(session)`
         on every SessionState instance before `on_enable` runs.
 
@@ -167,7 +167,7 @@ class LibraryStateContainer:
                 continue
             self._instantiate_session_state(cls, bag, session_id, session)
 
-    def bind_dispatcher(self, dispatcher: "SignalDispatcher") -> None:
+    def bind_dispatcher(self, dispatcher: SignalDispatcher) -> None:
         """Stamp `_dispatcher` weakref on every present and future AppState.
 
         Called once by the DI provider that builds the SignalDispatcher, not by
@@ -242,7 +242,7 @@ class LibraryStateContainer:
         """
         self._state_registry.add_batch_event_subscriber(self.on_lifecycle_events)
 
-    def subscribe_to_library_callbacks(self, library_registry: "LibraryRegistry") -> None:
+    def subscribe_to_library_callbacks(self, library_registry: LibraryRegistry) -> None:
         """Subscribe to per-library enabled / disabled callbacks.
 
         Called by the orchestrator AFTER ``enable_all_libraries()`` has
@@ -269,7 +269,7 @@ class LibraryStateContainer:
     # Per-library catch-up — called by LibraryRegistry after library.enable()
     # ------------------------------------------------------------------
 
-    def on_library_enabled(self, library: "BaseLibrary") -> None:
+    def on_library_enabled(self, library: BaseLibrary) -> None:
         """Call on_enable on all state instances belonging to *library*.
 
         By the time this fires, ``library.enable()`` has fully returned —
@@ -330,7 +330,7 @@ class LibraryStateContainer:
             if app_instance is not None:
                 self._call_on_enable(app_instance)
 
-    def on_library_disabled(self, library: "BaseLibrary") -> None:
+    def on_library_disabled(self, library: BaseLibrary) -> None:
         """Drop *library*'s id from ``_enabled_library_ids`` after its
         ``disable()`` completes.
 
@@ -537,7 +537,7 @@ class LibraryStateContainer:
         cls: type[SessionState],
         bag: dict[str, SessionState],
         session_id: str,
-        session: "Session | None" = None,
+        session: Session | None = None,
         call_on_enable: bool = True,
     ) -> None:
         """Instantiate a SessionState, stamp session_id/session, store in bag.

@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.api.workbench import BarnsSurface, BasePanel, PanelLayout, panel, render_schema
-
 from haybale_image.settings.image_settings import ImageSettings
+from haywire.api.workbench import BarnsSurface, BasePanel, PanelLayout, panel, render_schema
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -23,6 +22,6 @@ if TYPE_CHECKING:
 class ImageSettingsPanel(BasePanel):
     """Defaults for saving images; each Save Image node can override them."""
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(ctx, ImageSettings, registry)

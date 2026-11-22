@@ -8,11 +8,12 @@ Project config lives at <project>/.haywire/ and stores
 project-specific overrides.
 """
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 
 import toml
-
 
 GLOBAL_CONFIG_DIR = Path.home() / ".haywire"
 

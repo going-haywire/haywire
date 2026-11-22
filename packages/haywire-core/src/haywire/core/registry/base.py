@@ -2,27 +2,28 @@
 Base classes for the Haywire library system
 """
 
-from typing import Dict, Any, Optional, Type, List, Tuple, cast
-from abc import abstractmethod
+from __future__ import annotations
+
 import importlib
-from pathlib import Path
-import sys
 import logging
+import sys
+from abc import abstractmethod
+from pathlib import Path
+from typing import Any, cast
 
 from ..errors import HaywireException, report_failure
 from ..library.identity import LibraryIdentity
 from ..library.utils import derive_library_identity
 from .component import ComponentRegistry
 from .dependency_graph import DependencyGraph
-from .identity import BaseIdentity
 from .events import (
     FileChangeEvent,
     FileEventType,
     HotReloadRegistry,
     RegisteredClass,
-    T,
 )
 from .folder_scan import FolderScanMixin
+from .identity import BaseIdentity
 from .lifecycle_event import LifeCycleEvent, LifeCycleEventType
 
 logger = logging.getLogger(__name__)
@@ -33,11 +34,10 @@ __all__ = [
     "FileEventType",
     "HotReloadRegistry",
     "RegisteredClass",
-    "T",
 ]
 
 
-class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
+class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
     """
     Abstract base class for all class registries.
 
@@ -52,22 +52,20 @@ class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
         self._dependency_graph = DependencyGraph()  # For hot-reload dependency tracking
 
         # BaseClassRegistry specific attributes
-        self._regkey_to_class_name: Dict[str, str] = {}  # registry_key -> class name
+        self._regkey_to_class_name: dict[str, str] = {}  # registry_key -> class name
         # module -> list of registry_keys
-        self._module_to_registry_keys: Dict[str, list[str]] = {}
+        self._module_to_registry_keys: dict[str, list[str]] = {}
 
-        self._dependency_module_lifecycle_events: Dict[str, LifeCycleEvent] = {}
+        self._dependency_module_lifecycle_events: dict[str, LifeCycleEvent] = {}
         """Track errors during dependency module reloads and store them by registry_key"""
 
     @abstractmethod
-    def _class_filter(self, cls: Type) -> bool:
+    def _class_filter(self, cls: type) -> bool:
         """Function that returns True if a class should be included in this registry"""
         pass
 
     @abstractmethod
-    def _register_class(
-        self, cls: type[T], library_identity: Optional[LibraryIdentity] = None
-    ) -> str | None:
+    def _register_class(self, cls: type[T], library_identity: LibraryIdentity | None = None) -> str | None:
         """Register a class with its library metadata"""
         pass
 
@@ -81,7 +79,7 @@ class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
     # ============================================================================
 
     def _register(
-        self, registry_key: str, cls: type[T], library_identity: Optional[LibraryIdentity] = None
+        self, registry_key: str, cls: type[T], library_identity: LibraryIdentity | None = None
     ) -> str | None:
         """
         Register a class with its name and optional metadata
@@ -162,7 +160,7 @@ class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
         self,
         folder_path: str,
         library_identity: LibraryIdentity,
-        exclude_patterns: Optional[list[str]] = None,
+        exclude_patterns: list[str] | None = None,
     ):
         """
         Initial scan of the folder for classes matching the registry's class filter
@@ -236,7 +234,7 @@ class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
         self,
         folder_path: str,
         library_identity: LibraryIdentity,
-        exclude_patterns: Optional[list[str]] = None,
+        exclude_patterns: list[str] | None = None,
     ):
         """
         Remove all classes associated with a library_identity from this registry.
@@ -445,7 +443,7 @@ class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
         self,
         module_name: str,
         library_identity: LibraryIdentity,
-        file_event: Optional[FileChangeEvent] = None,
+        file_event: FileChangeEvent | None = None,
     ):
         """called when a new module is created / loaded
         Args:
@@ -493,7 +491,7 @@ class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
             self._notify_registry_subscribers(file_event)
 
     def _on_change(
-        self, module_name: str, library_identity: LibraryIdentity, event: Optional[FileChangeEvent] = None
+        self, module_name: str, library_identity: LibraryIdentity, event: FileChangeEvent | None = None
     ):
         """
         re-registering existing classes within the module
@@ -554,7 +552,7 @@ class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
                 event.reloaded_modules.add(managed_module)
 
     def _reload_unmanaged_module(
-        self, module_name: str, library_identity: LibraryIdentity, event: Optional[FileChangeEvent] = None
+        self, module_name: str, library_identity: LibraryIdentity, event: FileChangeEvent | None = None
     ):
         """
         Reload a single unmanaged module without registry-specific handling.
@@ -657,14 +655,14 @@ class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
             class_names_to_remove = []
             # Simple container for old/new class pairs
 
-            classes_to_reload: List[Tuple[str, Type[Any]]] = []
+            classes_to_reload: list[tuple[str, type[Any]]] = []
 
             # Get registered classes from this module that need to be updated
             class_reg_keys_to_update = self._module_to_registry_keys.get(module_name, [])
             if class_reg_keys_to_update:
                 # Store old class info for re-registration
                 # module class name -> haywire class registry_key
-                mod_to_class_name_mapping: Dict[str, str] = {}
+                mod_to_class_name_mapping: dict[str, str] = {}
                 for mod_class_reg_key in class_reg_keys_to_update:
                     mod_to_class_name_mapping[self._regkey_to_class_name[mod_class_reg_key]] = (
                         mod_class_reg_key
@@ -688,7 +686,7 @@ class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
                     if hasattr(module, mod_class_reg_key):
                         # to update a class, we need to unregister the old one
                         # and register the new one
-                        new_class: Type[Any] = getattr(module, mod_class_reg_key)
+                        new_class: type[Any] = getattr(module, mod_class_reg_key)
                         old_class_name = mod_to_class_name_mapping[mod_class_reg_key]
                         classes_to_reload.append((old_class_name, new_class))
                     else:
@@ -816,13 +814,13 @@ class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
     # Snapshot Registry (Rollback Support)
     # ============================================================================
 
-    def _create_rollback_snapshot(self, module_name: str) -> Optional[Dict[str, Any]]:
+    def _create_rollback_snapshot(self, module_name: str) -> dict[str, Any] | None:
         """Create snapshot of module state for rollback"""
         if module_name not in sys.modules:
             return None
 
         module = sys.modules[module_name]
-        snapshot: Dict[str, Any] = {
+        snapshot: dict[str, Any] = {
             "module": module,
             "needs_reregistring": False,
             "registered_classes": {},
@@ -838,7 +836,7 @@ class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
         return snapshot
 
     def _rollback_snapshot(
-        self, module_name: str, snapshot: Dict[str, Any], library_identity: LibraryIdentity
+        self, module_name: str, snapshot: dict[str, Any], library_identity: LibraryIdentity
     ):
         """Restore module from snapshot after failed reload"""
         if snapshot:
@@ -857,7 +855,7 @@ class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
     # Dependency Scope Management
     # ============================================================================
 
-    def _get_tracking_scopes(self, library_identity: LibraryIdentity) -> List[str]:
+    def _get_tracking_scopes(self, library_identity: LibraryIdentity) -> list[str]:
         """
         Get all scope prefixes this module should track dependencies for.
 

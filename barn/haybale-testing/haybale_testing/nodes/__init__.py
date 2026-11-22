@@ -1,3 +1,4 @@
+from __future__ import annotations
 from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 from haybale_testing.nodes.testbed.add_port_probe import AddPortProbeNode
 from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode

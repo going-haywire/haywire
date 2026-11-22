@@ -1,5 +1,7 @@
 """Restore | Discard for a previous setup live in panels, so every skin's node can be resolved."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from typing import Any, cast
 

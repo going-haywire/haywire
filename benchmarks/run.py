@@ -23,9 +23,8 @@ import statistics
 import subprocess
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import cases as bench_cases  # noqa: E402  (after sys.path tweak)
@@ -63,7 +62,7 @@ def _bootstrap_library_system(root: Path):
     return service
 
 
-def _measure(prep: "bench_cases.Prepared") -> tuple[float, float, float, int]:
+def _measure(prep: bench_cases.Prepared) -> tuple[float, float, float, int]:
     """Warmup, then min-of-N per-operation timing with median/p90 spread."""
     for _ in range(prep.warmup):
         prep.run()
@@ -91,13 +90,13 @@ def _load_prior(results_file: Path) -> list[dict]:
     return rows
 
 
-def _last_comparable(prior: list[dict], case: str, host: str) -> Optional[dict]:
+def _last_comparable(prior: list[dict], case: str, host: str) -> dict | None:
     """Most recent prior row for this case on this host from a clean tree."""
     cands = [r for r in prior if r.get("case") == case and r.get("host") == host and not r.get("dirty")]
     return cands[-1] if cands else None
 
 
-def _drift(new_min: float, prior: Optional[dict]) -> str:
+def _drift(new_min: float, prior: dict | None) -> str:
     if prior is None:
         return "    (no prior)"
     base = prior.get("min")
@@ -128,7 +127,7 @@ def main(argv: list[str]) -> int:
     dirty = rc_status != 0 or bool(status_out)
     host = platform.node() or "unknown"
     py = platform.python_version()
-    timestamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    timestamp = datetime.now(UTC).isoformat(timespec="seconds")
 
     selected = bench_cases.get_cases(only)
     if not selected:

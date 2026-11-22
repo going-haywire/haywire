@@ -1,8 +1,9 @@
-from pathlib import Path
+from __future__ import annotations
+
+import re
 import sys
 import traceback
-from typing import Type
-import re
+from pathlib import Path
 
 from .identity import LibraryIdentity
 
@@ -26,7 +27,7 @@ WIRE = "wire"
 SYSTEM_LIBRARY_NAME = "__system__"
 
 
-def derive_library_identity(cls: Type) -> LibraryIdentity:
+def derive_library_identity(cls: type) -> LibraryIdentity:
     """Return the identity of the library ``cls`` belongs to.
 
     Walks up ``cls.__module__`` for the nearest already-imported module

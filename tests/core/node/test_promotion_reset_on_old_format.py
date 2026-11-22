@@ -10,6 +10,8 @@ Uses the same "haybale-testing:node:SettingsProbeNode" test node + graph fixture
 test_promotion_serialization.py.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.errors.haywire_exception import ErrorSeverity

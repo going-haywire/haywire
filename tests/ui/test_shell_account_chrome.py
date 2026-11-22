@@ -1,5 +1,7 @@
 """Account chrome — the footer region, the identity label, the presence row."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 from unittest.mock import MagicMock
 

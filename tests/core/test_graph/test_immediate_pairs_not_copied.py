@@ -1,5 +1,7 @@
 """An immediate value crosses by the relay alone; execution copies deferred values only."""
 
+from __future__ import annotations
+
 import pytest
 
 from tests.core.test_graph.callback_group import add_card, build_interior

@@ -16,6 +16,8 @@ Framework / library internals:
     @settings           — decorator for LibrarySettings auto-discovery
 """
 
+from __future__ import annotations
+
 from .settings import Settings, bag, settings_fields
 from .settings_node import NodeSettings
 from .settings_graph import GraphSettings

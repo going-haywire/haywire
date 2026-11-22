@@ -17,6 +17,7 @@ removing or renaming a name here fails it until the list is edited.
 
 # haywire.core.node comes first: it fixes the import order of the node, edge,
 # graph and types packages, which form a cycle when entered elsewhere.
+from __future__ import annotations
 from haywire.core.node import BaseNode, NodeRegistry, NodeType, NodeWrapper, node
 from haywire.core.node.node_warning import NodeWarning
 

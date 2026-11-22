@@ -11,18 +11,8 @@ in view next to the top-bar toggle while ASIDE is closed.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
-from haywire.api.workbench import (
-    AccessTier,
-    BaseEditor,
-    OpenBehavior,
-    SlotName,
-    editor,
-    hui,
-    react_on,
-    reveal_on,
-)
 from nicegui import ui
 
 from haybale_studio.questionnaire.definition import unanswered
@@ -35,10 +25,21 @@ from haybale_studio.states.questionnaire_state import (
     QuestionnaireState,
     RequiredUnanswered,
 )
+from haywire.api.workbench import (
+    AccessTier,
+    BaseEditor,
+    OpenBehavior,
+    SlotName,
+    editor,
+    hui,
+    react_on,
+    reveal_on,
+)
 
 if TYPE_CHECKING:
-    from haywire.api.workbench import EditorWrapper, SessionContext
     from nicegui.element import Element
+
+    from haywire.api.workbench import EditorWrapper, SessionContext
 
 
 @editor(
@@ -61,23 +62,23 @@ class QuestionnaireEditor(BaseEditor):
     answers, or when you press *Discard*.
     """
 
-    def __init__(self, wrapper: "EditorWrapper") -> None:
+    def __init__(self, wrapper: EditorWrapper) -> None:
         super().__init__(wrapper)
-        self._context: Optional["SessionContext"] = None
-        self._form: Optional[QuestionnaireForm] = None
-        self._shown: Optional[tuple[str, str, Optional[str]]] = None
-        self._status: Optional[ui.label] = None
+        self._context: SessionContext | None = None
+        self._form: QuestionnaireForm | None = None
+        self._shown: tuple[str, str, str | None] | None = None
+        self._status: ui.label | None = None
 
     @reveal_on(RevealQuestionnaire)
     @classmethod
-    def _on_reveal_questionnaire(cls, context: "SessionContext", event: RevealQuestionnaire) -> bool:
+    def _on_reveal_questionnaire(cls, context: SessionContext, event: RevealQuestionnaire) -> bool:
         """Answer a post: always reveal the tab."""
         return True
 
-    def _state(self, context: "SessionContext") -> QuestionnaireState:
+    def _state(self, context: SessionContext) -> QuestionnaireState:
         return context.app_data[QuestionnaireState]
 
-    def _on_show(self, context: "SessionContext") -> Optional[Questionnaire]:
+    def _on_show(self, context: SessionContext) -> Questionnaire | None:
         q = self._state(context).current
         return q if q is not None and q.on_show else None
 
@@ -85,7 +86,7 @@ class QuestionnaireEditor(BaseEditor):
     # Rendering
     # ------------------------------------------------------------------
 
-    def draw(self, context: "SessionContext", container: "Element") -> None:
+    def draw(self, context: SessionContext, container: Element) -> None:
         self._context = context
         q = self._on_show(context)
         self._form = None
@@ -145,14 +146,14 @@ class QuestionnaireEditor(BaseEditor):
             if count:
                 hui.count_badge(count, tone="info")
 
-    def _unanswered_count(self, context: "SessionContext") -> int:
+    def _unanswered_count(self, context: SessionContext) -> int:
         q = self._on_show(context)
         if q is None or q.submitted:
             return 0
         return len(unanswered(q.definition, q.answers))
 
     @staticmethod
-    def _submitted_text(when: Optional[str], who: Optional[str], incomplete: bool) -> str:
+    def _submitted_text(when: str | None, who: str | None, incomplete: bool) -> str:
         by = f" by {who}" if who else ""
         rest = ", with questions unanswered" if incomplete else ""
         return f"Submitted {when or ''}{by}{rest}. The agent can read the findings now."
@@ -201,7 +202,7 @@ class QuestionnaireEditor(BaseEditor):
         self._state(self._context).close(DISCARDED, principal=self._context.principal)
 
     @staticmethod
-    def _user_agent() -> Optional[str]:
+    def _user_agent() -> str | None:
         """Return the submitting browser's user agent, or ``None`` outside a page request."""
         try:
             return ui.context.client.request.headers.get("user-agent")
@@ -213,7 +214,7 @@ class QuestionnaireEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     @react_on(QuestionnaireChanged)
-    def _on_changed(self, context: "SessionContext", signal: QuestionnaireChanged) -> None:
+    def _on_changed(self, context: SessionContext, signal: QuestionnaireChanged) -> None:
         """Redraw on a new post, a submit or a close; otherwise show the new answers in place."""
         q = self._on_show(context)
         shown = (q.id, q.status, q.closed) if q is not None else None

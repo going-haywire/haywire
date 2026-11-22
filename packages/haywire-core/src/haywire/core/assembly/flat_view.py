@@ -24,9 +24,9 @@ are what make the lookups a flat dict search with nothing to namespace.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple, TYPE_CHECKING
 import logging
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
 from haywire.core.graph.subgraph import SubgraphDefinition
 from haywire.core.graph.subgraph_crossing import (
@@ -73,7 +73,7 @@ class FlatGraphView:
     as the host would.
     """
 
-    def __init__(self, host: "BaseGraph"):
+    def __init__(self, host: BaseGraph):
         self._host = host
 
     # =========================================================================
@@ -92,13 +92,13 @@ class FlatGraphView:
     # TREE-WIDE NODE LOOKUP
     # =========================================================================
 
-    def get_node_wrapper(self, node_id: str) -> "NodeWrapper | None":
+    def get_node_wrapper(self, node_id: str) -> NodeWrapper | None:
         """Return the live wrapper for ``node_id`` from anywhere in the tree."""
         return _find_in_tree(self._host, node_id)
 
-    def list_node_wrappers(self) -> List["NodeWrapper"]:
+    def list_node_wrappers(self) -> list[NodeWrapper]:
         """Every node in the tree, host and Subgraphs alike."""
-        wrappers: List["NodeWrapper"] = []
+        wrappers: list[NodeWrapper] = []
         _collect_tree(self._host, wrappers)
         return wrappers
 
@@ -106,7 +106,7 @@ class FlatGraphView:
     # CONTROL TOPOLOGY, WITH CROSSINGS
     # =========================================================================
 
-    def control_transitions(self, node_id: str) -> Dict[str, Tuple[str, str]]:
+    def control_transitions(self, node_id: str) -> dict[str, tuple[str, str]]:
         """Where control leaves ``node_id``, with Subgraph crossings spliced in.
 
         Three nodes get transitions a plain graph cannot see:
@@ -138,14 +138,14 @@ class FlatGraphView:
         return transitions
 
     def _enter_crossings(
-        self, card: "NodeWrapper", definition: SubgraphDefinition
-    ) -> Dict[str, Tuple[str, str]]:
+        self, card: NodeWrapper, definition: SubgraphDefinition
+    ) -> dict[str, tuple[str, str]]:
         """One crossing per control inlet on the card, into the Subgraph Input."""
         input_node = definition.input_node
         if input_node is None:
             return {}
 
-        crossings: Dict[str, Tuple[str, str]] = {}
+        crossings: dict[str, tuple[str, str]] = {}
         inlets = card.node.get_ports(is_port_type=PortType.INLET, is_role=WireRole.SEQUENCE)
         for inlet in inlets:
             crossing = enter_crossing_id(inlet.id)
@@ -153,14 +153,14 @@ class FlatGraphView:
         return crossings
 
     def _exit_crossings(
-        self, output_node: "NodeWrapper", definition: SubgraphDefinition
-    ) -> Dict[str, Tuple[str, str]]:
+        self, output_node: NodeWrapper, definition: SubgraphDefinition
+    ) -> dict[str, tuple[str, str]]:
         """One crossing per control inlet on the Subgraph Output, back to the card."""
         card = definition.graph_node_wrapper()
         if card is None:
             return {}
 
-        crossings: Dict[str, Tuple[str, str]] = {}
+        crossings: dict[str, tuple[str, str]] = {}
         inlets = output_node.node.get_ports(is_port_type=PortType.INLET, is_role=WireRole.SEQUENCE)
         for inlet in inlets:
             crossing = exit_crossing_id(inlet.id)
@@ -171,7 +171,7 @@ class FlatGraphView:
     # DATA DEPENDENCIES, WITH CROSSINGS
     # =========================================================================
 
-    def _get_edge_wrappers_for_port(self, node_id: str, port_id: str, *, incoming: bool) -> List[Any]:
+    def _get_edge_wrappers_for_port(self, node_id: str, port_id: str, *, incoming: bool) -> list[Any]:
         """Edges at one end of a port, with a data-only Subgraph's crossings spliced in.
 
         Two splices on an incoming query, both for ordering and reachability —
@@ -193,7 +193,7 @@ class FlatGraphView:
             return []
 
         owner = wrapper.graph
-        edges: List[Any] = (
+        edges: list[Any] = (
             list(owner._get_edge_wrappers_for_port(node_id, port_id, incoming=incoming)) if owner else []
         )
 
@@ -254,7 +254,7 @@ class FlatGraphView:
 # ---------------------------------------------------------------------------
 
 
-def _find_in_tree(graph: "BaseGraph", node_id: str) -> "NodeWrapper | None":
+def _find_in_tree(graph: BaseGraph, node_id: str) -> NodeWrapper | None:
     wrapper = graph.node_wrappers.get(node_id)
     if wrapper is not None:
         return wrapper
@@ -265,13 +265,13 @@ def _find_in_tree(graph: "BaseGraph", node_id: str) -> "NodeWrapper | None":
     return None
 
 
-def _collect_tree(graph: "BaseGraph", into: List["NodeWrapper"]) -> None:
+def _collect_tree(graph: BaseGraph, into: list[NodeWrapper]) -> None:
     into.extend(graph.node_wrappers.values())
     for definition in graph.subgraphs.values():
         _collect_tree(definition, into)
 
 
-def _subgraph_of(wrapper: "NodeWrapper") -> SubgraphDefinition | None:
+def _subgraph_of(wrapper: NodeWrapper) -> SubgraphDefinition | None:
     """The Subgraph a Graph-node stands for, or ``None`` if it is not one."""
     resolve = getattr(wrapper.node, "resolve_definition", None)
     if resolve is None:

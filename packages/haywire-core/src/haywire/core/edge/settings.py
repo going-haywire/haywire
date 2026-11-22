@@ -6,6 +6,8 @@ shadows it and core never imports ui. The canvas reads the effective values
 from ``GraphProperties``.
 """
 
+from __future__ import annotations
+
 from haywire.barn.builtin.types import CHOICES, FLOAT, INT, STRING
 from haywire.barn.builtin.widget_keys import ARROW_HEAD_WIDGET
 from haywire.core.edge.arrow_heads import DEFAULT_HEAD_SIZE, head_size_choices

@@ -6,8 +6,10 @@ between two nodes. The Edge is a pure data container - lifecycle
 management is handled by EdgeWrapper.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Any, List
+from typing import Any
 
 from ..types import Propagation
 
@@ -29,7 +31,7 @@ class Edge:
     inlet_port_id: str
 
     # Adapter chain metadata (for serialization/deserialization)
-    chain_adapter_keys: List[str] = field(default_factory=list)
+    chain_adapter_keys: list[str] = field(default_factory=list)
     """List of adapter registry keys in execution order."""
 
     propagation: Propagation | None = Propagation.EAGER

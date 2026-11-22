@@ -20,10 +20,11 @@ resilience) are in ``tests/ui/panel/test_redraw_coordinator.py``.
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any, Optional, cast
+from typing import Any, cast
 from unittest.mock import MagicMock
 
-
+from haybale_graph_editor.panels.properties.setting.node import NodeSettingsPanel
+from haybale_studio.editors.properties_editor import PropertiesEditor
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.core.session.session import Session
@@ -31,10 +32,6 @@ from haywire.core.signals import SelectionMoved
 from haywire.ui.editor.registry import EditorRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 from haywire.ui.panel import PanelRegistry
-
-from haybale_studio.editors.properties_editor import PropertiesEditor
-from haybale_graph_editor.panels.properties.setting.node import NodeSettingsPanel
-
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
     label="fake",
@@ -51,7 +48,7 @@ _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
 
 
 def _make_session_with_panel_registry(
-    panel_registry: Optional[PanelRegistry],
+    panel_registry: PanelRegistry | None,
 ) -> Session:
     """..."""
     library_service = MagicMock()

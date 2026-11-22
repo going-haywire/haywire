@@ -15,9 +15,10 @@ Before the guard existed, the first case took the second case's path:
 it, and a fake reload failure reached subscribers.
 """
 
+from __future__ import annotations
+
 import time
 from pathlib import Path
-from typing import Optional, Type
 
 import pytest
 
@@ -39,10 +40,10 @@ class _Registry(BaseRegistry):
         self.created: list[str] = []
         self.deleted: list[str] = []
 
-    def _class_filter(self, cls: Type) -> bool:  # pragma: no cover - never reached here
+    def _class_filter(self, cls: type) -> bool:  # pragma: no cover - never reached here
         return False
 
-    def _register_class(self, cls, library_identity: Optional[LibraryIdentity] = None) -> str | None:
+    def _register_class(self, cls, library_identity: LibraryIdentity | None = None) -> str | None:
         return None  # pragma: no cover - never reached here
 
     def _unregister_class(self, registry_key: str):

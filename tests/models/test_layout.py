@@ -1,5 +1,7 @@
 """Store layout."""
 
+from __future__ import annotations
+
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -7,7 +9,6 @@ from typing import Any
 import pytest
 
 from haybale_models.store.layout import safe_name, target_path
-
 from haywire.core.catalog import ModelFile, Resource
 
 # Absent on every machine: target_path stats its result, and a real directory can refuse that.

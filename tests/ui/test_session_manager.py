@@ -4,12 +4,13 @@ Cross-peer fan-out lives on SignalDispatcher, not here — see
 ``tests/core/test_signals/test_dispatcher_and_peer.py``.
 """
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
-
-from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.core.session.session_manager import SessionManager
 from haywire.core.signals import SignalDispatcher
+from haywire.core.state import LibraryStateContainer, StateRegistry
 
 
 def _make_manager() -> SessionManager:

@@ -8,16 +8,16 @@ objects, avoiding circular imports while providing full IDE type resolution.
 
 from __future__ import annotations
 
-from typing import Protocol, TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from haywire.core.di.config import LibrarySystemService
+    from haywire.core.node.factory import NodeFactory
+    from haywire.core.node.registry import NodeRegistry
     from haywire.core.session.session_manager import SessionManager
     from haywire.core.state import LibraryStateContainer
-    from haywire.core.node.registry import NodeRegistry
-    from haywire.core.node.factory import NodeFactory
     from haywire.ui.app.shell import AppShell
     from haywire.ui.panel.registry import PanelRegistry
     from haywire.ui.skin.factory import SkinFactory
@@ -32,20 +32,20 @@ class IAppState(Protocol):
     """
 
     workspace_root: str
-    library_service: "LibrarySystemService"
-    session_manager: "SessionManager"
-    node_registry: "NodeRegistry"
-    node_factory: "NodeFactory"
-    panel_registry: "PanelRegistry"
-    skin_factory: "SkinFactory"
-    widget_factory: "WidgetFactory"
-    library_state_container: "LibraryStateContainer"
+    library_service: LibrarySystemService
+    session_manager: SessionManager
+    node_registry: NodeRegistry
+    node_factory: NodeFactory
+    panel_registry: PanelRegistry
+    skin_factory: SkinFactory
+    widget_factory: WidgetFactory
+    library_state_container: LibraryStateContainer
     """Pool of live LibraryState instances."""
 
     def save_workspace(
         self,
-        shell: "AppShell | None" = None,
-        active_graph_path: "Path | None" = None,
+        shell: AppShell | None = None,
+        active_graph_path: Path | None = None,
     ) -> None:
         """Persist the workspace layout snapshot.
 

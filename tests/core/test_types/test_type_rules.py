@@ -1,5 +1,7 @@
 """What @type refuses: a type needs a wire type; a widget is the author's call."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.types.base import PrimitiveType

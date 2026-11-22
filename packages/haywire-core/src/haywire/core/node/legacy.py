@@ -1,5 +1,7 @@
 """Marks carried by node data that an older graph file was upgraded from."""
 
+from __future__ import annotations
+
 from typing import Final
 
 LEGACY_PORTS_KEY: Final = "legacy_ports"

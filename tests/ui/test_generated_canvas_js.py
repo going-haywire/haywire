@@ -1,5 +1,7 @@
 """The canvas's generated JavaScript matches its Python source (scripts/generate_vue_events.py)."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest

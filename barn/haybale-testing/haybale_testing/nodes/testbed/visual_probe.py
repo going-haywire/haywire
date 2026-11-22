@@ -1,5 +1,7 @@
 """Test-only node with pins on a drawn-only wire."""
 
+from __future__ import annotations
+
 from haywire.api import FLOAT, BaseNode, ExecutionContext, NodeType, node
 
 

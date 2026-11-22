@@ -1,11 +1,12 @@
 """Layout adapters: any image to a gray, RGB or RGBA image."""
 
-from typing_extensions import override
+from __future__ import annotations
 
-from haywire.api import BaseAdapter, adapter
+from typing import override
 
-from haybale_image.types.image import IMAGE, GRAY_IMAGE, RGB_IMAGE, RGBA_IMAGE
+from haybale_image.types.image import GRAY_IMAGE, IMAGE, RGB_IMAGE, RGBA_IMAGE
 from haybale_image.value import ImageValue, Layout, convert_layout
+from haywire.api import BaseAdapter, adapter
 
 
 def _sample(layout: Layout) -> ImageValue:

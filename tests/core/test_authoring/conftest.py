@@ -5,6 +5,8 @@
 ``haybale_dst`` is the library a clone is written into.
 """
 
+from __future__ import annotations
+
 import sys
 import textwrap
 from pathlib import Path

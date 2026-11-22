@@ -1,12 +1,13 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from haywire.core.types.enums import PortType, StoreStrategy, default_show_widget
 
 if TYPE_CHECKING:
     from ..library.identity import LibraryIdentity
-    from . import DataPort, DataField, PortSpec, DataTypeIdentity
+    from . import DataField, DataPort, DataTypeIdentity, PortSpec
 
 # ============================================================================
 # ROOT INTERFACE WITH SHARED IMPLEMENTATIONS
@@ -48,7 +49,7 @@ class IType(ABC):
     :meth:`_configure_port` are hooks that do nothing by default.
     """
 
-    field_class: type["DataField"] | None = None
+    field_class: type[DataField] | None = None
 
     element_type_cls: type | None = None
 
@@ -63,8 +64,8 @@ class IType(ABC):
     """
 
     # Stamped by the @type decorator; absent on an undecorated subclass.
-    class_identity: ClassVar["DataTypeIdentity"]
-    class_library: ClassVar["LibraryIdentity"]
+    class_identity: ClassVar[DataTypeIdentity]
+    class_library: ClassVar[LibraryIdentity]
 
     @property
     @abstractmethod
@@ -82,7 +83,7 @@ class IType(ABC):
     # ========================================================================
 
     @abstractmethod
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize this instance to a dict :meth:`from_dict` can read back.
 
         A primitive writes ``{'value': self.value}``; a ``BaseType`` defines
@@ -92,7 +93,7 @@ class IType(ABC):
 
     @classmethod
     @abstractmethod
-    def from_dict(cls, data: Dict[str, Any]) -> Any:
+    def from_dict(cls, data: dict[str, Any]) -> Any:
         """Read back what :meth:`to_dict` wrote, as this type's natural value.
 
         A primitive returns the unwrapped value, a ``BaseType`` an instance.
@@ -104,7 +105,7 @@ class IType(ABC):
     # ========================================================================
 
     @classmethod
-    def create_field(cls, default_override: Optional[Dict[str, Any]] = None) -> "DataField":
+    def create_field(cls, default_override: dict[str, Any] | None = None) -> DataField:
         """Build the ``DataField`` that stores values of this type.
 
         A type that declares a wire type which ``holds_absence`` gets a field that
@@ -163,7 +164,7 @@ class IType(ABC):
         pass
 
     @classmethod
-    def _configure_port(cls, port: "DataPort", **context) -> None:
+    def _configure_port(cls, port: DataPort, **context) -> None:
         """Adjust a freshly created port. Does nothing by default.
 
         Called from ``DataPort.from_spec`` with no context, so an override
@@ -185,7 +186,7 @@ class IType(ABC):
     # ========================================================================
 
     @classmethod
-    def as_inlet(cls, id: str, **kwargs) -> "PortSpec":
+    def as_inlet(cls, id: str, **kwargs) -> PortSpec:
         """Build an inlet spec for ``node.add()``, which instantiates the ``DataPort``.
 
         ``store_strategy`` defaults to ``HAS_WIDGET``, so the value is saved
@@ -261,7 +262,7 @@ class IType(ABC):
         return create_port_spec(cls, id=id, port_type=PortType.INLET, **kwargs)
 
     @classmethod
-    def as_outlet(cls, id: str, **kwargs) -> "PortSpec":
+    def as_outlet(cls, id: str, **kwargs) -> PortSpec:
         """Build an outlet spec for ``node.add()``, which instantiates the ``DataPort``.
 
         The value is saved with the graph, and compound and wrapper types are
@@ -340,7 +341,7 @@ class IType(ABC):
         return create_port_spec(cls, id=id, port_type=PortType.OUTLET, **kwargs)
 
     @classmethod
-    def as_swinglet(cls, id: str, **kwargs) -> "PortSpec":
+    def as_swinglet(cls, id: str, **kwargs) -> PortSpec:
         """Build a swinglet spec for ``node.add()``: one port that may be either end of an edge.
 
         A swinglet takes edges as an inlet does and gives edges as an outlet does, so a
@@ -428,7 +429,7 @@ class IType(ABC):
         return create_port_spec(cls, id=id, port_type=PortType.SWINGLET, **kwargs)
 
     @classmethod
-    def as_config(cls, id: str, **kwargs) -> "PortSpec":
+    def as_config(cls, id: str, **kwargs) -> PortSpec:
         """Build a config spec for ``node.add()``: a parameter with a widget but no pin.
 
         A config port has no pin and no wire type, so it is never linked; its value is

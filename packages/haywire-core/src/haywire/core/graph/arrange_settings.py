@@ -1,5 +1,7 @@
 """User-facing spacing of node arrange (see ``haywire.core.graph.arrange``)."""
 
+from __future__ import annotations
+
 from haywire.barn.builtin.types import INT
 from haywire.core.settings import setting
 from haywire.core.settings.settings_framework import FrameworkSettings

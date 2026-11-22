@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 
@@ -10,8 +12,8 @@ def test_choices_is_a_string_subtype():
 
 
 def test_choices_default_widget_is_select():
-    from haywire.barn.builtin.types import CHOICES
     from haywire.barn.builtin import widget_keys
+    from haywire.barn.builtin.types import CHOICES
 
     assert CHOICES.class_identity.widget_key == widget_keys.MENU_WIDGET
 

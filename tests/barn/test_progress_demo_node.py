@@ -1,5 +1,7 @@
 """ProgressDemoNode: an overall bar over the jobs, a per-job bar over the steps, a sweeping last stage."""
 
+from __future__ import annotations
+
 import importlib
 from typing import Any
 from unittest.mock import MagicMock

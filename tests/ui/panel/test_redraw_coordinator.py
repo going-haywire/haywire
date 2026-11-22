@@ -12,13 +12,12 @@ extraction.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, cast
-
+from typing import Any, cast
 
 from haywire.core.signals import Signal
 from haywire.ui.panel.redraw_coordinator import PanelRedrawCoordinator
-
 
 # --- Fakes -----------------------------------------------------------------
 

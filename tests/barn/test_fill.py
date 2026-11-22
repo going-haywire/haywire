@@ -6,11 +6,13 @@ reachable field combination has to yield a valid ``background`` value rather
 than raising or emitting something that breaks the card's render.
 """
 
+from __future__ import annotations
+
 import json
 
 import pytest
 
-from haybale_example.types.fill import LINEAR, RADIAL, SOLID, FILL
+from haybale_example.types.fill import FILL, LINEAR, RADIAL, SOLID
 
 
 class TestDefaults:

@@ -14,7 +14,8 @@ a polymorphic editor that also opens TOML/JSON/Markdown/plain-text files.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 import markdown2
 from fastapi import Request
@@ -97,7 +98,7 @@ def register_code_intelligence_render_endpoint() -> None:
 
 
 def attach_code_intelligence(
-    editor: "ui.codemirror",
+    editor: ui.codemirror,
     *,
     completion_url: str = "/api/code-intel/complete",
     info_url: str = "/api/code-intel/info",

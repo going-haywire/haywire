@@ -1,5 +1,7 @@
 """scripts/finish.py against a temporary repository with a bare remote, worktrees and a stand-in gh."""
 
+from __future__ import annotations
+
 import json
 import os
 import subprocess

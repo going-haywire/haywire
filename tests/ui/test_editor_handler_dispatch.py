@@ -24,7 +24,6 @@ from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import MagicMock
 
-
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.core.session.handlers import (
@@ -39,7 +38,6 @@ from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.identity import SlotName
 from haywire.ui.editor.registry import EditorRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
-
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
     label="fake",

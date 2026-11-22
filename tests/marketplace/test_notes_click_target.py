@@ -9,8 +9,9 @@ barn/haybale-marketplace/haybale_marketplace/editors/library_overview_editor.py.
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import Mock
+
+import pytest
 
 from haywire.core.library.haybale import Haybale
 from haywire.core.library.identity import LibraryIdentity

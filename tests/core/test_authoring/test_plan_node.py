@@ -6,6 +6,8 @@ and check the rewritten text by parsing it, not by string equality, so they
 hold across formatting.
 """
 
+from __future__ import annotations
+
 import ast
 
 import pytest

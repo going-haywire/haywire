@@ -17,6 +17,12 @@ from nicegui import ui
 from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
+from haybale_graph_editor.panels.graph.toolbar.appearance import (
+    APPEARANCE_CATEGORY,
+    AppearanceToolbarPanel,
+    NodeAppearancePanel,
+)
+from haybale_graph_editor.surfaces import NodeAppearance, SelectionToolbar
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.node.properties import NodeProperties
 from haywire.ui import elements as hui
@@ -24,13 +30,6 @@ from haywire.ui.elements.elements import MENU_ROW_CLASS
 from haywire.ui.panel import PanelRegistry
 from haywire.ui.panel.host_rendering import render_panel
 from haywire.ui.panel.layout import PanelLayout
-
-from haybale_graph_editor.panels.graph.toolbar.appearance import (
-    APPEARANCE_CATEGORY,
-    AppearanceToolbarPanel,
-    NodeAppearancePanel,
-)
-from haybale_graph_editor.surfaces import NodeAppearance, SelectionToolbar
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
     label="graph editor test",

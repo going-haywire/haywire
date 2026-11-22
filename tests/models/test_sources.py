@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+
 from haybale_models.resolver import ModelMissing, locate_resource, resolve
 from haybale_models.sources import (
     FetchRequest,
@@ -21,9 +22,7 @@ from haybale_models.sources import (
 from haybale_models.sources.base import finish_part
 from haybale_models.store.index import ModelIndex
 from haybale_models.value.model_ref import ModelRef
-
 from haywire.core.catalog import ModelFile, Resource
-
 from tests.models.conftest import make_hf_snapshot
 
 
@@ -82,7 +81,6 @@ def state(monkeypatch: pytest.MonkeyPatch, models_env: Any) -> Any:
     from haybale_models import consumer
     from haybale_models.keys import MODELS_VOLUME
     from haybale_models.store.index import ModelIndex
-
     from haywire.core.volumes import volume_location
 
     volume_location(MODELS_VOLUME).mkdir(parents=True, exist_ok=True)

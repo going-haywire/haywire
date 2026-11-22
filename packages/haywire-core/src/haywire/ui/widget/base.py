@@ -1,14 +1,17 @@
-from abc import ABC, abstractmethod
+from __future__ import annotations
+
 import logging
-from typing import Any, Mapping, Optional
+from abc import ABC, abstractmethod
+from collections.abc import Mapping
+from typing import Any
 
 from nicegui.elements.mixins.disableable_element import DisableableElement
 
 from haywire.core.types import WidgetModel
+from haywire.ui.utils import anchor_cleanup_to_element
 from haywire.ui.widget.binding import PropertyBinding
 from haywire.ui.widget.converters import BindingConverter, BindingMode, PrimitiveUnwrappingConverter
 from haywire.ui.widget.interface import IWidget
-from haywire.ui.utils import anchor_cleanup_to_element
 
 # design-guide.md §2.11: the manual disabled treatment for elements that
 # don't support Quasar :disable. Always applied/removed as a pair via
@@ -36,15 +39,15 @@ class BaseWidget(IWidget, ABC):
         widget_config = port.widget_config if hasattr(port, "widget_config") and port.widget_config else {}
         self._config: dict[str, Any] = widget_config
 
-        self.ui_element: Optional[Any] = None
+        self.ui_element: Any | None = None
         self._bindings: list[PropertyBinding] = []
-        self._model_dispatch_cb: Optional[Any] = None
+        self._model_dispatch_cb: Any | None = None
         # The exact DataField the dispatch cb was subscribed to. Captured at
         # render so cleanup unsubscribes from the SAME object — promotion/demotion
         # swaps ``port._data`` underneath us (port.unbind_field recreates the
         # field), so re-reading ``self.port.data`` at cleanup would target the
         # wrong event and raise "x not in list".
-        self._dispatch_field: Optional[Any] = None
+        self._dispatch_field: Any | None = None
         self._cleaned_up: bool = False
         self.logger = logging.getLogger(__name__)
 
@@ -127,7 +130,7 @@ class BaseWidget(IWidget, ABC):
         to: str = "value",
         prop: str = "value",
         event: str = "update:modelValue",
-        converter: Optional[BindingConverter] = None,
+        converter: BindingConverter | None = None,
         one_way: bool = False,
     ) -> Any:
         """Register a binding from model field ``to`` to ``element.prop``.

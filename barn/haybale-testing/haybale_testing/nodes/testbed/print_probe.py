@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from haywire.api import EXEC, STRING, BaseNode, ExecutionContext, NodeType, TextWidget, node

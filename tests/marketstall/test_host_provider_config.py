@@ -53,9 +53,9 @@ def test_load_self_hosted_ignores_unknown_provider(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_resolve_host_consults_user_config_first(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """A user-declared self-hosted hostname routes to the named built-in provider."""
+    from haywire.core.marketstall.host_providers import config as host_config_module
     from haywire.core.marketstall.host_providers import resolve_host
     from haywire.core.marketstall.host_providers.gitlab import GitLabProvider
-    from haywire.core.marketstall.host_providers import config as host_config_module
 
     config = tmp_path / "config.toml"
     config.write_text('[[hosts]]\nhostname = "git.acme.example"\nprovider = "gitlab"\n')

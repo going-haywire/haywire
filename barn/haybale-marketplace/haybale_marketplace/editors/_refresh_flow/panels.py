@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from nicegui import ui
 
-from haywire.core.marketstall import RefreshOutcome
-from haywire.api.workbench import hui
-from haywire.ui.components.stepper import advance, busy_advance
-
 from haybale_marketplace.editors._refresh_flow._state import RefreshFlow
+from haywire.api.workbench import hui
+from haywire.core.marketstall import RefreshOutcome
+from haywire.ui.components.stepper import advance, busy_advance
 
 
 def _plural(count: int, singular: str, plural: str | None = None) -> str:

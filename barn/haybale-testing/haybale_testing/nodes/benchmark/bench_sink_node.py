@@ -5,6 +5,8 @@ Used by ``graph_data_chain_*`` and ``graph_loop_half_failing`` (see
 evaluate. Editing it shifts the baseline; add a new frozen node instead.
 """
 
+from __future__ import annotations
+
 from haywire.api import EXEC, FLOAT, BaseNode, ExecutionContext, NodeType, node
 
 

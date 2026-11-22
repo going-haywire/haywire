@@ -19,9 +19,9 @@ Conflict-resolution order:
 from __future__ import annotations
 
 import datetime as _dt
+from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
-from typing import Callable
 
 from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall.cache import (
@@ -166,7 +166,7 @@ def dedupe_reporting_collisions(
 
 def _now_iso() -> str:
     """Current UTC time as ISO 8601 with trailing Z."""
-    return _dt.datetime.now(tz=_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return _dt.datetime.now(tz=_dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def mark_stale_against_previous(

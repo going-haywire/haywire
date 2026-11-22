@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 from nicegui import ui
 from nicegui.element import Element
 
-from haywire.core.library.info import LibraryInfo
 from haywire.api.workbench import LibraryCatalogChanged, hui
+from haywire.core.library.info import LibraryInfo
 
 if TYPE_CHECKING:
     from haybale_marketplace.library_manager import LibraryManager
@@ -18,13 +18,13 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def notify_library_changed(context: "SessionContext") -> None:
+def notify_library_changed(context: SessionContext) -> None:
     session = context.session
     if session is not None:
         session.publish(LibraryCatalogChanged())
 
 
-def reload_installed(library_id: str, manager: "LibraryManager") -> LibraryInfo | None:
+def reload_installed(library_id: str, manager: LibraryManager) -> LibraryInfo | None:
     """Reload the installed library with the given ID from the manager."""
     try:
         libs = manager.list_installed()
@@ -33,7 +33,7 @@ def reload_installed(library_id: str, manager: "LibraryManager") -> LibraryInfo 
         return None
 
 
-def find_installed_by_dist_name(dist_name: str, manager: "LibraryManager") -> LibraryInfo | None:
+def find_installed_by_dist_name(dist_name: str, manager: LibraryManager) -> LibraryInfo | None:
     try:
         libs = manager.list_installed()
         return next((lib for lib in libs if lib.row.name == dist_name), None)
@@ -41,14 +41,14 @@ def find_installed_by_dist_name(dist_name: str, manager: "LibraryManager") -> Li
         return None
 
 
-def enable_library(library_id: str, manager: "LibraryManager", context: "SessionContext") -> None:
+def enable_library(library_id: str, manager: LibraryManager, context: SessionContext) -> None:
     manager.registry.enable_library(library_id)
     ui.notify(f"Enabled: {library_id}", type="positive")
     context.active_library = reload_installed(library_id, manager)
     notify_library_changed(context)
 
 
-def disable_library(library_id: str, manager: "LibraryManager", context: "SessionContext") -> None:
+def disable_library(library_id: str, manager: LibraryManager, context: SessionContext) -> None:
     ok = manager.registry.disable_library(library_id)
     if ok:
         ui.notify(f"Disabled: {library_id}", type="warning")
@@ -66,8 +66,8 @@ def disable_library(library_id: str, manager: "LibraryManager", context: "Sessio
 def confirm_uninstall(
     library_id: str,
     label: str,
-    manager: "LibraryManager",
-    context: "SessionContext",
+    manager: LibraryManager,
+    context: SessionContext,
 ) -> None:
     """Open the stepped uninstall flow.
 
@@ -104,7 +104,7 @@ def confirm_uninstall(
     )
 
 
-def create_log_in_card(container: Element, title: str) -> "ui.log":
+def create_log_in_card(container: Element, title: str) -> ui.log:
     with container:
         with hui.expansion_section(title, icon=hui.icon.terminal):
             log = ui.log(max_lines=50).classes("w-full h-32")

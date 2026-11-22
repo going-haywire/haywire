@@ -12,6 +12,8 @@ bug is specific to *replaced* elements, whose natural size wins over
 the proportional growth that must survive the fix.
 """
 
+from __future__ import annotations
+
 from typing import Any
 
 from nicegui import ui

@@ -1,8 +1,10 @@
 """Companion ports: a port with an ``owner`` goes with that port, on every path that drops it."""
 
-import pytest
-from haybale_testing.types.test_types import TEST_STRING
+from __future__ import annotations
 
+import pytest
+
+from haybale_testing.types.test_types import TEST_STRING
 from haywire.core.graph.base import BaseGraph
 from haywire.core.node.promotion import remove_port
 from haywire.core.types.enums import PortOrigin

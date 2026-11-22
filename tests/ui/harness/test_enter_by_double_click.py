@@ -5,6 +5,8 @@ GraphCanvasManager. Entering publishes a ``SubgraphNavigation`` that the route
 records into ``enter-log``.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

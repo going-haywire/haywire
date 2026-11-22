@@ -1,5 +1,7 @@
 """GraphEntry.compile() / start() split."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock, patch
 
 from haybale_haystack import graph_entry as graph_entry_module

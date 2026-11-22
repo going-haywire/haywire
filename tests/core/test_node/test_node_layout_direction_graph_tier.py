@@ -5,6 +5,8 @@ same shadow()/graph() machinery, so the tier behaviour must match field for
 field.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.di.context import get_settings_registry

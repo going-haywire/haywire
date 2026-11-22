@@ -258,7 +258,6 @@ def test_remove_from_stage_keeps_the_stage_rect(graph_with_library_system, libra
 
 def test_stage_takes_annotation_edges_only(graph_with_library_system):
     from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
-
     from haywire.barn.builtin.nodes.annotation import AnnotationNode
     from haywire.core.graph.stage import stage_takes_edge
 

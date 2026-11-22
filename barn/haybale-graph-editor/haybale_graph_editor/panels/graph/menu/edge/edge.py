@@ -13,20 +13,19 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
-from haywire.core.types.enums import Propagation
-from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
-
-from haybale_graph_editor.surfaces import EdgeActions, EdgeEditMenu, EdgeMenu, EdgeStyle
-from haybale_graph_editor.states.edit_state import EditState
-from haybale_graph_editor.panels.graph.menu.component_rows import component_row
 from haybale_graph_editor.panels._selection_forms import edge_style_subject, render_form
+from haybale_graph_editor.panels.graph.menu.component_rows import component_row
 from haybale_graph_editor.panels.properties.introspect.edge import (
-    _state_from_context,
     _has_edge_errors,
     _has_edge_warnings,
     _render_edge_errors,
     _render_edge_warnings,
+    _state_from_context,
 )
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.surfaces import EdgeActions, EdgeEditMenu, EdgeMenu, EdgeStyle
+from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
+from haywire.core.types.enums import Propagation
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -45,12 +44,12 @@ class EdgeErrorsMenuPanel(BasePanel):
     actions: EdgeActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _has_edge_errors(_state_from_context(ctx))
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         state = _state_from_context(ctx)
@@ -73,12 +72,12 @@ class EdgeWarningsMenuPanel(BasePanel):
     actions: EdgeActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _has_edge_warnings(_state_from_context(ctx))
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         state = _state_from_context(ctx)
@@ -104,11 +103,11 @@ class EdgeStyleMenuPanel(BasePanel):
     """
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         edge = ctx.data[EditState].active_edge
         return edge is not None and edge.style is not None
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             with hui.submenu_row("Style", icon=hui.icon.theme, closes=False):
                 self.render_surface(EdgeStyle, ctx)
@@ -125,10 +124,10 @@ class EdgeStyleBodyPanel(BasePanel):
     """The style fields of the selected edge, or a form applying to every selected edge."""
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return edge_style_subject(ctx).editable
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         subject = edge_style_subject(ctx)
         if not subject.editable:
             return
@@ -150,7 +149,7 @@ class InsertRerouteMenuPanel(BasePanel):
     actions: EdgeActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         node_factory = ctx.app.node_factory
         if node_factory is None or node_factory.get_reroute_node() is None:
             return False
@@ -161,7 +160,7 @@ class InsertRerouteMenuPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         edge = ctx.data[EditState].active_edge
@@ -197,16 +196,16 @@ class EditEdgeMenuPanel(BasePanel):
     actions: EdgeActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         edge = ctx.data[EditState].active_edge
         return edge is not None and bool(edge.edge.chain_adapter_keys)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             with hui.submenu_row("Edit Source", icon=hui.icon.adapter):
                 self.render_surface(EdgeEditMenu, ctx)
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         if ctx.data[EditState].active_edge is not None:
             with layout:
                 hui.menu_row("Edit Source", icon=hui.icon.adapter, enabled=False)
@@ -230,11 +229,11 @@ class EdgeAdapterEditMenuPanel(BasePanel):
     actions: EdgeActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         edge = ctx.data[EditState].active_edge
         return edge is not None and bool(edge.edge.chain_adapter_keys)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         from haywire.core.di.context import get_adapter_factory
 
         edge = ctx.data[EditState].active_edge
@@ -285,7 +284,7 @@ class EdgePropagationMenuPanel(BasePanel):
     }
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         edge = ctx.data[EditState].active_edge
         return edge is not None and edge.propagation is not None
 
@@ -293,7 +292,7 @@ class EdgePropagationMenuPanel(BasePanel):
     def _row_text(cls, mode: Propagation) -> str:
         return f"Propagation: {cls._LABELS[mode]}"
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         edge = ctx.data[EditState].active_edge
         if edge is None:
             return
@@ -341,12 +340,12 @@ class DeleteEdgeMenuPanel(BasePanel):
     actions: EdgeActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return ctx.data[EditState].active_edge is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         edge = ctx.data[EditState].active_edge
@@ -381,12 +380,12 @@ class ReconnectEdgeMenuPanel(BasePanel):
     actions: EdgeActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return ctx.data[EditState].active_edge is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         enabled = self.actions.can_reconnect_active_edge()

@@ -1,5 +1,7 @@
 """Human-readable formatting of a `DepDrift`."""
 
+from __future__ import annotations
+
 from haywire.core.publishing.drift.model import DepDrift
 
 

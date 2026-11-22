@@ -5,6 +5,8 @@ Every function here is free of UI calls, so the New Node wizard, Promote to
 Macro and Farmhand's authoring tools share one pipeline.
 """
 
+from __future__ import annotations
+
 from .deps import linked_additions, undeclared_imports
 from .node_clone import (
     NodeFields,

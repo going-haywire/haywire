@@ -1,5 +1,7 @@
 """Baseline haybale-studio_* tools, driven directly (no MCP transport)."""
 
+from __future__ import annotations
+
 import asyncio
 
 import pytest
@@ -268,7 +270,6 @@ def test_verify_component_ok_for_registered_node():
 
 def test_get_errors_returns_ledger_page():
     from haybale_studio.farmhands.errors import StudioGetErrorsTool
-
     from haywire.core.errors.haywire_exception import HaywireException
 
     HaywireException.create("baseline tool test error").log()
@@ -287,7 +288,6 @@ def test_get_errors_returns_ledger_page():
 
 def test_dismiss_errors_removes_one_entry():
     from haybale_studio.farmhands.errors import StudioDismissErrorsTool, StudioGetErrorsTool
-
     from haywire.core.errors.haywire_exception import HaywireException
     from haywire.core.errors.ledger import get_error_ledger
 
@@ -310,7 +310,6 @@ def test_dismiss_absent_seq_is_idempotent_noop():
 
 def test_dismiss_all_clears_the_ledger():
     from haybale_studio.farmhands.errors import StudioDismissErrorsTool, StudioGetErrorsTool
-
     from haywire.core.errors.haywire_exception import HaywireException
 
     HaywireException.create("clear-all test error").log()

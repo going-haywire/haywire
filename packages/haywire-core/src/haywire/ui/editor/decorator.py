@@ -10,7 +10,9 @@ For built-in framework editors, registration is bootstrapped directly
 in the DI provider via register_builtin_editors().
 """
 
-from typing import Any, Union
+from __future__ import annotations
+
+from typing import Any
 
 from haywire.core.access import AccessTier, coerce_requirement
 from haywire.core.library.utils import EDITOR, derive_library_identity, reg_key
@@ -85,8 +87,8 @@ def editor(**kwargs: Any):
         identity_kwargs = dict(kwargs)
 
         # Coerce strings to enums; raises ValueError at class-definition time on typo.
-        default_slot: Union[SlotName, str] = identity_kwargs.pop("default_slot", SlotName.EDIT)
-        opens: Union[OpenBehavior, str] = identity_kwargs.pop("opens", OpenBehavior.REQUIRED)
+        default_slot: SlotName | str = identity_kwargs.pop("default_slot", SlotName.EDIT)
+        opens: OpenBehavior | str = identity_kwargs.pop("opens", OpenBehavior.REQUIRED)
         identity_kwargs["opens"] = OpenBehavior(opens) if isinstance(opens, str) else opens
         identity_kwargs["default_slot"] = (
             SlotName(default_slot) if not isinstance(default_slot, SlotName) else default_slot

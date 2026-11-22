@@ -1,5 +1,7 @@
 """AccessTier — cumulative four-tier access vocabulary (ADR 0027)."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.access import AccessTier

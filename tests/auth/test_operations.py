@@ -1,5 +1,7 @@
 """Roster mutation rules — shared by the CLI (slice 2) and the roster UI (slice 5)."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.access import AccessTier

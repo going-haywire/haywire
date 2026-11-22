@@ -19,6 +19,8 @@ Covers:
     logged-and-ignored rather than silently dropped.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Any
 
@@ -28,8 +30,8 @@ from haywire.core.state import (
     AppState,
     LibraryState,
     LibraryStateContainer,
-    StateRegistry,
     SessionState,
+    StateRegistry,
 )
 from haywire.core.state.identity import LibraryStateClassIdentity
 

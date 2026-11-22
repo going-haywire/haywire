@@ -4,6 +4,8 @@ Control Switch Node.
 Routes control flow to its True or False outlet by comparing two values.
 """
 
+from __future__ import annotations
+
 import operator
 
 from haywire.api import (
@@ -13,9 +15,9 @@ from haywire.api import (
     STRING,
     BaseNode,
     ExecutionContext,
+    MenuWidget,
     NodeType,
     NumberWidget,
-    MenuWidget,
     node,
 )
 

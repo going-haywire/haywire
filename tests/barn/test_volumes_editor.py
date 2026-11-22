@@ -8,11 +8,11 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-from haybale_studio.editors.volumes_editor import VolumesEditor
 from nicegui import ui
 from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
+from haybale_studio.editors.volumes_editor import VolumesEditor
 from haywire.core.access import AccessTier
 from haywire.core.volumes import PROJECT_KEY, VolumeEntry, VolumeStore, set_volume_store, user_volume_key
 from haywire.ui import elements as hui

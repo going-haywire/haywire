@@ -1,5 +1,7 @@
 """Locator fields + navigation predicates on HaywireException."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.errors.haywire_exception import HaywireException

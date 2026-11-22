@@ -1,5 +1,7 @@
 """Empty fold probe — a fold with nothing inside has no direction to take."""
 
+from __future__ import annotations
+
 from haywire.api import STRING, BaseNode, ExecutionContext, NodeType, node
 
 

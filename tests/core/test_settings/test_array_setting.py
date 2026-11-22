@@ -6,6 +6,8 @@ edge between promoted ports, and demotion. ``SettingsProbeNode.example`` carries
 list field per tested item type.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import STRING

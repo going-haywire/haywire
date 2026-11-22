@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from haywire.api import (
     CALLBACK,
     EXEC,
@@ -6,9 +8,9 @@ from haywire.api import (
     BaseNode,
     CallbackEvent,
     ExecutionContext,
+    MenuWidget,
     NodeType,
     QueueMode,
-    MenuWidget,
     TextWidget,
     node,
 )

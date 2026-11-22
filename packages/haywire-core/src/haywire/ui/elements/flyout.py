@@ -28,9 +28,10 @@ Both are classes rather than ``@contextmanager`` generators, so a disabled
 
 from __future__ import annotations
 
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
-from typing import Callable, Generator, List, Literal
+from typing import Literal
 
 from nicegui import ui
 
@@ -136,7 +137,7 @@ class FlyoutMenu(ui.menu):
 
 # A sibling group: the open-flyout set for one menu level. Opening any member
 # closes the others (and their descendants), leaving one open path from the root.
-FlyoutSiblings = List[FlyoutMenu]
+FlyoutSiblings = list[FlyoutMenu]
 
 
 # The ambient sibling group for the current menu level — a popup or a flyout
@@ -402,7 +403,7 @@ class FlyoutIcon:
         self._body_token: Token[bool] | None = None
         self._dismiss_token: Token[Callable[[], None] | None] | None = None
 
-    def __enter__(self) -> "FlyoutIcon":
+    def __enter__(self) -> FlyoutIcon:
         self._child = []
         self._token = _flyout_siblings.set(self._child)  # body is a new level
         self._count_token = _leaves_drawn.set(0)
@@ -621,7 +622,7 @@ class SubmenuRow:
         siblings.append(self._menu)
         open_on_hover(self._row, self._menu, siblings)
 
-    def __enter__(self) -> "SubmenuRow":
+    def __enter__(self) -> SubmenuRow:
         if self._menu is None:
             raise RuntimeError("a disabled SubmenuRow (enabled=False) has no body to enter")
         self._child = []

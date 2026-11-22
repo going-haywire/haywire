@@ -1,17 +1,19 @@
+from __future__ import annotations
+
+import logging
 import os
+import platform
 import shlex
 import shutil
-import logging
 import subprocess
-import platform
-from typing import Callable
+from collections.abc import Callable
 
 from nicegui import ui
 
 logger = logging.getLogger(__name__)
 
 
-def anchor_cleanup_to_element(element: "ui.element", callback: Callable[[], None]) -> None:
+def anchor_cleanup_to_element(element: ui.element, callback: Callable[[], None]) -> None:
     """Run *callback* when *element* is removed from the DOM.
 
     Wraps NiceGUI's private ``Element._handle_delete``, which fires for every

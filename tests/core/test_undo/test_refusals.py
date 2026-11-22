@@ -4,6 +4,8 @@ Each refusal kind goes through the ``Editor`` path that reports to the error led
 (an unrecorded write), so a refusal still raised as a ``ValueError`` would show up there.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.errors.ledger import ErrorLedger, get_error_ledger, set_error_ledger

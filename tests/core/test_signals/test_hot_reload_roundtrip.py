@@ -7,9 +7,10 @@ This codifies the Q15 decision: synthetic signal classes participate as
 first-class Signal subclasses with no special reload handling. The
 existing editor teardown/recreate path is the recovery mechanism."""
 
+from __future__ import annotations
+
 import importlib
 import sys
-
 from typing import Any, cast
 
 import pytest

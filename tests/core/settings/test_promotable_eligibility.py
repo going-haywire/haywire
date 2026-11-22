@@ -8,11 +8,12 @@ promotable= eligibility:
 - the Setting-row menu consumes the same helper (tests/ui/panel/test_promoted_row_state.py)
 """
 
+from __future__ import annotations
+
 import pytest
 
-from haywire.core.errors import Refusal
-
 from haywire.barn.builtin.types import FLOAT
+from haywire.core.errors import Refusal
 from haywire.core.settings import Promotable, setting
 
 

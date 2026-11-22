@@ -1,5 +1,7 @@
 """AudioBlock — one block of planar float32 samples."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 import numpy as np
@@ -40,5 +42,5 @@ class AudioBlock:
         return self.frames / self.sample_rate
 
     @classmethod
-    def silence(cls, channels: int, frames: int, sample_rate: int) -> "AudioBlock":
+    def silence(cls, channels: int, frames: int, sample_rate: int) -> AudioBlock:
         return cls(np.zeros((channels, frames), np.float32), sample_rate)

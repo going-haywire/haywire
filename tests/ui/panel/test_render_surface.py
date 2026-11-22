@@ -31,7 +31,6 @@ from haywire.ui.panel.host_rendering import render_panel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.surface import Surface
 
-
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
     label="fake",
     version="0.1",

@@ -4,6 +4,8 @@ A wire-type module is no registered component. It reloads as an unmanaged
 module, and the dependency graph reloads the type modules importing it.
 """
 
+from __future__ import annotations
+
 import sys
 import time
 

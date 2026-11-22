@@ -12,22 +12,26 @@ A single buffer/timer pair (rather than one per producer) keeps the two
 sources interleaved in the order they actually happened.
 """
 
+from __future__ import annotations
+
 import logging
 import threading
 from collections import deque
+from collections.abc import Callable
 from datetime import datetime
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING
 
 from nicegui import ui
 from nicegui.timer import Timer
 
 from haywire.api.workbench import AccessTier, BaseEditor, SlotName, editor, hui
-from haywire.core.debug.debug_settings import DebugSettings, LOG_SCROLLBACK_LINES_KEY
+from haywire.core.debug.debug_settings import LOG_SCROLLBACK_LINES_KEY, DebugSettings
 from haywire.ui.console_bridge import get_stdout_tee
 
 if TYPE_CHECKING:
-    from haywire.api.workbench import SessionContext
     from nicegui.element import Element
+
+    from haywire.api.workbench import SessionContext
 
 
 class _LogHandler(logging.Handler):
@@ -85,9 +89,9 @@ class LogEditor(BaseEditor):
         # buffer between flush ticks.
         self._pending: list[str] = []
         self._lock = threading.Lock()
-        self._handler: Optional[_LogHandler] = None
-        self._timer: Optional[Timer] = None
-        self._detach_stdout: Optional[Callable[[], None]] = None
+        self._handler: _LogHandler | None = None
+        self._timer: Timer | None = None
+        self._detach_stdout: Callable[[], None] | None = None
 
     def _scrollback_lines(self) -> int:
         """The configured retention, clamped to a usable floor.
@@ -98,7 +102,7 @@ class LogEditor(BaseEditor):
         """
         return max(1, int(getattr(self._settings, LOG_SCROLLBACK_LINES_KEY)))
 
-    def draw(self, context: "SessionContext", container: "Element") -> None:
+    def draw(self, context: SessionContext, container: Element) -> None:
         lines = self._scrollback_lines()
         with container:
             with ui.column().classes("w-full h-full gap-0"):

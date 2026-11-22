@@ -1,3 +1,4 @@
+from __future__ import annotations
 from pathlib import Path
 
 from haywire.api.workbench import EditorRegistry, FarmhandRegistry, PanelRegistry, StateRegistry

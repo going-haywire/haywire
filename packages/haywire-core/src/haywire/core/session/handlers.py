@@ -47,11 +47,11 @@ marker. There is no abstract handler method on ``BaseEditor`` to override.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Literal, Tuple
+from typing import Any, Literal
 
 from haywire.core.signals import Signal
-
 
 # The two kinds of decorated handler. Tagged on each (method, signal_type)
 # binding produced by :func:`discover_handlers`. ``redraw_on`` triggers a
@@ -69,10 +69,10 @@ _REACT_ON_ATTR = "_haywire_react_on"
 
 def validate_signal_types(
     context: str,
-    args: Tuple[Any, ...],
+    args: tuple[Any, ...],
     *,
     allow_empty: bool = False,
-) -> Tuple[type[Signal], ...]:
+) -> tuple[type[Signal], ...]:
     """Validate ``args`` are Signal subclasses; return them as a tuple.
 
     Catches the two most common authoring mistakes at decoration time
@@ -172,7 +172,7 @@ def react_on(*signal_types: Any) -> Callable[[Callable[..., None]], Callable[...
     return decorator
 
 
-def get_redraw_on_types(func: Callable[..., Any]) -> Tuple[type[Signal], ...]:
+def get_redraw_on_types(func: Callable[..., Any]) -> tuple[type[Signal], ...]:
     """Return the tuple of signal types a method was decorated with via :func:`redraw_on`.
 
     Returns an empty tuple if the method was not decorated. The framework uses
@@ -181,7 +181,7 @@ def get_redraw_on_types(func: Callable[..., Any]) -> Tuple[type[Signal], ...]:
     return getattr(func, _REDRAW_ON_ATTR, ())
 
 
-def get_react_on_types(func: Callable[..., Any]) -> Tuple[type[Signal], ...]:
+def get_react_on_types(func: Callable[..., Any]) -> tuple[type[Signal], ...]:
     """Return the tuple of signal types a method was decorated with via :func:`react_on`.
 
     Returns an empty tuple if the method was not decorated. The framework uses
@@ -264,7 +264,7 @@ def reveal_on(*signal_types: Any) -> Callable[[Any], Any]:
     return decorator
 
 
-def discover_reveal_handlers(cls: type) -> Dict[type[Signal], str]:
+def discover_reveal_handlers(cls: type) -> dict[type[Signal], str]:
     """Map ``signal_type -> method name`` for every ``@reveal_on`` on ``cls``.
 
     Class-level and instance-free, like :func:`discover_handlers`: the shell
@@ -274,7 +274,7 @@ def discover_reveal_handlers(cls: type) -> Dict[type[Signal], str]:
     First declaration wins per signal type, walking subclass-first, so an
     override shadows the base the same way ``discover_handlers`` resolves it.
     """
-    found: Dict[type[Signal], str] = {}
+    found: dict[type[Signal], str] = {}
     for klass in cls.__mro__:
         for name, value in klass.__dict__.items():
             target = value.__func__ if isinstance(value, classmethod) else value
@@ -316,7 +316,7 @@ class HandlerBinding:
 _HANDLER_INDEX_ATTR = "_haywire_handler_index"
 
 
-def discover_handlers(cls: type) -> Dict[type[Signal], List[HandlerBinding]]:
+def discover_handlers(cls: type) -> dict[type[Signal], list[HandlerBinding]]:
     """Walk ``cls.__mro__`` and index every ``@redraw_on`` / ``@react_on``-decorated method.
 
     Returns a mapping ``signal_type → [HandlerBinding, ...]`` covering every
@@ -343,7 +343,7 @@ def discover_handlers(cls: type) -> Dict[type[Signal], List[HandlerBinding]]:
         return cached
 
     seen_names: set[str] = set()
-    index: Dict[type[Signal], List[HandlerBinding]] = {}
+    index: dict[type[Signal], list[HandlerBinding]] = {}
 
     for klass in cls.__mro__:
         # Iterate the raw __dict__ rather than ``dir(klass)`` so we see

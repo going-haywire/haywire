@@ -39,9 +39,8 @@ from haybale_models.sources import DownloadCancelled, FetchRequest, SourceFailed
 from haybale_models.store.index import ModelIndex
 from haybale_models.store.layout import safe_name, target_path
 from haybale_models.store.records import FetchRecord, FetchRecords
-
+from haywire.api import ModelFile, Refusal, VolumeError, report_failure, volume_location
 from haywire.api.workbench import get_activity_tracker
-from haywire.api import ModelFile, Refusal, VolumeError, volume_location, report_failure
 
 logger = logging.getLogger(__name__)
 

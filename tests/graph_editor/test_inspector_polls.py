@@ -4,6 +4,8 @@ Below edit a tab still shows, read-only: its writers are greyed by the panel
 gate (ADR 0060), and the route refuses what gets through.
 """
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from typing import Any
 

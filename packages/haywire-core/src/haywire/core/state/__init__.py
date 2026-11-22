@@ -1,5 +1,7 @@
 """Library-owned runtime state."""
 
+from __future__ import annotations
+
 from haywire.core.state.base import AppState, LibraryState, SessionState
 from haywire.core.state.container import LibraryStateContainer
 from haywire.core.state.data_namespace import (

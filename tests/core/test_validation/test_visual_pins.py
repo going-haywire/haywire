@@ -1,5 +1,7 @@
 """The structural validator ignores VISUAL pins, except on a reroute."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.types.enums import PortType

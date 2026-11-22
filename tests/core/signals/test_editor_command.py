@@ -1,5 +1,7 @@
 """EditorCommand base and the core editor-command vocabulary."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.access.tier import AccessTier

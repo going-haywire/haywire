@@ -1,5 +1,7 @@
 """A port's immediacy and link limits come from its wire type, never from a saved flow."""
 
+from __future__ import annotations
+
 import pytest
 
 from tests.conftest import make_node
@@ -9,7 +11,6 @@ pytestmark = pytest.mark.integration
 
 def test_a_saved_flow_is_ignored_on_load(graph_with_library_system):
     from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
-
     from haywire.barn.builtin.wires import DataWire
 
     graph = graph_with_library_system
@@ -43,9 +44,9 @@ def test_a_config_port_of_a_callback_type_is_not_immediate(graph_with_library_sy
 
 
 def test_link_limits_follow_the_role(graph_with_library_system):
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
     from haybale_testing.nodes.testbed.add_port_probe import AddPortProbeNode
     from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
-    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
 
     graph = graph_with_library_system
     add = make_node(graph, AddFloatProbeNode.class_identity.registry_key).node
@@ -68,7 +69,6 @@ def test_link_limits_follow_the_role(graph_with_library_system):
 
 def test_a_retyped_port_answers_its_new_wire_type(graph_with_library_system):
     from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
-
     from haywire.barn.builtin.types import EXEC
     from haywire.barn.builtin.wires import ControlWire, DataWire
 
@@ -89,7 +89,6 @@ def test_a_retyped_port_answers_its_new_wire_type(graph_with_library_system):
 
 def test_a_refreshed_port_rederives_when_it_becomes_a_config_port(graph_with_library_system):
     from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
-
     from haywire.barn.builtin.types import FLOAT
 
     node = make_node(graph_with_library_system, AddFloatProbeNode.class_identity.registry_key).node

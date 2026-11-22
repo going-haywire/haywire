@@ -1,5 +1,7 @@
 """The Data node template: the starting point for a node that computes a value."""
 
+from __future__ import annotations
+
 from haywire.api import FLOAT, BaseNode, ExecutionContext, NodeType, NumberWidget, node
 
 

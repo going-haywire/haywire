@@ -52,7 +52,6 @@ from haywire.ui.components.graph.event_definitions import (
 from haywire.ui.panel import BasePanel, PanelRegistry
 from haywire.ui.panel.host_rendering import render_panel
 from haywire.ui.panel.layout import PanelLayout
-
 from tests.conftest import edit_route
 from tests.protocol_stubs import stub_for
 

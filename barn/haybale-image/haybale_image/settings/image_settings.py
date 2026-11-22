@@ -1,5 +1,7 @@
 """ImageSettings — library-wide defaults for saving images."""
 
+from __future__ import annotations
+
 from haywire.api import BOOL, CHOICES, INT, LibrarySettings, setting, settings
 
 TIFF_COMPRESSIONS = ("none", "lzw", "deflate")

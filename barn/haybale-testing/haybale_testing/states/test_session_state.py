@@ -8,8 +8,6 @@ library pre-import the state module. See
 
 from __future__ import annotations
 
-from typing import Optional
-
 from haywire.api.workbench import SessionState, signal_field, state
 
 
@@ -17,4 +15,4 @@ from haywire.api.workbench import SessionState, signal_field, state
 class TestSessionState(SessionState):
     """Trivial per-session state with a single reactive field."""
 
-    counter: Optional[int] = signal_field(None)
+    counter: int | None = signal_field(None)

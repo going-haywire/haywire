@@ -1,5 +1,7 @@
 """Tests for BaseEditor.draw_tab — the default tab/icon interior renderer."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from typing import Any, cast
 

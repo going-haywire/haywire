@@ -1,5 +1,7 @@
 """The edge inspector's propagation panel applies only to an edge that has propagation."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 
 import pytest

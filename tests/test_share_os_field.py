@@ -12,7 +12,6 @@ from pathlib import Path
 
 import pytest
 
-
 _SHIPPABLE_PYPROJECT = """[project]
 name = "haybale-foo"
 version = "0.1.0"

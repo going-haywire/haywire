@@ -1,5 +1,7 @@
 """The wire-type model: ids, the id map, clamping, derivation and matching."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 
 import pytest

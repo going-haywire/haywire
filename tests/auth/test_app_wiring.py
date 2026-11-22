@@ -106,7 +106,7 @@ def test_farmhand_origins_use_https_when_tls_is_on():
 # system for no benefit.
 
 
-def _bare_app(workspace_root: str = "") -> "HaywireApp":
+def _bare_app(workspace_root: str = "") -> HaywireApp:
     from haywire_studio.app import HaywireApp
 
     instance = HaywireApp.__new__(HaywireApp)

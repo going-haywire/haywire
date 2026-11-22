@@ -1,5 +1,7 @@
 """The run policy on_exception_bail reaches the VM; bail 'run' stops the entry outside the runner thread."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest

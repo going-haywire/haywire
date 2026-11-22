@@ -1,3 +1,4 @@
+from __future__ import annotations
 from haybale_example.nodes.math_operation import MathOperationNode
 from haybale_example.nodes.emits.callback_event import CallbackEventNode
 from haybale_example.nodes.emits.callback_emit import CallbackEmitNode

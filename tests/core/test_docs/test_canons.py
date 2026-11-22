@@ -1,5 +1,7 @@
 """Canon packaging: the component canons ship inside haywire-core and are readable at runtime."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.docs.canons import canons_dir, list_canon_areas, read_canon

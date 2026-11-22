@@ -9,11 +9,14 @@ PropertyBinding rather than DataField, creating a cleaner separation
 between data storage and binding logic.
 """
 
-import copy
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, List, Optional
+from __future__ import annotations
 
-from haywire.core.types import PrimitiveField, BaseField, WidgetModel
+import copy
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any
+
+from haywire.core.types import BaseField, PrimitiveField, WidgetModel
 from haywire.ui.widget.converters import (
     BindingConverter,
     BindingMode,
@@ -44,20 +47,20 @@ class PropertyBinding:
     target_event: str = "update:modelValue"
 
     # Transformation
-    converter: Optional[BindingConverter] = None
+    converter: BindingConverter | None = None
 
     # Behavior
     mode: BindingMode = BindingMode.TWO_WAY
 
     # The widget whose ``accepts_write()`` decides a view edit; None decides by the field alone.
-    owner: Optional["BaseWidget"] = field(default=None, repr=False, compare=False)
+    owner: BaseWidget | None = field(default=None, repr=False, compare=False)
 
     # Internal state
-    _element: Optional[WidgetModel] = field(default=None, init=False, repr=False)
-    _ui_element: Optional[Any] = field(default=None, init=False, repr=False)
+    _element: WidgetModel | None = field(default=None, init=False, repr=False)
+    _ui_element: Any | None = field(default=None, init=False, repr=False)
     _is_active: bool = field(default=False, init=False, repr=False)
-    _cleanup_callbacks: List[Callable] = field(default_factory=list, init=False, repr=False)
-    _pending_element: Optional[Any] = field(default=None, init=False, repr=False)
+    _cleanup_callbacks: list[Callable] = field(default_factory=list, init=False, repr=False)
+    _pending_element: Any | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self):
         """Initialize with default converter if none provided"""

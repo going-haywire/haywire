@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import importlib
 
 import pytest
+
 from haywire.core.di.config import LibrarySystemService
 from haywire.core.graph.base import BaseGraph
 from haywire.core.node.base import BaseNode

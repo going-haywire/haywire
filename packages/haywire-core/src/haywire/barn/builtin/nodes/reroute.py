@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING, Any
 
 from haywire.barn.builtin.types import CHOICES
 from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.core.node import BaseNode, NodeType, node
 from haywire.core.settings import setting
 from haywire.core.settings.descriptor import UiState
 from haywire.core.types.enums import PortType

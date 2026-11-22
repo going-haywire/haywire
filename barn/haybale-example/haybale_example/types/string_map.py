@@ -1,5 +1,8 @@
+from __future__ import annotations
+
+import builtins
 from dataclasses import dataclass, field
-from typing import Any, cast, Dict, Optional, Type, TypeVar
+from typing import Any, TypeVar, cast
 
 from haywire.api import CompoundType, DataField, DataWire, IType, element_from_dict, element_to_dict, type
 from haywire.api.workbench import hui
@@ -40,7 +43,7 @@ class STRING_MAP(CompoundType[T]):
     - _configure_port: No special configuration needed
     """
 
-    field_class: "Optional[Type[DataField]]" = None  # Will be set to MapsStringField after it's defined
+    field_class: builtins.type[DataField] | None = None  # Will be set to MapsStringField after it's defined
 
     # No hook overrides needed - uses defaults from IType!
     # Allows inlets, outlets, and configs
@@ -69,7 +72,7 @@ class MapsStringField(DataField):
     Transfer: Dict[str, T] (unwrapped)
     """
 
-    _items: Dict[str, Any] = field(default_factory=dict, init=False, repr=False)
+    _items: dict[str, Any] = field(default_factory=dict, init=False, repr=False)
 
     def __post_init__(self):
         """Initialize complex field with default instance"""
@@ -79,7 +82,7 @@ class MapsStringField(DataField):
         initial_dict = self.default_kwargs.get("value", {})
         self._items = initial_dict
 
-    def _get_own(self) -> Dict[str, Any]:
+    def _get_own(self) -> dict[str, Any]:
         """Return a copy of the map."""
         return dict(self._items)
 
@@ -106,13 +109,13 @@ class MapsStringField(DataField):
     def _own_to_dict(self) -> dict:
         """Return ``{"value": {key: item}}`` with each item as a field of the element type saves it."""
         # A compound's element is always an IType; `type | None` covers PrimitiveType[T].
-        element = cast("Type[IType]", self.type_cls.element_type_cls)
+        element = cast("builtins.type[IType]", self.type_cls.element_type_cls)
         return {"value": {key: element_to_dict(element, item) for key, item in self._items.items()}}
 
     def _own_from_dict(self, data: dict) -> None:
         """Restore the items from ``_own_to_dict`` output."""
         # A compound's element is always an IType; `type | None` covers PrimitiveType[T].
-        element = cast("Type[IType]", self.type_cls.element_type_cls)
+        element = cast("builtins.type[IType]", self.type_cls.element_type_cls)
         self._items = {key: element_from_dict(element, item) for key, item in data.get("value", {}).items()}
 
     # ========================================================================

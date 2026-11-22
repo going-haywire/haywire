@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-
 from typing import cast
 
 import pytest
 
 from scripts import generate_marketstall
-
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 

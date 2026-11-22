@@ -10,7 +10,6 @@ from __future__ import annotations
 import pytest
 
 from haywire.barn.builtin.widgets.annotation_text_widget import AnnotationTextWidget
-
 from tests.ui.widget.test_annotation_text_widget import _model
 
 pytestmark = pytest.mark.unit

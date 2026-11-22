@@ -1,12 +1,14 @@
 """Browser regression for the assisted download's drop zone: a real browser, a real upload."""
 
+from __future__ import annotations
+
 import hashlib
 from pathlib import Path
 
 import pytest
-from haybale_models.editors.assisted_dialog import NO_DIGEST_NOTICE
 from playwright.sync_api import Page, expect
 
+from haybale_models.editors.assisted_dialog import NO_DIGEST_NOTICE
 from tests.ui.harness.nav import goto_ready
 
 pytestmark = pytest.mark.ui

@@ -1,8 +1,9 @@
 """OpenInHaystackPanel — file-context-menu entry for .haywire files."""
 
+from __future__ import annotations
+
 from pathlib import Path
 from unittest.mock import MagicMock
-
 
 from tests.conftest import attach_stub_session
 

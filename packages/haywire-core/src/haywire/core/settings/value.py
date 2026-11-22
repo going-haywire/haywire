@@ -5,14 +5,16 @@ SettingValue — a tier's stored opinion: either set (carries a value) or unset.
 A tier value is simply set-or-unset; resolution is highest-priority-set-wins.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T")
 
 
 @dataclass
-class SettingValue(Generic[T]):
+class SettingValue[T]:
     """A tier's stored state: ``is_set`` plus an optional ``value``.
 
     Construct via :meth:`unset` / :meth:`of` rather than the raw fields.
@@ -22,12 +24,12 @@ class SettingValue(Generic[T]):
     value: T | None = None
 
     @classmethod
-    def unset(cls) -> "SettingValue[T]":
+    def unset(cls) -> SettingValue[T]:
         """A tier with no opinion — defers to the next tier in priority order."""
         return cls(is_set=False, value=None)
 
     @classmethod
-    def of(cls, value: T) -> "SettingValue[T]":
+    def of(cls, value: T) -> SettingValue[T]:
         """A tier holding *value* — eligible to win resolution."""
         return cls(is_set=True, value=value)
 
@@ -36,7 +38,7 @@ class SettingValue(Generic[T]):
         return {"value": self.value} if self.is_set else {}
 
     @classmethod
-    def from_dict(cls, data: dict) -> "SettingValue":
+    def from_dict(cls, data: dict) -> SettingValue:
         """Deserialize from storage."""
         if "value" in data:
             return cls.of(data["value"])

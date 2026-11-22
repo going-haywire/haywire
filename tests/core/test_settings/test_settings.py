@@ -12,22 +12,25 @@ Covers:
 - Direct binding on node instances via @node decorator
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest
-from haywire.core.settings import (
-    Settings,
-    NodeSettings,
-    setting,
-    Vec2i,
-    Vec3i,
-    Vec4i,
-    Vec3f,
-    Vec4f,
-    get_vec_meta,
-)
-from haywire.core.di.test_config import create_test_bag
+
 from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, FLOAT, INT, STRING, VEC2I, VEC3F, VEC4F
+from haywire.core.di.test_config import create_test_bag
+from haywire.core.settings import (
+    NodeSettings,
+    Settings,
+    Vec2i,
+    Vec3f,
+    Vec3i,
+    Vec4f,
+    Vec4i,
+    get_vec_meta,
+    setting,
+)
 
 
 def _vec_meta(type_cls):

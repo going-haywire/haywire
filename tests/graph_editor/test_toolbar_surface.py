@@ -1,7 +1,8 @@
 """SelectionToolbar: a root surface of its own, hosting SelectionMenu behind the ⋯."""
 
-from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu, SelectionToolbar
+from __future__ import annotations
 
+from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu, SelectionToolbar
 from tests.protocol_stubs import stub_for
 
 

@@ -5,6 +5,8 @@ Wraps uv subprocess calls + entry point cache invalidation +
 library registry operations into a single service API.
 """
 
+from __future__ import annotations
+
 import asyncio
 import importlib
 import importlib.metadata
@@ -15,18 +17,18 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from haywire.core.library.registry import LibraryRegistry
-from haywire.core.tomlio import edit_toml
-from haywire.core.library.identity import LibraryIdentity
-from haywire.core.library.info import LibraryInfo
-from haywire.core.library.install_type import InstallType
+from haywire.core.library.haybale import Haybale
 from haywire.core.library.haybale_toml import (
     HAYBALE_TOML,
     HaybaleTomlError,
     read_haybale,
     write_haybale_fields,
 )
-from haywire.core.library.haybale import Haybale
+from haywire.core.library.identity import LibraryIdentity
+from haywire.core.library.info import LibraryInfo
+from haywire.core.library.install_type import InstallType
+from haywire.core.library.registry import LibraryRegistry
+from haywire.core.tomlio import edit_toml
 from haywire.ui.modals.install_progress_modal import PostInstallHints
 
 
@@ -497,8 +499,8 @@ class LibraryManager:
         self,
         install_spec: str,
         on_output: Callable[[str], None],
-        source_pkg: "Haybale | None" = None,
-        known_removals: "list[str] | None" = None,
+        source_pkg: Haybale | None = None,
+        known_removals: list[str] | None = None,
     ) -> tuple[bool, str, PostInstallHints]:
         """Install a package with live output streaming.
 
@@ -591,7 +593,7 @@ class LibraryManager:
         self,
         install_spec: str,
         on_output: Callable[[str], None],
-        source_pkg: "Haybale | None" = None,
+        source_pkg: Haybale | None = None,
     ) -> tuple[bool, str, PostInstallHints]:
         """Deprecated alias for install(). Use install() directly."""
         return await self.install(install_spec, on_output, source_pkg)
@@ -645,7 +647,7 @@ class LibraryManager:
 
         return True, f"Uninstalled: {dist_name}", hints
 
-    def _sync_install_to_pyproject(self, pkg: "Haybale", on_output: Callable[[str], None]) -> None:
+    def _sync_install_to_pyproject(self, pkg: Haybale, on_output: Callable[[str], None]) -> None:
         """Write a successful install back to the project's pyproject.toml.
 
         No-op outside a project, for project-local heaps (already workspace
@@ -728,7 +730,7 @@ class LibraryManager:
         )
 
     @staticmethod
-    def entry_for_haybale(pkg: "Haybale") -> LibraryInfo:
+    def entry_for_haybale(pkg: Haybale) -> LibraryInfo:
         """Wrap a catalog row as a not-installed :class:`LibraryInfo`.
 
         The counterpart to :meth:`get_installed_library` for libraries that
@@ -813,7 +815,7 @@ class LibraryManager:
                     break
         return result
 
-    def get_missing_dependencies_for_package(self, pkg: "Haybale", *, require_enabled: bool) -> list[str]:
+    def get_missing_dependencies_for_package(self, pkg: Haybale, *, require_enabled: bool) -> list[str]:
         """Unmet deps for a NOT-yet-installed marketplace package (install gating).
 
         Matches each declared dep (top-package-normalized) against installed
@@ -855,7 +857,7 @@ class LibraryManager:
             if self._norm(dep.split(".")[0]) not in check_set
         ]
 
-    async def fetch_versions(self, pkg: "Haybale") -> list[str]:
+    async def fetch_versions(self, pkg: Haybale) -> list[str]:
         """Fetch available versions for a marketplace package.
 
         Only called on demand (when the user requests a specific version).
@@ -866,8 +868,8 @@ class LibraryManager:
         Returns an empty list if the source is unreachable or unsupported.
         """
         import json
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         if pkg.source == "pypi":
             url = f"https://pypi.org/pypi/{pkg.name}/json"
@@ -917,7 +919,7 @@ class LibraryManager:
         return []
 
     @staticmethod
-    def build_versioned_spec(pkg: "Haybale", version: str) -> str:
+    def build_versioned_spec(pkg: Haybale, version: str) -> str:
         """Build an install spec pinned to *version*, regardless of what pkg.install_spec holds.
 
         For PyPI: returns '{name}=={version}'.

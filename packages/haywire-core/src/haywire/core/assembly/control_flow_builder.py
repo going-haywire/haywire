@@ -7,13 +7,14 @@ on runtime decisions.
 """
 
 from __future__ import annotations
-from typing import Dict, List, Set, TYPE_CHECKING
+
 import logging
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from haywire.core.execution.flow import ControlFlowGraph
     from haywire.core.graph.base import BaseGraph
     from haywire.core.node.base import BaseNode
-    from haywire.core.execution.flow import ControlFlowGraph
 
 from haywire.core.node.behavior import NodeType
 
@@ -32,7 +33,7 @@ class ControlFlowBuilder:
     """
 
     @staticmethod
-    def build(event_node: "BaseNode", graph: "BaseGraph") -> "ControlFlowGraph":
+    def build(event_node: BaseNode, graph: BaseGraph) -> ControlFlowGraph:
         """
         Build control flow graph starting from event node.
 
@@ -51,10 +52,10 @@ class ControlFlowBuilder:
         control_graph = ControlFlowGraph(entry_node=event_node)
 
         # Track visited nodes (for cycle detection)
-        visited: Set[str] = set()
+        visited: set[str] = set()
 
         # BFS queue
-        queue: List["BaseNode"] = [event_node]
+        queue: list[BaseNode] = [event_node]
 
         # Build navigation graph
         while queue:
@@ -101,7 +102,7 @@ class ControlFlowBuilder:
         return control_graph
 
     @staticmethod
-    def _build_topology(control_graph: "ControlFlowGraph") -> List[str]:
+    def _build_topology(control_graph: ControlFlowGraph) -> list[str]:
         """
         Build topological order of control nodes.
 
@@ -116,8 +117,8 @@ class ControlFlowBuilder:
             List of node IDs in topological order
         """
         # Build adjacency list
-        adj: Dict[str, List[str]] = {}
-        in_degree: Dict[str, int] = {}
+        adj: dict[str, list[str]] = {}
+        in_degree: dict[str, int] = {}
 
         for node_id, info in control_graph.control_nodes.items():
             if node_id not in adj:

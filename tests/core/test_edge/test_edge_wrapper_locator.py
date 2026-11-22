@@ -1,5 +1,7 @@
 """EdgeWrapper populates graph_id + edge_id on validation errors."""
 
+from __future__ import annotations
+
 import pytest
 
 pytestmark = pytest.mark.unit

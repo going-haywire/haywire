@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from nicegui import ui
-
-from haywire.core.library.haybale import Haybale
-from haywire.ui.components.stepper import Panel, show_step_flow
 
 from haybale_marketplace.editors._install_flow._state import (
     InstallFlow,
@@ -20,6 +17,8 @@ from haybale_marketplace.editors._install_flow.panels import (
     _panel_installing,
     _panel_selected,
 )
+from haywire.core.library.haybale import Haybale
+from haywire.ui.components.stepper import Panel, show_step_flow
 
 
 class ManagerInstallSource:
@@ -57,7 +56,7 @@ def show_install_flow(
     install_spec: str,
     name: str,
     *,
-    package: Optional[Haybale] = None,
+    package: Haybale | None = None,
     on_done: Callable[[], None] | None = None,
     on_block: Callable[[], None] | None = None,
 ) -> InstallFlow:

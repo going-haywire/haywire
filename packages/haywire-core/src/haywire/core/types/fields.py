@@ -7,12 +7,15 @@ uniform API for different access scenarios.
 """
 
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Generic, TypeVar, cast
+from typing import Any, TypeVar, cast
 
-from haywire.core.types import IType, BaseType, PrimitiveType, Event
-
+from .base import BaseType, PrimitiveType
+from .event import Event
+from .interface import IType
 
 T = TypeVar("T")
 
@@ -51,7 +54,7 @@ class Drained(list):
 
 
 @dataclass
-class DataField(ABC, Generic[T]):
+class DataField[T](ABC):
     """
     Abstract base class for all data field types.
 
@@ -78,7 +81,7 @@ class DataField(ABC, Generic[T]):
     """
 
     type_cls: type[IType]  # Type class (FLOAT, MeshData, ARRAY, etc.)
-    default_kwargs: Dict[str, Any] = field(default_factory=dict)
+    default_kwargs: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """Initialize event system"""
@@ -156,7 +159,7 @@ class DataField(ABC, Generic[T]):
         if self.on_changed.has_observers():
             self.fire(self._get_own(), slot._get_own())
 
-    def _new_linked_slot(self) -> "DataField[T]":
+    def _new_linked_slot(self) -> DataField[T]:
         """Return an empty field of this class to hold a linked value."""
         return type(self)(type_cls=self.type_cls, default_kwargs=self.default_kwargs)
 
@@ -328,7 +331,7 @@ class DataField(ABC, Generic[T]):
         self.reset()
 
 
-def element_to_dict(element_type: "type[IType]", value: Any) -> dict | None:
+def element_to_dict(element_type: type[IType], value: Any) -> dict | None:
     """Return *value* serialized the way a field of *element_type* serializes its own value.
 
     For a container field saving its items one by one.
@@ -338,7 +341,7 @@ def element_to_dict(element_type: "type[IType]", value: Any) -> dict | None:
     return cell.to_dict()
 
 
-def element_from_dict(element_type: "type[IType]", data: dict | None) -> Any:
+def element_from_dict(element_type: type[IType], data: dict | None) -> Any:
     """Return the value a field of *element_type* holds after loading *data*; see ``element_to_dict``."""
     cell = element_type.create_field()
     cell.from_dict(data)

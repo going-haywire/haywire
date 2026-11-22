@@ -1,5 +1,7 @@
 """Shared fixtures for the share-pipeline tests."""
 
+from __future__ import annotations
+
 import pytest
 
 

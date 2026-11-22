@@ -17,17 +17,16 @@ from __future__ import annotations
 import logging
 import threading
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Optional
-
-from haywire.api.workbench import AppState, BaseGraph, state
-from haywire.core.signals import GraphHistoryChanged
+from typing import TYPE_CHECKING
 
 from haybale_graph_editor.notices import GraphNotice, GraphNoticesChanged
 from haybale_graph_editor.protocols import GraphContainer
+from haywire.api.workbench import AppState, BaseGraph, state
+from haywire.core.signals import GraphHistoryChanged
 
 if TYPE_CHECKING:
-    from haywire.core.graph.edit_route import EditRoute
     from haywire.api.workbench import SessionContext
+    from haywire.core.graph.edit_route import EditRoute
 
 logger = logging.getLogger(__name__)
 
@@ -148,11 +147,11 @@ class GraphAppState(AppState):
         # Always deferred: the history calls this mid-operation, and on any thread.
         loop.call_soon_threadsafe(self._signal_emit, GraphHistoryChanged())
 
-    def get(self, binding_id: str) -> Optional[GraphContainer]:
+    def get(self, binding_id: str) -> GraphContainer | None:
         """Look up a container by ``binding_id``. Returns None when absent."""
         return self._graphs.get(binding_id)
 
-    def get_by_graph(self, graph: BaseGraph) -> Optional[GraphContainer]:
+    def get_by_graph(self, graph: BaseGraph) -> GraphContainer | None:
         """Find the container wrapping ``graph`` by identity, or None.
 
         Used to recover a container whose ``binding_id`` changed out from
@@ -195,7 +194,7 @@ class GraphAppState(AppState):
         return list(self._graphs.values())
 
 
-def route_for(context: "SessionContext") -> "EditRoute | None":
+def route_for(context: SessionContext) -> EditRoute | None:
     """Return the edit route of the level this session has on screen, or ``None`` before one is open.
 
     Example::

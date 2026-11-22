@@ -1,9 +1,10 @@
 """Split Channels — one output per channel of a block."""
 
-from haywire.api import ADD, BaseNode, ExecutionContext, NodeType, PortOrigin, node
+from __future__ import annotations
 
 from haybale_audio.dsp import channels as ops
 from haybale_audio.value import AudioBlock
+from haywire.api import ADD, BaseNode, ExecutionContext, NodeType, PortOrigin, node
 
 _PREFIX = "ch_"
 

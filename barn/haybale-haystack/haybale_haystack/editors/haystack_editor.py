@@ -1,11 +1,20 @@
 # barn/haybale-haystack/haybale_haystack/editors/haystack_editor.py
+from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 from nicegui import ui
 
+from haybale_graph_editor.editors.graph_editor import GraphEditor, definition_path
+from haybale_graph_editor.editors.graph_save_as import open_graph_save_as_dialog
+from haybale_graph_editor.notices import GraphNotice, GraphNoticesChanged
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import GraphAppState
+from haybale_haystack.flow_meter import FlowMeterView
+from haybale_haystack.graph_entry import EntryKind, GraphEntry
+from haybale_haystack.signals import HaystackReloaded, HaystackTeardown
+from haybale_haystack.states.haystack_state import HaystackState
 from haywire.api.workbench import (
     AccessTier,
     ActiveGraphMoved,
@@ -26,22 +35,10 @@ from haywire.api.workbench import (
     react_on,
     redraw_on,
 )
-from haywire.ui.components.popup import Popup
-from haywire.core.session import IAppState
-from haywire.ui.modals import pick_modal, rename_modal
-
-from haybale_graph_editor.notices import GraphNotice, GraphNoticesChanged
-from haybale_graph_editor.states.edit_state import EditState
-from haybale_graph_editor.states.graph_app_state import GraphAppState
-from haybale_graph_editor.editors.graph_editor import GraphEditor, definition_path
-from haybale_graph_editor.editors.graph_save_as import open_graph_save_as_dialog
-
 from haywire.core.execution.flow_metrics import FlowMeterSampler
-
-from haybale_haystack.flow_meter import FlowMeterView
-from haybale_haystack.signals import HaystackReloaded, HaystackTeardown
-from haybale_haystack.states.haystack_state import HaystackState
-from haybale_haystack.graph_entry import EntryKind, GraphEntry
+from haywire.core.session import IAppState
+from haywire.ui.components.popup import Popup
+from haywire.ui.modals import pick_modal, rename_modal
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +46,7 @@ logger = logging.getLogger(__name__)
 METER_INTERVAL_S = 0.5
 
 
-def _refused(context: "SessionContext", required: AccessTier, action: str) -> bool:
+def _refused(context: SessionContext, required: AccessTier, action: str) -> bool:
     """Return whether the principal lacks ``required``, telling them ``"<action> needs <tier> access"``."""
     if context.can_access(required):
         return False
@@ -98,12 +95,12 @@ class HaystackEditor(BaseEditor):
     @redraw_on(
         ActiveGraphMoved, GraphDataMutated, GraphUnsavedChanged, HaystackReloaded, GraphNoticesChanged
     )
-    def _refresh_on_state_move(self, context: "SessionContext", event) -> None:
+    def _refresh_on_state_move(self, context: SessionContext, event) -> None:
         """Empty body — the decorator triggers ``wrapper.redraw()`` after
         this returns, which re-runs ``draw`` and ``_render_list``."""
 
     @react_on(HaystackTeardown)
-    def _close_stale_tabs_on_teardown(self, context: "SessionContext", event: "HaystackTeardown") -> None:
+    def _close_stale_tabs_on_teardown(self, context: SessionContext, event: HaystackTeardown) -> None:
         """Side-effect hook — fires regardless of active state.
 
         HaystackTeardown must run regardless of focus: when the
@@ -115,14 +112,12 @@ class HaystackEditor(BaseEditor):
         self._on_haystack_teardown(context, event)
 
     @react_on(Save)
-    def _on_save(self, context: "SessionContext", event: Save) -> None:
+    def _on_save(self, context: SessionContext, event: Save) -> None:
         """Save the loaded haystack in place, or ask for a name when none is loaded."""
         self._on_save_haystack_in_place(context)
 
     @react_on(RevealGraphInstance)
-    def _on_reveal_graph_instance_reopen(
-        self, context: "SessionContext", event: "RevealGraphInstance"
-    ) -> None:
+    def _on_reveal_graph_instance_reopen(self, context: SessionContext, event: RevealGraphInstance) -> None:
         """Bring forward the tab of the document holding ``event.graph_id``, opening it if needed.
 
         The graph may be the document's own or a Group or macro placement interior
@@ -145,7 +140,7 @@ class HaystackEditor(BaseEditor):
                 edit_state.pending_reveal = None
             return
 
-    def _on_haystack_teardown(self, context: "SessionContext", signal: "HaystackTeardown") -> None:
+    def _on_haystack_teardown(self, context: SessionContext, signal: HaystackTeardown) -> None:
         """Translate the teardown fact into local tab-close lifecycle commands.
 
         Each session's HaystackEditor receives the cross-session
@@ -171,7 +166,7 @@ class HaystackEditor(BaseEditor):
     # state, so backgrounded HaystackEditor instances stay current with
     # ActiveGraphMoved / GraphDataMutated / GraphUnsavedChanged / HaystackReloaded.
 
-    def draw(self, context: "SessionContext", container: ui.element) -> None:
+    def draw(self, context: SessionContext, container: ui.element) -> None:
         with container:
             with ui.column().classes("w-full h-full gap-0"):
                 self._render_header(context)
@@ -186,7 +181,7 @@ class HaystackEditor(BaseEditor):
     # header
     # ------------------------------------------------------------------
 
-    def _render_header(self, context: "SessionContext") -> None:
+    def _render_header(self, context: SessionContext) -> None:
         """Draw the title, unsaved dot and haystack actions; the actions are drawn only for edit."""
         title = self._get_active_haystack_name(context) or "Haystacks"
         hs = context.app_data[HaystackState]
@@ -223,7 +218,7 @@ class HaystackEditor(BaseEditor):
                     if not self._get_active_haystack_name(context):
                         rename_item.props("disable")
 
-    def _render_add_bar(self, context: "SessionContext") -> None:
+    def _render_add_bar(self, context: SessionContext) -> None:
         """Slim + button row matching graph entry width and alignment."""
         with ui.row().classes("w-full px-2 py-1.5 items-center justify-center rounded hw-list-item-hover"):
             with ui.button(icon="add").props("flat dense size=sm").classes("w-full"):
@@ -241,7 +236,7 @@ class HaystackEditor(BaseEditor):
     # list
     # ------------------------------------------------------------------
 
-    def _render_list(self, context: "SessionContext") -> None:
+    def _render_list(self, context: SessionContext) -> None:
         if self._list_container is None:
             return
         self._list_container.clear()
@@ -280,7 +275,7 @@ class HaystackEditor(BaseEditor):
         if self._meter_timer is not None:
             self._meter_timer.active = bool(self._meters)
 
-    def _render_entry(self, entry: "GraphEntry", context: "SessionContext") -> None:
+    def _render_entry(self, entry: GraphEntry, context: SessionContext) -> None:
         is_active = entry.graph is context.data[EditState].active_graph
         can_edit = context.can_edit()
         can_operate = context.can_access(AccessTier.OPERATE)
@@ -363,7 +358,7 @@ class HaystackEditor(BaseEditor):
             # Flow meter — where the overflow menu is while the graph runs.
             if is_executing and self._flow_meters_enabled():
 
-                def name_of(node_id: str, entry_: "GraphEntry" = entry) -> str:
+                def name_of(node_id: str, entry_: GraphEntry = entry) -> str:
                     return self._flow_name(entry_, node_id)
 
                 view = FlowMeterView(name_of)
@@ -416,7 +411,7 @@ class HaystackEditor(BaseEditor):
             return True
 
     @staticmethod
-    def _flow_name(entry: "GraphEntry", node_id: str) -> str:
+    def _flow_name(entry: GraphEntry, node_id: str) -> str:
         """Return the name of the EVENT node that roots a Flow, or its id when the node is gone."""
         try:
             wrapper = entry.graph.get_node_wrapper(node_id)
@@ -424,7 +419,7 @@ class HaystackEditor(BaseEditor):
         except Exception:
             return node_id
 
-    def _sample_meters(self, context: "SessionContext") -> None:
+    def _sample_meters(self, context: SessionContext) -> None:
         """Read the running graphs' flow counters and update their meters; runs on the editor's timer."""
         for eid, view in list(self._meters.items()):
             entry = self._resolve_entry(eid, context)
@@ -446,12 +441,12 @@ class HaystackEditor(BaseEditor):
             popup.delete()
         self._notice_popups.clear()
 
-    def _visible_notices(self, binding_id: str, context: "SessionContext") -> list[GraphNotice]:
+    def _visible_notices(self, binding_id: str, context: SessionContext) -> list[GraphNotice]:
         """Return the notices on a graph that this editor has not dismissed."""
         posted = list(context.app_data[GraphAppState].notices(binding_id))
         return [n for n in posted if (binding_id, n.key) not in self._dismissed_notices]
 
-    def _render_notices(self, binding_id: str, context: "SessionContext") -> None:
+    def _render_notices(self, binding_id: str, context: SessionContext) -> None:
         """Draw the notice icon, tinted warning, and the popup listing each notice and its action."""
         notices = self._visible_notices(binding_id, context)
         if not notices:
@@ -473,7 +468,7 @@ class HaystackEditor(BaseEditor):
         btn.on("click.stop", popup.open)
 
     def _render_notice_line(
-        self, binding_id: str, notice: GraphNotice, popup: Popup, context: "SessionContext"
+        self, binding_id: str, notice: GraphNotice, popup: Popup, context: SessionContext
     ) -> None:
         with (
             ui.column()
@@ -501,7 +496,7 @@ class HaystackEditor(BaseEditor):
                         on_click=lambda n=notice: self._run_notice_action(n, popup, context),
                     ).props("data-hw-mark=graph-notice-action").classes("w-auto")
 
-    def _run_notice_action(self, notice: GraphNotice, popup: Popup, context: "SessionContext") -> None:
+    def _run_notice_action(self, notice: GraphNotice, popup: Popup, context: SessionContext) -> None:
         """Run a notice's action with this session's context, then close the popup."""
         client = ui.context.client
         popup.close()
@@ -514,7 +509,7 @@ class HaystackEditor(BaseEditor):
             with client:
                 ui.notify(f"{notice.action_label or 'Action'} failed: {exc}", type="negative")
 
-    def _dismiss_notice(self, binding_id: str, key: str, context: "SessionContext") -> None:
+    def _dismiss_notice(self, binding_id: str, key: str, context: SessionContext) -> None:
         """Hide a notice in this editor instance only."""
         self._dismissed_notices.add((binding_id, key))
         # The list redraw deletes the popup (and this button's slot) holding the handler.
@@ -524,7 +519,7 @@ class HaystackEditor(BaseEditor):
     # per-entry file actions
     # ------------------------------------------------------------------
 
-    def _resolve_entry(self, binding_id: str, context: "SessionContext") -> "Optional[GraphEntry]":
+    def _resolve_entry(self, binding_id: str, context: SessionContext) -> GraphEntry | None:
         """Re-resolve a captured binding_id against the live HaystackState.
 
         Returns None and notifies the user if the entry is gone (e.g. the
@@ -538,7 +533,7 @@ class HaystackEditor(BaseEditor):
             ui.notify("Graph no longer available — list refreshed", type="info", position="top-right")
         return entry
 
-    def _on_entry_save(self, binding_id: str, context: "SessionContext") -> None:
+    def _on_entry_save(self, binding_id: str, context: SessionContext) -> None:
         """Save a graph; opens save-as dialog if untitled."""
         if not context.can_edit():
             ui.notify("Saving needs edit access", type="warning", position="top-right")
@@ -582,7 +577,7 @@ class HaystackEditor(BaseEditor):
 
         open_graph_save_as_dialog(app=app, entry=entry, save_fn=_save_fn, on_success=_on_success)
 
-    def _on_entry_save_as(self, binding_id: str, context: "SessionContext") -> None:
+    def _on_entry_save_as(self, binding_id: str, context: SessionContext) -> None:
         """Always open the save-as dialog."""
         if not context.can_edit():
             ui.notify("Saving needs edit access", type="warning", position="top-right")
@@ -608,7 +603,7 @@ class HaystackEditor(BaseEditor):
 
         open_graph_save_as_dialog(app=app, entry=entry, save_fn=_save_fn, on_success=_on_success)
 
-    def _on_entry_rename(self, binding_id: str, context: "SessionContext") -> None:
+    def _on_entry_rename(self, binding_id: str, context: SessionContext) -> None:
         """Rename: inline edit for file-backed graphs, save-as for untitled."""
         if _refused(context, AccessTier.EDIT, "Renaming"):
             return
@@ -624,7 +619,7 @@ class HaystackEditor(BaseEditor):
             return
         self._open_rename_dialog(entry, context)
 
-    def _on_entry_delete(self, binding_id: str, context: "SessionContext") -> None:
+    def _on_entry_delete(self, binding_id: str, context: SessionContext) -> None:
         """Remove a graph entry from the haystack.
 
         Dirty entries (modified or never-saved) get a discard-and-remove
@@ -663,7 +658,7 @@ class HaystackEditor(BaseEditor):
             on_confirm=lambda: self._remove_entry(entry, context),
         )
 
-    def _remove_entry(self, entry: "GraphEntry", context: "SessionContext") -> None:
+    def _remove_entry(self, entry: GraphEntry, context: SessionContext) -> None:
         """Tear down a graph entry: stop execution, remove, notify.
 
         Pre-condition: ``entry`` is not executing and the haystack is available.
@@ -707,7 +702,7 @@ class HaystackEditor(BaseEditor):
     # rename dialog
     # ------------------------------------------------------------------
 
-    def _open_rename_dialog(self, entry: "GraphEntry", context: "SessionContext") -> None:
+    def _open_rename_dialog(self, entry: GraphEntry, context: SessionContext) -> None:
         """Open a modal to rename a graph entry.
 
         Pre-condition: ``entry.path`` is not None. Untitled entries are
@@ -750,7 +745,7 @@ class HaystackEditor(BaseEditor):
     # actions (new graph / select)
     # ------------------------------------------------------------------
 
-    def _on_new(self, context: "SessionContext") -> None:
+    def _on_new(self, context: SessionContext) -> None:
         """Create a new unnamed graph and activate it."""
         if _refused(context, AccessTier.EDIT, "A new graph"):
             return
@@ -769,7 +764,7 @@ class HaystackEditor(BaseEditor):
             )
         )
 
-    def _on_select(self, binding_id: str, context: "SessionContext") -> None:
+    def _on_select(self, binding_id: str, context: SessionContext) -> None:
         """Activate an existing graph entry."""
         session = context.session
         if session is None:
@@ -789,7 +784,7 @@ class HaystackEditor(BaseEditor):
     # execution actions
     # ------------------------------------------------------------------
 
-    def _on_start_execution(self, binding_id: str, context: "SessionContext") -> None:
+    def _on_start_execution(self, binding_id: str, context: SessionContext) -> None:
         """Start execution on a graph entry."""
         if _refused(context, AccessTier.OPERATE, "Starting and stopping"):
             return
@@ -805,7 +800,7 @@ class HaystackEditor(BaseEditor):
             )
         self._notify_data_mutated(context)
 
-    def _on_stop_execution(self, binding_id: str, context: "SessionContext") -> None:
+    def _on_stop_execution(self, binding_id: str, context: SessionContext) -> None:
         """Stop execution on a graph entry."""
         if _refused(context, AccessTier.OPERATE, "Starting and stopping"):
             return
@@ -820,7 +815,7 @@ class HaystackEditor(BaseEditor):
     # haystack actions
     # ------------------------------------------------------------------
 
-    def _on_save_haystack(self, context: "SessionContext") -> None:
+    def _on_save_haystack(self, context: SessionContext) -> None:
         """Save the current set of open graphs as a haystack ("Save As…"); refused below edit."""
         if not context.can_edit():
             ui.notify("Saving needs edit access", type="warning", position="top-right")
@@ -846,7 +841,7 @@ class HaystackEditor(BaseEditor):
             on_confirm=_do_save,
         )
 
-    def _on_save_haystack_in_place(self, context: "SessionContext") -> None:
+    def _on_save_haystack_in_place(self, context: SessionContext) -> None:
         """Save the currently-loaded haystack without prompting.
 
         Falls through to :meth:`_on_save_haystack` (the Save-As modal) when
@@ -877,7 +872,7 @@ class HaystackEditor(BaseEditor):
         with client:
             ui.notify(f"Haystack '{active}' saved", type="positive")
 
-    def _on_load_haystack(self, context: "SessionContext") -> None:
+    def _on_load_haystack(self, context: SessionContext) -> None:
         """Load a haystack, replacing all currently open graphs."""
         if _refused(context, AccessTier.EDIT, "Loading a haystack"):
             return
@@ -904,7 +899,7 @@ class HaystackEditor(BaseEditor):
 
             # Resolve the active entry from the returned absolute path,
             # falling back to the first entry if missing/None.
-            active_entry: Optional["GraphEntry"] = None
+            active_entry: GraphEntry | None = None
             if active_path is not None:
                 active_entry = hs.get_by_path(active_path)
             if active_entry is None:
@@ -938,7 +933,7 @@ class HaystackEditor(BaseEditor):
     # open graph dialog
     # ------------------------------------------------------------------
 
-    def _on_open_graph(self, context: "SessionContext") -> None:
+    def _on_open_graph(self, context: SessionContext) -> None:
         """Open a dialog to pick an existing .haywire file to load into the haystack.
 
         Loading only adds the entry to the haystack list — it does NOT reveal
@@ -990,7 +985,7 @@ class HaystackEditor(BaseEditor):
     # rename haystack dialog
     # ------------------------------------------------------------------
 
-    def _get_active_haystack_name(self, context: "SessionContext") -> Optional[str]:
+    def _get_active_haystack_name(self, context: SessionContext) -> str | None:
         """Return the currently-active haystack name (or None).
 
         Reads ``HaystackSettings.last_haystack_name`` — the authoritative location.
@@ -1004,7 +999,7 @@ class HaystackEditor(BaseEditor):
         name = settings.last_haystack_name
         return name or None
 
-    def _on_rename_haystack(self, context: "SessionContext") -> None:
+    def _on_rename_haystack(self, context: SessionContext) -> None:
         """Open a modal to rename the current haystack."""
         if _refused(context, AccessTier.EDIT, "Renaming"):
             return
@@ -1037,7 +1032,7 @@ class HaystackEditor(BaseEditor):
             on_confirm=_do_rename,
         )
 
-    def _notify_data_mutated(self, context: "SessionContext") -> None:
+    def _notify_data_mutated(self, context: SessionContext) -> None:
         """Fire ``GraphDataMutated`` cross-session.
 
         Used for non-mutating UI events that nonetheless want every

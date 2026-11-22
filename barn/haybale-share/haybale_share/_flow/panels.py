@@ -12,17 +12,16 @@ what am I publishing, ship it.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from nicegui import ui
 
-from haywire.core.publishing.pipeline import ShareDecisions
-from haywire.api.workbench import hui
-from haywire.ui.components.stepper import busy_advance as _busy_advance
-
 from haybale_share._flow._state import ShareFlow
 from haybale_share._flow.copy import DETECT_SECTIONS, FLOOR_OPTIONS, PIN_OPTIONS
+from haywire.api.workbench import hui
+from haywire.core.publishing.pipeline import ShareDecisions
+from haywire.ui.components.stepper import busy_advance as _busy_advance
 
 _POSITIVE = "color: var(--hw-positive);"
 
@@ -548,7 +547,7 @@ def panel_done(flow: ShareFlow, _rerender: Callable[[], None]) -> None:
     done.on_click(lambda: flow.popup and flow.popup.close())
 
 
-def suppress_duplicate_error(flow: ShareFlow, _rerender: Callable[[], None]) -> "bool | str":
+def suppress_duplicate_error(flow: ShareFlow, _rerender: Callable[[], None]) -> bool | str:
     """Stop the shared error banner from restating what a panel already shows.
 
     `flow.error` is `str(exception)`. For a `PreconditionsError` that string is

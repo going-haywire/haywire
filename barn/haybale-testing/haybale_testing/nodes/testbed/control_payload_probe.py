@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from haywire.api import EXEC, BaseNode, ExecutionContext, NodeType, node
 
 

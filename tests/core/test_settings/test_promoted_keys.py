@@ -10,14 +10,16 @@ Serialization (to_dict/from_dict new shape) is tested separately in Task 2's
 additions to this file. Panel/port wiring is tested at higher layers.
 """
 
+from __future__ import annotations
+
 import logging
 
 import pytest
 
+from haywire.barn.builtin.types import BOOL, FLOAT
 from haywire.core.settings import Settings, setting
 from haywire.core.settings.settings import PromotedFormatError
 from haywire.core.types.enums import PortType, ShowWidgetStrategy
-from haywire.barn.builtin.types import BOOL, FLOAT
 
 
 class PromoSettings(Settings):

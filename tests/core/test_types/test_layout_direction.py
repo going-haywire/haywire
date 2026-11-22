@@ -1,5 +1,7 @@
 """LayoutDirection side/vector tables and the invariants that keep them honest."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.types import LayoutDirection

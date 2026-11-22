@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import logging
 
-from haywire.api import EXEC, STRING, BaseNode, ExecutionContext, NodeType, MenuWidget, TextWidget, node
+from haywire.api import EXEC, STRING, BaseNode, ExecutionContext, MenuWidget, NodeType, TextWidget, node
 
 # Lives under the `haywire` namespace
 logger = logging.getLogger("haywire.nodes.logger")

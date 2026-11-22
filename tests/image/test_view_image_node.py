@@ -1,5 +1,7 @@
 """View Image: passes the image on, and its Mode sets the viewer's mode."""
 
+from __future__ import annotations
+
 import importlib
 from typing import Any
 from unittest.mock import MagicMock
@@ -8,7 +10,6 @@ import numpy as np
 import pytest
 
 from haywire.api import PortType
-
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration

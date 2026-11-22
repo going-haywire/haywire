@@ -1,5 +1,7 @@
 """Live tier resolution — mtime-cached roster reads behind the core resolver hook."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.access import AccessTier, access_resolver, resolve_tier, set_access_resolver

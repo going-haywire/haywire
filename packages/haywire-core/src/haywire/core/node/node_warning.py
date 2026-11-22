@@ -6,7 +6,6 @@ A warning is informational and, unlike an error, never makes a node invalid.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -25,5 +24,5 @@ class NodeWarning:
     """
 
     message: str
-    source_version: Optional[str]
+    source_version: str | None
     kind: str = "compatibility"

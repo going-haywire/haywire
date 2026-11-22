@@ -1,11 +1,13 @@
 """BlockPump: pacing, end of source, stop, errors."""
 
+from __future__ import annotations
+
 import threading
+
 import pytest
 
 from haybale_audio.emitter import BlockPump
 from haybale_audio.value import AudioBlock
-
 from tests.wait import wait_until
 
 pytestmark = pytest.mark.unit

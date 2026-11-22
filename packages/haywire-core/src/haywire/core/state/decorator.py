@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Callable, Type, TypeVar
+from collections.abc import Callable
+from typing import TypeVar
 
 from haywire.core.library.utils import derive_library_identity, reg_key
 from haywire.core.state.base import AppState, LibraryState, SessionState
@@ -14,7 +15,7 @@ def state(
     label: str = "",
     description: str = "",
     registry_id: str | None = None,
-) -> Callable[[Type[T]], Type[T]]:
+) -> Callable[[type[T]], type[T]]:
     """Decorator that registers an AppState or SessionState subclass.
 
     Scope (app-global vs per-session) is auto-detected from the base
@@ -40,7 +41,7 @@ def state(
             ...
     """
 
-    def decorator(inner_cls: Type[T]) -> Type[T]:
+    def decorator(inner_cls: type[T]) -> type[T]:
         if not (issubclass(inner_cls, AppState) or issubclass(inner_cls, SessionState)):
             raise TypeError(
                 f"@state can only be applied to AppState or SessionState subclasses, got {inner_cls}"

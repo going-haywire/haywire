@@ -1,5 +1,7 @@
 """Whenever a card and its interior meet, their immediate ports agree."""
 
+from __future__ import annotations
+
 import pytest
 
 from tests.conftest import make_node

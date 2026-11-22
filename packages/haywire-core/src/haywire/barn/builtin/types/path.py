@@ -1,11 +1,14 @@
 """PATH, FILE_PATH and FOLDER_PATH — a location inside a named volume."""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
 from haywire.barn.builtin import widget_keys
 from haywire.core.types import PrimitiveField, PrimitiveType
 from haywire.core.types import type as type_decorator
 from haywire.core.volumes import PROJECT_KEY, VolumePath
+
 from ..wires import DataWire
 
 if TYPE_CHECKING:
@@ -37,7 +40,7 @@ class PATH(PrimitiveType[VolumePath]):
         return VolumePath.from_dict(data.get("value", {}))
 
     @classmethod
-    def _configure_port(cls, port: "DataPort", **context: Any) -> None:
+    def _configure_port(cls, port: DataPort, **context: Any) -> None:
         """Fill in the type's own widget properties (such as ``mode``) the port's config leaves out."""
         own = cls.class_identity.widget_config.get("properties", {})
         if not own:

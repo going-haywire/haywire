@@ -1,5 +1,7 @@
 """MenuWidget with callable ``options`` (re-read on open, optionally from the bag) and ``refresh``."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest

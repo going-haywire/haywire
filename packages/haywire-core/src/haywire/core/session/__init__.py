@@ -35,6 +35,8 @@ Framework / library internals:
                           which slot); persisted to workspace_state.json
 """
 
+from __future__ import annotations
+
 from .session import Session
 from .session_manager import SessionManager
 from .context import SessionContext

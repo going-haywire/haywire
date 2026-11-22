@@ -12,6 +12,8 @@ Real NiceGUI elements need a Client slot context, hence the integration
 marker (same pattern as tests/ui/panel/test_promoted_row_state.py).
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest

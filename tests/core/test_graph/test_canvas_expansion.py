@@ -10,14 +10,15 @@ Covers:
 - canvas_sizes propagation through the validation pipeline
 """
 
-import math
+from __future__ import annotations
 
-import pytest
+import math
 from unittest.mock import MagicMock
 
-from haywire.core.graph.base import BaseGraph, _CANVAS_MIN_SIZE
-from haywire.core.graph.types import ChangeReason, ValidationResult
+import pytest
 
+from haywire.core.graph.base import _CANVAS_MIN_SIZE, BaseGraph
+from haywire.core.graph.types import ChangeReason, ValidationResult
 
 # ---------------------------------------------------------------------------
 # Helpers

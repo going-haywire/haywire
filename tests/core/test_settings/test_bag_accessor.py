@@ -11,12 +11,14 @@ subclass" check does `issubclass`. Both must keep working. (The typing half is
 enforced by mypy over this file in CI, not by an assertion.)
 """
 
+from __future__ import annotations
+
 import pytest
 
+from haywire.barn.builtin.types import INT
 from haywire.core.di.test_config import create_test_settings_registry
 from haywire.core.settings import NodeSettings, bag, setting
 from haywire.core.settings.settings import Settings
-from haywire.barn.builtin.types import INT
 
 pytestmark = [pytest.mark.unit, pytest.mark.core]
 

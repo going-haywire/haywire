@@ -24,7 +24,6 @@ from haywire.ui.panel.setting_widget_model import SettingWidgetModel
 from haywire.ui.skin.factory import SkinFactory
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.factory import WidgetFactory
-
 from tests.conftest import make_node
 from tests.ui.widget._sync_fixtures import _RecordingElement, make_float_port
 

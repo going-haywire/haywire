@@ -1,6 +1,8 @@
 # tests/ui/test_editor_wrapper_set_dirty.py
+from __future__ import annotations
 
 from unittest.mock import MagicMock
+
 import pytest
 
 

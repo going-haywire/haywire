@@ -9,14 +9,16 @@ inside the callback would leave the ports stale with no traceback anywhere the
 caller can see. Every assertion here is therefore on the resulting port set.
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest
 
+from haywire.barn.builtin.types import BOOL, INT
 from haywire.core.di.context import get_settings_registry
 from haywire.core.node import BaseNode, NodeType, node
 from haywire.core.settings import NodeSettings, bag, setting
-from haywire.barn.builtin.types import BOOL, INT
 
 pytestmark = [pytest.mark.unit, pytest.mark.core]
 

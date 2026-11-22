@@ -15,6 +15,8 @@ A wall-clock assertion, which this file otherwise avoids, because the failure IS
 a duration: both bugs draw the right graph, just minutes of overlay later.
 """
 
+from __future__ import annotations
+
 import time
 
 import pytest

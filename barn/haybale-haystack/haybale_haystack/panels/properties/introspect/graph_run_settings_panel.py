@@ -9,6 +9,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import GraphAppState
+from haybale_haystack.graph_entry import GraphEntry
 from haywire.api.workbench import (
     ActiveGraphMoved,
     BasePanel,
@@ -19,11 +22,6 @@ from haywire.api.workbench import (
     panel,
     render_settings,
 )
-
-from haybale_graph_editor.states.edit_state import EditState
-from haybale_graph_editor.states.graph_app_state import GraphAppState
-
-from haybale_haystack.graph_entry import GraphEntry
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -42,7 +40,7 @@ class GraphRunSettingsPanel(BasePanel):
     """Renders the GraphRunSettings for the currently active graph."""
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         graph = ctx.data[EditState].active_graph
         if graph is None:
             return False
@@ -51,7 +49,7 @@ class GraphRunSettingsPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         graph = ctx.data[EditState].active_graph

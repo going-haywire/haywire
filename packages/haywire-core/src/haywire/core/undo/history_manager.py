@@ -6,18 +6,20 @@ the IHistoryManager interface with support for fencing, grouping,
 and action merging.
 """
 
-import time
+from __future__ import annotations
+
 import logging
+import time
 from collections.abc import Callable
-from typing import Any, List, Literal, Optional, Union, cast
 from dataclasses import dataclass
+from typing import Any, Literal, cast
 
 from haywire.core.errors import report_failure
 
 from .actions.graph_actions import VALUE_EDIT_MERGE_IDLE_S
 from .base_action import ActionBase
-from .interfaces import IAction, IHistoryManager
 from .config import UndoConfig
+from .interfaces import IAction, IHistoryManager
 from .origin import HistoryEntry, HistoryMove, StepOrigin
 
 logger = logging.getLogger(__name__)
@@ -33,7 +35,7 @@ class Fence:
     """
 
     timestamp: float
-    description: Optional[str] = None
+    description: str | None = None
 
     def __post_init__(self):
         if self.timestamp is None:
@@ -49,8 +51,8 @@ class ActionGroup:
     contain both individual actions and nested groups.
     """
 
-    actions: List[Union[IAction, "ActionGroup"]]
-    description: Optional[str] = None
+    actions: list[IAction | ActionGroup]
+    description: str | None = None
     timestamp: float | None = None
 
     def __post_init__(self):
@@ -94,9 +96,7 @@ class HistoryManager(IHistoryManager):
     and action merging.
     """
 
-    def __init__(
-        self, config: Optional[UndoConfig] = None, *, error_context: Optional[dict[str, Any]] = None
-    ):
+    def __init__(self, config: UndoConfig | None = None, *, error_context: dict[str, Any] | None = None):
         """
         Initialize the history manager.
 
@@ -110,11 +110,11 @@ class HistoryManager(IHistoryManager):
         self.error_context: dict[str, Any] = dict(error_context or {})
 
         # Core history storage
-        self.history: List[Union[IAction, ActionGroup, Fence]] = []
+        self.history: list[IAction | ActionGroup | Fence] = []
         self.current_index = -1  # Points to the last executed action
 
         # Grouping state
-        self._pending_actions: List[IAction] = []
+        self._pending_actions: list[IAction] = []
         self._last_fence_time = time.time()
 
         # Merge window: the timestamp of the last action added, which is the
@@ -131,8 +131,8 @@ class HistoryManager(IHistoryManager):
 
         # Who recorded each step still held, by id(action); entries leave with their action.
         self._origins: dict[int, StepOrigin] = {}
-        self._last_move: Optional[HistoryMove] = None
-        self._listeners: List[Callable[[], None]] = []
+        self._last_move: HistoryMove | None = None
+        self._listeners: list[Callable[[], None]] = []
 
     @property
     def undo_redo_count(self) -> int:
@@ -497,7 +497,7 @@ class HistoryManager(IHistoryManager):
         ]
         return rows
 
-    def last_move(self) -> Optional[HistoryMove]:
+    def last_move(self) -> HistoryMove | None:
         """Return the latest successful undo or redo since the last ``clear()``, or ``None``."""
         return self._last_move
 
@@ -519,7 +519,7 @@ class HistoryManager(IHistoryManager):
                 logger.exception("History listener failed")
 
     def _entry(
-        self, item: Union[IAction, ActionGroup, Fence], *, undone: bool, pending: bool, amendable: Any
+        self, item: IAction | ActionGroup | Fence, *, undone: bool, pending: bool, amendable: Any
     ) -> HistoryEntry:
         """Return the snapshot row for one history item; a group's children share its flags."""
         if isinstance(item, Fence):
@@ -565,12 +565,12 @@ class HistoryManager(IHistoryManager):
                 return graph
         return None
 
-    def get_undo_description(self) -> Optional[str]:
+    def get_undo_description(self) -> str | None:
         """Get description of the next action that would be undone."""
         item = self._get_current_undoable_item()
         return self._get_item_description(item) if item else None
 
-    def get_redo_description(self) -> Optional[str]:
+    def get_redo_description(self) -> str | None:
         """Get description of the next action that would be redone."""
         if self.current_index + 1 < len(self.history):
             item = self.history[self.current_index + 1]
@@ -658,9 +658,7 @@ class HistoryManager(IHistoryManager):
             self.current_index = len(self.history) - 1
         else:
             # Multiple actions, create a group
-            group = ActionGroup(
-                actions=cast(List[Union[IAction, ActionGroup]], self._pending_actions.copy())
-            )
+            group = ActionGroup(actions=cast(list[IAction | ActionGroup], self._pending_actions.copy()))
             self.history.append(group)
             self.current_index = len(self.history) - 1
 
@@ -676,7 +674,7 @@ class HistoryManager(IHistoryManager):
             # Remove from history
             self.history = self.history[: self.current_index + 1]
 
-    def _get_current_undoable_item(self) -> Optional[Union[IAction, ActionGroup]]:
+    def _get_current_undoable_item(self) -> IAction | ActionGroup | None:
         """Get the current item that can be undone."""
         index = self.current_index
         while index >= 0:
@@ -686,7 +684,7 @@ class HistoryManager(IHistoryManager):
             index -= 1
         return None
 
-    def _get_current_redoable_item(self) -> Optional[Union[IAction, ActionGroup]]:
+    def _get_current_redoable_item(self) -> IAction | ActionGroup | None:
         """Get the current item that can be redone."""
         index = self.current_index + 1
         while index < len(self.history):
@@ -708,7 +706,7 @@ class HistoryManager(IHistoryManager):
         while self.current_index < len(self.history) and isinstance(self.history[self.current_index], Fence):
             self.current_index += 1
 
-    def _get_item_description(self, item: Union[IAction, ActionGroup, None]) -> str:
+    def _get_item_description(self, item: IAction | ActionGroup | None) -> str:
         """Get a description for a history item."""
         if item is None:
             return "Unknown"
@@ -780,7 +778,7 @@ class HistoryManager(IHistoryManager):
         if self.config.enable_debug_logging:
             logger.info(f"Notification: {message}")
 
-    def _cleanup_item(self, item: Union[IAction, ActionGroup, Fence]) -> None:
+    def _cleanup_item(self, item: IAction | ActionGroup | Fence) -> None:
         """
         Clean up a history item.
 
@@ -809,7 +807,7 @@ class HistoryManager(IHistoryManager):
             item.cleanup()
 
     @staticmethod
-    def _holds(item: Union[IAction, ActionGroup, Fence], action: Any) -> bool:
+    def _holds(item: IAction | ActionGroup | Fence, action: Any) -> bool:
         """Whether ``item`` is ``action`` or a group containing it at any depth."""
         if isinstance(item, ActionGroup):
             return any(HistoryManager._holds(child, action) for child in item.actions)

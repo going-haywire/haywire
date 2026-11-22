@@ -1,5 +1,7 @@
 """Where a computed edge draws its arrow head: a fact its wire type declares."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.wires import CallbackWire, ControlWire, DataWire

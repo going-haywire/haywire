@@ -1,11 +1,12 @@
 """A widget on a field that holds no own value refuses edits instead of raising."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import ADD, FLOAT
 from haywire.core.types.enums import PortType
 from haywire.core.types.port import DataPort
-
 from tests.ui.widget._sync_fixtures import _BaseDefaultFloatWidget
 
 pytestmark = pytest.mark.unit

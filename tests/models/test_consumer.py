@@ -8,10 +8,6 @@ from typing import Any, cast
 
 import pytest
 
-from haywire.core.catalog import ModelFile, Resource
-from haywire.core.node.node_wrapper import NodeWrapperState
-from haywire.core.volumes import VolumeStore, volume_location
-
 from haybale_models import consumer
 from haybale_models.keys import MODELS_VOLUME
 from haybale_models.pool import LoadedModels
@@ -19,6 +15,9 @@ from haybale_models.resolver import ModelMissing
 from haybale_models.sources import builtin_sources
 from haybale_models.store.index import ModelIndex
 from haybale_models.value.model_ref import ModelRef
+from haywire.core.catalog import ModelFile, Resource
+from haywire.core.node.node_wrapper import NodeWrapperState
+from haywire.core.volumes import VolumeStore, volume_location
 
 KEY = "lib:catalog:demo"
 

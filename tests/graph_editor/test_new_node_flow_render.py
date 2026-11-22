@@ -14,7 +14,6 @@ from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
 from haywire.core.authoring import RegistrationOutcome
-
 from tests.graph_editor import test_new_node_flow as flow_tests
 
 # The authoring fixtures and the flow builder, shared with the state-machine tests.

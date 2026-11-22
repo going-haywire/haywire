@@ -5,6 +5,8 @@ and the converter default for an unset port.  Single-subscription teardown lives
 in test_single_activation.py.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from tests.ui.widget._sync_fixtures import build_base_default

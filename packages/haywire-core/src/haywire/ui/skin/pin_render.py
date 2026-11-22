@@ -75,7 +75,7 @@ def _pin_color_css(color: str | None) -> tuple[str, str]:
     return "", f"color: {color}; "
 
 
-def resolve_layout_direction(wrapper: "NodeWrapper") -> LayoutDirection:
+def resolve_layout_direction(wrapper: NodeWrapper) -> LayoutDirection:
     """The node's own layout direction (framework < graph < node).
 
     Reads ``node.props.layout_direction``, whose ``graph()`` mirror already
@@ -88,7 +88,7 @@ def resolve_layout_direction(wrapper: "NodeWrapper") -> LayoutDirection:
         return LayoutDirection.LEFT_TO_RIGHT
 
 
-def resolve_graph_layout_direction(wrapper: "NodeWrapper") -> LayoutDirection:
+def resolve_graph_layout_direction(wrapper: NodeWrapper) -> LayoutDirection:
     """The owning GRAPH's layout direction, ignoring any per-node override.
 
     For skins whose shape is dictated by the graph rather than the node — the

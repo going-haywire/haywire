@@ -1,25 +1,28 @@
+from __future__ import annotations
+
 import copy
 import logging
 import time
-from typing import Any, Dict, List, Mapping, Optional, TYPE_CHECKING
+from collections.abc import Mapping
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any
 
 from ...ui.utils import generate_edge_uuid
-from ..graph.types import ChangeReason
-from ..types import Propagation
-from ..types.wire import WILDCARD, WireRole, WireType, wires_match
 from ..adapter.base import IAdapter, ReturnAdapter
 from ..errors import HaywireException
+from ..graph.types import ChangeReason
 from ..registry.lifecycle_event import LifeCycleEvent
+from ..types import Propagation
 from ..types.interface import IType
+from ..types.wire import WILDCARD, WireRole, WireType, wires_match
 from .edge import Edge
 
 if TYPE_CHECKING:
-    from ..graph.base import BaseGraph
     from ..adapter.factory import AdapterFactory
+    from ..graph.base import BaseGraph
     from ..node.node_wrapper import NodeWrapper
-    from ..types import DataPort
     from ..settings.settings_edge import EdgeSettings
+    from ..types import DataPort
 
 logger = logging.getLogger(__name__)
 
@@ -42,15 +45,15 @@ class EdgeWrapperState:
     """The outlet port has been validated"""
     is_linked: bool = False
     """The edge is linked to both ports"""
-    warnings: List[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
     """main warning message"""
-    error_link: Optional[HaywireException] = None
+    error_link: HaywireException | None = None
     """port validation error message"""
-    error_formal: Optional[HaywireException] = None
+    error_formal: HaywireException | None = None
     """port type error"""
-    error_build: Optional[HaywireException] = None
+    error_build: HaywireException | None = None
     """build error"""
-    error_test: Optional[HaywireException] = None
+    error_test: HaywireException | None = None
     """test error message"""
     creation_time: float = 0.0
     """When edge was created"""
@@ -77,7 +80,7 @@ class EdgeWrapperState:
         """Check if connection is in valid state (functional and linked)"""
         return self.is_functional() and self.is_linked
 
-    def get_error(self) -> Optional[HaywireException]:
+    def get_error(self) -> HaywireException | None:
         """Get main error"""
         if self.error_formal:
             return self.error_formal
@@ -109,13 +112,13 @@ class EdgeWrapper:
 
     def __init__(
         self,
-        graph: "BaseGraph",
+        graph: BaseGraph,
         source_node_id: str,
         outlet_port_id: str,
         sink_node_id: str,
         inlet_port_id: str,
         propagation: Propagation = Propagation.EAGER,
-        style: Optional[Mapping[str, Any]] = None,
+        style: Mapping[str, Any] | None = None,
     ):
         """
         Initialize EdgeWrapper (similar to NodeWrapper.__init__).
@@ -143,22 +146,22 @@ class EdgeWrapper:
         self.inletPinFallback: str = f"{self.inlet_port_id}>>root_in"
 
         # Reference to parent graph
-        self._graph: "BaseGraph" = graph
+        self._graph: BaseGraph = graph
 
         from haywire.core.di.context import get_adapter_factory
 
-        self._adapter_factory: Optional["AdapterFactory"] = get_adapter_factory()
+        self._adapter_factory: AdapterFactory | None = get_adapter_factory()
 
         # Node wrapper references (set during registration)
-        self._source_wrapper: Optional["NodeWrapper"] = None
-        self._sink_wrapper: Optional["NodeWrapper"] = None
+        self._source_wrapper: NodeWrapper | None = None
+        self._sink_wrapper: NodeWrapper | None = None
 
         # DataPort references (set during registration)
-        self._outlet_port: Optional["DataPort"] = None
-        self._inlet_port: Optional["DataPort"] = None
+        self._outlet_port: DataPort | None = None
+        self._inlet_port: DataPort | None = None
 
         # First adapter in chain (created during registration)
-        self._first_adapter: Optional[IAdapter] = ReturnAdapter()
+        self._first_adapter: IAdapter | None = ReturnAdapter()
 
         # State management
         self._state = EdgeWrapperState(creation_time=time.time())
@@ -177,14 +180,14 @@ class EdgeWrapper:
             propagation=propagation,
         )
 
-        self._source_type: Optional[type[IType]] = None
+        self._source_type: type[IType] | None = None
         # The (source, sink) types the adapter chain was last built against; see built_for_current_ports.
-        self._built_types: Optional[tuple[type[IType], type[IType]]] = None
+        self._built_types: tuple[type[IType], type[IType]] | None = None
 
         # The style bag, bound while the edge validates; see _bind_style.
-        self._style: Optional["EdgeSettings"] = None
+        self._style: EdgeSettings | None = None
         # The style values while no bag holds them: before the first validation, and while the edge fails.
-        self._unbound_style: Dict[str, Any] = dict(style or {})
+        self._unbound_style: dict[str, Any] = dict(style or {})
 
         # Subscribe to adapter factory for hot reload
         self._adapter_factory.register_edge_callback(self._edge_id, self._on_adapter_lifecycle_event)
@@ -214,7 +217,7 @@ class EdgeWrapper:
         return self._edge_id
 
     @property
-    def first_adapter(self) -> Optional[IAdapter]:
+    def first_adapter(self) -> IAdapter | None:
         """Get the first adapter in the chain"""
         return self._first_adapter
 
@@ -224,7 +227,7 @@ class EdgeWrapper:
         return self._state
 
     @property
-    def wire_type(self) -> Optional[type[WireType]]:
+    def wire_type(self) -> type[WireType] | None:
         """The wire type this edge carries: its outlet's, else its inlet's.
 
         An edge out of a bare ``ADD`` slot carries what it feeds. ``None`` until an
@@ -248,7 +251,7 @@ class EdgeWrapper:
         return wire is not None and wire.on_stage
 
     @property
-    def locked_propagation(self) -> Optional[Propagation]:
+    def locked_propagation(self) -> Propagation | None:
         """The mode this edge is fixed to, or ``None`` when the user may choose one.
 
         An edge out of an ``is_linked_lazy`` outlet (every promoted outlet) is locked
@@ -267,7 +270,7 @@ class EdgeWrapper:
         return None
 
     @property
-    def propagation(self) -> Optional[Propagation]:
+    def propagation(self) -> Propagation | None:
         """The mode in effect, or ``None`` for an edge whose wire type allows none."""
         wire = self.wire_type
         if wire is not None and not wire.propagation:
@@ -302,11 +305,11 @@ class EdgeWrapper:
     # =========================================================================
 
     @property
-    def style(self) -> Optional["EdgeSettings"]:
+    def style(self) -> EdgeSettings | None:
         """The style bag; ``None`` when its wire type declares none or the edge does not validate."""
         return self._style
 
-    def style_values(self) -> Dict[str, Any]:
+    def style_values(self) -> dict[str, Any]:
         """Return the edge's locally set style values by field name, as saved under ``"style"``.
 
         While the edge does not validate, these are the values it was loaded or
@@ -675,7 +678,7 @@ class EdgeWrapper:
         self._state.is_built = True
         self._state.has_test_passed = True
 
-    def _check_chain_for_changes(self, chain: List[str]):
+    def _check_chain_for_changes(self, chain: list[str]):
         """
         Check if adapter chain has changed compared to given chain.
         Issues a warning to the state if so.
@@ -935,7 +938,7 @@ class EdgeWrapper:
             self._state.has_test_passed = False
             return False
 
-    def _on_adapter_lifecycle_event(self, batch: List[LifeCycleEvent]):
+    def _on_adapter_lifecycle_event(self, batch: list[LifeCycleEvent]):
         """
         Handle adapter hot reload events.
 
@@ -994,7 +997,7 @@ class EdgeWrapper:
         """
         return copy.copy(self._state)
 
-    def serialize(self) -> Dict[str, Any]:
+    def serialize(self) -> dict[str, Any]:
         """Return the edge as a graph saves it: ``Edge.to_dict``, plus ``"style"`` once a value is set."""
         data = self._edge.to_dict()
         style = self.style_values()

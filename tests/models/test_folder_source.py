@@ -7,9 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from haywire.core.volumes import VolumeStore, get_volume_store, set_volume_store
-
 from haybale_models.sources import FolderSource, TorchHubSource
+from haywire.core.volumes import VolumeStore, get_volume_store, set_volume_store
 
 
 @pytest.fixture

@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 
-def check_tag_available(pipeline: "SharePipeline", version: str) -> None:
+def check_tag_available(pipeline: SharePipeline, version: str) -> None:
     """Raise :class:`TagCollisionError` if ``v<version>`` already exists.
 
     Checked here, before anything is written, because this is where the fix
@@ -91,7 +91,7 @@ def write_barn_origins(repo_root: Path) -> list[Path]:
     return sorted(written)
 
 
-def apply_bump(pipeline: "SharePipeline", spec: str) -> BumpResult:
+def apply_bump(pipeline: SharePipeline, spec: str) -> BumpResult:
     """Resolve *spec*, verify the tag is free, then bump every barn library.
 
     *spec* is ``"patch"``/``"minor"``/``"major"`` or an explicit ``X.Y.Z``.

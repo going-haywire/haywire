@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from haywire.core.library.utils import camel_to_dot_case
 
 

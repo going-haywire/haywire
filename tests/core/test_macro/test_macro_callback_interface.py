@@ -1,5 +1,7 @@
 """A macro's callback interface relays like a Group's, through placement, reload and promotion."""
 
+from __future__ import annotations
+
 import itertools
 
 import pytest

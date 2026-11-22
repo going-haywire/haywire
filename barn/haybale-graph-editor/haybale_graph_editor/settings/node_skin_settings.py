@@ -1,6 +1,8 @@
 # haybale_graph_editor/settings/node_skin_settings.py
 """Node layout and pin geometry settings for the default node skins."""
 
+from __future__ import annotations
+
 from haywire.api import INT, LibrarySettings, setting, settings
 
 

@@ -24,8 +24,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Optional, Protocol
+from typing import Protocol
 
+from haybale_marketplace.editors._add_source_flow.copy import STEP_TITLES, STEPS
 from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall import (
     BareRepoUrlRejectedError,
@@ -36,8 +37,6 @@ from haywire.core.marketstall import (
 )
 from haywire.ui.components.popup import Popup
 from haywire.ui.components.stepper import StepFlow
-
-from haybale_marketplace.editors._add_source_flow.copy import STEP_TITLES, STEPS
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +71,7 @@ class AddSourceFlow(StepFlow):
     STEPS = STEPS
     STEP_TITLES = STEP_TITLES
 
-    def __init__(self, *, target: AddSourceTarget, popup: Optional[Popup] = None) -> None:
+    def __init__(self, *, target: AddSourceTarget, popup: Popup | None = None) -> None:
         super().__init__()
         self.target = target
         self.popup = popup

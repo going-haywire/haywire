@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Generic, List, Optional, TypeVar
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 
@@ -18,7 +20,7 @@ class BindingMode(Enum):
 # ============================================================================
 
 
-class BindingConverter(ABC, Generic[T]):
+class BindingConverter[T](ABC):
     """
     Base class for converting between model and view representations.
     Converters can be stateful and specific to a binding instance.
@@ -52,7 +54,7 @@ class BindingConverter(ABC, Generic[T]):
         """
         raise NotImplementedError(f"{self.__class__.__name__} is read-only")
 
-    def validate(self, view_value: Any) -> tuple[bool, Optional[str]]:
+    def validate(self, view_value: Any) -> tuple[bool, str | None]:
         """
         Validate view value before converting to model.
 
@@ -118,7 +120,7 @@ class CompositeConverter(BindingConverter):
     Useful for complex transformations: unwrap → convert → format
     """
 
-    def __init__(self, converters: List[BindingConverter]):
+    def __init__(self, converters: list[BindingConverter]):
         if not converters:
             raise ValueError("CompositeConverter requires at least one converter")
         self.converters = converters
@@ -137,7 +139,7 @@ class CompositeConverter(BindingConverter):
             value = converter.to_model(value)
         return value
 
-    def validate(self, view_value: Any) -> tuple[bool, Optional[str]]:
+    def validate(self, view_value: Any) -> tuple[bool, str | None]:
         """Validate using all converters"""
         for converter in self.converters:
             is_valid, error_msg = converter.validate(view_value)
@@ -151,9 +153,7 @@ class RangeValidatingConverter(BindingConverter):
     Validates and clamps numeric values to a range.
     """
 
-    def __init__(
-        self, min_value: Optional[float] = None, max_value: Optional[float] = None, clamp: bool = True
-    ):
+    def __init__(self, min_value: float | None = None, max_value: float | None = None, clamp: bool = True):
         """
         Args:
             min_value: Minimum allowed value
@@ -177,7 +177,7 @@ class RangeValidatingConverter(BindingConverter):
                 view_value = min(self.max_value, view_value)
         return view_value
 
-    def validate(self, view_value: Any) -> tuple[bool, Optional[str]]:
+    def validate(self, view_value: Any) -> tuple[bool, str | None]:
         """Validate value is in range"""
         if not self.clamp:
             if self.min_value is not None and view_value < self.min_value:
@@ -202,7 +202,7 @@ class Converters:
 
     @staticmethod
     def range(
-        min_value: Optional[float] = None, max_value: Optional[float] = None, clamp: bool = True
+        min_value: float | None = None, max_value: float | None = None, clamp: bool = True
     ) -> RangeValidatingConverter:
         """Create range validating converter"""
         return RangeValidatingConverter(min_value, max_value, clamp)

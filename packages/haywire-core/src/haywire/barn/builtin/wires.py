@@ -8,6 +8,8 @@ The fourth builtin wire, ``AnnotationWire``, lives in ``types/annotation.py``
 with its style bag, whose fields need builtin types.
 """
 
+from __future__ import annotations
+
 from haywire.core.types.enums import Propagation
 from haywire.core.types.wire import ArrowAt, WireRole, WireType
 

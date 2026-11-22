@@ -10,29 +10,31 @@ The Interpreter is responsible for:
 """
 
 from __future__ import annotations
-from typing import Callable, Dict, List, Optional, Any, TYPE_CHECKING
-import time
+
 import logging
+import time
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from haywire.core.graph.base import BaseGraph
     from haywire.core.execution.flow import Flow
+    from haywire.core.graph.base import BaseGraph
     from haywire.core.state import LibraryStateContainer
 
 from haywire.core.assembly.flow_assembly_manager import FlowAssemblyManager
-from haywire.core.execution.vm import HaywireVM
-from haywire.core.execution.callback_manager import CallbackManager
 from haywire.core.execution import gc_freeze, gil_switch
-from haywire.core.execution.flow_queue import FlowQueue
-from haywire.core.execution.flow_metrics import FlowSnapshot
-from haywire.core.execution.execution_group import ExecutionGroup, group_flows, shared_data_node_ids
+from haywire.core.execution.callback_manager import CallbackManager
 from haywire.core.execution.event_source import (
+    CallbackEvent,
+    ExternalEvent,
     SystemEvent,
     SystemEventType,
-    ExternalEvent,
-    CallbackEvent,
     Trigger,
 )
+from haywire.core.execution.execution_group import ExecutionGroup, group_flows, shared_data_node_ids
+from haywire.core.execution.flow_metrics import FlowSnapshot
+from haywire.core.execution.flow_queue import FlowQueue
+from haywire.core.execution.vm import HaywireVM
 
 logger = logging.getLogger(__name__)
 
@@ -68,11 +70,11 @@ class Interpreter:
 
     def __init__(
         self,
-        global_context: Optional[Dict[str, Any]] = None,
+        global_context: dict[str, Any] | None = None,
         max_stack_depth: int = 1000,
-        library_state_container: Optional["LibraryStateContainer"] = None,
-        exception_bail: Optional[Callable[[], str]] = None,
-        on_bail_run: Optional[Callable[[], None]] = None,
+        library_state_container: LibraryStateContainer | None = None,
+        exception_bail: Callable[[], str] | None = None,
+        on_bail_run: Callable[[], None] | None = None,
     ):
         """
         Initialize interpreter.
@@ -100,15 +102,15 @@ class Interpreter:
         self.vm.callback_manager = self.callback_manager
 
         # Event subscriptions: subscription_key → List[Flow]
-        self.event_subscriptions: Dict[str, List[Flow]] = {}
+        self.event_subscriptions: dict[str, list[Flow]] = {}
 
-        self.groups: List[ExecutionGroup] = []
+        self.groups: list[ExecutionGroup] = []
         """The execution groups of the loaded graph, each with its own runner thread."""
-        self._abandoned: List[ExecutionGroup] = []
+        self._abandoned: list[ExecutionGroup] = []
         self._held_for_reassembly = False
 
         # Current graph
-        self.current_graph: Optional["BaseGraph"] = None
+        self.current_graph: BaseGraph | None = None
 
         # Execution state
         self._executing: bool = False
@@ -116,7 +118,7 @@ class Interpreter:
 
         logger.info("Haywire Interpreter initialized")
 
-    def load_graph(self, graph: "BaseGraph") -> None:
+    def load_graph(self, graph: BaseGraph) -> None:
         """
         Load and assemble a graph for execution.
 
@@ -276,7 +278,7 @@ class Interpreter:
         self._abandoned = [group for group in self._abandoned if group.is_abandoned]
         return bool(self._abandoned) or any(group.is_abandoned for group in self.groups)
 
-    def _register_flow(self, flow: "Flow") -> None:
+    def _register_flow(self, flow: Flow) -> None:
         """
         Register a flow with event subscriptions, its flow queue and callback listener.
 
@@ -341,7 +343,7 @@ class Interpreter:
 
         self.current_graph = None
 
-    def _all_flows(self) -> List["Flow"]:
+    def _all_flows(self) -> list[Flow]:
         return [flow for flows in self.event_subscriptions.values() for flow in flows]
 
     def _stop_groups(self, timeout_s: float = 2.0) -> None:
@@ -350,7 +352,7 @@ class Interpreter:
                 self._abandoned.append(group)
 
     def dispatch_system_event(
-        self, event_type: SystemEventType, payload: Optional[Dict[str, Any]] = None
+        self, event_type: SystemEventType, payload: dict[str, Any] | None = None
     ) -> int:
         """
         Dispatch a system event.
@@ -366,7 +368,7 @@ class Interpreter:
         return self._dispatch_event(event.get_subscription_key(), payload)
 
     def dispatch_external_event(
-        self, category: str, name: str, payload: Optional[Dict[str, Any]] = None
+        self, category: str, name: str, payload: dict[str, Any] | None = None
     ) -> int:
         """
         Dispatch an external event.
@@ -382,7 +384,7 @@ class Interpreter:
         event = ExternalEvent(category=category, name=name)
         return self._dispatch_event(event.get_subscription_key(), payload)
 
-    def _dispatch_event(self, subscription_key: str, payload: Optional[Dict[str, Any]] = None) -> int:
+    def _dispatch_event(self, subscription_key: str, payload: dict[str, Any] | None = None) -> int:
         """
         Internal method to dispatch event to flows.
 
@@ -416,7 +418,7 @@ class Interpreter:
 
         return triggered
 
-    def wait_all(self, timeout: Optional[float] = None, stop_after: bool = True) -> None:
+    def wait_all(self, timeout: float | None = None, stop_after: bool = True) -> None:
         """
         Wait for all flows to complete their queued triggers.
 
@@ -459,11 +461,11 @@ class Interpreter:
 
         logger.info("Interpreter shutdown complete")
 
-    def flow_metrics(self) -> List[FlowSnapshot]:
+    def flow_metrics(self) -> list[FlowSnapshot]:
         """Return a counter snapshot of every assembled Flow, for a ``FlowMeterSampler``."""
         return [flow.queue.snapshot() for flow in self._all_flows() if flow.queue is not None]
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """
         Get execution statistics.
 

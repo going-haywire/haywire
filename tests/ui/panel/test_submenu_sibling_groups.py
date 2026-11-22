@@ -31,7 +31,6 @@ from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.surface import Surface
 from tests.ui.user_wait import eventually
 
-
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
     label="fake",
     version="0.1",

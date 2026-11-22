@@ -10,6 +10,8 @@ protrude from" — is stated in docs/components/skins/skin-canon.md and applies
 to any multi-column skin, not just SplitNodeSkin.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

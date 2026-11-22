@@ -12,6 +12,8 @@ hovering queues no repaint.
 Reuses the ``/graph-detail`` fixture: ``int_inlet`` is the only wired pin.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

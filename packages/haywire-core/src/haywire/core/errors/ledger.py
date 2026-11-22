@@ -42,8 +42,9 @@ from __future__ import annotations
 import logging
 import threading
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING
 
 from haywire.core.di.context import get_error_ledger, set_error_ledger
 
@@ -76,7 +77,7 @@ class LedgerPage:
     so a client that expected to page back to them knows history was dropped.
     """
 
-    entries: list["HaywireException"]
+    entries: list[HaywireException]
     total: int
     cursor: int
     first_retained_seq: int
@@ -86,7 +87,7 @@ class ErrorLedger:
     """Bounded collection of live HaywireException objects (their afterlife)."""
 
     def __init__(self, max_entries: int = 500):
-        self._entries: deque["HaywireException"] = deque(maxlen=max_entries)
+        self._entries: deque[HaywireException] = deque(maxlen=max_entries)
         self._seq = 0
         self._lock = threading.Lock()  # .log() fires from watchdog/timer threads too
         # Instance state (not a module global) so a fresh ErrorLedger per test
@@ -110,7 +111,7 @@ class ErrorLedger:
         except ValueError:
             pass
 
-    def record(self, exc: "HaywireException") -> int:
+    def record(self, exc: HaywireException) -> int:
         """Record ``exc`` (stamping its ledger_seq) and return that seq.
 
         Idempotent: if ``exc.ledger_seq`` is already set (nonzero), the exception
@@ -188,9 +189,9 @@ class ErrorLedger:
 
     def query(
         self,
-        since_seq: Optional[int] = None,
-        library: Optional[str] = None,
-        registry_key: Optional[str] = None,
+        since_seq: int | None = None,
+        library: str | None = None,
+        registry_key: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> LedgerPage:

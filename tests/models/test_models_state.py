@@ -8,11 +8,9 @@ from typing import Any
 
 import pytest
 
-from haywire.core.volumes import get_volume_store
-
 from haybale_models.keys import HF_VOLUME, MODELS_VOLUME
 from haybale_models.states.models_state import ModelsState, hf_default_cache
-
+from haywire.core.volumes import get_volume_store
 from tests.wait import wait_until
 
 

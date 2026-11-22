@@ -1,5 +1,11 @@
+from __future__ import annotations
+
 import time
 
+from haybale_core.types import ARRAY
+from haybale_core.widgets.array_widget import ArrayWidget
+from haybale_testing.settings.testing import TestingSettings
+from haybale_testing.types.test_types import TEST_STRING
 from haywire.api import (
     BOOL,
     CHOICES,
@@ -13,20 +19,15 @@ from haywire.api import (
     VEC4F,
     BaseNode,
     ExecutionContext,
+    MenuWidget,
     NodeSettings,
     NodeType,
-    MenuWidget,
     node,
     setting,
     shadow,
     watch,
 )
-
 from haywire.core.settings import Vec2i, Vec3f, Vec4f
-from haybale_testing.settings.testing import TestingSettings
-from haybale_core.types import ARRAY
-from haybale_core.widgets.array_widget import ArrayWidget
-from haybale_testing.types.test_types import TEST_STRING
 
 _found_sources: dict[str | None, list[str]] = {}  # Example Choices value -> what the last refresh found
 

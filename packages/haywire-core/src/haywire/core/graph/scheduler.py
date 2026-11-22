@@ -11,7 +11,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
-from typing import Callable, Optional, Protocol, runtime_checkable
+from collections.abc import Callable
+from typing import Protocol, runtime_checkable
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +83,7 @@ class _LoopHandle:
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._timer: Optional[asyncio.TimerHandle] = None
+        self._timer: asyncio.TimerHandle | None = None
         self._cancelled = False
 
     def _arm(self, timer: asyncio.TimerHandle) -> None:

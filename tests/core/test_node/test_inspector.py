@@ -1,5 +1,7 @@
 """Unit tests for NodeInstanceInspector against real, library-loaded node instances."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.node.inspector import NodeInstanceInspector, PortInfo, SettingInfo

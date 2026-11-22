@@ -1,5 +1,7 @@
 """Test-only nodes with a swinglet: one port that may be either end of an edge."""
 
+from __future__ import annotations
+
 from haywire.api import EXEC, FLOAT, BaseNode, ExecutionContext, NodeType, node
 
 

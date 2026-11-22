@@ -1,5 +1,7 @@
 """Farmhand tool visibility follows the caller's tier."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 from unittest.mock import MagicMock
 
@@ -40,8 +42,8 @@ def test_a_tool_without_identity_requires_edit():
 
 def test_caller_tier_reads_the_principal_off_the_asgi_scope(monkeypatch):
     from haywire.core.access import access_resolver, set_access_resolver
-    from haywire_studio.farmhand.host import caller_tier
     from haywire_studio.auth.gate import PRINCIPAL_SCOPE_KEY
+    from haywire_studio.farmhand.host import caller_tier
 
     previous = access_resolver()
     try:

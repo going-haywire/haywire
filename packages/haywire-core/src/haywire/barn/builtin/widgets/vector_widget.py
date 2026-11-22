@@ -13,12 +13,15 @@ edited independently, so this widget talks to the model directly via
 ``get_value()``/``set_value()`` rather than through ``bind()``.
 """
 
+from __future__ import annotations
+
 from typing import Any
+
 from nicegui import ui
 
-from haywire.ui.widget.decorator import widget
-from haywire.ui.widget.base import BaseWidget
 from haywire.ui.components.number.drag import NumberDrag
+from haywire.ui.widget.base import BaseWidget
+from haywire.ui.widget.decorator import widget
 
 
 @widget(description="Vector component editor widget")

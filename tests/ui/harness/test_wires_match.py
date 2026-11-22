@@ -4,6 +4,8 @@ The canvas decides in the browser whether two pins may link, from their
 ``data-pin-wire`` keys, so the rule is checked on the live component.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

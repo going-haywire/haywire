@@ -14,16 +14,14 @@ import logging
 from typing import TYPE_CHECKING
 
 from nicegui import background_tasks, ui
-
-from haywire.api.workbench import hui
 from nicegui.elements.button import Button
-
-from haywire.core.library.haybale import Haybale
 
 from haybale_marketplace.editors._overview_actions import (
     find_installed_by_dist_name,
     notify_library_changed,
 )
+from haywire.api.workbench import hui
+from haywire.core.library.haybale import Haybale
 
 if TYPE_CHECKING:
     from haybale_marketplace.library_manager import LibraryManager
@@ -35,8 +33,8 @@ logger = logging.getLogger(__name__)
 def install_with_safety_check(
     pkg: Haybale,
     button: Button | None,
-    manager: "LibraryManager",
-    context: "SessionContext",
+    manager: LibraryManager,
+    context: SessionContext,
 ) -> None:
     """Open the Install / Update flow for *pkg*.
 
@@ -50,14 +48,12 @@ def install_with_safety_check(
     *button* is accepted for call-site compatibility and no longer used: the
     flow owns its own busy state.
     """
+    from haybale_marketplace.editors._install_flow import ManagerInstallSource, show_install_flow
+    from haybale_marketplace.states.marketplace_state import MarketplaceState
     from haywire.core.marketstall import (
         record_block_on_source,
         resolve_block_target,
     )
-
-    from haybale_marketplace.states.marketplace_state import MarketplaceState
-
-    from haybale_marketplace.editors._install_flow import ManagerInstallSource, show_install_flow
 
     def _on_block() -> None:
         if context.app_data is None or MarketplaceState not in context.app_data:
@@ -108,8 +104,8 @@ def install_package(
     install_spec: str,
     name: str,
     button: Button | None,
-    manager: "LibraryManager",
-    context: "SessionContext",
+    manager: LibraryManager,
+    context: SessionContext,
     source_pkg: Haybale | None = None,
 ) -> None:
     """Open the Install / Update flow for *install_spec*.
@@ -145,7 +141,7 @@ def install_package(
     )
 
 
-def _installed_version(pkg: Haybale, manager: "LibraryManager") -> str:
+def _installed_version(pkg: Haybale, manager: LibraryManager) -> str:
     """Installed version of *pkg*, or "" when it is not installed."""
     if not pkg.name:
         return ""
@@ -155,7 +151,7 @@ def _installed_version(pkg: Haybale, manager: "LibraryManager") -> str:
         return ""
 
 
-def open_version_picker(pkg: Haybale, manager: "LibraryManager", context: "SessionContext") -> None:
+def open_version_picker(pkg: Haybale, manager: LibraryManager, context: SessionContext) -> None:
     """Dialog to fetch and select a specific version for installation.
 
     Picking an older release than the installed one is legitimate, so the

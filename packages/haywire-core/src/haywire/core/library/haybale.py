@@ -81,7 +81,7 @@ class Haybale:
     """A bare filename inside the package directory — one supplementary
     human-readable page, not the front page."""
 
-    deprecated: "Deprecation | None" = None
+    deprecated: Deprecation | None = None
     """The author's retirement notice, or None.
 
     Travels in the row, so a consumer sees it *before* installing."""

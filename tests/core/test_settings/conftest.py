@@ -18,6 +18,8 @@ snapshots and restores the shared state around each settings test so every
 test starts from the clean (unwired) slate and leaves it as it found it.
 """
 
+from __future__ import annotations
+
 import pytest
 
 

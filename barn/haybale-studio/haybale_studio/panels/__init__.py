@@ -1,3 +1,4 @@
+from __future__ import annotations
 from haybale_studio.panels.properties.setting.app import ThemeSettingsPanel
 from haybale_studio.panels.properties.setting.app import NodeSkinDefaultPanel
 from haybale_studio.panels.properties.setting.app import EditingSettingsPanel

@@ -1,17 +1,18 @@
 """What the Metadata node stamps and reads when it runs."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 
+import numpy as np
 import pytest
+
 from haybale_image.types.image import IMAGE, RGB_IMAGE
 from haybale_image.value import ImageValue
 from haybale_testing.types.test_types import TEST_INT
-
-import numpy as np
-
 from haywire.barn.builtin.carrier import BundleValue
 from haywire.barn.builtin.nodes import metadata as mdn
-from haywire.barn.builtin.nodes.metadata import MetadataNode, BaseMetadataNode
+from haywire.barn.builtin.nodes.metadata import BaseMetadataNode, MetadataNode
 from haywire.barn.builtin.types import BUNDLE, FIELD_LIST, FLOAT, INT, STRING
 from haywire.core.node import NodeType, node
 from tests.core.test_types.test_add_type import _make_link_node

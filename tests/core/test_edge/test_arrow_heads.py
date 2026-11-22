@@ -1,5 +1,7 @@
 """The arrow-head vocabulary: one table for the canvas markers and the picker."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.edge.arrow_heads import ARROW_HEADS, NO_ARROW_HEAD, ArrowHead, get_arrow_head

@@ -1,9 +1,10 @@
 """End-to-end smoke: a panel on FileMenu appears in the menu when
 right_clicked_file is set, and reveal() fires."""
 
+from __future__ import annotations
+
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-
 
 from haywire.core.library.identity import LibraryIdentity
 from tests.conftest import attach_stub_session
@@ -32,12 +33,12 @@ def _patched_popup():
 
 
 def test_panel_appears_and_reveal_fires():
+    from haybale_studio.editors.file_browser_menu.provider import SessionFileMenuProvider
+    from haybale_studio.states.file_browser_state import FileBrowserState
+    from haybale_studio.surfaces import FileActions, FileMenu
     from haywire.ui.panel.base import BasePanel
     from haywire.ui.panel.decorator import panel
     from haywire.ui.panel.registry import PanelRegistry
-    from haybale_studio.surfaces import FileActions, FileMenu
-    from haybale_studio.states.file_browser_state import FileBrowserState
-    from haybale_studio.editors.file_browser_menu.provider import SessionFileMenuProvider
 
     @panel(
         surface=FileMenu,
@@ -78,12 +79,12 @@ def test_panel_appears_and_reveal_fires():
 
 
 def test_panel_skipped_when_extension_doesnt_match():
+    from haybale_studio.editors.file_browser_menu.provider import SessionFileMenuProvider
+    from haybale_studio.states.file_browser_state import FileBrowserState
+    from haybale_studio.surfaces import FileActions, FileMenu
     from haywire.ui.panel.base import BasePanel
     from haywire.ui.panel.decorator import panel
     from haywire.ui.panel.registry import PanelRegistry
-    from haybale_studio.surfaces import FileActions, FileMenu
-    from haybale_studio.states.file_browser_state import FileBrowserState
-    from haybale_studio.editors.file_browser_menu.provider import SessionFileMenuProvider
 
     @panel(
         surface=FileMenu,

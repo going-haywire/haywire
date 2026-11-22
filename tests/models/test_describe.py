@@ -1,5 +1,7 @@
 """How a catalog entry is put into words for the picker and the Models editor."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from typing import Any
 
@@ -10,8 +12,8 @@ from haybale_models.describe import (
     entry_description,
     entry_licence_text,
     entry_search_text,
-    search_matches,
     entry_summary,
+    search_matches,
 )
 
 pytestmark = pytest.mark.unit

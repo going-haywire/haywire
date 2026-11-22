@@ -1,5 +1,7 @@
 """FrameFifo, channel fitting, DeviceOutput and the Device Out node, against a fake device."""
 
+from __future__ import annotations
+
 import importlib
 import sys
 import threading

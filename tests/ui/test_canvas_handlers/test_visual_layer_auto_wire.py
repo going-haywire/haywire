@@ -1,11 +1,12 @@
 """Auto-wire after a mid-drag node creation always checks the wire type."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest
 
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
-
 from tests.conftest import edit_route
 
 pytestmark = pytest.mark.unit

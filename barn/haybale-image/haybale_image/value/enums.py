@@ -1,5 +1,7 @@
 """Enums describing an image's channels and their storage order."""
 
+from __future__ import annotations
+
 from enum import StrEnum
 
 

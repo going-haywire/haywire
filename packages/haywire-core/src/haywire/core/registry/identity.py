@@ -2,6 +2,8 @@
 Base identity class for all registry components
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 
 

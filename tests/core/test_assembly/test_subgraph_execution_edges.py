@@ -24,7 +24,6 @@ from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.graph.subgraph import SubgraphDefinition
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types import Propagation
-
 from tests.conftest import make_node
 
 if TYPE_CHECKING:
@@ -42,7 +41,7 @@ _OUTPUT = "haywire-core:node:SubgraphOutputNode"
 _CARD = "haywire-core:node:GraphNode"
 
 
-def _assemble_one(graph: BaseGraph) -> "Flow":
+def _assemble_one(graph: BaseGraph) -> Flow:
     flows = FlowAssemblyManager().assemble_graph(graph)
     assert len(flows) == 1, f"expected one flow, got {len(flows)}"
     return flows[0]
@@ -82,8 +81,7 @@ def lazy_into_the_card(graph_with_library_system: BaseGraph):
     card's own ``_execute`` drains the pull before the crossing is taken, so
     the Subgraph Input copies a resolved value rather than a stale one.
     """
-    from haywire.barn.builtin.types import EXEC
-    from haywire.barn.builtin.types import FLOAT
+    from haywire.barn.builtin.types import EXEC, FLOAT
 
     graph = graph_with_library_system
     definition = _definition(graph, key="sg_lazy")
@@ -154,8 +152,7 @@ class TestALazyEdgeFeedingTheCard:
 @pytest.fixture
 def lazy_out_of_the_card(graph_with_library_system: BaseGraph):
     """The card's outlet feeds a consumer over a LAZY edge."""
-    from haywire.barn.builtin.types import EXEC
-    from haywire.barn.builtin.types import FLOAT
+    from haywire.barn.builtin.types import EXEC, FLOAT
 
     graph = graph_with_library_system
     definition = _definition(graph, key="sg_lazy_out")
@@ -321,8 +318,7 @@ class TestUnderTheThreadedScheduler:
     def test_a_control_group_runs_to_completion_on_a_scheduler_thread(
         self, graph_with_library_system: BaseGraph
     ):
-        from haywire.barn.builtin.types import EXEC
-        from haywire.barn.builtin.types import FLOAT
+        from haywire.barn.builtin.types import EXEC, FLOAT
 
         graph = graph_with_library_system
         definition = _definition(graph, key="sg_threaded")

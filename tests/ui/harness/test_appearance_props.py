@@ -15,6 +15,8 @@ The FILL widget moved to haybale-example — its browser tests are in
 ``test_fill_widget.py``.
 """
 
+from __future__ import annotations
+
 import re
 
 import pytest

@@ -8,8 +8,8 @@ from haywire.core.library.identity import LibraryIdentity
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
-    from haywire.ui.panel.layout import PanelLayout
     from haywire.ui.panel.identity import PanelIdentity
+    from haywire.ui.panel.layout import PanelLayout
     from haywire.ui.surface import Surface
 
 
@@ -38,7 +38,7 @@ class BasePanel(ABC):
     """
 
     # Set by @panel decorator.
-    class_identity: ClassVar["PanelIdentity"]
+    class_identity: ClassVar[PanelIdentity]
     class_library: ClassVar[LibraryIdentity]
 
     # Host instance injected at mount time when the panel's surface declares
@@ -55,22 +55,22 @@ class BasePanel(ABC):
     _hw_state_bag: Any = None
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         """Return whether the panel applies given current state."""
         return True
 
     @abstractmethod
     def draw(
         self,
-        ctx: "SessionContext",
-        layout: "PanelLayout",
+        ctx: SessionContext,
+        layout: PanelLayout,
     ) -> None:
         """Render the panel's content. Called only when poll() returned True."""
 
     def draw_disabled(  # noqa: B027 — the no-op default is the contract, not an oversight
         self,
-        ctx: "SessionContext",
-        layout: "PanelLayout",
+        ctx: SessionContext,
+        layout: PanelLayout,
     ) -> None:
         """Render the panel's *inapplicable* state. Called when poll() is False.
 
@@ -88,8 +88,8 @@ class BasePanel(ABC):
 
     def render_surface(
         self,
-        surface: type["Surface"],
-        ctx: "SessionContext",
+        surface: type[Surface],
+        ctx: SessionContext,
         actions: object | None = None,
     ) -> None:
         """Render ``surface``'s panels here, inside the caller's layout context.
@@ -115,9 +115,9 @@ class BasePanel(ABC):
 
         from haywire.ui import elements as hui
         from haywire.ui.panel.host_rendering import (
-            poll_surface,
             _render_path,
             partition_panels,
+            poll_surface,
             render_panels,
             render_path_extended,
         )

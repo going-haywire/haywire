@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from haywire.core.node.inspector import PortInfo, SettingInfo
 from haywire_studio.packaging.docs.model import ComponentRecord, LibraryDoc
 from haywire_studio.packaging.docs.render import (

@@ -5,8 +5,12 @@ Renders in the right area and reacts to ACTIVE_COMPONENT_CHANGED events.
 Displays identifiers with copy buttons, usage snippets, and a Docs tab (markdown).
 """
 
+from __future__ import annotations
+
 import inspect
 from typing import TYPE_CHECKING
+
+from nicegui import ui
 
 from haywire.api.workbench import (
     AccessTier,
@@ -21,8 +25,6 @@ from haywire.api.workbench import (
     reveal_on,
 )
 from haywire.core.library.utils import split_reg_key
-from nicegui import ui
-
 
 if TYPE_CHECKING:
     from nicegui.element import Element
@@ -57,13 +59,13 @@ class ComponentDocsEditor(BaseEditor):
         SessionContext.active_component,
         SelectionMoved,
     )
-    def _refresh_on_relevant_event(self, context: "SessionContext", event) -> None:
+    def _refresh_on_relevant_event(self, context: SessionContext, event) -> None:
         # Empty body — the decorator triggers wrapper.redraw() after return.
         pass
 
     @reveal_on(RevealComponentDocs)
     @classmethod
-    def _on_reveal_component_docs(cls, context: "SessionContext", event: "RevealComponentDocs") -> bool:
+    def _on_reveal_component_docs(cls, context: SessionContext, event: RevealComponentDocs) -> bool:
         """Answer "show me this component's docs".
 
         The docs counterpart of ``ComponentSourceEditor._on_reveal_component_source``,
@@ -78,7 +80,7 @@ class ComponentDocsEditor(BaseEditor):
         context.active_component = event.registry_key
         return True
 
-    def draw(self, context: "SessionContext", container: "Element") -> None:
+    def draw(self, context: SessionContext, container: Element) -> None:
         self._container = container
         self._rebuild(context)
 
@@ -98,7 +100,7 @@ class ComponentDocsEditor(BaseEditor):
         "farmhands": hui.icon.farmhand,
     }
 
-    def _rebuild(self, context: "SessionContext") -> None:
+    def _rebuild(self, context: SessionContext) -> None:
         if self._container is None:
             return
         registry_key = context.active_component
@@ -260,7 +262,7 @@ class ComponentDocsEditor(BaseEditor):
                 ui.label("Preview failed").classes("text-sm hw-text-muted")
                 hui.hint(str(exc)).classes("font-mono")
 
-    def _close(self, context: "SessionContext") -> None:
+    def _close(self, context: SessionContext) -> None:
         """Clear active component and notify listeners."""
         # Assigning emits SessionContext.active_component on the bus.
         context.active_component = None

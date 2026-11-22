@@ -2,26 +2,29 @@
 serialization and cleanup.
 """
 
-import copy
-import time
-import threading
-import logging
-from contextlib import contextmanager
-from collections.abc import Mapping
-from typing import Iterable, List, Optional, Any, Dict, Iterator, TYPE_CHECKING
-from dataclasses import dataclass, field
+from __future__ import annotations
 
-from ..graph.types import ChangeReason
-from .layout import PATCH, STAGE, LayoutChannel, position_of
+import copy
+import logging
+import threading
+import time
+from collections.abc import Iterable, Iterator, Mapping
+from contextlib import contextmanager
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any
+
 from haywire.core.node.node_warning import NodeWarning
-from .previous_setup import PREVIOUS_SETUP_KEY, PREVIOUS_SETUP_WARNING, same_declaration
+
 from ..errors import HaywireException
+from ..graph.types import ChangeReason
 from ..registry.lifecycle_event import LifeCycleEvent
 from ..validation.interface import IStructuralValidator
+from .layout import PATCH, STAGE, LayoutChannel, position_of
+from .previous_setup import PREVIOUS_SETUP_KEY, PREVIOUS_SETUP_WARNING, same_declaration
 
 if TYPE_CHECKING:
-    from ..graph.base import BaseGraph
     from ..execution.execution_context import ExecutionContext
+    from ..graph.base import BaseGraph
     from . import BaseNode
 
 logger = logging.getLogger(__name__)
@@ -47,19 +50,19 @@ class NodeWrapperState:
     """The node has passed structural validation"""
     has_test_passed: bool = False
     """The node has been successfully tested"""
-    error_import: Optional[HaywireException] = None
+    error_import: HaywireException | None = None
     """node import error"""
-    error_instantiate: Optional[HaywireException] = None
+    error_instantiate: HaywireException | None = None
     """node instantiate error"""
-    error_initialize: Optional[HaywireException] = None
+    error_initialize: HaywireException | None = None
     """node initialize error"""
-    error_structural: Optional[HaywireException] = None
+    error_structural: HaywireException | None = None
     """node structural validation error"""
-    error_custom: Optional[HaywireException] = None
+    error_custom: HaywireException | None = None
     """node custom error """
-    error_test: Optional[HaywireException] = None
+    error_test: HaywireException | None = None
     """node test error"""
-    error_runtime: Optional[HaywireException] = None
+    error_runtime: HaywireException | None = None
     """node runtime error (startup, execution, shutdown)"""
     test_execution_time_ns: float = 0.0
     """Duration of the last on_testrun() call, in microseconds despite the name"""
@@ -149,7 +152,7 @@ class NodeWrapper:
         self,
         registry_key: str,
         node_id: str,
-        graph: "BaseGraph",
+        graph: BaseGraph,
     ):
         """Initialize a new NodeWrapper."""
         self.registry_key = registry_key
@@ -184,13 +187,13 @@ class NodeWrapper:
         # Lifecycle state
         self._state: NodeWrapperState = NodeWrapperState()
 
-        self._node_cls: type["BaseNode"] | None = None
-        self._node_instance: Optional["BaseNode"] = None
+        self._node_cls: type[BaseNode] | None = None
+        self._node_instance: BaseNode | None = None
 
         # Reference to structural validator from graph
-        self._structural_validator: "IStructuralValidator" = self._graph._structural
+        self._structural_validator: IStructuralValidator = self._graph._structural
 
-        self._alternate_registry_keys: List[str] = []
+        self._alternate_registry_keys: list[str] = []
         """Alternate registry keys for this node if the specific version is not available"""
 
         self._is_dirty_structural: bool = False
@@ -199,15 +202,15 @@ class NodeWrapper:
         """Where the node goes once it has an instance; held only while ``_node_instance`` is
         ``None``, because props are the position's only home. See ADR 0053."""
 
-        self._rebuild_data: Optional[Dict[str, Any]] = None
+        self._rebuild_data: dict[str, Any] | None = None
         """Node data the next requested rebuild restores exactly; see ``BaseGraph.request_node_rebuild``."""
 
-        self._kept_data: Optional[Dict[str, Any]] = None
+        self._kept_data: dict[str, Any] | None = None
         """The node data of a stand-in, or of a node that failed to load from saved data: saved
         back as is, with the live props, and rebuilt from once the node works. See ADR 0058."""
 
-        self._previous_setup: Optional[Dict[str, Any]] = None
-        self._reset_from: Optional[Dict[str, Any]] = None
+        self._previous_setup: dict[str, Any] | None = None
+        self._reset_from: dict[str, Any] | None = None
         self.reset_differs: list[str] = []
         """Where the last build's fresh node differs from the data it set aside for a changed
         declaration, as ``differing_paths`` returns it; empty when the build reset nothing."""
@@ -219,7 +222,7 @@ class NodeWrapper:
         self._import_node_cls()
 
     @property
-    def node(self) -> "BaseNode":
+    def node(self) -> BaseNode:
         """The current node instance.
 
         Raises:
@@ -252,19 +255,19 @@ class NodeWrapper:
         self._run_refs -= 1
         return self._run_refs == 0
 
-    def set_rebuild_data(self, node_data: Optional[Dict[str, Any]]) -> None:
+    def set_rebuild_data(self, node_data: dict[str, Any] | None) -> None:
         """Hold *node_data* for the next requested rebuild; ``None`` rebuilds through ``init()``."""
         with self._lock:
             self._rebuild_data = node_data
 
-    def take_rebuild_data(self) -> Optional[Dict[str, Any]]:
+    def take_rebuild_data(self) -> dict[str, Any] | None:
         """Return the data held for the next requested rebuild, and clear it."""
         with self._lock:
             data, self._rebuild_data = self._rebuild_data, None
             return data
 
     @property
-    def previous_setup(self) -> Optional[Dict[str, Any]]:
+    def previous_setup(self) -> dict[str, Any] | None:
         """The node data this node had before a hot reload rebuilt it, or ``None``.
 
         Held until the user applies or dismisses it; saved inside the node's data.
@@ -272,7 +275,7 @@ class NodeWrapper:
         """
         return self._previous_setup
 
-    def set_previous_setup(self, data: Optional[Dict[str, Any]]) -> None:
+    def set_previous_setup(self, data: dict[str, Any] | None) -> None:
         """Hold *data* as the node's previous setup, or drop it with ``None``.
 
         The node carries a ``"previous_setup"`` warning exactly while one is held.
@@ -296,7 +299,7 @@ class NodeWrapper:
         identity = type(instance).class_identity
         return bool(getattr(identity, "_is_error", False)) and identity.registry_key != self.registry_key
 
-    def _kept_save_data(self, include_data: bool = True) -> Dict[str, Any]:
+    def _kept_save_data(self, include_data: bool = True) -> dict[str, Any]:
         """The kept node data with the props the user can change on the card;
         without ``include_data``, the ports' values are left out as ``Port.to_dict`` does."""
         assert self._kept_data is not None and self._node_instance is not None
@@ -335,7 +338,7 @@ class NodeWrapper:
         return self._node_id
 
     @property
-    def graph(self) -> "BaseGraph":
+    def graph(self) -> BaseGraph:
         """The parent graph this wrapper belongs to."""
         return self._graph
 
@@ -381,7 +384,7 @@ class NodeWrapper:
         else:
             self._state.is_imported = True
 
-    def build(self, node_info: Optional[Dict[str, Any]] = None, declared: Optional[Dict[str, Any]] = None):
+    def build(self, node_info: dict[str, Any] | None = None, declared: dict[str, Any] | None = None):
         """Build the node: instantiate, initialize, validate structurally, then test it.
 
         Clears any recorded errors and advisory warnings first, and subscribes to
@@ -433,7 +436,7 @@ class NodeWrapper:
             self._subscribe_stage_membership()
             self.set_previous_setup(self._previous_setup)
 
-    def _settle_reset(self, declared: Optional[Dict[str, Any]]) -> None:
+    def _settle_reset(self, declared: dict[str, Any] | None) -> None:
         """After a build that reset the node for a changed declaration, decide its previous setup.
 
         A previous setup already held is kept over the data the build set aside; either goes
@@ -455,7 +458,7 @@ class NodeWrapper:
         self.reset_differs = differing_paths(restorable(candidate), restorable(after))
         self._previous_setup = candidate if self.reset_differs else None
 
-    def _place_as(self, node_info: Dict[str, Any]) -> None:
+    def _place_as(self, node_info: dict[str, Any]) -> None:
         """Give the node the arrangement *node_info* holds: position, stacking order, place on stage."""
         assert self._node_instance is not None
         props = self._node_instance.props
@@ -466,7 +469,7 @@ class NodeWrapper:
             if name in values:
                 setattr(props, name, values[name])
 
-    def _instantiate(self, node_info: Optional[Dict[str, Any]] = None) -> bool:
+    def _instantiate(self, node_info: dict[str, Any] | None = None) -> bool:
         """Create the node instance, cleaning up any existing one first; the node keeps its arrangement.
 
         A rebuild carries over the patch position, the stacking order and the place on
@@ -482,7 +485,7 @@ class NodeWrapper:
             return False
         node_cls = self._node_cls  # narrowed for the rest of the method
         carried_position = None
-        carried_arrangement: Dict[str, Any] = {}
+        carried_arrangement: dict[str, Any] = {}
         # The node's data as it stands, kept by a stand-in if the class below fails to build.
         original = node_info or None
         if original is None and self._node_instance is not None:
@@ -538,7 +541,7 @@ class NodeWrapper:
 
         return False
 
-    def _stand_in(self, original: Optional[Dict[str, Any]], position: tuple[float, float] | None) -> bool:
+    def _stand_in(self, original: dict[str, Any] | None, position: tuple[float, float] | None) -> bool:
         """Put the error node in place of a node whose class failed to construct.
 
         Returns whether it stood in; when the error node cannot be built either, the
@@ -561,7 +564,7 @@ class NodeWrapper:
         return True
 
     def _initialize(
-        self, node_info: Optional[Dict[str, Any]] = None, declared: Optional[Dict[str, Any]] = None
+        self, node_info: dict[str, Any] | None = None, declared: dict[str, Any] | None = None
     ) -> bool:
         """Bring the node to its initial state — from *node_info* if given, else
         through its ``init()`` — and run ``post_init()`` last.
@@ -628,7 +631,7 @@ class NodeWrapper:
 
         return False
 
-    def _keep_failed_load(self, node_info: Dict[str, Any]) -> None:
+    def _keep_failed_load(self, node_info: dict[str, Any]) -> None:
         """Keep the data a node failed to load from, and give the node its saved props."""
         assert self._node_instance is not None
         self._kept_data = copy.deepcopy(node_info)
@@ -874,10 +877,10 @@ class NodeWrapper:
     # Wrapper Runtime Hooks
     # =========================================================================
 
-    def on_startup(self, exec_ctx: "ExecutionContext") -> None:
+    def on_startup(self, exec_ctx: ExecutionContext) -> None:
         """Wrapper-level startup hook, run as the flow starts."""
 
-    def on_shutdown(self, exec_ctx: "ExecutionContext") -> None:
+    def on_shutdown(self, exec_ctx: ExecutionContext) -> None:
         """Wrapper-level shutdown hook, run once the last node in the flow has executed."""
         ...
 
@@ -1008,7 +1011,7 @@ class NodeWrapper:
     # SERIALIZATION
     # =========================================================================
 
-    def serialize(self, include_data: bool = True) -> Dict[str, Any]:
+    def serialize(self, include_data: bool = True) -> dict[str, Any]:
         """Return the wrapper and node state for a graph save, calling the node's
         ``on_saved()`` first.
 

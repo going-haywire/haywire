@@ -10,13 +10,15 @@ BaseWidget captures the field at render and unsubscribes from that same object,
 so cleanup stays symmetric across the swap.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Any
 
 import pytest
 
 from haywire.ui.widget.base import BaseWidget
-from tests.ui.widget._sync_fixtures import make_float_port, _StandInElement
+from tests.ui.widget._sync_fixtures import _StandInElement, make_float_port
 
 pytestmark = pytest.mark.unit
 
@@ -57,7 +59,7 @@ class _no_warning:
         self._logger = logging.getLogger(cls.__module__)
         self._records: list[logging.LogRecord] = []
 
-    def __enter__(self) -> "_no_warning":
+    def __enter__(self) -> _no_warning:
         self._handler = logging.Handler()
         self._handler.emit = self._records.append  # type: ignore[method-assign,assignment]
         self._logger.addHandler(self._handler)

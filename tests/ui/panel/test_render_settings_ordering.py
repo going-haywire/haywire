@@ -9,16 +9,16 @@ occurrence of that same category name opens a SECOND, separate section (the
 accepted "interleaved categories split into two blocks" tradeoff).
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest
-
 from nicegui import Client, ui
 
-from haywire.core.settings import Settings, setting
 from haywire.barn.builtin.types import BOOL, INT, STRING
+from haywire.core.settings import Settings, setting
 from haywire.ui.panel.render_utils import render_settings
-
 from tests.ui.panel.render_ctx import make_render_ctx
 
 pytestmark = pytest.mark.integration
@@ -35,7 +35,7 @@ def _walk(element):
         yield from _walk(child)
 
 
-def _render(bag) -> "ui.column":
+def _render(bag) -> ui.column:
     client = Client(cast(Any, _noop_page), request=None)
     with client:
         anchor = ui.column()

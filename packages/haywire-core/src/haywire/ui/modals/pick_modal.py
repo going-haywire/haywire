@@ -5,12 +5,13 @@ A minimal "choose one of N" dialog. The select is pre-populated with the
 first option; the caller's ``on_confirm`` receives the chosen string.
 """
 
-from typing import Callable, Optional, Sequence
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
 
 from nicegui import ui
 
 from haywire.ui import elements as hui
-
 from haywire.ui.components.popup import Popup
 
 
@@ -21,7 +22,7 @@ def pick_modal(
     confirm_label: str = "OK",
     searchable: bool = False,
     on_confirm: Callable[[str], None],
-    on_cancel: Optional[Callable[[], None]] = None,
+    on_cancel: Callable[[], None] | None = None,
 ) -> Popup:
     """Open a single-select modal and return the opened :class:`Popup`.
 

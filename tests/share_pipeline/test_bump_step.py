@@ -1,5 +1,7 @@
 """Step 3 — lockstep bump, tag-collision pre-check, lockfile refresh."""
 
+from __future__ import annotations
+
 import subprocess
 from pathlib import Path
 from unittest.mock import patch

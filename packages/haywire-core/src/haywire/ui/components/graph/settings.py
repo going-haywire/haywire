@@ -1,9 +1,11 @@
 # haywire/ui/components/graph/canvas.py
 """Canvas grid, zoom, and pan preference singleton."""
 
+from __future__ import annotations
+
+from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, INT
 from haywire.core.settings import setting
 from haywire.core.settings.settings_framework import FrameworkSettings
-from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, INT
 
 
 class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):

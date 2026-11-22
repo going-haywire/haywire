@@ -12,8 +12,8 @@ from haywire.barn.builtin.widgets.fold_widget import FoldWidget
 from haywire.core.types.enums import PortType
 from haywire.core.types.port import DataPort
 from haywire.ui import elements as hui
-from haywire.ui.panel.setting_widget_model import SettingWidgetModel
 from haywire.ui.hover_tip import TIP_ATTR
+from haywire.ui.panel.setting_widget_model import SettingWidgetModel
 
 pytestmark = pytest.mark.unit
 

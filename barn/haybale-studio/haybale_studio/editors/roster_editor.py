@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import logging
 
+from nicegui import ui
+
 from haywire.api.workbench import AccessTier, BaseEditor, confirm_modal, editor, hui
 from haywire.core.signals import RosterChanged
 from haywire_studio.auth.operations import (
@@ -22,7 +24,6 @@ from haywire_studio.auth.operations import (
 from haywire_studio.security.document import load_document
 from haywire_studio.security.errors import SecurityError
 from haywire_studio.security.roster import Principal, Roster
-from nicegui import ui
 
 logger = logging.getLogger(__name__)
 
@@ -175,7 +176,6 @@ class RosterEditor(BaseEditor):
         the gate cannot revoke an already-open websocket, so removal pushes.
         """
         from haywire.core.di.context import get_session_manager
-
         from haywire_studio.auth.eviction import evict_principal
 
         try:

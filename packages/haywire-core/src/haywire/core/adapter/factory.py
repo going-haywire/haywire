@@ -9,16 +9,17 @@ This factory:
 - Provides adapter discovery services
 """
 
-from typing import Dict, List, Optional, Set, cast
+from __future__ import annotations
+
 import logging
+from typing import cast
 
-from .base import ReturnAdapter, IAdapter, BaseAdapter
-from .registry import AdapterRegistry
-from ..registry.lifecycle_event import LifeCycleEvent, LifeCycleBatchCallback
-from ..types.interface import IType
-from ..types.identity import DataTypeIdentity
+from ..registry.lifecycle_event import LifeCycleBatchCallback, LifeCycleEvent
 from ..types.base import CompoundType
-
+from ..types.identity import DataTypeIdentity
+from ..types.interface import IType
+from .base import BaseAdapter, IAdapter, ReturnAdapter
+from .registry import AdapterRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -46,21 +47,21 @@ class AdapterFactory:
 
         # Dependency tracking for hot reload
         # Maps adapter registry_key → set of edge_ids that use it
-        self._adapter_to_edges: Dict[str, Set[str]] = {}
+        self._adapter_to_edges: dict[str, set[str]] = {}
 
         # Maps edge_id → set of adapter registry_keys it uses
-        self._edge_to_adapters: Dict[str, Set[str]] = {}
+        self._edge_to_adapters: dict[str, set[str]] = {}
 
         # EdgeWrapper callbacks for lifecycle events
         # Maps edge_id → callback function
-        self._edge_callbacks: Dict[str, LifeCycleBatchCallback] = {}
+        self._edge_callbacks: dict[str, LifeCycleBatchCallback] = {}
 
         # Subscribe to adapter registry hot reload events
         self.adapter_registry.add_batch_event_subscriber(self._on_adapter_lifecycle_event)
 
     def create_chain(
         self, source_type: type[IType], sink_type: type[IType], edge_id: str, max_depth: int = 3
-    ) -> tuple[Optional[IAdapter], Optional[str]]:
+    ) -> tuple[IAdapter | None, str | None]:
         """
         Create adapter chain, handling scalar and compound types.
 
@@ -211,7 +212,7 @@ class AdapterFactory:
 
     def _create_scalar_chain(
         self, source_type: type[IType], sink_type: type[IType], max_depth: int
-    ) -> tuple[Optional[IAdapter], Optional[str]]:
+    ) -> tuple[IAdapter | None, str | None]:
         """
         Case 1: Create chain for scalar types.
 
@@ -290,7 +291,7 @@ class AdapterFactory:
         sink_type: type[CompoundType],
         sink_element: type[IType],
         max_depth: int,
-    ) -> tuple[Optional[IAdapter], Optional[str]]:
+    ) -> tuple[IAdapter | None, str | None]:
         """
         Case 2: Same structure compound types.
 
@@ -362,7 +363,7 @@ class AdapterFactory:
 
     def _create_structural_chain(
         self, source_type: type[CompoundType], sink_type: type[CompoundType], max_depth: int
-    ) -> tuple[Optional[IAdapter], Optional[str]]:
+    ) -> tuple[IAdapter | None, str | None]:
         """
         Case 3: Structural transformation.
 
@@ -458,7 +459,7 @@ class AdapterFactory:
     # the callback registration/unregistration is done externally by the
     # EdgeWrapper when it is created/destroyed
 
-    def _register_edge_dependencies(self, edge_id: str, adapter_keys: List[str]):
+    def _register_edge_dependencies(self, edge_id: str, adapter_keys: list[str]):
         """Track which adapters an edge depends on"""
         # Store edge → adapters mapping
         self._edge_to_adapters[edge_id] = set(adapter_keys)
@@ -487,7 +488,7 @@ class AdapterFactory:
         if edge_id in self._edge_to_adapters:
             del self._edge_to_adapters[edge_id]
 
-    def _on_adapter_lifecycle_event(self, batch: List[LifeCycleEvent]):
+    def _on_adapter_lifecycle_event(self, batch: list[LifeCycleEvent]):
         """
         Handle adapter hot reload events from registry.
 
@@ -496,7 +497,7 @@ class AdapterFactory:
         """
         # Group events by affected edges
         # edge_uuid -> list of relevant events
-        edge_to_events: Dict[str, List[LifeCycleEvent]] = {}
+        edge_to_events: dict[str, list[LifeCycleEvent]] = {}
 
         for event in batch:
             adapter_key = event.registry_key

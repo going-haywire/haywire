@@ -6,6 +6,8 @@ test_init_scaffolding.py; this file is scoped to what only cli/init.py owns:
 argparse wiring, prompting, and exit codes.
 """
 
+from __future__ import annotations
+
 import argparse
 
 import pytest

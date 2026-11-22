@@ -5,10 +5,11 @@ This module generates TypeScript/JavaScript code from Python event definitions,
 ensuring consistency between frontend and backend event handling.
 """
 
+from __future__ import annotations
+
 import dataclasses
 import json
 import os
-from typing import Dict
 
 from .event_definitions import GRAPH_EVENT_REGISTRY
 
@@ -68,7 +69,7 @@ window.EventValidators = {{
         return js_code
 
     @staticmethod
-    def _generate_typescript_interfaces(user_events: Dict, sync_events: Dict) -> str:
+    def _generate_typescript_interfaces(user_events: dict, sync_events: dict) -> str:
         """Generate TypeScript interfaces for each event"""
         interfaces = []
 
@@ -94,7 +95,7 @@ export interface {interface_name} {{"""
         return "\n".join(interfaces)
 
     @staticmethod
-    def _get_typescript_type(field_name: str, field_types: Dict) -> str:
+    def _get_typescript_type(field_name: str, field_types: dict) -> str:
         """Map Python types to TypeScript types"""
         if field_name in field_types:
             return field_types[field_name]
@@ -114,7 +115,7 @@ export interface {interface_name} {{"""
             return "any"
 
     @staticmethod
-    def _format_events_object(events: Dict) -> str:
+    def _format_events_object(events: dict) -> str:
         """Format events as JavaScript object properties"""
         lines = []
         for event_type, info in events.items():
@@ -123,7 +124,7 @@ export interface {interface_name} {{"""
         return "\n".join(lines)
 
     @staticmethod
-    def _generate_event_creators(events: Dict) -> str:
+    def _generate_event_creators(events: dict) -> str:
         """Generate event creator methods as object methods (not class methods)"""
         methods = []
         for event_type, info in events.items():
@@ -147,7 +148,7 @@ export interface {interface_name} {{"""
         return ",\n\n".join(methods)
 
     @staticmethod
-    def _generate_event_validators(events: Dict) -> str:
+    def _generate_event_validators(events: dict) -> str:
         """Generate event validation methods as object methods (not class methods)"""
         methods = []
         for _event_type, info in events.items():

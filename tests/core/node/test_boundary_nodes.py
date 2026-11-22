@@ -1,5 +1,7 @@
 """Boundary nodes: registration, the registry's two slots, and the validator rules."""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, cast
 
 import pytest

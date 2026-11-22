@@ -1,11 +1,12 @@
 # haywire.core.library.base.py
-from abc import ABC, abstractmethod
+from __future__ import annotations
+
 import logging
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, ClassVar, Dict, List, Tuple, Type, Optional
+from typing import Any, ClassVar
 
-from haywire.core.namespaces import CATEGORY_LIBRARY_LOG
-
+from haywire.core.debug.keys import library_log_key
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.library.compatibility import CompatibilityWarning
 from haywire.core.library.file_watcher import FileWatcher
@@ -15,9 +16,9 @@ from haywire.core.library.haybale_toml import (
     read_haybale_toml,
 )
 from haywire.core.library.identity import LibraryIdentity
+from haywire.core.namespaces import CATEGORY_LIBRARY_LOG
 from haywire.core.registry.base import FileChangeEvent, HotReloadRegistry
 from haywire.core.registry.component import ComponentRegistry
-from haywire.core.debug.keys import library_log_key
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ class _HaybaleTomlWatcher(HotReloadRegistry):
     the watcher sees and refreshes only on its own library's file.
     """
 
-    def __init__(self, library: "BaseLibrary") -> None:
+    def __init__(self, library: BaseLibrary) -> None:
         self._library = library
 
     def event_dispatcher(self, event: FileChangeEvent) -> None:
@@ -64,11 +65,11 @@ class BaseLibrary(ABC):
 
     def __init__(self, file_path: str, enforce_file_watching: bool = False, debounce_delay: float = 0.5):
         self.file_path = file_path
-        self.registries: Dict[Type[ComponentRegistry[Any]], Any] = {}
+        self.registries: dict[type[ComponentRegistry[Any]], Any] = {}
         self.enforce_file_watching = enforce_file_watching
         self.debounce_delay = debounce_delay
         # registry_cls -> (folder_path, exclude_patterns)
-        self._registry_folders: Dict[Type[ComponentRegistry[Any]], Tuple[str, Optional[List[str]]]] = {}
+        self._registry_folders: dict[type[ComponentRegistry[Any]], tuple[str, list[str] | None]] = {}
 
         self._enabled = False  # Library starts disabled by default
 
@@ -170,9 +171,9 @@ class BaseLibrary(ABC):
     def _register_log_level_setting(self) -> None:
         """Register a per-library log level setting in the SettingsRegistry."""
         from haywire.barn.builtin.types import CHOICES
-        from haywire.core.settings.registry import SettingsRegistry
         from haywire.core.debug.debug_settings import _GROUP_CHOICES
         from haywire.core.debug.keys import LIBRARY_LOG_LEVEL_FIELD_METATADATA_KEY
+        from haywire.core.settings.registry import SettingsRegistry
 
         registry: SettingsRegistry = self.get_registry(SettingsRegistry)
         if registry is None:
@@ -222,8 +223,8 @@ class BaseLibrary(ABC):
     def add_folder_to_registry(
         self,
         folder_path: str,
-        registry_cls: Type[ComponentRegistry[Any]],
-        exclude_patterns: Optional[List[str]] = None,
+        registry_cls: type[ComponentRegistry[Any]],
+        exclude_patterns: list[str] | None = None,
     ):
         """Scan a folder for classes matching the registry's class filter and add them to it.
 
@@ -237,7 +238,7 @@ class BaseLibrary(ABC):
             ValueError: ``registry_cls`` is not one of this library's
                 registries, or ``folder_path`` is the library root.
         """
-        registry: Type[ComponentRegistry] = self.get_registry(registry_cls)
+        registry: type[ComponentRegistry] = self.get_registry(registry_cls)
         if registry is None:
             raise ValueError(f"Registry {registry_cls} not found in library {self.identity.label}")
 
@@ -255,7 +256,7 @@ class BaseLibrary(ABC):
 
     # Canonical scan order: state must exist before editor CLASS_ADDED events
     # fire. A registry class not listed here sorts to the middle (priority 50).
-    _REGISTRY_SCAN_PRIORITY: ClassVar[Dict[str, int]] = {
+    _REGISTRY_SCAN_PRIORITY: ClassVar[dict[str, int]] = {
         "ThemeRegistry": 10,
         "SettingsRegistry": 20,
         "StateRegistry": 30,
@@ -305,7 +306,7 @@ class BaseLibrary(ABC):
     def _attach_to_registries(self):
         """Add every library class to its registry, in canonical scan order."""
 
-        def _priority(item: Tuple[Type[ComponentRegistry], Any]) -> int:
+        def _priority(item: tuple[type[ComponentRegistry], Any]) -> int:
             return self._REGISTRY_SCAN_PRIORITY.get(item[0].__name__, 50)
 
         for registry_cls, (folder_path, exclude_patterns) in sorted(
@@ -334,8 +335,8 @@ class BaseLibrary(ABC):
     def _register_folder(
         self,
         folder_path: str,
-        registry_cls: Type[ComponentRegistry[Any]],
-        exclude_patterns: Optional[List[str]] = None,
+        registry_cls: type[ComponentRegistry[Any]],
+        exclude_patterns: list[str] | None = None,
     ):
         """Inform the registry to add classes from a folder and start watching it if needed"""
         registry: ComponentRegistry = self.get_registry(registry_cls)
@@ -350,8 +351,8 @@ class BaseLibrary(ABC):
     def _unregister_folder(
         self,
         folder_path: str,
-        registry_cls: Type[ComponentRegistry[Any]],
-        exclude_patterns: Optional[List[str]] = None,
+        registry_cls: type[ComponentRegistry[Any]],
+        exclude_patterns: list[str] | None = None,
     ):
         """Inform the registry to remove classes from a folder and stop watching it if needed"""
         registry: ComponentRegistry = self.get_registry(registry_cls)

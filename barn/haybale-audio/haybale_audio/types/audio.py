@@ -1,10 +1,12 @@
 """AUDIO — one block of audio samples."""
 
+from __future__ import annotations
+
 from typing import Any
 
-from haywire.api import DataWire, PrimitiveField, PrimitiveType, StoreStrategy, type as type_decorator
-
 from haybale_audio.value import AudioBlock
+from haywire.api import DataWire, PrimitiveField, PrimitiveType, StoreStrategy
+from haywire.api import type as type_decorator
 
 
 @type_decorator(

@@ -4,7 +4,10 @@ Core module test fixtures.
 Additional fixtures specific to core functionality testing.
 """
 
+from __future__ import annotations
+
 import pytest
+
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 

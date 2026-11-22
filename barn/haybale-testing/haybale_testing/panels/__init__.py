@@ -1,3 +1,4 @@
+from __future__ import annotations
 from haybale_testing.panels.graph.menu.canvas.canvas import TestCreateNodeMenuPanel
 from haybale_testing.panels.graph.menu.canvas.canvas import TestSessionStateMenuPanel
 from haybale_testing.panels.graph.menu.edge.edge import TestDeleteEdgeMenuPanel

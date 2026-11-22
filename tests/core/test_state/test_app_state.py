@@ -4,6 +4,8 @@ LibraryState (the abstract marker) is implicitly tested via AppState
 (its concrete subclass).
 """
 
+from __future__ import annotations
+
 from haywire.core.state import AppState, LibraryState
 
 

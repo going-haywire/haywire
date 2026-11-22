@@ -8,6 +8,8 @@ with ``NODE_SET``: a CALLBACK carries the subscription key its listener
 registers under, so a key the node wrote is kept.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.types.enums import StoreStrategy

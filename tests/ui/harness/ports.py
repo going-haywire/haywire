@@ -10,6 +10,8 @@ operating systems' ephemeral ranges (32768 and up). Two checkouts share a block
 with a chance of 1 in 500.
 """
 
+from __future__ import annotations
+
 import zlib
 from pathlib import Path
 

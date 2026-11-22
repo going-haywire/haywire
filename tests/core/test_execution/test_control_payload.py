@@ -9,13 +9,14 @@ Nodes that need to pass a payload through a control edge must do so explicitly
 via ``out()``; there is no automatic transparent-conduit fallback.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.execution.event_source import SystemEventType
 from haywire.core.execution.interpreter import Interpreter
 from haywire.core.graph.base import BaseGraph
 from haywire.core.types import WireRole
-
 from tests.conftest import make_edge, make_node
 
 

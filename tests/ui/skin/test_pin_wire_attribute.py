@@ -1,5 +1,7 @@
 """Every pin tells the canvas its wire key, and a ghost pin says it is one."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import ADD, FLOAT

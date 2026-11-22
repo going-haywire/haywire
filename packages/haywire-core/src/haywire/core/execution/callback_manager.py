@@ -6,9 +6,10 @@ trigger event nodes in other flows within the same graph.
 """
 
 from __future__ import annotations
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
-import time
+
 import logging
+import time
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from haywire.core.execution.flow import Flow
@@ -30,10 +31,10 @@ class CallbackManager:
 
     def __init__(self) -> None:
         """Initialize callback manager"""
-        self.callbacks: Dict[str, List[Flow]] = {}
+        self.callbacks: dict[str, list[Flow]] = {}
         """Maps callback event names to listening flows"""
 
-        self.callback_stats: Dict[str, int] = {}
+        self.callback_stats: dict[str, int] = {}
         """Tracks number of times each callback was emitted"""
 
         logger.debug("CallbackManager initialized")
@@ -66,7 +67,7 @@ class CallbackManager:
                 self.callbacks[event_name].remove(flow)
                 logger.debug(f"Flow {flow.flow_id} unregistered from callback '{event_name}'")
 
-    def emit_callback(self, event_name: str, payload: Optional[Dict[str, Any]] = None) -> None:
+    def emit_callback(self, event_name: str, payload: dict[str, Any] | None = None) -> None:
         """
         Emit a callback event to trigger listening flows.
 
@@ -101,7 +102,7 @@ class CallbackManager:
             else:
                 logger.warning(f"Flow {flow.flow_id} has no queue, cannot trigger callback")
 
-    def get_listeners(self, event_name: str) -> List[Flow]:
+    def get_listeners(self, event_name: str) -> list[Flow]:
         """
         Get all flows listening for a callback event.
 
@@ -118,7 +119,7 @@ class CallbackManager:
         self.callbacks.clear()
         logger.debug("All callback registrations cleared")
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """
         Get callback statistics.
 

@@ -18,7 +18,8 @@ ContextBar).
 
 from __future__ import annotations
 
-from typing import Callable, ClassVar, Literal, Optional
+from collections.abc import Callable
+from typing import ClassVar, Literal
 
 from nicegui import ui
 
@@ -48,9 +49,9 @@ class IconSlot(Slot):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self._footer_renderer: Optional[Callable[[], None]] = None
+        self._footer_renderer: Callable[[], None] | None = None
 
-    def set_footer(self, renderer: Optional[Callable[[], None]]) -> None:
+    def set_footer(self, renderer: Callable[[], None] | None) -> None:
         """Install a renderer for the bar's footer region.
 
         Framework chrome that is not an editor tab — today just the account

@@ -3,14 +3,16 @@
 Tests for the EditorRegistry and @editor decorator.
 """
 
+from __future__ import annotations
+
 import pytest
+
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior, SlotName
 from haywire.ui.editor.registry import EditorRegistry
-
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
     label="fake",

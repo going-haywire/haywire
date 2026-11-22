@@ -1,5 +1,7 @@
 """setup_farmhand writes the studio sidecar when Farmhand is enabled."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest

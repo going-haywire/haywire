@@ -7,10 +7,11 @@ workbench-authoring side of the same mechanics) — these tests exercise
 to declare and how its declarations resolve through to_css_vars().
 """
 
-from haywire.ui.themes.workbench import BaseTheme, _FieldProxy
-from haywire.ui.themes.decorator import theme
-from haybale_testing.themes.node import TestNodeTheme
+from __future__ import annotations
 
+from haybale_testing.themes.node import TestNodeTheme
+from haywire.ui.themes.decorator import theme
+from haywire.ui.themes.workbench import BaseTheme, _FieldProxy
 
 # ---------------------------------------------------------------------------
 # Field collection

@@ -18,10 +18,9 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+from haybale_graph_editor.editors.graph_editor import GraphEditor
 from haywire.core.session.handlers import discover_handlers
 from haywire.core.signals import GraphDataMutated
-
-from haybale_graph_editor.editors.graph_editor import GraphEditor
 
 
 def test_graph_editor_subscribes_to_graph_data_mutated():

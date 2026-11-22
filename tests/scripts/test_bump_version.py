@@ -8,7 +8,6 @@ import pytest
 
 from scripts import bump_version
 
-
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 
 

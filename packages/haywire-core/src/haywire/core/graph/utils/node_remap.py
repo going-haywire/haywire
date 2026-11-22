@@ -20,8 +20,9 @@ Example::
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import Any, Callable, Mapping
+from typing import Any
 
 from haywire.ui.utils import generate_edge_uuid
 

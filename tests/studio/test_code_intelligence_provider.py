@@ -12,7 +12,6 @@ from haywire_studio.code_intelligence import (
     _confined_path,
     _signature_and_doc,
 )
-
 from tests.conftest import _restore_ambient_di, _snapshot_ambient_di
 
 

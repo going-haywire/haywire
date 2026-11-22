@@ -13,7 +13,8 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import TYPE_CHECKING, Callable, Type, TypeVar
+from collections.abc import Callable
+from typing import TYPE_CHECKING, TypeVar
 
 from .bus import SignalBus
 from .signal import Signal
@@ -29,10 +30,10 @@ logger = logging.getLogger(__name__)
 class SignalPeer:
     """One endpoint on the signal fabric: a private bus plus dispatcher membership."""
 
-    def __init__(self, dispatcher: "SignalDispatcher") -> None:
+    def __init__(self, dispatcher: SignalDispatcher) -> None:
         """Create a peer and register it for cross-peer fan-out."""
         self.peer_id: str = str(uuid.uuid4())
-        self._dispatcher: "SignalDispatcher" = dispatcher
+        self._dispatcher: SignalDispatcher = dispatcher
 
         self._bus: SignalBus = SignalBus()
 
@@ -58,7 +59,7 @@ class SignalPeer:
 
     def subscribe(
         self,
-        signal_type: Type[S],
+        signal_type: type[S],
         handler: Callable[[S], None],
     ) -> Callable[[], None]:
         """Subscribe ``handler`` to signals of exactly ``signal_type``.

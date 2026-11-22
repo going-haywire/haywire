@@ -1,9 +1,10 @@
 """Port queries by wire role, and the one check for control crossing a node."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.types import PortType, WireRole
-
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration
@@ -30,8 +31,8 @@ def test_is_not_role_leaves_out_ports_without_a_wire_type(graph_with_library_sys
 
 
 def test_has_sequence_pins(graph_with_library_system):
-    from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
     from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
+    from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
 
     graph = graph_with_library_system
     emit = make_node(graph, CallbackEmitProbeNode.class_identity.registry_key).node

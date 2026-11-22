@@ -4,6 +4,8 @@ An inlet shows the value its edge delivers while linked and its own value once
 the last edge is gone (ADR 0040).
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest
@@ -13,8 +15,8 @@ pytestmark = pytest.mark.integration
 
 def _callback_pair(graph):
     """Create an event node and an emit node joined by a direct callback edge."""
-    from haybale_testing.nodes.testbed.callback_event_probe import CallbackEventProbeNode
     from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
+    from haybale_testing.nodes.testbed.callback_event_probe import CallbackEventProbeNode
 
     event = graph.create_node_wrapper(CallbackEventProbeNode.class_identity.registry_key, position=(0, 0))
     emit = graph.create_node_wrapper(CallbackEmitProbeNode.class_identity.registry_key, position=(400, 0))

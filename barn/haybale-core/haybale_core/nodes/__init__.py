@@ -1,3 +1,4 @@
+from __future__ import annotations
 from haybale_core.nodes.create_folder import CreateFolderNode
 from haybale_core.nodes.for_each_file import ForEachFileNode
 from haybale_core.nodes.for_loop import ForLoopNode

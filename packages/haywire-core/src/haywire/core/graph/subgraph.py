@@ -22,13 +22,14 @@ Example::
 
 from __future__ import annotations
 
-from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING
 import copy
 import logging
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
-from .base import BaseGraph
 from ..macro.origin import MacroOrigin
 from ..types import Propagation
+from .base import BaseGraph
 from .utils.node_remap import remap_node_ids
 
 if TYPE_CHECKING:
@@ -42,7 +43,7 @@ logger = logging.getLogger(__name__)
 SUBGRAPH_KEY = "subgraph_key"
 
 
-def _rebound(node_data: Mapping[str, Any], key_map: Mapping[str, str]) -> Dict[str, Any]:
+def _rebound(node_data: Mapping[str, Any], key_map: Mapping[str, str]) -> dict[str, Any]:
     """Return ``node_data`` with a Graph-node's stored Subgraph key remapped.
 
     Returned unchanged when the node holds no key, or one ``key_map`` does not
@@ -78,7 +79,7 @@ class SubgraphDefinition(BaseGraph):
         key: str,
         label: str = "",
         validation_delay_ms: float = 50.0,
-        validation_scheduler: "Optional[ValidationScheduler]" = None,
+        validation_scheduler: ValidationScheduler | None = None,
     ):
         """Initialize an empty Subgraph definition.
 
@@ -118,23 +119,23 @@ class SubgraphDefinition(BaseGraph):
     # =========================================================================
 
     @property
-    def input_node(self) -> "NodeWrapper | None":
+    def input_node(self) -> NodeWrapper | None:
         """The Subgraph Input wrapper, or ``None`` before the interface is created."""
         return self._boundary_node(is_input=True)
 
     @property
-    def output_node(self) -> "NodeWrapper | None":
+    def output_node(self) -> NodeWrapper | None:
         """The Subgraph Output wrapper, or ``None`` before the interface is created."""
         return self._boundary_node(is_input=False)
 
-    def _boundary_node(self, is_input: bool) -> "NodeWrapper | None":
+    def _boundary_node(self, is_input: bool) -> NodeWrapper | None:
         for wrapper in self.node_wrappers.values():
             identity = wrapper.node.identity
             if identity._is_subgraph_input if is_input else identity._is_subgraph_output:
                 return wrapper
         return None
 
-    def graph_node_wrapper(self) -> "NodeWrapper | None":
+    def graph_node_wrapper(self) -> NodeWrapper | None:
         """The Graph-node in the host graph whose card this Subgraph sits behind.
 
         ``None`` for a definition with no host, or none of whose host nodes
@@ -157,7 +158,7 @@ class SubgraphDefinition(BaseGraph):
         self._graph_node_id = None
         return None
 
-    def content_node_wrappers(self) -> list["NodeWrapper"]:
+    def content_node_wrappers(self) -> list[NodeWrapper]:
         """Every node in this Subgraph except the two boundary nodes."""
         return [
             wrapper for wrapper in self.node_wrappers.values() if not wrapper.node.behavior.is_boundary_node
@@ -172,7 +173,7 @@ class SubgraphDefinition(BaseGraph):
         nodes: Mapping[str, Any],
         edges: Mapping[str, Any],
         subgraphs: Mapping[str, Any] | None = None,
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """Build this Subgraph's live contents from a serialized template.
 
         Every node is created under a freshly minted id that is unique across
@@ -233,13 +234,13 @@ class SubgraphDefinition(BaseGraph):
 
         return remap.id_map
 
-    def _instantiate_subgraphs(self, subgraphs: Mapping[str, Any]) -> Dict[str, str]:
+    def _instantiate_subgraphs(self, subgraphs: Mapping[str, Any]) -> dict[str, str]:
         """Rebuild each nested definition under a fresh key; returns ``old key -> new key``.
 
         Recurses through :meth:`instantiate`, so a Group nested any number of
         levels deep gets contents and ids of its own.
         """
-        key_map: Dict[str, str] = {}
+        key_map: dict[str, str] = {}
 
         for old_key, payload in subgraphs.items():
             new_key = self.generate_unique_subgraph_key()
@@ -265,7 +266,7 @@ class SubgraphDefinition(BaseGraph):
     # SERIALIZATION
     # =========================================================================
 
-    def to_dict(self, include_data: bool = True) -> Dict[str, Any]:
+    def to_dict(self, include_data: bool = True) -> dict[str, Any]:
         """Return the Subgraph as a JSON-serializable dict, carrying its key and label."""
         data = super().to_dict(include_data=include_data)
         data["key"] = self.key
@@ -274,7 +275,7 @@ class SubgraphDefinition(BaseGraph):
             data["origin"] = self.origin.to_dict()
         return data
 
-    def load_from_dict(self, data: Dict[str, Any]) -> bool:
+    def load_from_dict(self, data: dict[str, Any]) -> bool:
         """Replace this Subgraph's contents with ``data``, restoring its label.
 
         ``key`` is not read back: a definition's key is where the host graph's

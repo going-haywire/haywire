@@ -2,10 +2,12 @@
 Temperature type - derived from FLOAT for testing type hierarchy support.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
-from haywire.api import INT, STRING, BaseType, CallbackWire, DataWire, PrimitiveField, PrimitiveType, type
 from haybale_testing.wires import TestVisualWire
+from haywire.api import INT, STRING, BaseType, CallbackWire, DataWire, PrimitiveField, PrimitiveType, type
 
 # ============================================================================
 # Numeric Types

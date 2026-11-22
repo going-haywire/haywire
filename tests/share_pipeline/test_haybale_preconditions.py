@@ -5,6 +5,8 @@ own machine keeps working, so nothing surfaces where it could be noticed. That
 asymmetry is why each is worth a check rather than a convention.
 """
 
+from __future__ import annotations
+
 import subprocess
 from pathlib import Path
 

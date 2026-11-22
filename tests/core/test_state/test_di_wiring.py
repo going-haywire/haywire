@@ -1,13 +1,14 @@
 """Tests verifying DI wiring of StateRegistry + LibraryStateContainer."""
 
+from __future__ import annotations
+
 from collections.abc import Iterator
 
 import pytest
 
-from tests.conftest import _restore_ambient_di, _snapshot_ambient_di
-
 from haywire.core.di.config import create_haywire_injector
 from haywire.core.state import LibraryStateContainer, StateRegistry
+from tests.conftest import _restore_ambient_di, _snapshot_ambient_di
 
 
 @pytest.fixture(autouse=True)

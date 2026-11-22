@@ -5,6 +5,8 @@ and an outlet), and the stacked skin drew it not at all. Two pins sharing one
 id also shadow each other in `getElementById`, which the edge layer relies on.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

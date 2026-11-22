@@ -4,18 +4,19 @@ A stage canvas mounts only on-stage nodes, at their stage rect translated by the
 and draws only on-stage edges between mounted nodes.
 """
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from haybale_graph_editor.editors.graph_canvas.handlers.interaction import InteractionHandlers
 from haybale_graph_editor.editors.graph_canvas.handlers import visual_layer as vl_module
+from haybale_graph_editor.editors.graph_canvas.handlers.interaction import InteractionHandlers
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
 from haywire.core.graph.types import ChangeReason, ValidationResult
 from haywire.core.node.layout import PATCH, STAGE
 from haywire.ui.components.graph.event_definitions import SyncAllEdgesEvent, UserDragUpdateEvent
-
 from tests.conftest import edit_route
 
 pytestmark = pytest.mark.unit

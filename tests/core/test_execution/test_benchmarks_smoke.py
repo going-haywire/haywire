@@ -10,6 +10,8 @@ each frozen case still builds and runs after framework changes.
     uv run pytest -m perf tests/core/test_execution/test_benchmarks_smoke.py
 """
 
+from __future__ import annotations
+
 import sys
 import time
 from pathlib import Path

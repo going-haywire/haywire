@@ -14,12 +14,14 @@ Arguments:
     output_file: Output markdown file name (default: consolidated_code.md)
 """
 
+from __future__ import annotations
+
+import argparse
+import fnmatch
 import os
 import sys
-import argparse
-from pathlib import Path
 from datetime import datetime
-import fnmatch
+from pathlib import Path
 
 
 def should_ignore_file(file_path, ignore_patterns):
@@ -47,7 +49,7 @@ def should_ignore_directory(dir_path, ignore_patterns):
 def get_file_info(file_path):
     """Get basic information about a Python file."""
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
 
         lines = content.split("\n")

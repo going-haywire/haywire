@@ -12,7 +12,6 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from haybale_models.keys import MODELS_VOLUME
-
 from haywire.api import VolumeError, volume_location
 
 logger = logging.getLogger(__name__)

@@ -1,5 +1,7 @@
 """Create Folder — make a folder, and any folders above it, inside a volume."""
 
+from __future__ import annotations
+
 from haywire.api import (
     EXEC,
     FOLDER_PATH,

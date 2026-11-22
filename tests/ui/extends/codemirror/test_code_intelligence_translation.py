@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-
 from haywire.ui.extends.codemirror.code_intelligence import (
-    _jedi_kind_to_cm_type,
     _boost,
+    _jedi_kind_to_cm_type,
     _render_doc_html,
 )
 

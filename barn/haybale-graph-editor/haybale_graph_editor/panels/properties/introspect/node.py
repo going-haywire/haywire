@@ -7,13 +7,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.api.workbench import AccessTier, BasePanel, PanelLayout, hui, panel, render_settings
-from haywire.api import UiState
-
-from haybale_graph_editor.surfaces import NodeInspector
-from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.panels import _previous_setup as previous_setup
+from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.states.graph_app_state import route_for
+from haybale_graph_editor.surfaces import NodeInspector
+from haywire.api import UiState
+from haywire.api.workbench import AccessTier, BasePanel, PanelLayout, hui, panel, render_settings
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -32,12 +31,12 @@ class NodeInfoPanel(BasePanel):
     """Displays basic identity information for the selected node."""
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return ctx.data[EditState].active_node is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         node = ctx.data[EditState].active_node
@@ -71,7 +70,7 @@ class NodePropertiesPanel(BasePanel):
     """Displays per-instance node settings (collapsed, locked, skin, etc.)."""
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         node = ctx.data[EditState].active_node
         if node is None or not hasattr(node, "node") or node.node is None or route_for(ctx) is None:
             return False
@@ -83,7 +82,7 @@ class NodePropertiesPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         node_wrapper = ctx.data[EditState].active_node
@@ -109,12 +108,12 @@ class NodeStatusPanel(BasePanel):
     """Displays the validation and lifecycle status of the selected node."""
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return ctx.data[EditState].active_node is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         node = ctx.data[EditState].active_node
@@ -146,12 +145,12 @@ class NodeStatusPanel(BasePanel):
                 hui.error_label("Error reading status")
 
 
-def _node_has_errors(ctx: "SessionContext") -> bool:
+def _node_has_errors(ctx: SessionContext) -> bool:
     node = ctx.data[EditState].active_node
     return node is not None and bool(node.state.get_errors())
 
 
-def _render_node_errors(ctx: "SessionContext", layout: PanelLayout) -> None:
+def _render_node_errors(ctx: SessionContext, layout: PanelLayout) -> None:
     from haywire.ui.errors.error_info import error_render_detail
 
     node = ctx.data[EditState].active_node
@@ -177,12 +176,12 @@ class NodeErrorsPanel(BasePanel):
     """Node errors panel for PropertiesEditor."""
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _node_has_errors(ctx)
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         _render_node_errors(ctx, layout)
@@ -200,8 +199,8 @@ class NodePreviousSetupPanel(BasePanel):
     """Restore or discard the active node's previous setup, whatever skin draws it. See ADR 0062."""
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return previous_setup.holds_previous_setup(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         previous_setup.draw_previous_setup(ctx, layout, in_menu=False)

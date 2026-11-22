@@ -12,7 +12,7 @@ pin the three behaviors the rest of the system relies on:
 
 from __future__ import annotations
 
-from typing import Callable, List
+from collections.abc import Callable
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import (
@@ -36,7 +36,7 @@ def test_sync_scheduler_validates_inline():
     mark_*_dirty call itself.
     """
     graph = BaseGraph("G", validation_scheduler=SyncScheduler())
-    seen: List[int] = []
+    seen: list[int] = []
     graph.subscribe_to_validation(lambda result: seen.append(result.total_changes))
 
     # Marking a (non-existent-but-tracked) node dirty with a redraw reason is
@@ -69,8 +69,8 @@ def test_reschedule_cancels_previous_handle():
 
     class _RecordingScheduler:
         def __init__(self) -> None:
-            self.handles: List[_RecordingHandle] = []
-            self.fns: List[Callable[[], object]] = []
+            self.handles: list[_RecordingHandle] = []
+            self.fns: list[Callable[[], object]] = []
 
         def schedule(self, delay_seconds: float, fn: Callable[[], object]) -> _RecordingHandle:
             # Capture but do NOT run fn — we want a "pending" run to cancel.

@@ -11,12 +11,10 @@ from typing import TYPE_CHECKING, cast
 
 import pytest
 
+from haybale_graph_editor.panels.properties.introspect.node_ports import _own_description
 from haywire.core.graph.base import BaseGraph
 from haywire.core.types.enums import PortOrigin
 from haywire.ui.panel.port_default_widget_model import PortDefaultWidgetModel
-
-from haybale_graph_editor.panels.properties.introspect.node_ports import _own_description
-
 from tests.conftest import make_node
 
 if TYPE_CHECKING:

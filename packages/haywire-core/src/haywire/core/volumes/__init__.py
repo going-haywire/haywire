@@ -1,5 +1,7 @@
 """Volumes: named roots that graphs reference by ``(volume key, relative)`` instead of absolute paths."""
 
+from __future__ import annotations
+
 from haywire.core.volumes.keys import (
     PROJECT_KEY,
     VOLUME_KEY_RE,

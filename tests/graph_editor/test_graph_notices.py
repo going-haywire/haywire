@@ -6,10 +6,10 @@ from dataclasses import dataclass, field
 from typing import Any, cast
 
 import pytest
-from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
 
 from haybale_graph_editor.notices import GraphNotice, GraphNoticesChanged
 from haybale_graph_editor.states.graph_app_state import GraphAppState
+from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
 
 
 @dataclass

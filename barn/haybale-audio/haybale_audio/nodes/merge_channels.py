@@ -1,9 +1,10 @@
 """Merge Channels — stacks audio blocks into one multichannel block."""
 
-from haywire.api import ADD, BaseNode, ExecutionContext, NodeType, PortOrigin, node
+from __future__ import annotations
 
 from haybale_audio.dsp import channels as ops
 from haybale_audio.value import AudioBlock
+from haywire.api import ADD, BaseNode, ExecutionContext, NodeType, PortOrigin, node
 
 _PREFIX = "in_"
 

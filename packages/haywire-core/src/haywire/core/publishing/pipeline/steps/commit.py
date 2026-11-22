@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 
-def apply_marketstall(pipeline: "SharePipeline") -> MarketstallWriteResult:
+def apply_marketstall(pipeline: SharePipeline) -> MarketstallWriteResult:
     """Rebuild ``marketstall.toml`` from every ``barn/*`` library.
 
     Always a FULL rebuild: the feed's contract is "every haybale this repo
@@ -42,7 +42,7 @@ def apply_marketstall(pipeline: "SharePipeline") -> MarketstallWriteResult:
     return result
 
 
-def plan(pipeline: "SharePipeline", *, message: str | None = None) -> CommitPlan:
+def plan(pipeline: SharePipeline, *, message: str | None = None) -> CommitPlan:
     """Preview exactly what would be staged, committed, and tagged.
 
     The write set spans the repo — every ``barn/*/pyproject.toml``, the root
@@ -63,7 +63,7 @@ def plan(pipeline: "SharePipeline", *, message: str | None = None) -> CommitPlan
     )
 
 
-def _diffstat(pipeline: "SharePipeline", files: list[Path]) -> str:
+def _diffstat(pipeline: SharePipeline, files: list[Path]) -> str:
     """``git diff --stat`` limited to *files*, plus new/deleted-path labels.
 
     ``git diff --stat HEAD`` only ever shows tracked, modified content —
@@ -114,7 +114,7 @@ def _diffstat(pipeline: "SharePipeline", files: list[Path]) -> str:
     return "\n".join(lines)
 
 
-def apply(pipeline: "SharePipeline", commit_plan: CommitPlan) -> CommitResult:
+def apply(pipeline: SharePipeline, commit_plan: CommitPlan) -> CommitResult:
     """Stage exactly ``plan.files``, commit, then tag.
 
     Never ``-a``/``-A``. Staging is an explicit path list so a user's
@@ -143,7 +143,7 @@ def apply(pipeline: "SharePipeline", commit_plan: CommitPlan) -> CommitResult:
     return _commit(pipeline, commit_plan, to_stage)
 
 
-def _commit(pipeline: "SharePipeline", commit_plan: CommitPlan, to_stage: list[Path]) -> CommitResult:
+def _commit(pipeline: SharePipeline, commit_plan: CommitPlan, to_stage: list[Path]) -> CommitResult:
     rel = [
         str(p.relative_to(pipeline.repo_root)) if p.is_relative_to(pipeline.repo_root) else str(p)
         for p in to_stage

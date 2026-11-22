@@ -1,6 +1,8 @@
 # tests/ui/panel/test_panel_rendering.py
 """Host-side panel rendering: visible_panels poll-filter + render_panel."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock, patch
 
 from haywire.core.access import AccessTier

@@ -1,5 +1,7 @@
 """The registry keys haybale-core names by string match the classes they name."""
 
+from __future__ import annotations
+
 import pytest
 
 pytestmark = pytest.mark.integration

@@ -1,5 +1,7 @@
 """`haywire docs --json <path>` writes the coverage report to a file."""
 
+from __future__ import annotations
+
 import json
 import subprocess
 import sys

@@ -13,6 +13,8 @@ libraries may provide alternative managers; haybale-haystack does not
 claim exclusive ownership of GraphEditor.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from haywire.api import BaseLibrary, SettingsRegistry, library

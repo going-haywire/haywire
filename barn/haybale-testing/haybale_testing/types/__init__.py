@@ -1,3 +1,4 @@
+from __future__ import annotations
 from haybale_testing.types.test_types import TEST_INT
 from haybale_testing.types.test_types import TEST_INTField
 from haybale_testing.types.test_types import TEST_FLOAT

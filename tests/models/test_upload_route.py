@@ -13,13 +13,11 @@ import pytest
 from fastapi import FastAPI
 from starlette.testclient import TestClient
 
+from haybale_models.upload_route import NAME_HEADER, mount_upload_route
 from haywire.core.access import AccessTier, access_resolver, set_access_resolver
 from haywire.core.farmhand.activity import get_activity_tracker
 from haywire.core.volumes import VolumeStore
-
 from tests.models.test_download import DATA, SHA, Env, spec, wait_until
-
-from haybale_models.upload_route import NAME_HEADER, mount_upload_route
 
 
 @pytest.fixture

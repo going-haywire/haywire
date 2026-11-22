@@ -3,6 +3,8 @@
 Session class representing a single browser connection in the Haywire UI system.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import TYPE_CHECKING
 
@@ -41,9 +43,9 @@ class Session(SignalPeer):
 
     def __init__(
         self,
-        app_state: "IAppState",
+        app_state: IAppState,
         workspace_manager: WorkspaceManager,
-        dispatcher: "SignalDispatcher",
+        dispatcher: SignalDispatcher,
     ):
         """
         Create a new session.
@@ -56,7 +58,7 @@ class Session(SignalPeer):
         """
         super().__init__(dispatcher)
 
-        self.app_state: "IAppState" = app_state
+        self.app_state: IAppState = app_state
         self.workspace_manager: WorkspaceManager = workspace_manager
 
         self.context = SessionContext(session_id=self.session_id, app=app_state)

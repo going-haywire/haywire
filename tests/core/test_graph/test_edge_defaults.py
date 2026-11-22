@@ -1,5 +1,7 @@
 """Edge defaults: a graph's computed edges take their head and width from framework < graph."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.widget_keys import ARROW_HEAD_WIDGET

@@ -1,3 +1,4 @@
+from __future__ import annotations
 from haybale_example.types.fill import FILL
 from haybale_example.types.math import MathOPs
 from haybale_example.types.math import MATH_OPERATION

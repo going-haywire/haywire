@@ -28,7 +28,6 @@ Fork to watch for in the output:
 
 from __future__ import annotations
 
-
 import cProfile
 import io
 import pstats

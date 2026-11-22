@@ -11,6 +11,8 @@ The exact-set property is covered by the packaging guarantee (haywire-studio
 depends on haybale-studio) and would be verified in a clean-install smoke test.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from tests.farmhand.conftest import make_caller

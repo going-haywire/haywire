@@ -3,6 +3,8 @@
 The actions are fakes: the manager's bookkeeping is under test, so a real graph would only add noise.
 """
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from typing import Any, cast
 

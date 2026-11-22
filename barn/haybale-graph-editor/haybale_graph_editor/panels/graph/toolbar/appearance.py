@@ -25,13 +25,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haybale_graph_editor.panels._selection_forms import disabled_icon, node_appearance_subject, render_form
 from nicegui import ui
 
-from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
-
-from haybale_graph_editor.surfaces import NodeAppearance, SelectionActions, SelectionToolbar
+from haybale_graph_editor.panels._selection_forms import disabled_icon, node_appearance_subject, render_form
 from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.surfaces import NodeAppearance, SelectionActions, SelectionToolbar
+from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -59,15 +58,15 @@ class AppearanceToolbarPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return node_appearance_subject(ctx).editable
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             with hui.dropdown(hui.icon.theme, tooltip="Appearance", align="center", direction="up"):
                 self.render_surface(NodeAppearance, ctx)
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         subject = node_appearance_subject(ctx)
         if subject.status == "greyed":
             with layout:
@@ -91,10 +90,10 @@ class NodeAppearancePanel(BasePanel):
     """
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return node_appearance_subject(ctx).editable
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         subject = node_appearance_subject(ctx)
         if not subject.editable:
             return

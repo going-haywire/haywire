@@ -9,6 +9,8 @@ get element-wise adapter chains and collection pin iconography — wrong, and on
 once the value reached a port. So the family boundary is tested, not assumed.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import BOOL, FLOAT, INT, OPTIONAL, VEC3F

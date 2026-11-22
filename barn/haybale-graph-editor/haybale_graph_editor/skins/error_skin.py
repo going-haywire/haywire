@@ -5,12 +5,12 @@ Structurally a two-band split (see SplitNodeSkin) with error styling, and one
 deliberate difference: it always shows everything.
 """
 
+from __future__ import annotations
+
 from nicegui import ui
 
-from haywire.api import BaseNode, NodeWrapper, skin
-
-
 from haybale_graph_editor.skins.node_skin import NodeSkin
+from haywire.api import BaseNode, NodeWrapper, skin
 
 
 @skin(

@@ -14,9 +14,9 @@ Example::
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 
 from haywire.core.publishing.barn import barn_library_dirs
 from haywire.core.publishing.git import git, git_remote

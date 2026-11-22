@@ -4,9 +4,12 @@ The color picker widget is wired in Plan 2 (widget unification); Plan 1 only
 establishes the type.
 """
 
+from __future__ import annotations
+
 from haywire.barn.builtin import widget_keys
 from haywire.core.types import PrimitiveType
 from haywire.core.types import type as type_decorator
+
 from ..wires import DataWire
 
 

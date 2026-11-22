@@ -6,6 +6,8 @@ writing (``.insights/project_stepper_flows.md``), so promotion is split:
 ``write_macro_file`` is the single mutating step.
 """
 
+from __future__ import annotations
+
 import json
 import re
 from typing import cast

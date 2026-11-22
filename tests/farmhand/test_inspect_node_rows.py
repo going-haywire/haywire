@@ -6,6 +6,8 @@ registered in this repo declares one (the motivating case lives in the
 gitignored haybale-visiongraph library).
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import BOOL, INT, STRING

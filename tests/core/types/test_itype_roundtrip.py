@@ -6,12 +6,14 @@ VEC* types relied on it and silently dropped their value. The JSON settings
 cutover routes tier reads through from_dict, so these must round-trip.
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest
 
-from haywire.barn.builtin.types import COLOR, VEC2I, VEC3I, VEC4I, VEC2F, VEC3F, VEC4F
-from haywire.core.settings.types import Vec2i, Vec3i, Vec4i, Vec2f, Vec3f, Vec4f
+from haywire.barn.builtin.types import COLOR, VEC2F, VEC2I, VEC3F, VEC3I, VEC4F, VEC4I
+from haywire.core.settings.types import Vec2f, Vec2i, Vec3f, Vec3i, Vec4f, Vec4i
 
 
 def test_color_roundtrips_value():

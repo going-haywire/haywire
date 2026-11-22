@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 from haywire.barn.builtin.widgets.basic_widgets import (
     CheckboxWidget,
-    NumberWidget,
-    MenuWidget,
     LabelWidget,
+    MenuWidget,
+    NumberWidget,
     SliderWidget,
-    ToggleWidget,
     TextWidget,
+    ToggleWidget,
 )
 
 

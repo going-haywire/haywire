@@ -20,6 +20,8 @@ Two things make the measurements delicate, and both are load-bearing:
   so anything about widget geometry must be measured while selected.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

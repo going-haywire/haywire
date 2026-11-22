@@ -4,6 +4,8 @@ panel (another tab / worker / mirror) must update the rendered widget in place,
 without a panel rebuild.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page, expect
 

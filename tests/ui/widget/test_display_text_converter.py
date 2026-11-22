@@ -1,5 +1,7 @@
 """DisplayTextConverter: a label shows text and numbers as they are, anything else in its text form."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.volumes import VolumePath

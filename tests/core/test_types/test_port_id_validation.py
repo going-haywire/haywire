@@ -5,6 +5,8 @@ and promoted ports share ``node.ports`` with author-declared ones. Reserving
 '.' keeps an author from declaring a port that collides with a promoted one.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import FLOAT

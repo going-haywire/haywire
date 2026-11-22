@@ -20,7 +20,6 @@ from haywire.api.workbench import (
     render_schema,
 )
 
-
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
 
@@ -38,7 +37,7 @@ class ExecutionSettingsPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         from haywire.core.execution.settings import ExecutionSettings

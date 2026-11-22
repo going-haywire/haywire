@@ -1,6 +1,8 @@
 # haywire/core/tooling/settings.py
 """How Haywire hands work off to the developer's own tools."""
 
+from __future__ import annotations
+
 from haywire.barn.builtin.types import STRING
 from haywire.core.settings import setting
 from haywire.core.settings.settings_framework import FrameworkSettings

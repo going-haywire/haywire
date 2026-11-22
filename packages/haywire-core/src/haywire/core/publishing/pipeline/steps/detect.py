@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 
-def check(pipeline: "SharePipeline") -> DriftReport:
+def check(pipeline: SharePipeline) -> DriftReport:
     """Scan every barn library and split the findings by severity.
 
     ``drifted`` holds libraries with undeclared imports — the publish-breaking

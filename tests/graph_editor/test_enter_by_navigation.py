@@ -12,13 +12,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
+from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL
 from haywire.core.access import AccessTier
 from haywire.core.signals import SubgraphNavigation
-from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
 from haywire.ui.components.graph.event_definitions import EnterGroupEvent
-
-from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL
-
 from tests.graph_editor.test_graph_editor_levels import _card, _definition, _editor
 
 pytestmark = pytest.mark.unit

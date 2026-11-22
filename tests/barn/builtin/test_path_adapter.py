@@ -1,5 +1,7 @@
 """A path wired to a text inlet arrives as its display form, `volume name:relative`."""
 
+from __future__ import annotations
+
 import importlib
 from typing import Any
 

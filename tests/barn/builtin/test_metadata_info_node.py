@@ -1,9 +1,11 @@
 """New Bundle and Metadata Info."""
 
+from __future__ import annotations
+
 import numpy as np
 import pytest
-from haybale_image.value import ImageMetadata, ImageValue
 
+from haybale_image.value import ImageMetadata, ImageValue
 from haywire.barn.builtin.carrier import BundleValue
 from haywire.barn.builtin.nodes.metadata import MetadataInfoNode, NewBundleNode
 from haywire.barn.builtin.types import FLOAT, STRING

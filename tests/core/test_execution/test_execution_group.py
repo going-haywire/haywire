@@ -5,10 +5,13 @@ stub nodes; a recording VM subclass replaces only ``execute_control_flow``,
 running each stub flow's ``frame`` callable as its frame. See ADR 0064.
 """
 
+from __future__ import annotations
+
 import threading
 import time
+from collections.abc import Callable, Sequence
 from types import SimpleNamespace
-from typing import Any, Callable, List, Optional, Sequence
+from typing import Any
 
 import pytest
 
@@ -45,10 +48,10 @@ class _Node:
 
 
 class _LifecycleNode(_Node):
-    def __init__(self, node_id: str, events: List[str]):
+    def __init__(self, node_id: str, events: list[str]):
         super().__init__(node_id)
         self.events = events
-        self.threads: List[str] = []
+        self.threads: list[str] = []
 
     def on_startup(self, context):
         self.events.append("startup")
@@ -62,10 +65,10 @@ class _LifecycleNode(_Node):
 class _DataNode(_LifecycleNode):
     """A data node that computes once per dirtying, optionally parking inside its worker."""
 
-    def __init__(self, node_id: str, events: List[str]):
+    def __init__(self, node_id: str, events: list[str]):
         super().__init__(node_id, events)
         self.dirty = True
-        self.value: Optional[str] = None
+        self.value: str | None = None
         self.worker_runs = 0
         self.inside = threading.Event()
         self.release_worker = threading.Event()
@@ -89,23 +92,23 @@ class _Flow:
         flow_id: str,
         nodes: Sequence[Any] = (),
         control: Sequence[str] = (),
-        frame: Optional[Callable[[HaywireVM, Trigger], None]] = None,
+        frame: Callable[[HaywireVM, Trigger], None] | None = None,
     ):
         self.flow_id = flow_id
         self._nodes = list(nodes)
         self._control = list(control)
         self.frame = frame or (lambda vm, trigger: None)
         self.graph_ref = SimpleNamespace(variables={})
-        self.queue: Optional[FlowQueue] = None
+        self.queue: FlowQueue | None = None
         self.shared_node_ids: frozenset = frozenset()
 
     def get_entry_node_id(self) -> str:
         return f"entry_{self.flow_id}"
 
-    def get_control_node_ids(self) -> List[str]:
+    def get_control_node_ids(self) -> list[str]:
         return list(self._control)
 
-    def get_all_nodes(self) -> List[Any]:
+    def get_all_nodes(self) -> list[Any]:
         return list(self._nodes)
 
 
@@ -116,7 +119,7 @@ class _Vm(HaywireVM):
 
 
 def _group(
-    flows: List[_Flow], vm: HaywireVM, gid: str = "g", mode=QueueMode.BLOCK, size: int = 100
+    flows: list[_Flow], vm: HaywireVM, gid: str = "g", mode=QueueMode.BLOCK, size: int = 100
 ) -> ExecutionGroup:
     for flow in flows:
         flow.queue = FlowQueue(flow, vm, queue_mode=mode, max_queue_size=size)  # type: ignore[arg-type]
@@ -175,11 +178,11 @@ def test_frames_of_one_group_never_overlap():
 
 def test_frames_run_in_arrival_order():
     vm = _Vm()
-    seen: List[str] = []
+    seen: list[str] = []
     a = _Flow("A", frame=lambda vm, t: seen.append(t.source_key))
     b = _Flow("B", frame=lambda vm, t: seen.append(t.source_key))
     group = _group([a, b], vm)
-    expected: List[str] = []
+    expected: list[str] = []
     group.start()
     try:
         for i in range(10):
@@ -198,7 +201,7 @@ def test_two_groups_run_concurrently():
     vm = _Vm()
     # Opens only while both groups are inside a frame at once; the timeout only bounds a failing run.
     barrier = threading.Barrier(2, timeout=10.0)
-    broken: List[bool] = []
+    broken: list[bool] = []
 
     def frame(vm, trigger):
         try:
@@ -223,7 +226,7 @@ def test_two_groups_run_concurrently():
 
 def test_drop_keeps_newest_pending():
     vm = _Vm()
-    seen: List[str] = []
+    seen: list[str] = []
     inside, gate = threading.Event(), threading.Event()
 
     def frame(vm, trigger):
@@ -250,8 +253,8 @@ def test_drop_keeps_newest_pending():
 
 def test_emit_from_own_runner_never_blocks():
     vm = _Vm()
-    results: List[bool] = []
-    elapsed: List[float] = []
+    results: list[bool] = []
+    elapsed: list[float] = []
     b = _Flow("B")
 
     def frame_a(vm, trigger):
@@ -279,7 +282,7 @@ def test_emit_from_own_runner_never_blocks():
 
 def test_startup_and_shutdown_once_per_node():
     vm = _Vm()
-    events: List[str] = []
+    events: list[str] = []
     x = _LifecycleNode("x", events)
     a, b = _Flow("A", [x], ["x"]), _Flow("B", [x], ["x"])
     group = _group([a, b], vm)
@@ -314,7 +317,7 @@ def _two_groups_sharing(vm: HaywireVM, s: _DataNode):
 
 def test_shared_data_node_started_before_either_groups_first_frame():
     vm = _Vm()
-    events: List[str] = []
+    events: list[str] = []
     s = _DataNode("s", events)
     a, b, ga, gb = _two_groups_sharing(vm, s)
     ga.start()
@@ -334,7 +337,7 @@ def test_shared_data_node_started_before_either_groups_first_frame():
 
 def test_shared_data_node_stopped_after_both_groups():
     vm = _Vm()
-    events: List[str] = []
+    events: list[str] = []
     s = _DataNode("s", events)
     a, b, ga, gb = _two_groups_sharing(vm, s)
     ga.start()
@@ -357,7 +360,7 @@ def test_shared_data_node_stopped_after_both_groups():
 
 def test_shared_data_node_computed_once_and_read_fresh():
     vm = _Vm()
-    events: List[str] = []
+    events: list[str] = []
     s = _DataNode("s", events)
     read: dict = {}
     entered = {"A": threading.Event(), "B": threading.Event()}
@@ -420,7 +423,7 @@ class _RecordingLock:
 
 def test_unshared_data_node_takes_no_lock():
     vm = _Vm()
-    events: List[str] = []
+    events: list[str] = []
     s = _DataNode("s", events)
 
     def frame(vm, trigger):
@@ -449,7 +452,7 @@ def test_unshared_data_node_takes_no_lock():
 
 def test_in_group_emit_runs_after_current_frame():
     vm = _Vm()
-    order: List[str] = []
+    order: list[str] = []
     b = _Flow("B", frame=lambda vm, t: order.append("B-start"))
 
     def frame_a(vm, trigger):

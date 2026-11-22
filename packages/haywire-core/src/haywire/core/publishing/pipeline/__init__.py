@@ -4,6 +4,8 @@
 re-exported here so callers have a single import site.
 """
 
+from __future__ import annotations
+
 from haywire.core.publishing.git import (
     GitResult,
     git,

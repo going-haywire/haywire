@@ -19,6 +19,8 @@ Uses two routes:
       — NodeSettings covering the full matrix above
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page, expect
 

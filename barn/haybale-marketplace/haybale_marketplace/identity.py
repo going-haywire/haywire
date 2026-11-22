@@ -68,7 +68,7 @@ def identity_matches(a: Haybale, b: Haybale) -> bool:
 
 
 def installed_identity_matches(
-    installed: "LibraryInfo",
+    installed: LibraryInfo,
     candidate: Haybale,
     marketplace_path: str | None,
 ) -> bool:

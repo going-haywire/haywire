@@ -9,8 +9,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from haywire.core.execution.flow_metrics import FlowReading, MeterReading, Severity
 from nicegui import ui
+
+from haywire.core.execution.flow_metrics import FlowReading, MeterReading, Severity
 
 #: Fill steps of a bar; a bar is redrawn only when its step or colour changes.
 STEPS = 10

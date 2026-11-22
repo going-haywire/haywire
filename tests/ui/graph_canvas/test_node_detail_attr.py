@@ -4,12 +4,12 @@ _apply_locked_attr's existing test coverage pattern (see test_node_size_apply.py
 for the bypass-__init__ construction style this follows).
 """
 
-from typing import Any, cast
+from __future__ import annotations
 
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 from haybale_graph_editor.editors.graph_canvas.ui_node import UINode
-
 from haywire.core.node.layout import PATCH
 from haywire.core.types import NodeDetail
 

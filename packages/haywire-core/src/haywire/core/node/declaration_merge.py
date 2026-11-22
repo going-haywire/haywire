@@ -12,8 +12,9 @@ from __future__ import annotations
 import copy
 import json
 import logging
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, Final, Sequence
+from typing import TYPE_CHECKING, Any, Final
 
 from ..errors import ErrorSeverity, HaywireException
 from ..errors.ledger import get_error_ledger
@@ -167,7 +168,7 @@ def _insert_after(ports: dict[str, Any], anchor: str | None, port_id: str, spec:
     ports.update(items)
 
 
-def report_merge(wrapper: "NodeWrapper", *, operation: str, changes: Sequence[str]) -> None:
+def report_merge(wrapper: NodeWrapper, *, operation: str, changes: Sequence[str]) -> None:
     """Record a ledger note that *wrapper*'s node took over what its code changed. Never raises.
 
     Args:

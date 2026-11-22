@@ -9,18 +9,19 @@ loop, and shared bookkeeping.
 from __future__ import annotations
 
 import logging
-from typing import Callable, Optional, Tuple, TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from haywire.ui import elements as hui
-from haywire.ui.panel.layout import PanelLayout
+from haywire.ui.components.popup import Popup
 from haywire.ui.panel.host_rendering import (
-    poll_surface,
     counting_leaves,
     partition_panels,
+    poll_surface,
     render_panels,
     render_path_extended,
 )
-from haywire.ui.components.popup import Popup
+from haywire.ui.panel.layout import PanelLayout
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -46,16 +47,16 @@ class BaseContextMenuProvider:
 
     def __init__(
         self,
-        context: "SessionContext",
-        session: "Session",
-        panel_registry: "PanelRegistry",
+        context: SessionContext,
+        session: Session,
+        panel_registry: PanelRegistry,
     ):
         self._context = context
         self._session = session
         self._panel_registry = panel_registry
-        self._open_popup: Optional[Popup] = None
+        self._open_popup: Popup | None = None
 
-    def _build_popup(self, pos: Tuple[float, float]) -> Popup:
+    def _build_popup(self, pos: tuple[float, float]) -> Popup:
         """Build a Popup at the given position. Extracted for testability.
 
         ``clamp_to_viewport`` keeps the menu on-screen when ``pos`` sits near
@@ -100,9 +101,9 @@ class BaseContextMenuProvider:
 
     def _open_menu(
         self,
-        surface: type["Surface"],
-        pos: Tuple[float, float],
-        on_close: Optional[Callable[[], None]] = None,
+        surface: type[Surface],
+        pos: tuple[float, float],
+        on_close: Callable[[], None] | None = None,
     ) -> None:
         """Gate the surface, render its tree into a hidden popup, keep it if a leaf drew.
 
@@ -173,7 +174,7 @@ class BaseContextMenuProvider:
         popup.on_close(_wrapped_on_close)
         popup.open()
 
-    def _host_for(self, surface: type["Surface"]) -> Tuple[bool, object | None]:
+    def _host_for(self, surface: type[Surface]) -> tuple[bool, object | None]:
         """``(contract_satisfiable, host)`` for this surface's panels.
 
         - ``(True, self)`` — the surface's ``provides`` Protocol is satisfied

@@ -7,9 +7,9 @@ untouched.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 
 from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall.errors import DuplicateHeapNameError

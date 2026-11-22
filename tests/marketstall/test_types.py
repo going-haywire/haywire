@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall.parsing import parse_marketstall_body
 

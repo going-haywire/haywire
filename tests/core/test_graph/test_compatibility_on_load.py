@@ -1,11 +1,12 @@
 """Integration: loading a graph applies Compatibility Warnings to node state."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.library.compatibility import CompatibilityWarning
-
 from tests.conftest import make_node
 
 

@@ -12,7 +12,7 @@ from typing import Any
 
 import tomlkit
 
-from haywire.core.tomlio import to_builtin, read_toml
+from haywire.core.tomlio import read_toml, to_builtin
 from haywire.core.volumes.keys import (
     PROJECT_KEY,
     VOLUME_KEY_RE,

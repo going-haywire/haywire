@@ -8,34 +8,35 @@ settings bags ``props`` and ``meta``.
 from __future__ import annotations
 
 import copy
-from typing import Any, Dict, List, Mapping, Optional, Tuple, TYPE_CHECKING
-from dataclasses import dataclass
-from datetime import datetime
+import logging
 import math
 import threading
 import uuid
-import logging
+from collections.abc import Mapping
+from dataclasses import dataclass
+from datetime import datetime
+from typing import TYPE_CHECKING, Any
 
+from haywire.core.errors import Refusal, report_failure
+from haywire.core.library.utils import get_registry_id_from_key
 from haywire.core.validation.interface import IStructuralValidator
 from haywire.core.validation.structural_validator import StructuralValidator
-from haywire.core.library.utils import get_registry_id_from_key
-from haywire.core.errors import Refusal, report_failure
 
-from ..types import Propagation
-from ..types.wire import WireRole
-from ..types.enums import PortType
-from .validation import ValidationManager, ValidationCallback
-from .types import ChangeReason
 from ...ui.utils import generate_edge_uuid
+from ..types import Propagation
+from ..types.enums import PortType
+from ..types.wire import WireRole
+from .types import ChangeReason
+from .validation import ValidationCallback, ValidationManager
 
 if TYPE_CHECKING:
-    from ..types import DataPort
     from ..edge.edge_wrapper import EdgeWrapper
     from ..node.layout import LayoutChannel
     from ..node.node_wrapper import NodeWrapper
-    from .scheduler import ValidationScheduler
     from ..settings.settings_graph import GraphSettings
+    from ..types import DataPort
     from .properties import GraphProperties
+    from .scheduler import ValidationScheduler
     from .subgraph import SubgraphDefinition
 
 logger = logging.getLogger(__name__)
@@ -67,7 +68,7 @@ class Variable:
         """Reset ``current_value`` to ``default_value``."""
         self.current_value = self.default_value
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Return the variable's fields as a JSON-serializable dict."""
         return {
             "name": self.name,
@@ -91,7 +92,7 @@ class BaseGraph:
         self,
         filestem: str = "",
         validation_delay_ms: float = 50.0,
-        validation_scheduler: "Optional[ValidationScheduler]" = None,
+        validation_scheduler: ValidationScheduler | None = None,
     ):
         """Initialize an empty graph, requiring a settings registry on the DI context.
 
@@ -116,18 +117,18 @@ class BaseGraph:
         # Transient identity of this loaded instance, never serialized.
         self.graph_id: str = str(uuid.uuid4())
 
-        self.node_wrappers: Dict[str, "NodeWrapper"] = {}
-        self.edge_wrappers: Dict[str, "EdgeWrapper"] = {}
-        self.variables: Dict[str, Variable] = {}
+        self.node_wrappers: dict[str, NodeWrapper] = {}
+        self.edge_wrappers: dict[str, EdgeWrapper] = {}
+        self.variables: dict[str, Variable] = {}
 
         # Subgraph definitions, by key. A Graph-node in this graph references
         # one by key; a definition is itself a graph and may hold its own
         # table, so this is a tree. See ``core.graph.subgraph``.
-        self.subgraphs: Dict[str, "SubgraphDefinition"] = {}
+        self.subgraphs: dict[str, SubgraphDefinition] = {}
 
         # The graph whose ``subgraphs`` table holds this one; None at the root.
         # Set by ``add_subgraph``, and what makes ``root_graph`` walkable.
-        self._host_graph: "BaseGraph | None" = None
+        self._host_graph: BaseGraph | None = None
 
         # Framework-written metadata; the editable fields live in the `meta` bag
         # below. filestem is derived from the real path by save_to_file and
@@ -142,15 +143,15 @@ class BaseGraph:
         # extent is held by name.
         self.canvas_width: int = _CANVAS_MIN_SIZE
         self.canvas_height: int = _CANVAS_MIN_SIZE
-        self._channel_extents: Dict[str, Tuple[int, int]] = {}
+        self._channel_extents: dict[str, tuple[int, int]] = {}
         self._canvas_size_changed: set[str] = set()
 
         # Library-wide compatibility findings from the most recent load_from_dict call.
         # Node-specific findings are written directly onto node state as NodeWarnings.
         self.library_compatibility_findings: list[str] = []
         # As the loaded file had them: what a save writes for a node whose class is not loaded.
-        self._loaded_requires: Dict[str, str] = {}
-        self._loaded_declarations: Dict[str, Any] = {}
+        self._loaded_requires: dict[str, str] = {}
+        self._loaded_declarations: dict[str, Any] = {}
 
         # The graph tier. The registry comes from the DI context, like node
         # bags, and must already be configured.
@@ -171,7 +172,7 @@ class BaseGraph:
         # host does. A definition left on the default background timer can
         # validate after the host has been flushed and subscribed, which
         # reports a load as a user edit.
-        self.validation_scheduler: "Optional[ValidationScheduler]" = validation_scheduler
+        self.validation_scheduler: ValidationScheduler | None = validation_scheduler
         self.validation_delay_ms: float = validation_delay_ms
 
         self._validation = ValidationManager(
@@ -201,7 +202,7 @@ class BaseGraph:
         """Remove ``callback`` from the subscribers; a callback that isn't subscribed is ignored."""
         self._validation.unsubscribe(callback)
 
-    def get_validation_stats(self) -> Dict[str, Any]:
+    def get_validation_stats(self) -> dict[str, Any]:
         """Return the validation pipeline's counters.
 
         Returns:
@@ -236,7 +237,7 @@ class BaseGraph:
         if node_id in self.node_wrappers:
             self._validation.mark_node_dirty(node_id, ChangeReason.NODE_VALIDATION_REQUESTED)
 
-    def request_node_rebuild(self, node_id: str, node_data: Optional[Dict[str, Any]] = None) -> None:
+    def request_node_rebuild(self, node_id: str, node_data: dict[str, Any] | None = None) -> None:
         """Rebuild a node in the next validation pass: exactly from *node_data*, or through ``init()``.
 
         *node_data* is a ``NodeWrapper.serialize()["node_data"]``. The pass rebuilds the
@@ -309,7 +310,7 @@ class BaseGraph:
     # =========================================================================
 
     @property
-    def root_graph(self) -> "BaseGraph":
+    def root_graph(self) -> BaseGraph:
         """The graph at the top of this Subgraph tree; ``self`` for a graph that owns a file."""
         graph: BaseGraph = self
         while graph._host_graph is not None:
@@ -329,7 +330,7 @@ class BaseGraph:
             ids |= definition.tree_node_ids()
         return ids
 
-    def add_subgraph(self, definition: "SubgraphDefinition") -> "SubgraphDefinition":
+    def add_subgraph(self, definition: SubgraphDefinition) -> SubgraphDefinition:
         """Register ``definition`` in this graph's table under its own key and return it.
 
         A node id is unique across the whole tree, which is what lets a node be
@@ -365,17 +366,17 @@ class BaseGraph:
         definition._share_validation_lock(self._validation.lock)
         return definition
 
-    def _share_validation_lock(self, lock: "threading.RLock") -> None:
+    def _share_validation_lock(self, lock: threading.RLock) -> None:
         """Validate this graph and every Subgraph nested in it under ``lock``."""
         self._validation.share_lock(lock)
         for definition in self.subgraphs.values():
             definition._share_validation_lock(lock)
 
-    def get_subgraph(self, key: str) -> "SubgraphDefinition | None":
+    def get_subgraph(self, key: str) -> SubgraphDefinition | None:
         """Return the Subgraph definition under ``key``, or ``None`` if this graph has none."""
         return self.subgraphs.get(key)
 
-    def detach_subgraph(self, key: str) -> "SubgraphDefinition | None":
+    def detach_subgraph(self, key: str) -> SubgraphDefinition | None:
         """Take the Subgraph definition under ``key`` out of this table intact, or ``None``.
 
         The definition keeps its live nodes and edges and is left with no host,
@@ -397,7 +398,7 @@ class BaseGraph:
         definition._host_graph = None
         return definition
 
-    def remove_subgraph(self, key: str) -> "SubgraphDefinition | None":
+    def remove_subgraph(self, key: str) -> SubgraphDefinition | None:
         """Remove and return the Subgraph definition under ``key``, or ``None`` if unknown.
 
         The removed definition is cleared and cleaned up, so its nodes release
@@ -425,12 +426,12 @@ class BaseGraph:
     def create_node_wrapper(
         self,
         registry_key: str,
-        node_data: Optional[Dict[str, Any]] = None,
-        node_id: Optional[str] = None,
+        node_data: dict[str, Any] | None = None,
+        node_id: str | None = None,
         *,
-        position: Tuple[float, float] | None = None,
+        position: tuple[float, float] | None = None,
         props: Mapping[str, Any] | None = None,
-    ) -> Optional["NodeWrapper"]:
+    ) -> NodeWrapper | None:
         """Create a node of type ``registry_key``, build it, and add it to the graph.
 
         Args:
@@ -466,7 +467,7 @@ class BaseGraph:
 
         return self.add_node_wrapper(wrapper)
 
-    def add_node_wrapper(self, wrapper: "NodeWrapper") -> "NodeWrapper":
+    def add_node_wrapper(self, wrapper: NodeWrapper) -> NodeWrapper:
         """Add an already built wrapper to the graph and mark it dirty as ``NODE_ADDED``.
 
         Registers the wrapper and resizes the canvas to fit it.
@@ -492,7 +493,7 @@ class BaseGraph:
 
         return wrapper
 
-    def remove_node_wrapper(self, wrapper: "NodeWrapper") -> "NodeWrapper" | None:
+    def remove_node_wrapper(self, wrapper: NodeWrapper) -> NodeWrapper | None:
         """Remove ``wrapper`` and every edge attached to it, marking them all dirty as removed.
 
         Returns:
@@ -521,7 +522,7 @@ class BaseGraph:
 
         return wrapper
 
-    def get_node_wrapper(self, node_id: str) -> "NodeWrapper" | None:
+    def get_node_wrapper(self, node_id: str) -> NodeWrapper | None:
         """Return the wrapper for ``node_id``, or ``None`` if this graph has no such node."""
         return self.node_wrappers.get(node_id)
 
@@ -557,11 +558,11 @@ class BaseGraph:
 
         return True
 
-    def get_node_wrappers_by_type(self, registry_key: str) -> List["NodeWrapper"]:
+    def get_node_wrappers_by_type(self, registry_key: str) -> list[NodeWrapper]:
         """Return every node wrapper in the graph whose type is ``registry_key``."""
         return [wrapper for wrapper in self.node_wrappers.values() if wrapper.registry_key == registry_key]
 
-    def list_node_wrappers(self) -> List["NodeWrapper"]:
+    def list_node_wrappers(self) -> list[NodeWrapper]:
         """Return every node wrapper in the graph."""
         return list(self.node_wrappers.values())
 
@@ -569,7 +570,7 @@ class BaseGraph:
     # CANVAS SIZE MANAGEMENT
     # =========================================================================
 
-    def canvas_extent(self, channel: LayoutChannel) -> Tuple[int, int]:
+    def canvas_extent(self, channel: LayoutChannel) -> tuple[int, int]:
         """Return the ``(width, height)`` of the canvas that lays nodes out in ``channel``.
 
         The ``PATCH`` extent is ``canvas_width`` by ``canvas_height``. A channel whose extent
@@ -579,7 +580,7 @@ class BaseGraph:
             return self.canvas_width, self.canvas_height
         return self._channel_extents.get(channel.name, (_CANVAS_MIN_SIZE, _CANVAS_MIN_SIZE))
 
-    def _member_bounds(self, channel: LayoutChannel) -> Tuple[float, float, float, float] | None:
+    def _member_bounds(self, channel: LayoutChannel) -> tuple[float, float, float, float] | None:
         """Return ``(left, top, right, bottom)`` in canvas pixels of the cards ``channel`` includes.
 
         ``None`` when the channel includes no node.
@@ -597,7 +598,7 @@ class BaseGraph:
         return min(lefts), min(tops), max(rights), max(bottoms)
 
     @staticmethod
-    def _canvas_indent(bounds: Tuple[float, float, float, float]) -> float:
+    def _canvas_indent(bounds: tuple[float, float, float, float]) -> float:
         """Return the margin a trimmed canvas leaves around ``bounds``: its shorter side."""
         left, top, right, bottom = bounds
         return min(right - left, bottom - top)
@@ -648,7 +649,7 @@ class BaseGraph:
 
         return any([self._check_canvas_size(channel) for channel in CHANNELS])
 
-    def _take_canvas_size_changes(self) -> Dict[str, Tuple[int, int]]:
+    def _take_canvas_size_changes(self) -> dict[str, tuple[int, int]]:
         """Return the extent of each channel flagged as changed, and clear the flags."""
         from ..node.layout import CHANNELS  # a module-level import cycles through haywire.core.node
 
@@ -670,7 +671,7 @@ class BaseGraph:
         self._check_all_canvas_sizes()
         self._canvas_size_changed.clear()
 
-    def trimmed_positions(self, channel: LayoutChannel | None = None) -> Dict[str, Dict[str, float]]:
+    def trimmed_positions(self, channel: LayoutChannel | None = None) -> dict[str, dict[str, float]]:
         """Return the positions that centre every card in ``channel`` on a trimmed canvas.
 
         The cards move together, locked ones included, so a margin the size of the shorter
@@ -713,11 +714,11 @@ class BaseGraph:
                 }
         return positions
 
-    def _get_port(self, node_id: str, port_id: str) -> "DataPort":
+    def _get_port(self, node_id: str, port_id: str) -> DataPort:
         """Convenience method to get a port from a node."""
         return self.node_wrappers[node_id].node.ports[port_id]
 
-    def _get_ports(self, node_id: str) -> List["DataPort"]:
+    def _get_ports(self, node_id: str) -> list[DataPort]:
         """Get all current inlet and outlet ports from a node."""
         ports = []
         for port in self.node_wrappers[node_id].node.ports.values():
@@ -737,8 +738,8 @@ class BaseGraph:
         sink_node_id: str,
         inlet_port_id: str,
         propagation: Propagation = Propagation.EAGER,
-        style: Optional[Mapping[str, Any]] = None,
-    ) -> Optional["EdgeWrapper"]:
+        style: Mapping[str, Any] | None = None,
+    ) -> EdgeWrapper | None:
         """Create an edge between two ports, build its adapter chain, and add it to the graph.
 
         Args:
@@ -768,7 +769,7 @@ class BaseGraph:
 
         return self.add_edge_wrapper(edge_wrapper)
 
-    def add_edge_wrapper(self, edge_wrapper: "EdgeWrapper") -> "EdgeWrapper":
+    def add_edge_wrapper(self, edge_wrapper: EdgeWrapper) -> EdgeWrapper:
         """Add an already built wrapper to the graph, link it to its ports, and mark it ``EDGE_ADDED``.
 
         Returns:
@@ -801,7 +802,7 @@ class BaseGraph:
 
         return edge_wrapper
 
-    def remove_edge_wrapper(self, edge_id: str) -> Optional["EdgeWrapper"]:
+    def remove_edge_wrapper(self, edge_id: str) -> EdgeWrapper | None:
         """Remove the edge with ``edge_id``, detach it from its ports, and mark it ``EDGE_REMOVED``.
 
         Returns:
@@ -823,17 +824,17 @@ class BaseGraph:
 
         return edge_wrapper
 
-    def get_edge_wrapper(self, edge_id: str) -> Optional["EdgeWrapper"]:
+    def get_edge_wrapper(self, edge_id: str) -> EdgeWrapper | None:
         """Return the wrapper for ``edge_id``, or ``None`` if this graph has no such edge."""
         return self.edge_wrappers.get(edge_id)
 
-    def list_edge_wrappers(self) -> List["EdgeWrapper"]:
+    def list_edge_wrappers(self) -> list[EdgeWrapper]:
         """Return every edge wrapper in the graph."""
         return list(self.edge_wrappers.values())
 
     def _get_edge_wrappers_for_port(
         self, node_id: str, port_id: str, *, incoming: bool
-    ) -> List["EdgeWrapper"]:
+    ) -> list[EdgeWrapper]:
         """Return the edge wrappers at one end of ``port_id`` on ``node_id``.
 
         A swinglet may be either end of an edge, so the caller names the end:
@@ -850,7 +851,7 @@ class BaseGraph:
 
         return connected_wrappers
 
-    def control_transitions(self, node_id: str) -> Dict[str, Tuple[str, str]]:
+    def control_transitions(self, node_id: str) -> dict[str, tuple[str, str]]:
         """Return where control leaves ``node_id``, by control outlet.
 
         The control topology of the graph, asked as one question so a view over
@@ -866,7 +867,7 @@ class BaseGraph:
         Returns:
             ``{outlet_port_id: (next_node_id, inlet_port_id)}``.
         """
-        transitions: Dict[str, Tuple[str, str]] = {}
+        transitions: dict[str, tuple[str, str]] = {}
 
         wrapper = self.get_node_wrapper(node_id)
         if wrapper is None:
@@ -881,7 +882,7 @@ class BaseGraph:
 
         return transitions
 
-    def _get_edge_wrappers_for_node(self, node_id: str) -> List["EdgeWrapper"]:
+    def _get_edge_wrappers_for_node(self, node_id: str) -> list[EdgeWrapper]:
         """Return every edge wrapper whose source or sink is ``node_id``."""
         connected_wrappers = []
 
@@ -891,7 +892,7 @@ class BaseGraph:
 
         return connected_wrappers
 
-    def _get_all_edges(self, node_id: str) -> List["EdgeWrapper"]:
+    def _get_all_edges(self, node_id: str) -> list[EdgeWrapper]:
         """Return every edge wrapper attached to ``node_id``, linked or not."""
         connected_edges = []
         for edges in self.edge_wrappers.values():
@@ -899,7 +900,7 @@ class BaseGraph:
                 connected_edges.append(edges)
         return connected_edges
 
-    def _get_linked_edges(self, node_id: str) -> List["EdgeWrapper"]:
+    def _get_linked_edges(self, node_id: str) -> list[EdgeWrapper]:
         """Return the edge wrappers currently linked to ``node_id``'s ports.
 
         An edge attached to the node but not linked to its ports is left out;
@@ -960,7 +961,7 @@ class BaseGraph:
     # UTILITY METHODS
     # =========================================================================
 
-    def get_disconnected_components(self) -> List[List[str]]:
+    def get_disconnected_components(self) -> list[list[str]]:
         """Return the graph's connected components, each as a list of node IDs.
 
         Edge direction is ignored, so two nodes joined by any edge land in the
@@ -969,7 +970,7 @@ class BaseGraph:
         visited = set()
         components = []
 
-        def dfs(node_id: str, component: List[str]):
+        def dfs(node_id: str, component: list[str]):
             if node_id in visited:
                 return
             visited.add(node_id)
@@ -1027,7 +1028,7 @@ class BaseGraph:
 
         self._validation.clear()
 
-    def settings_bag_for(self, owner_cls: type) -> "GraphSettings | None":
+    def settings_bag_for(self, owner_cls: type) -> GraphSettings | None:
         """Return this graph's settings bag that is an instance of ``owner_cls``, or ``None``.
 
         Matches ``props`` and ``meta`` by class (see ADR 0022).
@@ -1060,7 +1061,7 @@ class BaseGraph:
     # SERIALIZATION
     # =========================================================================
 
-    def to_dict(self, include_data: bool = True) -> Dict[str, Any]:
+    def to_dict(self, include_data: bool = True) -> dict[str, Any]:
         """Return the graph as a JSON-serializable dict, stamped with the current format version.
 
         Args:
@@ -1097,7 +1098,7 @@ class BaseGraph:
             },
         }
 
-    def _requires_and_declarations(self) -> tuple[Dict[str, str], Dict[str, Any]]:
+    def _requires_and_declarations(self) -> tuple[dict[str, str], dict[str, Any]]:
         """Return the file's ``requires`` and ``declarations`` tables for the nodes held now.
 
         ``requires`` maps each library a node comes from to its version, and
@@ -1105,8 +1106,8 @@ class BaseGraph:
         declares (``NodeData.saved_declaration``). A node whose class is not loaded keeps
         the entries of the file it came from.
         """
-        requires: Dict[str, str] = {}
-        declarations: Dict[str, Any] = {}
+        requires: dict[str, str] = {}
+        declarations: dict[str, Any] = {}
         for wrapper in self.node_wrappers.values():
             key = wrapper.registry_key
             library_name = key.split(":", 1)[0]
@@ -1123,7 +1124,7 @@ class BaseGraph:
             declarations.setdefault(key, node.saved_declaration)
         return dict(sorted(requires.items())), dict(sorted(declarations.items()))
 
-    def _add_own_declarations(self, nodes: Dict[str, Any], declarations: Dict[str, Any]) -> None:
+    def _add_own_declarations(self, nodes: dict[str, Any], declarations: dict[str, Any]) -> None:
         """Give each serialized node whose declaration is not its class's entry its own, in place.
 
         A node whose ``init()`` declares something of its own, such as its id as a default,
@@ -1141,7 +1142,7 @@ class BaseGraph:
             if not same_declaration(declarations.get(wrapper.registry_key), own):
                 node_data[DECLARED_KEY] = copy.deepcopy(own)
 
-    def load_from_dict(self, data: Dict[str, Any]) -> bool:
+    def load_from_dict(self, data: dict[str, Any]) -> bool:
         """Replace this graph's contents with ``data``, upgraded to the current file format first.
 
         Clears the graph, restores the ``props`` and ``meta`` bags, then the
@@ -1307,7 +1308,7 @@ class BaseGraph:
             )
             return False
 
-    def _apply_compatibility_warnings(self, data: Dict[str, Any]) -> None:
+    def _apply_compatibility_warnings(self, data: dict[str, Any]) -> None:
         """Record compatibility warnings for the nodes just loaded from ``data``.
 
         Checks each node's library version as saved in ``data``, not the live
@@ -1460,7 +1461,7 @@ class BaseGraph:
         from pathlib import Path
 
         try:
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 data = json.load(f)
 
             success = self.load_from_dict(data)

@@ -11,7 +11,6 @@ from nicegui.page import page as page_deco
 
 from haywire.core.access import LevelMode
 from haywire.core.graph.edit_route import EditRoute
-
 from tests.ui.panel.test_ports_panel_reorder import _FakePort, _walk
 
 pytestmark = pytest.mark.unit

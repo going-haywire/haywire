@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional
 
+from haybale_graph_editor.states.graph_app_state import GraphAppState
+from haybale_haystack.graph_entry import EntryKind, GraphEntry
+from haybale_haystack.settings.haystack_settings import HaystackSettings
 from haywire.api.workbench import (
     AppState,
     BaseGraph,
@@ -12,18 +14,12 @@ from haywire.api.workbench import (
     get_library_state_container,
     state,
 )
-
+from haywire.core.execution.compile_result import CompileResult
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.types import ChangeReason
 from haywire.core.graph.validation import ValidationResult
 from haywire.core.node.factory import NodeFactory
 from haywire.core.state import LibraryStateContainer
-from haywire.core.execution.compile_result import CompileResult
-
-from haybale_haystack.graph_entry import EntryKind, GraphEntry
-from haybale_haystack.settings.haystack_settings import HaystackSettings
-
-from haybale_graph_editor.states.graph_app_state import GraphAppState
 
 logger = logging.getLogger(__name__)
 
@@ -43,14 +39,14 @@ class HaystackState(AppState):
         # Dependencies resolved in on_enable. _dispatcher is NOT among
         # them: AppState's base class provides it as a container-stamped
         # weakref (see haywire/core/state/base.py), dereffed via self._dispatcher().
-        self._workspace_root: Optional[Path] = None
-        self._node_factory: Optional[NodeFactory] = None
-        self._library_state_container: Optional[LibraryStateContainer] = None
+        self._workspace_root: Path | None = None
+        self._node_factory: NodeFactory | None = None
+        self._library_state_container: LibraryStateContainer | None = None
 
         # Reference to the shared graph registry; populated in on_enable.
         # Direct attribute (not in app_data dict) for fast access from
         # save / open / remove hot paths.
-        self._graph_app_state: Optional[GraphAppState] = None
+        self._graph_app_state: GraphAppState | None = None
 
         self._haystack_settings: HaystackSettings = HaystackSettings()
 
@@ -187,7 +183,7 @@ class HaystackState(AppState):
     # Validation handler
     # ------------------------------------------------------------------
 
-    def _on_entry_validation(self, entry: GraphEntry, result: "ValidationResult") -> None:
+    def _on_entry_validation(self, entry: GraphEntry, result: ValidationResult) -> None:
         """Stop execution if reassembly is required, mark unsaved, broadcast.
 
         Handles three concerns:
@@ -248,7 +244,7 @@ class HaystackState(AppState):
                 logger.info(f"Autorestart skipped for '{entry.display_name}': {result_compile.error}")
 
     @staticmethod
-    def _only_value_edits(result: "ValidationResult") -> bool:
+    def _only_value_edits(result: ValidationResult) -> bool:
         """Return whether every saved change in *result* is a value edit; repaints are ignored."""
         value_reasons = {ChangeReason.NODE_VALUE_CHANGED, ChangeReason.GRAPH_CONTENT_CHANGED}
         reasons = [*result.nodes.values(), *result.edges.values()]
@@ -260,7 +256,7 @@ class HaystackState(AppState):
     # Graph factory (private)
     # ------------------------------------------------------------------
 
-    def _make_graph_and_editor(self, name: str) -> tuple["BaseGraph", "Editor"]:
+    def _make_graph_and_editor(self, name: str) -> tuple[BaseGraph, Editor]:
         """Construct a fresh (BaseGraph, Editor) pair for this state's deps.
 
         Injects ``LoopScheduler`` so the debounced validation pass — and the
@@ -375,7 +371,7 @@ class HaystackState(AppState):
         self._broadcast_data_mutated()
         return existing
 
-    def _open_document(self, path: Path, kind: EntryKind, document: Optional[dict] = None) -> GraphEntry:
+    def _open_document(self, path: Path, kind: EntryKind, document: dict | None = None) -> GraphEntry:
         """Open ``path`` under ``kind``, or return the entry already holding it.
 
         With ``document``, the new entry holds it instead of the file's contents
@@ -410,7 +406,7 @@ class HaystackState(AppState):
             self._mark_haystack_dirty()
         return entry
 
-    def save_graph(self, entry: GraphEntry, save_as: Optional[Path] = None) -> bool:
+    def save_graph(self, entry: GraphEntry, save_as: Path | None = None) -> bool:
         """Save ``entry``, returning True on success.
 
         Routes to the same implementation as ``entry.save(save_as=...)``, but
@@ -419,7 +415,7 @@ class HaystackState(AppState):
         """
         return self._save_entry(entry, save_as=save_as) is not False
 
-    def _save_entry(self, entry: GraphEntry, save_as: Optional[Path] = None):
+    def _save_entry(self, entry: GraphEntry, save_as: Path | None = None):
         """Internal save implementation.
 
         Returns:
@@ -456,7 +452,7 @@ class HaystackState(AppState):
         entry.unsaved = False
         # The file now holds this state: a value edit after the save is a new step.
         entry.editor.add_fence()
-        renamed_to: Optional[str] = None
+        renamed_to: str | None = None
 
         if save_as is not None and save_as != entry.path:
             old_binding_id = entry.binding_id
@@ -528,7 +524,7 @@ class HaystackState(AppState):
     # state observes start/stop transitions.
     # ------------------------------------------------------------------
 
-    def start_execution(self, entry: GraphEntry) -> "CompileResult":
+    def start_execution(self, entry: GraphEntry) -> CompileResult:
         result = entry.start_execution()
         self._mark_haystack_dirty()
         return result
@@ -541,13 +537,13 @@ class HaystackState(AppState):
     # Lookups
     # ------------------------------------------------------------------
 
-    def get_by_id(self, binding_id: str) -> Optional[GraphEntry]:
+    def get_by_id(self, binding_id: str) -> GraphEntry | None:
         return self._entries.get(binding_id)
 
-    def get_by_path(self, path: Path) -> Optional[GraphEntry]:
+    def get_by_path(self, path: Path) -> GraphEntry | None:
         return self._entries.get(str(path))
 
-    def get_by_graph(self, graph: object) -> Optional[GraphEntry]:
+    def get_by_graph(self, graph: object) -> GraphEntry | None:
         for entry in self._entries.values():
             if entry.graph is graph:
                 return entry
@@ -581,7 +577,7 @@ class HaystackState(AppState):
     # Named-haystack persistence — the authoritative API
     # ------------------------------------------------------------------
 
-    def save_haystack(self, name: str, active_path: Optional[Path] = None) -> Path:
+    def save_haystack(self, name: str, active_path: Path | None = None) -> Path:
         """Persist the current registry to the named haystack TOML.
 
         Writes the TOML via ``persistence.dump_haystack`` and, if settings
@@ -605,7 +601,7 @@ class HaystackState(AppState):
         self._broadcast_data_mutated()
         return target
 
-    def load_haystack(self, name: str) -> Optional[Path]:
+    def load_haystack(self, name: str) -> Path | None:
         """Load the named haystack and open all graphs it lists.
 
         Returns the absolute path of the haystack's stored ``active_graph``

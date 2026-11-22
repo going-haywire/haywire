@@ -18,8 +18,8 @@ case's ``prepare`` runs; cases use the global graph API like the tests do.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, List, Optional
 
 _LOOP_END = 1000  # ForLoop bound for the loop graph (~3000 node execs/run)
 
@@ -49,15 +49,14 @@ def _build_loop_graph():
     that no longer resolves — the exact failure mode a frozen .haywire file had when
     the primitive types were hoisted into the `builtin` library.
     """
+    from haybale_core.nodes.control_switch import ControlSwitchNode
     from haybale_core.nodes.emits.tick_emit import TickEmitNode
     from haybale_core.nodes.events.begin_play_event import BeginPlayEventNode
     from haybale_core.nodes.events.shutdown_event import ShutdownEventNode
     from haybale_core.nodes.events.tick_event import TickEventNode
     from haybale_core.nodes.for_loop import ForLoopNode
     from haybale_core.nodes.logger import LoggerNode
-    from haybale_core.nodes.control_switch import ControlSwitchNode
     from haybale_example.nodes.math_operation import MathOperationNode
-
     from haywire.core.graph.base import BaseGraph
 
     # (stable short id -> node class). The short id keys _LOOP_EDGES and stays fixed
@@ -138,7 +137,6 @@ def _prepare_graph_loop() -> Prepared:
 # ---------------------------------------------------------------------------
 def _prepare_node_execute_bare() -> Prepared:
     from haybale_testing.nodes.benchmark.bench_bare_node import BenchBareNode
-
     from haywire.core.execution.execution_context import ExecutionContext
     from haywire.core.graph.base import BaseGraph
 
@@ -192,7 +190,6 @@ def _build_chain_graph(root_raises: bool):
     from haybale_testing.nodes.benchmark.bench_data_raise_node import BenchDataRaiseNode
     from haybale_testing.nodes.benchmark.bench_fan_in_node import BenchFanInNode
     from haybale_testing.nodes.benchmark.bench_sink_node import BenchSinkNode
-
     from haywire.core.graph.base import BaseGraph
 
     graph = BaseGraph(filestem="bench chain")
@@ -242,7 +239,6 @@ def _prepare_graph_loop_half_failing() -> Prepared:
     from haybale_core.nodes.for_loop import ForLoopNode
     from haybale_testing.nodes.benchmark.bench_loop_raise_node import BenchLoopRaiseNode
     from haybale_testing.nodes.benchmark.bench_sink_node import BenchSinkNode
-
     from haywire.core.graph.base import BaseGraph
 
     graph = BaseGraph(filestem="bench loop half failing")
@@ -269,7 +265,6 @@ def _prepare_graph_loop_half_failing() -> Prepared:
 
 def _prepare_node_execute_raises() -> Prepared:
     from haybale_testing.nodes.benchmark.bench_data_raise_node import BenchDataRaiseNode, BenchFailure
-
     from haywire.core.execution.execution_context import ExecutionContext
     from haywire.core.graph.base import BaseGraph
 
@@ -311,7 +306,7 @@ def _bgr_frame(height: int, width: int):
     return np.random.default_rng(0).integers(0, 256, (height, width, 3), dtype=np.uint8)
 
 
-def _gpu_device() -> Optional[str]:
+def _gpu_device() -> str | None:
     """``"cuda"`` or ``"mps"`` when torch and that device are available, else ``None``."""
     try:
         import torch
@@ -407,7 +402,7 @@ def _prepare_img_gpu_trip_1080p() -> Prepared:
     return Prepared(run=run, ops=1, repeats=_IMG_REPEATS, warmup=5)
 
 
-def _sr_model_path() -> Optional[str]:
+def _sr_model_path() -> str | None:
     """Return ``$HAYWIRE_BENCH_SR_MODEL``, or ``None`` if unset, missing, or spandrel absent."""
     import importlib.util
     import os
@@ -535,7 +530,7 @@ def _prepare_img_view_stream_encode_1080p() -> Prepared:
     return Prepared(run=run, ops=1, repeats=_IMG_REPEATS, warmup=5)
 
 
-def _image_cases() -> List[Case]:
+def _image_cases() -> list[Case]:
     """The ``img_*`` cases this environment can run: GPU cases need torch + CUDA/MPS, SR also a model."""
     cases = [
         Case("img_wrap_1080p", "micro", "ns", _prepare_img_wrap_1080p),
@@ -559,7 +554,7 @@ def _image_cases() -> List[Case]:
     return cases
 
 
-CASES: List[Case] = [
+CASES: list[Case] = [
     Case("graph_loop", "graph", "ns", _prepare_graph_loop),
     Case("node_execute_bare", "micro", "ns", _prepare_node_execute_bare),
     Case("graph_data_chain_ok", "graph", "ns", _prepare_graph_data_chain_ok),
@@ -570,7 +565,7 @@ CASES: List[Case] = [
 ]
 
 
-def get_cases(only: Optional[str] = None) -> List[Case]:
+def get_cases(only: str | None = None) -> list[Case]:
     """All cases, or those whose name contains ``only`` (case-name filter)."""
     if only is None:
         return list(CASES)

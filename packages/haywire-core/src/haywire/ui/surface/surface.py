@@ -40,7 +40,7 @@ from typing import Any, ClassVar
 from haywire.ui.surface.presentation import Presentation
 
 # id -> Surface subclass map. Populated by Surface.__init_subclass__.
-_SURFACE_BY_ID: dict[str, type["Surface"]] = {}
+_SURFACE_BY_ID: dict[str, type[Surface]] = {}
 
 
 class Surface(ABC):

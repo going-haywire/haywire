@@ -1,12 +1,14 @@
 """Which pins of the audio nodes carry AUDIO_EXEC (the audio flow) and which stay EXEC (start and stop)."""
 
+from __future__ import annotations
+
 import importlib
 from typing import Any
 
 import pytest
-from haywire.barn.builtin.types import EXEC
 
 from haybale_audio.types.audio_exec import AUDIO_EXEC
+from haywire.barn.builtin.types import EXEC
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration

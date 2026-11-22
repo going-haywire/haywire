@@ -14,6 +14,8 @@ Add your custom components in the corresponding folders:
 - states/     — per-session library state (SessionState subclasses)
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from haywire.api import (

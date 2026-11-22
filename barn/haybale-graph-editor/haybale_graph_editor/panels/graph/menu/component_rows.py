@@ -51,7 +51,7 @@ def key_and_label(identity: Any | None, fallback: str = "") -> tuple[str, str]:
     return key, label
 
 
-def reveal_component(ctx: "SessionContext", registry_key: str) -> None:
+def reveal_component(ctx: SessionContext, registry_key: str) -> None:
     """Show ``registry_key``'s source, popping the CONTEXT slot open.
 
     Publishes ``RevealComponentSource`` rather than only assigning
@@ -70,7 +70,7 @@ def reveal_component(ctx: "SessionContext", registry_key: str) -> None:
     ctx.session.publish(RevealComponentSource(registry_key=registry_key))
 
 
-def component_row(ctx: "SessionContext", label: str, key: str, icon: str) -> bool:
+def component_row(ctx: SessionContext, label: str, key: str, icon: str) -> bool:
     """Draw one "open this component's source" row. Returns whether it drew.
 
     The return value is what lets a hosting ``hui.submenu_row`` grey itself

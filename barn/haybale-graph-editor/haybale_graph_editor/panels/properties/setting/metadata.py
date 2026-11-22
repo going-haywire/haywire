@@ -16,6 +16,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import route_for
+from haybale_graph_editor.surfaces import GraphInspector
 from haywire.api.workbench import (
     AccessTier,
     ActiveGraphMoved,
@@ -26,10 +29,6 @@ from haywire.api.workbench import (
     render_settings,
 )
 from haywire.core.signals import GraphSaved
-
-from haybale_graph_editor.surfaces import GraphInspector
-from haybale_graph_editor.states.edit_state import EditState
-from haybale_graph_editor.states.graph_app_state import route_for
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -53,7 +52,7 @@ class GraphMetadataPanel(BasePanel):
     """Renders ``graph.meta`` for the active graph."""
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         graph_obj = ctx.data[EditState].active_graph
         return (
             graph_obj is not None
@@ -61,7 +60,7 @@ class GraphMetadataPanel(BasePanel):
             and route_for(ctx) is not None
         )
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         graph_obj = ctx.data[EditState].active_graph
         if graph_obj is None:
             return

@@ -8,6 +8,8 @@ Component folders (registered in ``register_components``):
   - ``types``, ``nodes``: the AUDIO and AUDIO_CALLBACK types and the Audio Event node.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from haywire.api import BaseLibrary, NodeRegistry, TypeRegistry, library

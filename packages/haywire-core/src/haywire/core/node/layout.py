@@ -6,6 +6,8 @@ canvas. A serialized node stores its layout under
 omitted, so a missing field reads as ``0.0``.
 """
 
+from __future__ import annotations
+
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any

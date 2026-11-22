@@ -1,5 +1,7 @@
 """IMAGE types and the layout adapters, resolved through the adapter factory."""
 
+from __future__ import annotations
+
 import importlib
 from typing import Any
 

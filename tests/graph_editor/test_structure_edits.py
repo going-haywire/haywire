@@ -23,7 +23,6 @@ from haywire.core.graph.edit_route import EditRoute
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.scheduler import ThreadingTimerScheduler
 from haywire.core.types.enums import Propagation
-
 from tests.conftest import edit_route, make_edge, make_node
 
 pytestmark = pytest.mark.integration

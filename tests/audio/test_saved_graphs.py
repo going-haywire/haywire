@@ -1,5 +1,7 @@
 """Saved audio graphs: a flow still loads, and an edge that is now refused is kept."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest

@@ -3,6 +3,8 @@ Structural tests: verify that the correct fields and widget types
 render for SettingsProbeNode.example and TestingSettings.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page, expect
 

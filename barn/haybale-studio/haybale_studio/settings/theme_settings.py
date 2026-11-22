@@ -1,6 +1,8 @@
 # haybale_studio/settings/workbench.py
 """Workbench and node theme selection settings."""
 
+from __future__ import annotations
+
 from haywire.api import CHOICES, LibrarySettings, setting, settings, shadow
 from haywire.core.di.config import get_theme_registry
 from haywire.core.skin.settings import NodeDefaultSkinSettings, _node_theme_choices

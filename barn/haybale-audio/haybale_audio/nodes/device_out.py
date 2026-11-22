@@ -1,7 +1,12 @@
 """Device Out — plays the audio blocks of a flow on a sound device."""
 
+from __future__ import annotations
+
 import time
 
+from haybale_audio.emitter import set_status
+from haybale_audio.io.device import DeviceOutput, output_device_names
+from haybale_audio.value import AudioBlock
 from haywire.api import (
     CHOICES,
     EXEC,
@@ -9,18 +14,14 @@ from haywire.api import (
     STRING,
     BaseNode,
     ExecutionContext,
+    LabelWidget,
     NodeSettings,
     NodeType,
     Promotable,
-    LabelWidget,
     bag,
     node,
     setting,
 )
-
-from haybale_audio.emitter import set_status
-from haybale_audio.io.device import DeviceOutput, output_device_names
-from haybale_audio.value import AudioBlock
 
 #: Seconds between status updates; one per block would flood the UI.
 STATUS_INTERVAL = 0.5

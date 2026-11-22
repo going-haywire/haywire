@@ -5,6 +5,8 @@ owns. The framework floor used to be rewritten as a side effect of resolving
 unrelated drift, and the ordering that hid it was accidental.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from unittest.mock import patch
 

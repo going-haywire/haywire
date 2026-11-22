@@ -9,8 +9,9 @@ graph. It never mutates graph data.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Iterable, Optional
+from typing import Any
 
 _SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 
@@ -47,7 +48,7 @@ class CompatibilityWarning:
     """
 
     version: str
-    component: Optional[Any]
+    component: Any | None
     message: str
     version_tuple: tuple[int, int, int] = field(init=False)
 
@@ -63,23 +64,23 @@ class SavedNode:
     node_id: str
     registry_key: str
     library_id: str
-    saved_version: Optional[str]  # None for files predating the library.version field
+    saved_version: str | None  # None for files predating the library.version field
 
 
 @dataclass(frozen=True)
 class CompatibilityFinding:
     """A resolved warning to apply. node_id=None means a library-wide finding."""
 
-    node_id: Optional[str]
+    node_id: str | None
     message: str
-    source_version: Optional[str]
+    source_version: str | None
 
 
 # Yields the append-only CompatibilityWarning history for a given library id.
 HistoryLookup = Callable[[str], list[CompatibilityWarning]]
 
 
-def _component_registry_key(component: Any) -> Optional[str]:
+def _component_registry_key(component: Any) -> str | None:
     """Resolve a warning's component to a registry_key, or None for library-wide.
 
     Accepts either a class exposing ``class_identity.registry_key`` or a plain
@@ -93,7 +94,7 @@ def _component_registry_key(component: Any) -> Optional[str]:
     return getattr(identity, "registry_key", None)
 
 
-def _is_older(saved_version: Optional[str], warning: CompatibilityWarning) -> bool:
+def _is_older(saved_version: str | None, warning: CompatibilityWarning) -> bool:
     """True if the saved version is strictly below the warning's version.
 
     A missing saved version is treated as infinitely old (every warning fires).

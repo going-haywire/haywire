@@ -1,5 +1,7 @@
 """Step 4 — docs regeneration via a subprocess, never in-process."""
 
+from __future__ import annotations
+
 import json
 import subprocess
 from pathlib import Path

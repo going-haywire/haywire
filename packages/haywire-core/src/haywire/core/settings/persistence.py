@@ -7,17 +7,19 @@ all interpretation (rehydration, auto-define, tiers) stays in the registry.
 """
 
 from __future__ import annotations
-from typing import Any, Callable
-import threading
-import logging
-import time
-from pathlib import Path
+
 import json
+import logging
+import threading
+import time
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-class SettingsFileStore(object):
+class SettingsFileStore:
     """Pure file I/O collaborator for SettingsRegistry.
 
     Knows nothing about setting definitions, tiers, descriptors, or
@@ -41,7 +43,7 @@ class SettingsFileStore(object):
         Returns None (and logs) if the file can't be parsed.
         """
         try:
-            with open(path, "r") as f:
+            with open(path) as f:
                 data = json.load(f)
         except Exception as e:
             logger.error(f"Failed to parse settings file: {e}")
@@ -152,8 +154,8 @@ class SettingsFileStore(object):
         modified.
         """
         try:
-            from watchdog.observers import Observer
             from watchdog.events import FileSystemEventHandler
+            from watchdog.observers import Observer
         except ImportError:
             logger.warning(
                 "watchdog not installed, file watching disabled. Install with: pip install watchdog"

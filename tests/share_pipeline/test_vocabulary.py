@@ -1,5 +1,7 @@
 """Shape checks for the share pipeline's exceptions and result dataclasses."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest

@@ -9,6 +9,8 @@ bound to its hostname, so every URL it builds targets that host rather than
 the ``github.com`` / ``gitlab.com`` default.
 """
 
+from __future__ import annotations
+
 import re
 
 from haywire.core.marketstall.host_providers.base import HostProvider, ParsedRef

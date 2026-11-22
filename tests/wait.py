@@ -1,5 +1,7 @@
 """Waiting on another thread's state in plain tests, the counterpart of ``tests.ui.user_wait.eventually``."""
 
+from __future__ import annotations
+
 import time
 from collections.abc import Callable
 

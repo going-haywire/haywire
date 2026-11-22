@@ -6,6 +6,8 @@ whose definition lives elsewhere (a macro placement) needs the opposite, so it
 answers ``True`` and takes the reload itself.
 """
 
+from __future__ import annotations
+
 import pytest
 
 pytestmark = pytest.mark.integration

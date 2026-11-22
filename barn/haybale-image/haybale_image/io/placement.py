@@ -1,5 +1,7 @@
 """Save-target placement: the ``if_exists`` policy and an atomic file write."""
 
+from __future__ import annotations
+
 import contextlib
 import os
 import uuid

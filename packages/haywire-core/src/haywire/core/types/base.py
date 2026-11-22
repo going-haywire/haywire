@@ -1,7 +1,7 @@
 from __future__ import annotations
+
 from abc import ABC
-from typing import Any, Generic, TypeVar, TYPE_CHECKING
-from typing_extensions import Self
+from typing import TYPE_CHECKING, Any, Self, TypeVar
 
 from .interface import IType
 
@@ -15,7 +15,7 @@ T = TypeVar("T")
 # ============================================================================
 
 
-class PrimitiveType(IType, ABC, Generic[T]):
+class PrimitiveType[T](IType, ABC):
     """
     Base class for primitive type wrappers.
 
@@ -48,7 +48,7 @@ class PrimitiveType(IType, ABC, Generic[T]):
     """
 
     # Field class set after PrimitiveField is defined
-    field_class: "type[DataField[Any]] | None" = None  # Will be set to PrimitiveField
+    field_class: type[DataField[Any]] | None = None  # Will be set to PrimitiveField
 
     def __init_subclass__(cls, **kwargs):
         """
@@ -71,7 +71,7 @@ class PrimitiveType(IType, ABC, Generic[T]):
                             cls.element_type_cls = base.__args__[0]
                             break
 
-    def __init__(self, value: "T | None" = None, **kwargs):
+    def __init__(self, value: T | None = None, **kwargs):
         """
         Initialize primitive with a value.
 
@@ -201,7 +201,7 @@ class BaseType(IType, ABC):
     """
 
     # Field class set after BaseField is defined
-    field_class: "type[DataField[Any]] | None" = None  # Will be set to BaseField
+    field_class: type[DataField[Any]] | None = None  # Will be set to BaseField
 
     def __init_subclass__(cls, **kwargs):
         """
@@ -318,7 +318,7 @@ class BaseType(IType, ABC):
 # ============================================================================
 
 
-class CompoundType(BaseType, ABC, Generic[T]):
+class CompoundType[T](BaseType, ABC):
     """N elements of one type, the third type family.
 
     Subscripting sets ``element_type_cls`` to the element's IType, which in
@@ -336,10 +336,10 @@ class CompoundType(BaseType, ABC, Generic[T]):
         ARRAY[FLOAT].as_inlet(id='numbers')
     """
 
-    field_class: "type[DataField[Any]] | None" = None
+    field_class: type[DataField[Any]] | None = None
 
     #: Cache of parameterized classes; cleared by the @type decorator on reload.
-    _parameterized_cache: "dict[Any, type]" = {}
+    _parameterized_cache: dict[Any, type] = {}
 
     @classmethod
     def __class_getitem__(cls, element_type_cls: type[IType]):
@@ -396,7 +396,7 @@ class CompoundType(BaseType, ABC, Generic[T]):
 #: Absence-tolerant field classes, keyed by the element's own field class.
 #: Shared so ``OPTIONAL[INT]`` built twice yields one field class, matching
 #: ``_parameterized_cache``'s identity guarantee for the types themselves.
-_ABSENCE_TOLERANT_FIELDS: "dict[type, type]" = {}
+_ABSENCE_TOLERANT_FIELDS: dict[type, type] = {}
 
 
 def _absence_tolerant_field(base_field_cls: type) -> type:
@@ -435,7 +435,7 @@ def _absence_tolerant_field(base_field_cls: type) -> type:
                 return
             super()._set_own(value)
 
-        def get_stored_type(self) -> "type[IType]":
+        def get_stored_type(self) -> type[IType]:
             """Return the element type, which is what travels on an edge.
 
             ``type_cls`` stays the wrapper, so a promoted ``OPTIONAL[INT]``
@@ -457,7 +457,7 @@ def _absence_tolerant_field(base_field_cls: type) -> type:
 
 
 #: Absence-holding field classes, keyed by the field class they extend.
-_FIELDS_HOLDING_ABSENCE: "dict[type, type]" = {}
+_FIELDS_HOLDING_ABSENCE: dict[type, type] = {}
 
 
 def _field_holding_absence(base_field_cls: type) -> type:
@@ -542,7 +542,7 @@ def _wrapped_identity(wrapper_identity: Any, element_type_cls: type[IType]) -> A
     )
 
 
-class WrapperType(IType, ABC, Generic[T]):
+class WrapperType[T](IType, ABC):
     """One value of another IType, or absence. The fourth type family.
 
     A wrapper qualifies one element type with a state that type cannot express
@@ -580,10 +580,10 @@ class WrapperType(IType, ABC, Generic[T]):
     another wrapper.
     """
 
-    field_class: "type[DataField[Any]] | None" = None
+    field_class: type[DataField[Any]] | None = None
 
     #: Cache of parameterized classes; cleared by the @type decorator on reload.
-    _parameterized_cache: "dict[Any, type]" = {}
+    _parameterized_cache: dict[Any, type] = {}
 
     def __init__(self, value: Any = None, **kwargs: Any) -> None:
         """Wrap *value*, where ``None`` means absence and is not an error."""

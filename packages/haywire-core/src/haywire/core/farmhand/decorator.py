@@ -5,7 +5,8 @@ class-name defaults via setdefault, kind constant from library/utils."""
 from __future__ import annotations
 
 import inspect
-from typing import Any, Callable, Type, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from haywire.core.access import AccessTier, coerce_requirement
 from haywire.core.farmhand.base import Farmhand
@@ -15,7 +16,7 @@ from haywire.core.library.utils import FARMHAND, derive_library_identity, reg_ke
 T = TypeVar("T")
 
 
-def farmhand(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
+def farmhand(**kwargs: Any) -> Callable[[type[T]], type[T]]:
     """
     Decorator to register a class as a Farmhand (a haywire MCP tool).
 
@@ -73,7 +74,7 @@ def farmhand(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
                 ...
     """
 
-    def decorator(inner_cls: Type[T]) -> Type[T]:
+    def decorator(inner_cls: type[T]) -> type[T]:
         if not (inspect.isclass(inner_cls) and issubclass(inner_cls, Farmhand)):
             raise TypeError(f"@farmhand can only be applied to Farmhand subclasses, got {inner_cls}")
         if not inspect.iscoroutinefunction(inner_cls.run):

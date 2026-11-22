@@ -9,14 +9,15 @@ The FlowAssemblyManager is responsible for:
 """
 
 from __future__ import annotations
-from typing import Dict, List, Optional, TYPE_CHECKING, cast
+
+import logging
 from dataclasses import dataclass
 from datetime import datetime
-import logging
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
-    from haywire.core.graph.base import BaseGraph
     from haywire.core.execution.flow import Flow
+    from haywire.core.graph.base import BaseGraph
     from haywire.core.node.base import BaseNode
 
 from haywire.core.assembly.control_flow_builder import ControlFlowBuilder
@@ -29,14 +30,14 @@ from haywire.core.node.behavior import NodeType
 logger = logging.getLogger(__name__)
 
 
-def _iter_tree_wrappers(graph: "BaseGraph"):
+def _iter_tree_wrappers(graph: BaseGraph):
     """Yield every node wrapper in ``graph`` and in every Subgraph beneath it."""
     yield from graph.node_wrappers.values()
     for definition in graph.subgraphs.values():
         yield from _iter_tree_wrappers(definition)
 
 
-def _iter_tree_subgraphs(graph: "BaseGraph"):
+def _iter_tree_subgraphs(graph: BaseGraph):
     """Yield every Subgraph definition beneath ``graph``, nested ones included."""
     for definition in graph.subgraphs.values():
         yield definition
@@ -66,15 +67,15 @@ class FlowAssemblyManager:
 
     def __init__(self):
         """Initialize assembly manager"""
-        self.assembled_flows: Dict[str, Flow] = {}
+        self.assembled_flows: dict[str, Flow] = {}
         """Cache of assembled flows: flow_id → Flow"""
 
-        self.assembly_cache: Dict[str, AssemblyMetadata] = {}
+        self.assembly_cache: dict[str, AssemblyMetadata] = {}
         """Assembly metadata: flow_id → AssemblyMetadata"""
 
         logger.debug("FlowAssemblyManager initialized")
 
-    def assemble_graph(self, graph: "BaseGraph") -> List[Flow]:
+    def assemble_graph(self, graph: BaseGraph) -> list[Flow]:
         """
         Assemble all flows in a graph.
 
@@ -147,7 +148,7 @@ class FlowAssemblyManager:
 
         return flows
 
-    def _validate_graph(self, graph: "BaseGraph") -> List[str]:
+    def _validate_graph(self, graph: BaseGraph) -> list[str]:
         """
         Validate graph structure before assembly.
 
@@ -160,7 +161,7 @@ class FlowAssemblyManager:
         # Several event nodes may share one subscription: each roots its own flow (ADR 0064).
         return self._validate_subgraphs(graph)
 
-    def _validate_subgraphs(self, graph: "BaseGraph") -> List[str]:
+    def _validate_subgraphs(self, graph: BaseGraph) -> list[str]:
         """Check every Subgraph's own shape, and that each has exactly one card.
 
         A Subgraph's contents are checked by
@@ -171,8 +172,8 @@ class FlowAssemblyManager:
         Returns:
             One message per offending Subgraph, empty when all are well-formed.
         """
-        errors: List[str] = []
-        cards_by_key: Dict[str, List[str]] = {}
+        errors: list[str] = []
+        cards_by_key: dict[str, list[str]] = {}
 
         for wrapper in _iter_tree_wrappers(graph):
             key = getattr(wrapper.node, "subgraph_key", None)
@@ -197,7 +198,7 @@ class FlowAssemblyManager:
 
         return errors
 
-    def _prepare_nodes(self, graph: "BaseGraph") -> None:
+    def _prepare_nodes(self, graph: BaseGraph) -> None:
         """Run ``on_assembly()`` on every node in the tree, host and Subgraphs alike.
 
         Walks the graph rather than the assembled flows: a node must be prepared
@@ -211,7 +212,7 @@ class FlowAssemblyManager:
             HaywireException: If any node reports itself unready. Every node is
                 given its turn first, so one assembly names them all.
         """
-        failures: List[str] = []
+        failures: list[str] = []
 
         for wrapper in _iter_tree_wrappers(graph):
             node = wrapper.node
@@ -255,7 +256,7 @@ class FlowAssemblyManager:
                 category="Assembly Error",
             ).enrich(graph_id=graph.graph_id, operation="Node Assembly Preparation")
 
-    def _identify_event_nodes(self, graph: "BaseGraph") -> List["BaseNode"]:
+    def _identify_event_nodes(self, graph: BaseGraph) -> list[BaseNode]:
         """
         Identify all event nodes in the graph.
 
@@ -274,7 +275,7 @@ class FlowAssemblyManager:
 
         return event_nodes
 
-    def _assemble_flow(self, event_node: "BaseNode", graph: "BaseGraph") -> Flow:
+    def _assemble_flow(self, event_node: BaseNode, graph: BaseGraph) -> Flow:
         """
         Assemble a complete flow from an event node.
 
@@ -319,7 +320,7 @@ class FlowAssemblyManager:
 
         return flow
 
-    def get_flow(self, flow_id: str) -> Optional[Flow]:
+    def get_flow(self, flow_id: str) -> Flow | None:
         """
         Get an assembled flow by ID.
 
@@ -331,7 +332,7 @@ class FlowAssemblyManager:
         """
         return self.assembled_flows.get(flow_id)
 
-    def get_flows_for_event(self, subscription_key: str) -> List[Flow]:
+    def get_flows_for_event(self, subscription_key: str) -> list[Flow]:
         """
         Get all flows listening for a specific event.
 
@@ -349,7 +350,7 @@ class FlowAssemblyManager:
 
         return matching_flows
 
-    def get_statistics(self) -> Dict:
+    def get_statistics(self) -> dict:
         """
         Get assembly statistics.
 

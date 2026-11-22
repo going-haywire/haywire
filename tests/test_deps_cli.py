@@ -14,9 +14,9 @@ from unittest.mock import patch
 
 import pytest
 
+from haywire.core.publishing import DepDrift
 from haywire_studio.packaging import deps as deps_cli
 from haywire_studio.packaging.deps import EXIT_DRIFT, EXIT_OK, run_deps_check_cli
-from haywire.core.publishing import DepDrift
 
 pytestmark = pytest.mark.unit
 

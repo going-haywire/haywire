@@ -1,5 +1,7 @@
 """The access resolver hook — studio installs it; core defaults to full access."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.access import AccessTier, access_resolver, resolve_tier, set_access_resolver

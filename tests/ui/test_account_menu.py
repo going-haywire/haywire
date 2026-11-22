@@ -1,5 +1,7 @@
 """The account menu — a panel-driven context menu, so access filtering is free."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 from haywire.barn.builtin.surfaces import AccountActions, AccountMenuSurface

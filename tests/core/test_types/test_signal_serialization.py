@@ -11,6 +11,8 @@ declared per port round-trips through the serialized ``default`` kwarg, and one
 the node wrote is kept as field data (``StoreStrategy.NODE_SET``).
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.graph.base import BaseGraph

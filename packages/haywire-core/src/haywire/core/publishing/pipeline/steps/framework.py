@@ -28,12 +28,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import toml
-
-from haywire.core.marketstall.requirement import CORE as _CORE
-from haywire.core.marketstall.requirement import haywire_core_requirement, requirement_specifier
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import Version
 
+from haywire.core.marketstall.requirement import CORE as _CORE
+from haywire.core.marketstall.requirement import haywire_core_requirement, requirement_specifier
 from haywire.core.publishing.pipeline.errors import InvalidSpecifierError
 from haywire.core.publishing.pipeline.results import FrameworkOption, FrameworkPlan
 
@@ -110,7 +109,7 @@ def parse_specifier(raw: str) -> SpecifierSet:
         ) from exc
 
 
-def _declared_floor(pipeline: "SharePipeline") -> str:
+def _declared_floor(pipeline: SharePipeline) -> str:
     """The specifier the barn libraries agree on, or the first one found.
 
     One project-wide answer: libraries built and tested against one installed
@@ -141,7 +140,7 @@ def _excluded_range(declared: str, installed: str) -> str:
     return f"Consumers on {lowest}–{below} must update their project before they can install this library."
 
 
-def plan(pipeline: "SharePipeline") -> FrameworkPlan:
+def plan(pipeline: SharePipeline) -> FrameworkPlan:
     """The framework requirement on offer, before the author picks."""
     installed = _installed_core_version()
     declared = _declared_floor(pipeline)

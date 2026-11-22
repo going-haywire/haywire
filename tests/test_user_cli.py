@@ -1,5 +1,7 @@
 """haywire user — add/remove/list/passwd against an explicit roster path."""
 
+from __future__ import annotations
+
 import argparse
 
 import pytest

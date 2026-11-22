@@ -6,15 +6,14 @@ polls true without a resolvable key would render a dead entry, and the
 widget row must vanish entirely on a port that has no widget.
 """
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
 
-from haywire.core.session.context import SessionContext
-from haywire.core.signals import RevealComponentSource
-from haywire.core.types.enums import PortOrigin
 from haybale_graph_editor.panels.graph.menu.port.port import (
     DetachSettingMenuPanel,
     HidePinMenuPanel,
@@ -24,6 +23,9 @@ from haybale_graph_editor.panels.graph.menu.port.port import (
     PortTypeMenuPanel,
     PortWidgetMenuPanel,
 )
+from haywire.core.session.context import SessionContext
+from haywire.core.signals import RevealComponentSource
+from haywire.core.types.enums import PortOrigin
 
 
 def _ctx(port: Any) -> SessionContext:

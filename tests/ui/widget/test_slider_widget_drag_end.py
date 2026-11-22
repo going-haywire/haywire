@@ -6,6 +6,8 @@ position can be lost. Quasar's ``change`` event, sent once when the drag ends,
 carries the final value.
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest

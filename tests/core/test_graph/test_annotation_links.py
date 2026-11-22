@@ -1,5 +1,7 @@
 """Note links: any side to any side, one per pin pair, kept through collapse, paste and reroute."""
 
+from __future__ import annotations
+
 import json
 
 import pytest

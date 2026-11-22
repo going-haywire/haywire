@@ -1,9 +1,10 @@
 """Shared fixtures for the settings-panel render tests."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.session.context import SessionContext
-
 from tests.ui.panel.render_ctx import make_render_ctx
 
 

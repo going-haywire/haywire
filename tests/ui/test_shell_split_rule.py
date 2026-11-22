@@ -1,5 +1,7 @@
 """The settings row's label/control split: half the row, capped at a maximum label width."""
 
+from __future__ import annotations
+
 import pytest
 
 pytestmark = pytest.mark.unit

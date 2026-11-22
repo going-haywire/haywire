@@ -5,6 +5,8 @@ keyed by the card's node id — so two cards never share an interior, and the
 interior is never serialized into the host.
 """
 
+from __future__ import annotations
+
 import json
 
 import pytest

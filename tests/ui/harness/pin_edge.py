@@ -14,6 +14,8 @@ paths. Paste it at the top of a script's function body::
     )
 """
 
+from __future__ import annotations
+
 PIN_EDGE_JS = """
     const pinEdge = (pin, ctm) => {
         const r = pin.getBoundingClientRect();

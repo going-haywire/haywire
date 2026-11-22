@@ -14,9 +14,9 @@ from haybale_graph_editor.editors.graph_canvas.event_handlers import (
     handles_event,
 )
 from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
+from haybale_graph_editor.editors.graph_canvas.handlers import selection as selection_module
 from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import ContextMenuHandlers
 from haybale_graph_editor.editors.graph_canvas.handlers.interaction import InteractionHandlers
-from haybale_graph_editor.editors.graph_canvas.handlers import selection as selection_module
 from haybale_graph_editor.editors.graph_canvas.handlers.selection import SelectionHandlers
 from haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar import (
     SelectionToolbarHandlers,

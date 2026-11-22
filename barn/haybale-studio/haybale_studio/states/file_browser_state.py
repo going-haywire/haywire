@@ -17,7 +17,6 @@ persistent) lives on SessionContext, not here.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from haywire.api.workbench import SessionState, signal_field, state
 
@@ -26,4 +25,4 @@ from haywire.api.workbench import SessionState, signal_field, state
 class FileBrowserState(SessionState):
     """Per-session state for the FileBrowser editor."""
 
-    right_clicked_file: Optional[Path] = signal_field(None)
+    right_clicked_file: Path | None = signal_field(None)

@@ -1,5 +1,7 @@
 """The annotation skin's side table: the layout that puts a swinglet on each side, and its port ids."""
 
+from __future__ import annotations
+
 import pytest
 
 pytestmark = pytest.mark.unit
@@ -38,7 +40,6 @@ def test_the_card_has_no_editor_of_its_own(library_system, nicegui_slot_context)
     from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.scheduler import SyncScheduler
     from haywire.ui.skin.factory import SkinFactory
-
     from tests.conftest import make_node
 
     factory = library_system.injector.get(SkinFactory)

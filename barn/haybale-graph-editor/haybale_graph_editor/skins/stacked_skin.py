@@ -4,13 +4,12 @@ Stacked NodeSkin — one port column, with group support
 Ports of every direction stack in a single column; this is the default skin.
 """
 
-from typing import List
+from __future__ import annotations
+
 from nicegui import ui
 
-from haywire.api import DataPort, LayoutDirection, NodeWrapper, PortType, skin
-
-
 from haybale_graph_editor.skins.node_skin import NodeSkin
+from haywire.api import DataPort, LayoutDirection, NodeWrapper, PortType, skin
 
 
 def _lane_of(port: DataPort) -> PortType:
@@ -219,7 +218,7 @@ class StackedNodeSkin(NodeSkin):
         )
 
     @staticmethod
-    def _edge_strip_ports(node, port_type: PortType) -> List[DataPort]:
+    def _edge_strip_ports(node, port_type: PortType) -> list[DataPort]:
         """The ports :meth:`_render_edge_strip` draws for *port_type*, unfiltered by layout."""
         ports = [
             port
@@ -239,7 +238,7 @@ class StackedNodeSkin(NodeSkin):
 
     def _render_port_hierarchy(
         self,
-        ports: List[DataPort],
+        ports: list[DataPort],
         wrapper: NodeWrapper,
         port_type: PortType,
         layout: LayoutDirection | None = None,
@@ -286,7 +285,7 @@ class StackedNodeSkin(NodeSkin):
     def _render_group(
         self,
         group_port: DataPort,
-        all_ports: List[DataPort],
+        all_ports: list[DataPort],
         wrapper: NodeWrapper,
         port_type: PortType,
         layout: LayoutDirection | None = None,

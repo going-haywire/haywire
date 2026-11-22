@@ -1,5 +1,7 @@
 """LayoutChannel: which props fields a canvas lays a node out with."""
 
+from __future__ import annotations
+
 import copy
 
 import pytest

@@ -17,7 +17,6 @@ import pytest
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.types.enums import PortOrigin
-
 from tests.conftest import make_node
 
 pytestmark = [pytest.mark.integration]

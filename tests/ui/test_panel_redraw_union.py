@@ -12,13 +12,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.signals import Signal
 from haywire.ui.panel import BasePanel, panel
-from haywire.ui.surface import Surface
 from haywire.ui.panel.registry import PanelRegistry
-
+from haywire.ui.surface import Surface
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
     label="fake",

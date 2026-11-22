@@ -5,9 +5,11 @@ This provides a null object pattern implementation that satisfies the interface
 but performs no actual operations.
 """
 
+from __future__ import annotations
+
 from collections.abc import Callable
-from typing import Optional
-from .interfaces import IHistoryManager, IAction
+
+from .interfaces import IAction, IHistoryManager
 from .origin import HistoryEntry, HistoryMove, StepOrigin
 
 
@@ -58,7 +60,7 @@ class NoOpHistoryManager(IHistoryManager):
         """No-op: always returns an empty list."""
         return []
 
-    def last_move(self) -> Optional[HistoryMove]:
+    def last_move(self) -> HistoryMove | None:
         """No-op: always returns None."""
         return None
 
@@ -80,11 +82,11 @@ class NoOpHistoryManager(IHistoryManager):
         """No-op: nothing to clear."""
         pass
 
-    def get_undo_description(self) -> Optional[str]:
+    def get_undo_description(self) -> str | None:
         """No-op: always returns None."""
         return None
 
-    def get_redo_description(self) -> Optional[str]:
+    def get_redo_description(self) -> str | None:
         """No-op: always returns None."""
         return None
 

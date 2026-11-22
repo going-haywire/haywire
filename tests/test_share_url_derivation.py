@@ -7,7 +7,6 @@ from unittest.mock import patch
 
 import pytest
 
-
 _LIB_PYPROJECT = """[project]
 name = "haybale-foo"
 version = "0.1.0"
@@ -171,8 +170,9 @@ def test_derive_share_url_only_no_file_warns(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_get_remote_url_timeout_returns_none(tmp_path: Path) -> None:
     """_get_remote_url returns None on subprocess timeout."""
-    from haywire.core.publishing import _get_remote_url
     import subprocess
+
+    from haywire.core.publishing import _get_remote_url
 
     repo = _make_repo(tmp_path)
     with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("git", 10.0)):
@@ -184,8 +184,9 @@ def test_get_remote_url_timeout_returns_none(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_get_current_ref_timeout_returns_none(tmp_path: Path) -> None:
     """_get_current_ref returns None on subprocess timeout."""
-    from haywire.core.publishing import _get_current_ref
     import subprocess
+
+    from haywire.core.publishing import _get_current_ref
 
     repo = _make_repo(tmp_path)
     with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("git", 10.0)):

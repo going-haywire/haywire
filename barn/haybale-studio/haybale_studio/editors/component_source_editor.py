@@ -23,7 +23,7 @@ from __future__ import annotations
 import inspect
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, Optional
+from typing import TYPE_CHECKING, Literal
 
 from nicegui import ui
 
@@ -44,15 +44,16 @@ from haywire.api.workbench import (
 from haywire.core.library.utils import get_registry_id_from_key
 
 if TYPE_CHECKING:
+    from nicegui.element import Element
+
     from haywire.core.registry.base import BaseRegistry
     from haywire.core.registry.lifecycle_event import LifeCycleEvent
-    from nicegui.element import Element
 
 
 logger = logging.getLogger(__name__)
 
 
-def _component_path(component: object) -> Optional[Path]:
+def _component_path(component: object) -> Path | None:
     """The file behind a registered component, or ``None``.
 
     A class registry hands back a class, whose file ``inspect`` finds. A
@@ -88,40 +89,40 @@ class ComponentSourceEditor(BaseEditor):
         self._conflict: bool = False
 
         # Resolved target (refreshed on every draw when not pinned)
-        self._cls: Optional[type] = None
-        self._path: Optional[Path] = None
-        self._registry_key: Optional[str] = None
+        self._cls: type | None = None
+        self._path: Path | None = None
+        self._registry_key: str | None = None
         self._is_editable: bool = False
 
         # UI handles (nullable; reset in cleanup)
-        self._editor: Optional[ui.codemirror] = None
-        self._save_button: Optional[ui.button] = None
-        self._path_line: Optional[hui.FittedPath] = None
-        self._readonly_badge: Optional[ui.element] = None
-        self._pin_banner: Optional[ui.element] = None
-        self._conflict_banner: Optional[ui.element] = None
+        self._editor: ui.codemirror | None = None
+        self._save_button: ui.button | None = None
+        self._path_line: hui.FittedPath | None = None
+        self._readonly_badge: ui.element | None = None
+        self._pin_banner: ui.element | None = None
+        self._conflict_banner: ui.element | None = None
 
         # Lifecycle subscription bookkeeping
-        self._subscribed_registry: Optional["BaseRegistry"] = None
-        self._subscribed_key: Optional[str] = None
+        self._subscribed_registry: BaseRegistry | None = None
+        self._subscribed_key: str | None = None
 
     # ------------------------------------------------------------------
     # Event-bus subscriptions
     # ------------------------------------------------------------------
 
     @redraw_on(SessionContext.active_component)
-    def _redraw_on_active_component(self, context: "SessionContext", event: Signal) -> None:
+    def _redraw_on_active_component(self, context: SessionContext, event: Signal) -> None:
         if self._pinned:
             return
         self.wrapper.redraw()
 
     @redraw_on(SessionContext.active_workbench_theme_key)
-    def _redraw_on_theme(self, context: "SessionContext", event: Signal) -> None:
+    def _redraw_on_theme(self, context: SessionContext, event: Signal) -> None:
         pass
 
     @reveal_on(RevealComponentSource)
     @classmethod
-    def _on_reveal_component_source(cls, context: "SessionContext", event: "RevealComponentSource") -> bool:
+    def _on_reveal_component_source(cls, context: SessionContext, event: RevealComponentSource) -> bool:
         """Answer core's "show me this component's code".
 
         Core can name a registry key but not an editor class — naming this one
@@ -141,7 +142,7 @@ class ComponentSourceEditor(BaseEditor):
     # BaseEditor interface
     # ------------------------------------------------------------------
 
-    def draw(self, context: "SessionContext", container: "Element") -> None:
+    def draw(self, context: SessionContext, container: Element) -> None:
         if not self._pinned:
             self._resolve_target(context)
             self._read_buffer()
@@ -163,7 +164,7 @@ class ComponentSourceEditor(BaseEditor):
     # Target resolution
     # ------------------------------------------------------------------
 
-    def _resolve_target(self, context: "SessionContext") -> None:
+    def _resolve_target(self, context: SessionContext) -> None:
         registry_key = context.active_component
         if not registry_key:
             self._cls = None
@@ -184,13 +185,13 @@ class ComponentSourceEditor(BaseEditor):
         self._is_editable = self._compute_is_editable(context)
         self._sync_subscription(context)
 
-    def _lookup_class(self, context: "SessionContext", registry_key: str) -> Optional[type]:
+    def _lookup_class(self, context: SessionContext, registry_key: str) -> type | None:
         app = context.app
         if app is None:
             return None
         return app.library_service.lookup_component_class(registry_key)
 
-    def _compute_is_editable(self, context: "SessionContext") -> bool:
+    def _compute_is_editable(self, context: SessionContext) -> bool:
         if not self._registry_key:
             return False
         app = context.app
@@ -206,7 +207,7 @@ class ComponentSourceEditor(BaseEditor):
         self._original = text
 
     @staticmethod
-    def _read_file(path: Optional[Path]) -> str:
+    def _read_file(path: Path | None) -> str:
         if path is None or not path.exists():
             return ""
         try:
@@ -218,7 +219,7 @@ class ComponentSourceEditor(BaseEditor):
     # Rendering
     # ------------------------------------------------------------------
 
-    def _render(self, context: "SessionContext") -> None:
+    def _render(self, context: SessionContext) -> None:
         if not context.active_component:
             hui.empty_state(
                 "Select a component to view its source",
@@ -302,7 +303,7 @@ class ComponentSourceEditor(BaseEditor):
             )
         banner.set_visibility(self._conflict)
 
-    def _render_editor(self, context: "SessionContext") -> None:
+    def _render_editor(self, context: SessionContext) -> None:
         with (
             ui.element("div")
             .classes("hw-cm-isolate")
@@ -329,7 +330,7 @@ class ComponentSourceEditor(BaseEditor):
         )
 
     @staticmethod
-    def _codemirror_theme(context: "SessionContext") -> Literal["vscodeLight", "vscodeDark"]:
+    def _codemirror_theme(context: SessionContext) -> Literal["vscodeLight", "vscodeDark"]:
         theme_key = context.active_workbench_theme_key or "dark"
         return "vscodeLight" if "light" in theme_key else "vscodeDark"
 
@@ -408,7 +409,7 @@ class ComponentSourceEditor(BaseEditor):
     # this editor is currently displaying.
     # ------------------------------------------------------------------
 
-    def _resolve_registry(self, context: "SessionContext") -> Optional["BaseRegistry"]:
+    def _resolve_registry(self, context: SessionContext) -> BaseRegistry | None:
         """Return the BaseRegistry that owns self._registry_key, or None."""
         if not self._registry_key:
             return None
@@ -420,7 +421,7 @@ class ComponentSourceEditor(BaseEditor):
         except Exception:
             return None
 
-    def _sync_subscription(self, context: "SessionContext") -> None:
+    def _sync_subscription(self, context: SessionContext) -> None:
         target_key = self._registry_key if self._path is not None else None
         if target_key == self._subscribed_key:
             return
@@ -448,7 +449,7 @@ class ComponentSourceEditor(BaseEditor):
         self._subscribed_registry = None
         self._subscribed_key = None
 
-    def _on_lifecycle_batch(self, events: "list[LifeCycleEvent]") -> None:
+    def _on_lifecycle_batch(self, events: list[LifeCycleEvent]) -> None:
         if self._path is None or self._subscribed_key is None:
             return
         # Only react if an event touches our watched key.

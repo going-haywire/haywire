@@ -1,5 +1,7 @@
 """The playbook written into a project's CLAUDE.md covers every state `share` can report."""
 
+from __future__ import annotations
+
 import ast
 from pathlib import Path
 

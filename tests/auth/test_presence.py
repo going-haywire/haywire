@@ -1,12 +1,13 @@
 """Presence — browser sessions from SessionManager, agents from their last admitted request."""
 
+from __future__ import annotations
+
 import time
 from unittest.mock import MagicMock
 
 import pytest
 
-from haywire.core.access import AccessTier, set_access_resolver
-from haywire.core.access import presence
+from haywire.core.access import AccessTier, presence, set_access_resolver
 from haywire.core.access.presence import agents_seen, collect_presence
 from haywire_studio.auth.live import RosterCache, install_resolver
 from haywire_studio.auth.operations import add_agent, add_user, enable_auth
@@ -115,8 +116,8 @@ def test_presence_changed_is_cross_session():
 
 
 def test_agent_departure_broadcasts_once(path, monkeypatch):
-    from haywire.core.signals import AgentDisconnected, SignalDispatcher
     from haywire.core.di import context as di_context
+    from haywire.core.signals import AgentDisconnected, SignalDispatcher
 
     add_agent("builder", AccessTier.EDIT, path=path)
     dispatcher = SignalDispatcher()
@@ -141,8 +142,8 @@ def test_agent_departure_broadcasts_once(path, monkeypatch):
 
 def test_agent_never_seen_present_does_not_broadcast_departure(path, monkeypatch):
     """An already-absent agent is not news."""
-    from haywire.core.signals import AgentDisconnected, SignalDispatcher
     from haywire.core.di import context as di_context
+    from haywire.core.signals import AgentDisconnected, SignalDispatcher
 
     add_agent("builder", AccessTier.EDIT, path=path)
     dispatcher = SignalDispatcher()
@@ -161,8 +162,8 @@ def test_agent_never_seen_present_does_not_broadcast_departure(path, monkeypatch
 
 def test_presence_still_returns_rows_when_broadcast_fails(path, monkeypatch):
     """A dispatcher failure must not break the presence row."""
-    from haywire.core.signals import SignalDispatcher
     from haywire.core.di import context as di_context
+    from haywire.core.signals import SignalDispatcher
 
     add_agent("builder", AccessTier.EDIT, path=path)
     dispatcher = SignalDispatcher()

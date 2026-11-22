@@ -18,7 +18,7 @@ _DEFAULT_STAGE_HEIGHT = 200.0
 
 
 def next_stage_spot(
-    graph: "BaseGraph", count: int, heights: Sequence[float] | None = None
+    graph: BaseGraph, count: int, heights: Sequence[float] | None = None
 ) -> list[tuple[float, float]]:
     """Return the stage positions for ``count`` nodes about to be added to ``graph``'s stage.
 
@@ -61,7 +61,7 @@ def non_negative(xy: tuple[float, float]) -> tuple[float, float]:
 
 
 def patch_position_for_stage(
-    graph: "BaseGraph",
+    graph: BaseGraph,
     stage_xy: tuple[float, float],
     fallback_xy: tuple[float, float] | None = None,
 ) -> tuple[float, float]:
@@ -93,9 +93,7 @@ def patch_position_for_stage(
     return non_negative(stage_xy)
 
 
-def stage_position_for_patch(
-    graph: "BaseGraph", patch_xy: tuple[float, float]
-) -> tuple[float, float] | None:
+def stage_position_for_patch(graph: BaseGraph, patch_xy: tuple[float, float]) -> tuple[float, float] | None:
     """Return the stage position for a node about to be added at patch position ``patch_xy``.
 
     The node sits at the same offset from the stage centroid of the nodes already on stage as
@@ -119,7 +117,7 @@ def stage_position_for_patch(
 
 
 def stage_takes_edge(
-    graph: "BaseGraph", source_node_id: str, outlet_port_id: str, sink_node_id: str, inlet_port_id: str
+    graph: BaseGraph, source_node_id: str, outlet_port_id: str, sink_node_id: str, inlet_port_id: str
 ) -> bool:
     """Return whether a stage view may create this edge: both its ends are on-stage pins.
 

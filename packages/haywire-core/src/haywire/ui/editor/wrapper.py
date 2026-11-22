@@ -10,22 +10,23 @@ editor registry for hot-reload events, and is the source of truth for
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal
+
 from nicegui import ui
 
 from haywire.core.errors.haywire_exception import HaywireException
+from haywire.core.registry.lifecycle_event import LifeCycleEvent
 from haywire.core.session.handlers import discover_handlers
 from haywire.core.signals import EditorCommand, Signal
-from haywire.core.registry.lifecycle_event import LifeCycleEvent
-
 from haywire.ui.editor.identity import OpenBehavior
 
 if TYPE_CHECKING:
-    from haywire.ui.editor.base import BaseEditor
-    from haywire.ui.editor.registry import EditorRegistry
     from haywire.core.session.session import Session
     from haywire.ui.app.slot import Slot
+    from haywire.ui.editor.base import BaseEditor
+    from haywire.ui.editor.registry import EditorRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -43,13 +44,13 @@ class EditorWrapperState:
     is_imported: bool = True
     """True when the editor class is available in the registry."""
 
-    error_import: Optional[HaywireException] = None
+    error_import: HaywireException | None = None
     """Error from registry lookup (CLASS_REMOVED, CLASS_NOT_FOUND, reload failure)."""
 
-    error_instantiate: Optional[HaywireException] = None
+    error_instantiate: HaywireException | None = None
     """Error from constructing the editor instance."""
 
-    error_runtime: Optional[HaywireException] = None
+    error_runtime: HaywireException | None = None
     """Error from a runtime call (draw, on_focus, poll, redraw)."""
 
     is_dirty: bool = False
@@ -80,7 +81,7 @@ class EditorWrapperState:
         """
         return self.is_imported and self.error_instantiate is None
 
-    def get_errors(self) -> Optional[list[HaywireException]]:
+    def get_errors(self) -> list[HaywireException] | None:
         """Return all populated error slots as a list, or None if no errors."""
         errors = []
         if self.error_import is not None:
@@ -115,12 +116,12 @@ class EditorWrapper:
     def __init__(
         self,
         editor_key: str,
-        editor_cls: "type[BaseEditor]",
-        registry: "EditorRegistry",
-        session: "Session",
-        binding_id: Optional[str] = None,
+        editor_cls: type[BaseEditor],
+        registry: EditorRegistry,
+        session: Session,
+        binding_id: str | None = None,
         label: str = "",
-        slot: "Optional[Slot]" = None,
+        slot: Slot | None = None,
     ):
         """
         Args:
@@ -143,11 +144,11 @@ class EditorWrapper:
         self._binding_id = binding_id
         self.label = label
         self._registry = registry
-        self._session: "Session" = session
-        self._instance: "Optional[BaseEditor]" = None
-        self._redraw_callback: Optional[Callable[["EditorWrapper"], None]] = None
+        self._session: Session = session
+        self._instance: BaseEditor | None = None
+        self._redraw_callback: Callable[[EditorWrapper], None] | None = None
         self._state: EditorWrapperState = EditorWrapperState()
-        self._slot: "Optional[Slot]" = slot
+        self._slot: Slot | None = slot
 
         # Bus-subscription teardown handles for the editor's own
         # ``@redraw_on`` / ``@react_on`` decorated methods. Populated by
@@ -179,7 +180,7 @@ class EditorWrapper:
         return self._state
 
     @property
-    def instance(self) -> "Optional[BaseEditor]":
+    def instance(self) -> BaseEditor | None:
         return self._instance
 
     @property
@@ -189,7 +190,7 @@ class EditorWrapper:
         return f"{self.editor_key}::{self._binding_id}" if self._binding_id else self.editor_key
 
     @staticmethod
-    def split_id(tab_id: str) -> tuple[str, Optional[str]]:
+    def split_id(tab_id: str) -> tuple[str, str | None]:
         """Inverse of :attr:`binding_id`."""
         if "::" in tab_id:
             editor_key, _binding_id = tab_id.split("::", 1)
@@ -210,7 +211,7 @@ class EditorWrapper:
     # Wiring
     # ------------------------------------------------------------------
 
-    def set_redraw_callback(self, callback: Optional[Callable[["EditorWrapper"], None]]) -> None:
+    def set_redraw_callback(self, callback: Callable[[EditorWrapper], None] | None) -> None:
         """Set or clear the redraw callback.
 
         The slot calls this immediately after construction (in add_binding),
@@ -278,7 +279,7 @@ class EditorWrapper:
     # Lifecycle event handling (placeholder — implemented in Task 5)
     # ------------------------------------------------------------------
 
-    def _on_lifecycle_event(self, event: "LifeCycleEvent") -> None:
+    def _on_lifecycle_event(self, event: LifeCycleEvent) -> None:
         """Handle a registry lifecycle event for our editor_key.
 
         Mirrors NodeWrapper._on_node_lifecycle_event:
@@ -662,7 +663,7 @@ class EditorWrapper:
             return
         self._slot.close_binding(self)
 
-    def repayload(self, new_payload: Optional[str], new_label: Optional[str] = None) -> None:
+    def repayload(self, new_payload: str | None, new_label: str | None = None) -> None:
         """Update the disambiguator (and optional label) in place.
 
         When attached to a slot, delegates to ``slot.repayload`` for

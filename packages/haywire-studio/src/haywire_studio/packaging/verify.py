@@ -13,9 +13,9 @@ registry key is visible without building anything.
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable
 
 from haywire.core.renames import KEY_FIELDS, LIST_KEY_FIELDS, is_registry_key
 

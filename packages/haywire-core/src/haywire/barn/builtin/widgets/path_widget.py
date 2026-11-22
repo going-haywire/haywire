@@ -13,8 +13,8 @@ from haywire.core.volumes import (
     VolumePath,
     VolumeUndefinedError,
     list_volumes,
-    volume_location,
     resolve_volume_path,
+    volume_location,
     volume_name,
 )
 from haywire.ui import elements as hui

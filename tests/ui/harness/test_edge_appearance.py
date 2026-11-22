@@ -5,11 +5,12 @@ Python tiers cannot see. Colours are compared against fixed token values the
 harness page sets on :root.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 
 from haywire.core.edge.arrow_heads import ARROW_HEADS, DEFAULT_HEAD_SIZE, HEAD_SIZES
-
 from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 from tests.ui.harness.pin_edge import PIN_EDGE_JS
 

@@ -11,7 +11,6 @@ import pytest
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.undo.actions.graph_actions import CollapseToGraphNodeAction
-
 from tests.conftest import make_node
 from tests.core.test_graph.callback_group import subscriptions
 

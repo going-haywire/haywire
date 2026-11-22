@@ -7,9 +7,12 @@ This module provides decorators for creating Haywire data types:
 - @type_: Legacy decorator (deprecated, use @primitive_type or @compound_type instead)
 """
 
-from typing import Optional, Type, TypeVar, Callable
-from dataclasses import asdict
+from __future__ import annotations
 
+import builtins
+from collections.abc import Callable
+from dataclasses import asdict
+from typing import TypeVar
 
 from ..library.utils import TYPE, derive_library_identity, reg_key
 from .base import BaseType, CompoundType, PrimitiveType, WrapperType
@@ -20,7 +23,7 @@ from .utils import normalize_and_validate_default
 T = TypeVar("T")
 
 
-def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
+def type(**kwargs) -> Callable[[builtins.type[T]], builtins.type[T]]:
     """
     Decorator for all Haywire data types (both primitive and complex).
 
@@ -93,7 +96,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         TypeError: If the type has no wire type and is not a container, a wrapper or ADD
     """
 
-    def decorator(inner_cls: Type[T]) -> Type[T]:
+    def decorator(inner_cls: builtins.type[T]) -> builtins.type[T]:
         # Ensure inherits from IType
         if not issubclass(inner_cls, IType):
             raise TypeError(
@@ -114,7 +117,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         kwargs["type_cls"] = inner_cls
 
         # Check if this inherits from another Type (derived variant)
-        parent_identity: Optional[DataTypeIdentity] = None
+        parent_identity: DataTypeIdentity | None = None
         for base in inner_cls.__bases__:
             # Skip abstract base classes
             if base in (BaseType, PrimitiveType, WrapperType, IType):

@@ -1,5 +1,7 @@
 """FileBlockReader and BlockWriter: round trip, looping, format checks."""
 
+from __future__ import annotations
+
 import numpy as np
 import pytest
 import soundfile as sf

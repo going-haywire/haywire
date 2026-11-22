@@ -1,7 +1,12 @@
 """Load Image — read an image file into an image."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
+from haybale_image.io.codecs import read_image
+from haybale_image.io.png_text import FIELDS_KEYWORD, read_text_chunk
+from haybale_image.value import ImageValue
 from haywire.api import (
     FILE_PATH,
     BaseNode,
@@ -16,10 +21,6 @@ from haywire.api import (
     progress_field,
     resolve_volume_path,
 )
-
-from haybale_image.io.codecs import read_image
-from haybale_image.io.png_text import FIELDS_KEYWORD, read_text_chunk
-from haybale_image.value import ImageValue
 
 _FIELD_WARNING = "saved_fields"
 

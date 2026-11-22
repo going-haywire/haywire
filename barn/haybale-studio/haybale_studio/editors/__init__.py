@@ -1,3 +1,4 @@
+from __future__ import annotations
 from haybale_studio.editors.code_editor import CodeEditor
 from haybale_studio.editors.component_docs_editor import ComponentDocsEditor
 from haybale_studio.editors.component_source_editor import ComponentSourceEditor

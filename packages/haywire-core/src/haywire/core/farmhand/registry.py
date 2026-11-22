@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import inspect
 import logging
-from typing import Optional
 
 from haywire.core.farmhand.base import Farmhand
 from haywire.core.library.identity import LibraryIdentity
@@ -35,7 +34,7 @@ class FarmhandRegistry(BaseRegistry[Farmhand]):
             return False
 
     def _register_class(
-        self, cls: type[Farmhand], library_identity: Optional[LibraryIdentity] = None
+        self, cls: type[Farmhand], library_identity: LibraryIdentity | None = None
     ) -> str | None:
         return super()._register(cls.class_identity.registry_key, cls, library_identity)
 

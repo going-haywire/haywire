@@ -1,7 +1,8 @@
 # packages/haywire-core/src/haywire/core/session/session_manager.py
+from __future__ import annotations
 
 import logging
-from typing import Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from haywire.core.session.session import Session
@@ -27,8 +28,8 @@ class SessionManager:
     :meth:`remove_session` already calls.
     """
 
-    def __init__(self, dispatcher: "SignalDispatcher", container: "LibraryStateContainer"):
-        self._sessions: Dict[str, "Session"] = {}
+    def __init__(self, dispatcher: SignalDispatcher, container: LibraryStateContainer):
+        self._sessions: dict[str, Session] = {}
         self._dispatcher = dispatcher
         self._container = container
 
@@ -36,7 +37,7 @@ class SessionManager:
     # Session lifecycle
     # ------------------------------------------------------------------
 
-    def create_session(self, **session_kwargs) -> "Session":
+    def create_session(self, **session_kwargs) -> Session:
         """
         Create a new Session and register it.
 
@@ -85,12 +86,12 @@ class SessionManager:
         if session is not None:
             logger.info(f"SessionManager: removed session {session_id[:8]}")
 
-    def get_session(self, session_id: str) -> Optional["Session"]:
+    def get_session(self, session_id: str) -> Session | None:
         """Return the session for the given ID, or None if not found."""
         return self._sessions.get(session_id)
 
     @property
-    def active_sessions(self) -> Dict[str, "Session"]:
+    def active_sessions(self) -> dict[str, Session]:
         """Read-only view of all active browser sessions keyed by session_id.
 
         Only ever :class:`Session` instances — non-browser peers live in the

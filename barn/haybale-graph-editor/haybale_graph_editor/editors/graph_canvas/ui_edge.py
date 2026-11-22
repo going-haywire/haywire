@@ -17,13 +17,15 @@ sees: edge validity, wrapper warnings, and the length of the adapter chain.
 canvas.vue receives only the resulting stroke values.
 """
 
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass, field
 from typing import Any
 
+from haywire.api import settings_fields
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.edge.style import DASH_PATTERNS, STYLE_FIELDS
-from haywire.api import settings_fields
 from haywire.core.types import ArrowAt
 
 logger = logging.getLogger(__name__)

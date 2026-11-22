@@ -1,3 +1,4 @@
+from __future__ import annotations
 from haybale_example.widgets.example_widget import ValidatedNumberWidget
 from haybale_example.widgets.example_widget import TemperatureWidget
 from haybale_example.widgets.example_widget import UnitConversionConverter

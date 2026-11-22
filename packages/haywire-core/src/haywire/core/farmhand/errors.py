@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from haywire.core.errors.refusal import Refusal
 
 
@@ -26,8 +24,8 @@ class FarmhandError(Refusal):
         self,
         code: str,
         message: str,
-        ids: Optional[dict[str, str]] = None,
-        help: Optional[str] = None,
+        ids: dict[str, str] | None = None,
+        help: str | None = None,
     ):
         super().__init__(message)
         self.code = code

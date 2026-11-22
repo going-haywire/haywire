@@ -7,10 +7,9 @@ from typing import Any
 
 import pytest
 
+from haybale_models.filters import FILTER_FIELDS, entry_facts, row_matches, values_on_offer
 from haywire.core.catalog import CatalogEntry, Resource
 from haywire.core.library.identity import LibraryIdentity
-
-from haybale_models.filters import FILTER_FIELDS, entry_facts, row_matches, values_on_offer
 
 pytestmark = pytest.mark.unit
 

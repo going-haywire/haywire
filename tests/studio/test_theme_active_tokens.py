@@ -1,5 +1,7 @@
 """The active-element highlight tokens must be emitted by shipped themes."""
 
+from __future__ import annotations
+
 import pytest
 
 pytestmark = pytest.mark.unit

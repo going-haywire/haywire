@@ -5,6 +5,8 @@ in place, so values, labels and edges on surviving pins are kept; a pin whose
 interface port is gone drops its edges, which the edge itself reports.
 """
 
+from __future__ import annotations
+
 import itertools
 import json
 

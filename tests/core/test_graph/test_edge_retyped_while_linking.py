@@ -10,7 +10,6 @@ from haywire.barn.builtin.types import PATH
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import ThreadingTimerScheduler
 from haywire.core.types.enums import Propagation
-
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration

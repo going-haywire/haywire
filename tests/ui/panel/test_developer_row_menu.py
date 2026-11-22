@@ -9,6 +9,8 @@ none by design (settings_node.py) and must fall back to the owning node —
 whose source file is where the inner ``class Settings`` is written anyway.
 """
 
+from __future__ import annotations
+
 import inspect
 from pathlib import Path
 from typing import Any, cast
@@ -24,7 +26,6 @@ from haywire.ui.panel.render_utils import (
     _component_key,
     render_settings,
 )
-
 from tests.ui.panel.render_ctx import make_render_ctx
 
 pytestmark = pytest.mark.unit
@@ -279,9 +280,9 @@ def test_the_developer_anchor_matches_its_siblings_density(make_node_with_settin
 def test_a_bag_with_no_resolvable_keys_draws_no_developer_row():
     """An unregistered bag rendered outside a panel resolves neither entry, so
     the submenu is dropped rather than drawn empty."""
+    from haywire.barn.builtin.types import FLOAT
     from haywire.core.settings import setting
     from haywire.core.settings.settings import Settings
-    from haywire.barn.builtin.types import FLOAT
 
     class Orphan(Settings):
         value = setting[FLOAT](0.5)

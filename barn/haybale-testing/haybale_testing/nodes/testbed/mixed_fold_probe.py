@@ -1,5 +1,7 @@
 """Mixed-direction fold probe — must raise at declaration time."""
 
+from __future__ import annotations
+
 from haywire.api import FLOAT, STRING, BaseNode, ExecutionContext, NodeType, node
 
 

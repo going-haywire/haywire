@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from nicegui import ui
 
@@ -46,7 +46,7 @@ class ShortcutsEditor(BaseEditor):
     def __init__(self, wrapper: EditorWrapper) -> None:
         super().__init__(wrapper)
         # Editor key whose group was last opened by following the target editor.
-        self._followed: Optional[str] = None
+        self._followed: str | None = None
         # Group open state by editor key, kept across redraws.
         self._expanded: dict[str, bool] = {}
 
@@ -61,7 +61,7 @@ class ShortcutsEditor(BaseEditor):
         if self._follow(ctx.keymap, ctx.target_binding_id):
             self.wrapper.redraw()
 
-    def _follow(self, keymap: Optional[Keymap], binding_id: Optional[str]) -> bool:
+    def _follow(self, keymap: Keymap | None, binding_id: str | None) -> bool:
         """Open the target editor's group and close the others; return ``True`` if the groups changed.
 
         A target without a group changes nothing but lets the next target with one take over.
@@ -91,7 +91,7 @@ class ShortcutsEditor(BaseEditor):
                     self._draw_group(keymap, editor_key, active=editor_key == target_key)
 
     @staticmethod
-    def _target_key(binding_id: Optional[str]) -> Optional[str]:
+    def _target_key(binding_id: str | None) -> str | None:
         return EditorWrapper.split_id(binding_id)[0] if binding_id else None
 
     def _draw_group(self, keymap: Keymap, editor_key: str, *, active: bool) -> None:

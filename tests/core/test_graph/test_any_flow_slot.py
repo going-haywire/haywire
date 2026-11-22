@@ -1,10 +1,11 @@
 """A boundary node's growing slot grows a port of whatever wire type connects to it (ADR 0041)."""
 
+from __future__ import annotations
+
 import pytest
 
-from haywire.core.graph.subgraph import SubgraphDefinition
 from haywire.barn.builtin.wires import CallbackWire, ControlWire
-
+from haywire.core.graph.subgraph import SubgraphDefinition
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration

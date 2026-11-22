@@ -9,13 +9,14 @@ freshly-loaded headless graph is correct before any change fires.
 These tests are headless — no UI subscriber — which is exactly the gap P4 left.
 """
 
+from __future__ import annotations
+
 from typing import Any
 
 import pytest
 
-from haywire.core.settings import Settings, SettingsRegistry, setting, shadow
 from haywire.barn.builtin.types import COLOR, FLOAT
-
+from haywire.core.settings import Settings, SettingsRegistry, setting, shadow
 
 GLOBAL_KEY = "test.color"
 LOCAL_KEY = "test.node.color"

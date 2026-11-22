@@ -35,11 +35,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from haywire.core.errors.haywire_exception import HaywireException
     from haywire.api.workbench import SessionContext
+    from haywire.core.errors.haywire_exception import HaywireException
 
 
-def open_component(error: "HaywireException", context: "SessionContext") -> bool:
+def open_component(error: HaywireException, context: SessionContext) -> bool:
     """Point the CONTEXT-slot component source viewer at this error's component
     and force it into view.
 
@@ -53,7 +53,7 @@ def open_component(error: "HaywireException", context: "SessionContext") -> bool
     return True
 
 
-def open_component_docs(registry_key: str, context: "SessionContext") -> None:
+def open_component_docs(registry_key: str, context: SessionContext) -> None:
     """Bring the CONTEXT-slot docs editor to ``registry_key`` and into view.
 
     The docs counterpart to :func:`open_component_source`. Both take a registry
@@ -65,7 +65,7 @@ def open_component_docs(registry_key: str, context: "SessionContext") -> None:
     context.session.publish(RevealComponentDocs(registry_key=registry_key))
 
 
-def open_component_source(registry_key: str, context: "SessionContext") -> None:
+def open_component_source(registry_key: str, context: SessionContext) -> None:
     """Bring the CONTEXT-slot source viewer to ``registry_key`` and into view.
 
     The key-taking form of :func:`open_component`, which does the same for a
@@ -76,7 +76,7 @@ def open_component_source(registry_key: str, context: "SessionContext") -> None:
     context.session.publish(RevealComponentSource(registry_key=registry_key))
 
 
-def open_file_in_studio(filepath: str, line_number: "int | None", context: "SessionContext") -> None:
+def open_file_in_studio(filepath: str, line_number: int | None, context: SessionContext) -> None:
     """Open a file in the studio's MAIN-slot CodeEditor.
 
     Publishes ``RevealSource``, so CodeEditor's hook decides whether the path is
@@ -89,7 +89,7 @@ def open_file_in_studio(filepath: str, line_number: "int | None", context: "Sess
     context.session.publish(RevealSource(binding_id=str(path), label=path.name))
 
 
-def reveal_instance(error: "HaywireException", context: "SessionContext") -> None:
+def reveal_instance(error: HaywireException, context: SessionContext) -> None:
     """Ask every open GraphEditor in THIS session to reveal+select this
     error's instance, if it's theirs.
 

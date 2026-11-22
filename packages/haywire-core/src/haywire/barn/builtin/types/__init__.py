@@ -1,3 +1,4 @@
+from __future__ import annotations
 from .add import ADD, ADDField
 from .annotation import ANNOTATION
 from .callback import CALLBACK

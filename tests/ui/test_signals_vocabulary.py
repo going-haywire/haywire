@@ -15,30 +15,30 @@ Covers:
 - Signal / lifecycle sequential ordering contract
 """
 
+from __future__ import annotations
+
 from dataclasses import FrozenInstanceError
 from unittest.mock import MagicMock
 
 import pytest
 
-
+from haywire.core.session.session import Session
+from haywire.core.session.session_manager import SessionManager
 from haywire.core.signals import (
     ActiveGraphMoved,
     BroadcastClose,
     Close,
-    Signal,
-    ErrorLogged,
+    CommandSignal,
     ErrorLedgerChanged,
+    ErrorLogged,
     GraphDataMutated,
     LibraryCatalogChanged,
-    CommandSignal,
     Reveal,
     SelectionMoved,
+    Signal,
+    SignalDispatcher,
 )
 from haywire.core.state import LibraryStateContainer, StateRegistry
-from haywire.core.session.session import Session
-from haywire.core.session.session_manager import SessionManager
-from haywire.core.signals import SignalDispatcher
-
 
 # ----------------------------------------------------------------------
 # Signal base + hierarchy

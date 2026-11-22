@@ -7,6 +7,8 @@ annotation pin connects. No shipped skin draws an off-stage pin on a stage, so
 the first test plants one, as a skin that ignores ``on_stage`` would.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page, expect
 

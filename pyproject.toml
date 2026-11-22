@@ -143,7 +143,18 @@ exclude = ["workbench/playground/", ".scratch/"]
 # B applies repo-wide; PT is scoped to tests/ below.
 # TID251 is banned-api (see below). TID252 bans relative imports, enforced in
 # barn/ only (see .insights/feedback_no_relative_imports_in_barn.md).
-extend-select = ["E501", "PT", "B", "TID251", "TID252"]
+# UP (pyupgrade) and I (isort) keep one annotation syntax and one import order,
+# so agents stop copying whichever convention they read last (CS-T1, CS-I1).
+extend-select = ["E501", "PT", "B", "TID251", "TID252", "UP", "I"]
+# UP038 is deprecated upstream: `isinstance(x, A | B)` is slower than a tuple.
+# UP031 is about strings, not annotations, and its sites here are JS templates
+# full of braces, where %-formatting reads better than escaped str.format.
+ignore = ["UP031", "UP038"]
+
+[tool.ruff.lint.isort]
+# A file without it evaluates annotations at import time; I002 adds it (CS-T2).
+required-imports = ["from __future__ import annotations"]
+known-first-party = ["haywire", "haywire_studio", "haybale_*", "tests", "scripts", "benchmarks"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
@@ -185,6 +196,9 @@ ban-relative-imports = "all"
 "packages/haywire-core/src/haywire/barn/builtin/nodes/templates/**" = ["TID251"]
 # Relative imports are banned in haybale libraries only; packages/ keeps them.
 "!barn/**" = ["TID252"]
+# A package's __init__ import order is load-bearing: the packages import each
+# other while half-initialized, so sorting them breaks the cycles' order.
+"**/__init__.py" = ["I001"]
 # PT is a pytest-only style; production code has no test functions to lint.
 "!tests/**" = ["PT"]
 
@@ -192,7 +206,7 @@ ban-relative-imports = "all"
 # framework's public authoring surfaces, and every flagged method there is a
 # documented OPTIONAL lifecycle hook ("default is a no-op; override to ..."):
 # BaseEditor.on_focus/on_blur/cleanup, IWidget.cleanup, IType._validate_port_type
-# /_configure_port, IAction.cleanup. Marking them @abstractmethod would force
+# /_configure_port, IAction.cleanup, DataField.remove_source. Marking them @abstractmethod would force
 # every third-party editor, widget, type and undo-action author to write an
 # empty stub. Scoped per-file on purpose: a new empty ABC method anywhere else
 # still fails CI, which is the part of the rule worth keeping.
@@ -200,6 +214,7 @@ ban-relative-imports = "all"
 "packages/haywire-core/src/haywire/ui/widget/interface.py" = ["B027"]
 "packages/haywire-core/src/haywire/core/types/interface.py" = ["B027"]
 "packages/haywire-core/src/haywire/core/undo/interfaces.py" = ["B027"]
+"packages/haywire-core/src/haywire/core/types/fields.py" = ["B027"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

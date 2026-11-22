@@ -1,5 +1,7 @@
 """The Claude Code hooks of the haywire-dev plugin, run as Claude Code runs them, with a stand-in gh."""
 
+from __future__ import annotations
+
 import json
 import os
 import shutil

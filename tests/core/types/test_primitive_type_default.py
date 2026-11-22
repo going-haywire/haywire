@@ -1,5 +1,7 @@
 """A primitive type must declare a default value it can hold."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.wires import DataWire

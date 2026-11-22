@@ -1,5 +1,7 @@
 """Reusable modal dialogs built on :class:`haywire.ui.components.popup.Popup`."""
 
+from __future__ import annotations
+
 from .confirm_modal import confirm_modal
 from .diff_modal import DiffSection, diff_modal
 from .info_modal import info_modal

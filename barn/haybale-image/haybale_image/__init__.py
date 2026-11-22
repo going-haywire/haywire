@@ -10,6 +10,8 @@ Component folders (registered in ``register_components``):
     adapters, widgets, IO nodes and the library settings panel.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from haywire.api import (

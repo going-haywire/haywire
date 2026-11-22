@@ -3,6 +3,8 @@ Basic core node implementations
 """
 
 # Import the node system base class
+from __future__ import annotations
+
 from haywire.api import CALLBACK, EXEC, BaseNode, ExecutionContext, NodeType, node
 
 
@@ -22,16 +24,14 @@ class EdgeLinkProbeNode(BaseNode):
     """
 
     def init(self):
-        from haybale_core.types import ARRAY
-        from haybale_core.types import POOLED
+        from haybale_core.types import ARRAY, POOLED
         from haybale_testing.types.test_types import (
             TEST_BOOL,
             TEST_FLOAT,
             TEST_INT,
             TEST_STRING,
+            TEST_TEMPERATURE,
         )
-
-        from haybale_testing.types.test_types import TEST_TEMPERATURE
 
         with self.rejig():
             self.add(CALLBACK.as_inlet(id="callback_inlet"))

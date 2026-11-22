@@ -1,5 +1,7 @@
 """Registry keys owned by haybale-models."""
 
+from __future__ import annotations
+
 MODELS_VOLUME = "haybale-models:volume:models"
 """Volume holding model files downloaded or added on this machine."""
 

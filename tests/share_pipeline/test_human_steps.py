@@ -1,5 +1,7 @@
 """The owner-only steps are one list, rendered with the project's own values."""
 
+from __future__ import annotations
+
 import json
 import re
 import subprocess

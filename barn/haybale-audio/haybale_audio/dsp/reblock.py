@@ -1,5 +1,7 @@
 """Reblocker — turns blocks of any size into blocks of one fixed size."""
 
+from __future__ import annotations
+
 import numpy as np
 
 from haybale_audio.value import AudioBlock

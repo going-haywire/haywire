@@ -1,7 +1,8 @@
 """For Each File — loop over the files of a folder."""
 
+from __future__ import annotations
+
 from pathlib import PurePosixPath
-from typing import Optional
 
 from haybale_core.file_listing import FileListing, folder_root, list_files
 from haybale_core.loop_settings import LoopErrors
@@ -136,14 +137,14 @@ class ForEachFileNode(BaseNode):
         )
 
     def post_init(self) -> None:
-        self._folder: Optional[VolumePath] = None
+        self._folder: VolumePath | None = None
         self._files: list[PurePosixPath] = []
         self._index = 0
         self._failed: list[VolumePath] = []
         self._failures_seen = 0
-        self._span: Optional[ProgressSpan] = None
+        self._span: ProgressSpan | None = None
 
-    def worker(self, context: ExecutionContext) -> Optional[str]:
+    def worker(self, context: ExecutionContext) -> str | None:
         if context.control_pin == "execute":
             self._close()
             self._begin()

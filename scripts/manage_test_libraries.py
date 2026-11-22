@@ -3,6 +3,8 @@
 Interactive CLI tool to install/uninstall test libraries in the Haywire repository.
 """
 
+from __future__ import annotations
+
 import subprocess
 import sys
 from pathlib import Path

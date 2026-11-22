@@ -1,12 +1,15 @@
-from nicegui import ui, events
-from typing import Optional, Callable
-from dataclasses import dataclass
-import uuid
-import logging
+from __future__ import annotations
 
-from haywire.ui.components.zoom.settings import EditorPanZoomSettings
-from haywire.ui.components.minimap.minimap import MinimapCanvas
+import logging
+import uuid
+from collections.abc import Callable
+from dataclasses import dataclass
+
+from nicegui import events, ui
+
 from haywire.ui.components.debug_overlay.debug_overlay import DebugOverlay
+from haywire.ui.components.minimap.minimap import MinimapCanvas
+from haywire.ui.components.zoom.settings import EditorPanZoomSettings
 
 _log = logging.getLogger(__name__)
 
@@ -22,8 +25,8 @@ class Viewport:
     zoom: float
     pan_x: float
     pan_y: float
-    width: Optional[float] = None
-    height: Optional[float] = None
+    width: float | None = None
+    height: float | None = None
     """The container's size in pixels when the client reported it; ``None`` if it did not."""
 
 
@@ -62,20 +65,20 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
         self.container_id = f"zoom-pan-{uuid.uuid4().hex[:8]}"
 
         # Called once when the Vue component first mounts (first transform-changed event).
-        self._on_ready: Optional[Callable] = None
+        self._on_ready: Callable | None = None
 
         # Minimap instance — created in _setup_container after DOM is ready
-        self.minimap: Optional["MinimapCanvas"] = None
+        self.minimap: MinimapCanvas | None = None
 
         # Debug/performance overlay — created in _setup_container after DOM is ready
-        self.debug_overlay: Optional["DebugOverlay"] = None
+        self.debug_overlay: DebugOverlay | None = None
 
         # Last SETTLED viewport, one update per gesture (see pan.vue's
         # _updateTransformDirect). Held so it can be read synchronously — a
         # client round-trip is not available on the paths that would want it
         # most, such as disconnect or shutdown. None until the client has
         # reported once; see get_viewport.
-        self._viewport: Optional[Viewport] = None
+        self._viewport: Viewport | None = None
 
         super().__init__(**kwargs)
 
@@ -166,7 +169,7 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
         except Exception as ex:
             _log.warning(f"ZoomPanContainer._handle_transform_changed: {ex}")
 
-    def get_viewport(self) -> Optional[Viewport]:
+    def get_viewport(self) -> Viewport | None:
         """Where the canvas is currently looking, or ``None`` if it has not said yet.
 
         Reads the last value the client reported — one per settled gesture, so
@@ -187,7 +190,7 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
         """
         return self._viewport
 
-    def get_viewport_centre(self) -> Optional[tuple[float, float]]:
+    def get_viewport_centre(self) -> tuple[float, float] | None:
         """The content-space point at the middle of the last-reported viewport, or ``None``.
 
         ``None`` while the client has not reported a viewport or the container's size.
@@ -239,9 +242,7 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
         _log.info("[ZoomPan] center_on_content → run_method('fitToContent')")
         self.run_method("fitToContent")
 
-    def set_zoom(
-        self, zoom: float, center_x: Optional[float] = None, center_y: Optional[float] = None
-    ) -> None:
+    def set_zoom(self, zoom: float, center_x: float | None = None, center_y: float | None = None) -> None:
         """Set zoom level programmatically."""
         if center_x is not None and center_y is not None:
             self.run_method("setZoom", zoom, center_x, center_y)

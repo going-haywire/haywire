@@ -1,5 +1,7 @@
 """Carrier values and the CARRIER and BUNDLE types."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.carrier import BundleValue, CarrierValue, Stamp

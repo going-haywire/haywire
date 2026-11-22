@@ -1,9 +1,11 @@
 """Step Array — go through an array one item per `Next`, at whatever pace the graph sets."""
 
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any
 
 from haybale_core.array_ports import array_element_type, array_of
-from haywire.api import ADD, EXEC, INT, STRING, BaseNode, ExecutionContext, NodeType, MenuWidget, node
+from haywire.api import ADD, EXEC, INT, STRING, BaseNode, ExecutionContext, MenuWidget, NodeType, node
 
 MODES = ("once", "loop", "palindrome")
 
@@ -45,8 +47,8 @@ class StepArrayNode(BaseNode):
     ```
     """
 
-    _items: Optional[list[Any]]
-    _pending: Optional[int]
+    _items: list[Any] | None
+    _pending: int | None
 
     def init(self) -> None:
         self.add(
@@ -105,7 +107,7 @@ class StepArrayNode(BaseNode):
         with self.rejig(include=["array", "item"]):
             self._add_array_ports(element)
 
-    def _add_array_ports(self, element: Optional[Any]) -> None:
+    def _add_array_ports(self, element: Any | None) -> None:
         """Add `Array` and `Item`: open slots until an array is wired in."""
 
         self._element = element
@@ -127,7 +129,7 @@ class StepArrayNode(BaseNode):
         )
         self.add(element.as_outlet("item", label="Item", description="The current item"))
 
-    def worker(self, context: ExecutionContext) -> Optional[str]:
+    def worker(self, context: ExecutionContext) -> str | None:
         pin = context.control_pin
         if pin == "start":
             return self._start()

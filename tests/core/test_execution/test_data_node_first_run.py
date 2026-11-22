@@ -1,5 +1,7 @@
 """A data node runs its worker at least once per instance, then only while a port is dirty (ADR 0070)."""
 
+from __future__ import annotations
+
 import importlib
 import json
 import threading

@@ -8,6 +8,8 @@ Excluded from the default suite (``perf`` marker); run with::
     uv run pytest -m perf tests/ui/widget/test_sync_path_perf.py -s
 """
 
+from __future__ import annotations
+
 import statistics
 import time
 

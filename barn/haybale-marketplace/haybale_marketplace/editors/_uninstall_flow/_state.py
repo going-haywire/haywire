@@ -19,18 +19,16 @@ from __future__ import annotations
 import asyncio
 import logging
 from pathlib import Path
-from typing import Optional, Protocol
+from typing import Protocol
 
-from haywire.ui.components.popup import Popup
-from haywire.ui.components.stepper import StepFlow
-
+from haybale_marketplace.editors._uninstall_flow.copy import STEP_TITLES, STEPS
 from haybale_marketplace.uninstall_impact import (
     UninstallImpact,
     find_graph_usage,
     find_pip_dependents,
 )
-
-from haybale_marketplace.editors._uninstall_flow.copy import STEP_TITLES, STEPS
+from haywire.ui.components.popup import Popup
+from haywire.ui.components.stepper import StepFlow
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +60,8 @@ class UninstallFlow(StepFlow):
         source: UninstallSource,
         library_id: str,
         label: str,
-        workspace_root: Optional[Path] = None,
-        popup: Optional[Popup] = None,
+        workspace_root: Path | None = None,
+        popup: Popup | None = None,
     ) -> None:
         super().__init__()
         self.source = source

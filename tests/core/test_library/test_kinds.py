@@ -1,4 +1,6 @@
-from haywire.core.library.kinds import kind_registry_map, KIND_FOLDERS, canon_area, doc_filename
+from __future__ import annotations
+
+from haywire.core.library.kinds import KIND_FOLDERS, canon_area, doc_filename, kind_registry_map
 
 EXPECTED = {
     "node",

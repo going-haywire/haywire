@@ -8,6 +8,8 @@ them.
 The collector belongs to the process, so the count of running graphs is shared by every ``Interpreter``.
 """
 
+from __future__ import annotations
+
 import gc
 import threading
 from collections.abc import Iterator

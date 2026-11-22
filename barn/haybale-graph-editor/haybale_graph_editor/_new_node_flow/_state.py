@@ -18,9 +18,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Protocol
+from typing import TYPE_CHECKING, Any, Literal, Protocol
 
+from haybale_graph_editor._new_node_flow.copy import STEP_TITLES, STEPS
 from haywire.core.authoring import (
     DEFAULT_TIMEOUT_S,
     AuthoringTarget,
@@ -39,8 +41,6 @@ from haywire.core.library.utils import NODE, reg_key
 from haywire.core.node.info import NodeInfo, matches_query
 from haywire.ui.components.popup import Popup
 from haywire.ui.components.stepper import StepFlow
-
-from haybale_graph_editor._new_node_flow.copy import STEP_TITLES, STEPS
 
 if TYPE_CHECKING:
     from haywire.core.errors.ledger import ErrorLedger
@@ -96,14 +96,14 @@ class NewNodeFlow(StepFlow):
         targets: list[AuthoringTarget],
         libraries: Any,
         registry: Any,
-        ledger: "ErrorLedger",
-        templates: Optional[dict[str, list[NodeInfo]]] = None,
-        clone_sources: Optional[list[NodeInfo]] = None,
+        ledger: ErrorLedger,
+        templates: dict[str, list[NodeInfo]] | None = None,
+        clone_sources: list[NodeInfo] | None = None,
         resolve: Callable[[str], Any] = lambda _key: None,
-        menu_paths: Optional[list[str]] = None,
+        menu_paths: list[str] | None = None,
         source_cls: Any = None,
         timeout_s: float = DEFAULT_TIMEOUT_S,
-        popup: Optional[Popup] = None,
+        popup: Popup | None = None,
     ) -> None:
         super().__init__()
         self.host = host

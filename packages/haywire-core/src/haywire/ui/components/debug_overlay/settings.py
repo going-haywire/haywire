@@ -1,10 +1,12 @@
 # haywire/ui/components/debug_overlay/settings.py
 """Graph-canvas debug/performance overlay preferences."""
 
+from __future__ import annotations
+
+from haywire.barn.builtin.types import BOOL, CHOICES, INT
 from haywire.core.namespaces import NAMESPACE_UI_DEBUG_OVERLAY
 from haywire.core.settings import setting
 from haywire.core.settings.settings_framework import FrameworkSettings
-from haywire.barn.builtin.types import BOOL, CHOICES, INT
 
 
 class DebugOverlaySettings(FrameworkSettings, namespace=NAMESPACE_UI_DEBUG_OVERLAY):

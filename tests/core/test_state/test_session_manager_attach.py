@@ -1,11 +1,13 @@
 """Tests verifying SessionManager calls container.attach_session / detach_session
 around session creation / removal."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
-from haywire.core.state import LibraryStateContainer, StateRegistry, SessionState
 from haywire.core.session.session_manager import SessionManager
 from haywire.core.signals import SignalDispatcher
+from haywire.core.state import LibraryStateContainer, SessionState, StateRegistry
 
 
 class TestSessionManagerAttachDetach:

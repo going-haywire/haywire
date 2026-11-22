@@ -1,5 +1,7 @@
 """SkinFactory tells every card of a node about a reload of the skin that card draws with."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 

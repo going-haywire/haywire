@@ -7,18 +7,18 @@ default_open=(category.lower() != "advanced") rather than relying on
 category_group's own default.
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest
-
 from nicegui import Client, ui
 from nicegui.elements.expansion import Expansion
 
+from haywire.barn.builtin.types import STRING
 from haywire.core.settings import SettingsRegistry, setting
 from haywire.core.settings.settings_framework import FrameworkSettings
-from haywire.barn.builtin.types import STRING
 from haywire.ui.panel.render_utils import render_schema
-
 from tests.ui.panel.render_ctx import make_render_ctx
 
 pytestmark = pytest.mark.integration

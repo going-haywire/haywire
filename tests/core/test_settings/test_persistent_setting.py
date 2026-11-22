@@ -12,12 +12,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from haywire.core.settings.descriptor import setting, persistent_setting
+from haywire.barn.builtin.types import STRING
+from haywire.core.settings.descriptor import persistent_setting, setting
 from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.settings.settings_framework import FrameworkSettings
 from haywire.core.settings.settings_library import LibrarySettings
-from haywire.barn.builtin.types import STRING
-
 
 # ---------------------------------------------------------------------------
 # Test schemas

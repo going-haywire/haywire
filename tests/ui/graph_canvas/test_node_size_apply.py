@@ -1,9 +1,9 @@
+from __future__ import annotations
+
 from typing import Any, cast
-
-import haywire.core.graph.editor  # noqa: F401  (circular-import guard)
-
 from unittest.mock import MagicMock
 
+import haywire.core.graph.editor  # noqa: F401  (circular-import guard)
 from haybale_graph_editor.editors.graph_canvas.ui_node import UINode
 
 

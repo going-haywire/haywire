@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from contextlib import nullcontext
 import logging
 import uuid
-from typing import Any, Callable, ClassVar, Literal, Optional, TYPE_CHECKING
+from abc import ABC, abstractmethod
+from collections.abc import Callable
+from contextlib import nullcontext
+from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
 from nicegui import ui
 
@@ -15,9 +16,9 @@ from haywire.ui.editor.registry import EditorRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 
 if TYPE_CHECKING:
+    from haywire.core.session.session import Session
     from haywire.core.signals import RevealSignal
     from haywire.ui.editor.base import BaseEditor
-    from haywire.core.session.session import Session
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +34,10 @@ class Slot(ABC):
 
     def __init__(
         self,
-        session: "Session",
+        session: Session,
         name: SlotName,
         registry: EditorRegistry,
-        on_visibility_change: Optional[Callable[[bool], object]] = None,
+        on_visibility_change: Callable[[bool], object] | None = None,
         bar_place: Literal["left", "right", "top", "bottom"] = "left",
         foldable: bool = False,
         visible: bool = True,
@@ -72,11 +73,11 @@ class Slot(ABC):
         self.name = name
         self._registry: EditorRegistry = registry
         self._bindings: list[EditorWrapper] = []
-        self._active: Optional[EditorWrapper] = None
+        self._active: EditorWrapper | None = None
         self._visible: bool = visible
         self._size: int = size
-        self._area_panel_container: Optional[ui.tab_panels] = None
-        self._area_parent_box: Optional[ui.element] = None
+        self._area_panel_container: ui.tab_panels | None = None
+        self._area_parent_box: ui.element | None = None
         self._panels: dict[str, ui.element] = {}
         # binding_id -> tab-panel name. Independent of the binding id: the client caches a
         # panel by name, so a re-payload must not rename it (a new name mounts a fresh
@@ -86,7 +87,7 @@ class Slot(ABC):
         self._on_visibility_change = on_visibility_change
         self._bar_place = bar_place
         self._foldable = foldable
-        self._bar_container: Optional[ui.element] = None
+        self._bar_container: ui.element | None = None
         self._tab_client: Any = None
         self._registry.add_batch_event_subscriber(self._on_lifecycle_events)
 
@@ -216,7 +217,7 @@ class Slot(ABC):
     # Construction helpers
     # ------------------------------------------------------------------
 
-    def _create_content_box(self) -> "ui.element":
+    def _create_content_box(self) -> ui.element:
         """Create the slot's outer content box.
 
         Size axis and flex behaviour are derived from ``_ORIENTATION`` and
@@ -254,17 +255,17 @@ class Slot(ABC):
     # ------------------------------------------------------------------
 
     @property
-    def active_binding(self) -> Optional[EditorWrapper]:
+    def active_binding(self) -> EditorWrapper | None:
         """The wrapper currently shown in the area, or ``None`` if empty."""
         return self._active
 
     @property
-    def active_key(self) -> Optional[str]:
+    def active_key(self) -> str | None:
         """Registry key of the active wrapper, or ``None`` if empty."""
         return self._active.editor_key if self._active is not None else None
 
     @property
-    def active_binding_id(self) -> Optional[str]:
+    def active_binding_id(self) -> str | None:
         """Full wrapper id (``editor_key`` or ``editor_key::binding_id``) of the active wrapper."""
         return self._active.editor_binding_id if self._active is not None else None
 
@@ -301,7 +302,7 @@ class Slot(ABC):
             if wrapper.editor_cls is not None and self._editor_accessible(wrapper.editor_cls)
         ]
 
-    def find_binding(self, editor_key: str, binding_id: Optional[str] = None) -> Optional[EditorWrapper]:
+    def find_binding(self, editor_key: str, binding_id: str | None = None) -> EditorWrapper | None:
         """
         Lookup a wrapper by ``(editor_key, binding_id)``.
 
@@ -338,7 +339,7 @@ class Slot(ABC):
     # ------------------------------------------------------------------
 
     @abstractmethod
-    def render(self, parent: "ui.element") -> None:
+    def render(self, parent: ui.element) -> None:
         """Render this slot into ``parent``."""
         pass
 
@@ -405,7 +406,7 @@ class Slot(ABC):
             logger.debug(f"Slot '{self.name}': could not capture client context: {exc}")
             self._tab_client = None
 
-    def _render_area_contents(self, parent: "ui.element") -> None:
+    def _render_area_contents(self, parent: ui.element) -> None:
         """
         Create the area container (a headless ``ui.tab_panels``) as a child
         of ``parent`` and draw the active wrapper's editor into its panel.
@@ -524,7 +525,7 @@ class Slot(ABC):
     # Switching
     # ------------------------------------------------------------------
 
-    def switch_to(self, editor_key: str, binding_id: Optional[str] = None) -> bool:
+    def switch_to(self, editor_key: str, binding_id: str | None = None) -> bool:
         """
         Change the active wrapper to the one matching ``(editor_key, binding_id)``.
 
@@ -579,7 +580,7 @@ class Slot(ABC):
         self.switch_to(key, binding_id)
         self._refresh_bar()
 
-    def reveal(self, command: "RevealSignal", editor_cls: "type[BaseEditor] | None" = None) -> bool:
+    def reveal(self, command: RevealSignal, editor_cls: type[BaseEditor] | None = None) -> bool:
         """Find-or-add the wrapper for ``command`` and activate it.
 
         Single entry point used by the shell's reveal dispatcher — works the
@@ -668,8 +669,8 @@ class Slot(ABC):
     def repayload(
         self,
         wrapper: EditorWrapper,
-        new_payload: Optional[str],
-        new_label: Optional[str] = None,
+        new_payload: str | None,
+        new_label: str | None = None,
     ) -> bool:
         """Re-key ``wrapper``'s disambiguator in place (e.g. Save-As).
 
@@ -703,10 +704,10 @@ class Slot(ABC):
     def add_binding(
         self,
         editor_key: str,
-        editor_cls: "type[BaseEditor]",
-        binding_id: Optional[str] = None,
+        editor_cls: type[BaseEditor],
+        binding_id: str | None = None,
         activate: bool = False,
-    ) -> Optional[EditorWrapper]:
+    ) -> EditorWrapper | None:
         """Construct a wrapper, attach the redraw callback, and add it.
 
         Single wrapper-construction path — used by both populate_from_snapshot
@@ -827,8 +828,8 @@ class Slot(ABC):
     def remove_binding(
         self,
         editor_key: str,
-        binding_id: Optional[str] = None,
-    ) -> "Optional[EditorWrapper]":
+        binding_id: str | None = None,
+    ) -> EditorWrapper | None:
         """Remove a single wrapper matching (editor_key, binding_id).
 
         Calls wrapper.cleanup() which unsubscribes from the registry and
@@ -864,8 +865,8 @@ class Slot(ABC):
     def repayload_binding(
         self,
         editor_key: str,
-        old_payload: Optional[str],
-        new_payload: Optional[str],
+        old_payload: str | None,
+        new_payload: str | None,
     ) -> bool:
         """Re-key an existing wrapper's binding_id in place.
 

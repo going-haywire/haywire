@@ -4,12 +4,14 @@ Integration tests for Interpreter with full library system.
 These tests require libraries to be loaded and are slower.
 """
 
+from __future__ import annotations
+
 import pytest
+
+from haywire.core.di.config import LibrarySystemService
 from haywire.core.execution.event_source import SystemEventType
 from haywire.core.execution.interpreter import Interpreter
 from haywire.core.graph.base import BaseGraph
-from haywire.core.di.config import LibrarySystemService
-
 from tests.conftest import make_node
 from tests.wait import wait_until
 
@@ -52,9 +54,9 @@ class TestInterpreter:
         Returns:
             The populated graph
         """
+        from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode as MathOP
         from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode as BeginPlayEventNode
         from haybale_testing.nodes.testbed.print_probe import PrintProbeNode as PrintTerminalMessageNode
-        from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode as MathOP
 
         begin_play = make_node(graph, BeginPlayEventNode.class_identity.registry_key, position=(100, 100))
 
@@ -339,9 +341,9 @@ class TestInterpreter:
         # this is the rule's "tests specifically of another library's
         # components" exemption — do not migrate to testbed copies.
         from haybale_core.nodes.emits.tick_emit import TickEmitNode
-        from haybale_core.nodes.events.tick_event import TickEventNode
         from haybale_core.nodes.events.begin_play_event import BeginPlayEventNode
         from haybale_core.nodes.events.shutdown_event import ShutdownEventNode
+        from haybale_core.nodes.events.tick_event import TickEventNode
 
         begin = make_node(graph, BeginPlayEventNode.class_identity.registry_key, position=(0, 0))
         shutdown = (

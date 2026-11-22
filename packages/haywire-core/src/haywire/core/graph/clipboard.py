@@ -8,7 +8,7 @@ Pure: no NiceGUI, no I/O. Transport (the OS clipboard) and mutation
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..node.layout import position_of
 from ..node.previous_setup import strip_previous_setups
@@ -24,11 +24,11 @@ CLIPBOARD_FORMAT_VERSION = 2
 
 
 def build_clipboard_payload(
-    graph: "BaseGraph",
-    node_ids: List[str],
-    edge_ids: List[str],
+    graph: BaseGraph,
+    node_ids: list[str],
+    edge_ids: list[str],
     session_id: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Serialize the given nodes and edges of ``graph`` into a clipboard payload.
 
     Only edges with both endpoints in ``node_ids`` are included, so a paste is
@@ -50,8 +50,8 @@ def build_clipboard_payload(
         positions, the serialized ``nodes`` and ``edges``, and the
         ``subgraphs`` any copied Graph-node stands for.
     """
-    nodes: Dict[str, Any] = {}
-    subgraphs: Dict[str, Any] = {}
+    nodes: dict[str, Any] = {}
+    subgraphs: dict[str, Any] = {}
     positions: list[tuple[float, float]] = []
     for node_id in node_ids:
         wrapper = graph.get_node_wrapper(node_id)
@@ -72,7 +72,7 @@ def build_clipboard_payload(
     # filtered-out boundary node is dropped with it.
     copied = set(nodes)
 
-    edges: Dict[str, Any] = {}
+    edges: dict[str, Any] = {}
     for edge_id in edge_ids:
         edge_wrapper = graph.get_edge_wrapper(edge_id)
         if edge_wrapper is None:

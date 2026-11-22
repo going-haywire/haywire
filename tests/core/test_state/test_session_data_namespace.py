@@ -1,13 +1,15 @@
 """Unit tests for SessionDataNamespace — the per-session typed proxy."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.core.state import (
     LibraryStateContainer,
-    StateRegistry,
     SessionState,
+    StateRegistry,
 )
 from haywire.core.state.data_namespace import SessionDataNamespace
 

@@ -4,13 +4,18 @@ SelectionHandlers — selection state and clipboard (copy/paste) events.
 Owns: selected_nodes, selected_edges, clipboard.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import traceback
-from typing import Any, Callable, Iterable, Optional, Set, Tuple, TYPE_CHECKING
+from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, Any
 
 from nicegui import ui
 
+from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_event
+from haybale_graph_editor.states.edit_state import EditState
 from haywire.api.workbench import LevelMode, SelectionMoved
 from haywire.core.graph.arrange import (
     ArrangeGaps,
@@ -23,7 +28,6 @@ from haywire.core.graph.arrange import (
 from haywire.core.graph.clipboard import build_clipboard_payload, is_haywire_payload
 from haywire.core.node.layout import PATCH, STAGE, LayoutChannel, layout_position_of, position_of
 from haywire.core.undo.actions.graph_actions import ClipboardData
-
 from haywire.ui.components.graph.event_definitions import (
     ArrangeNodesEvent,
     RotateNodesEvent,
@@ -35,14 +39,12 @@ from haywire.ui.components.graph.event_definitions import (
     UserRemoveEvent,
 )
 from haywire.ui.elements import clipboard_script
-from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_event
-from haybale_graph_editor.states.edit_state import EditState
 
 if TYPE_CHECKING:
-    from haywire.core.graph.edit_route import EditRoute
-    from haywire.api.workbench import BaseGraph
-    from haywire.core.session.session import Session
     from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
+    from haywire.api.workbench import BaseGraph
+    from haywire.core.graph.edit_route import EditRoute
+    from haywire.core.session.session import Session
 
 logger = logging.getLogger(__name__)
 
@@ -70,13 +72,13 @@ class SelectionHandlers:
 
     def __init__(
         self,
-        graph: "BaseGraph",
-        route: "EditRoute",
+        graph: BaseGraph,
+        route: EditRoute,
         session_id: str,
-        session: Optional["Session"] = None,
-        visual_layer: Optional["VisualLayerHandlers"] = None,
+        session: Session | None = None,
+        visual_layer: VisualLayerHandlers | None = None,
         channel: LayoutChannel = PATCH,
-        patch_viewport_centre: Optional[Callable[[], Optional[Tuple[float, float]]]] = None,
+        patch_viewport_centre: Callable[[], tuple[float, float] | None] | None = None,
     ):
         self.channel = channel
         self.patch_viewport_centre = patch_viewport_centre
@@ -86,8 +88,8 @@ class SelectionHandlers:
         self._session = session
         self._visual_layer = visual_layer
 
-        self.selected_nodes: Set[str] = set()
-        self.selected_edges: Set[str] = set()
+        self.selected_nodes: set[str] = set()
+        self.selected_edges: set[str] = set()
 
     # Selection changes no document, so it is taken in every level mode.
     @handles_event(SelectionChangedEvent, requires=LevelMode.VIEW)
@@ -248,12 +250,12 @@ class SelectionHandlers:
         elif self._visual_layer is not None:
             self._visual_layer.fit_view()
 
-    def _selectable(self, node_ids: Set[str]) -> Set[str]:
+    def _selectable(self, node_ids: set[str]) -> set[str]:
         """The nodes of ``node_ids`` that are not locked and that this canvas's view shows."""
         props = {n: self.graph.node_wrappers[n].node.props for n in node_ids}
         return {n for n, p in props.items() if not p.locked and self.channel.includes(p)}
 
-    def _replace_selection(self, nodes: Set[str], edges: Optional[Set[str]] = None) -> None:
+    def _replace_selection(self, nodes: set[str], edges: set[str] | None = None) -> None:
         """Select exactly ``nodes`` and ``edges`` (none by default), with no active element,
         here and in the browser."""
         self.selected_nodes = nodes
@@ -372,9 +374,9 @@ class SelectionHandlers:
         self._select_pasted(*result)
 
     # Class default too, so an instance built without __init__ has no patch canvas to ask.
-    patch_viewport_centre: Optional[Callable[[], Optional[Tuple[float, float]]]] = None
+    patch_viewport_centre: Callable[[], tuple[float, float] | None] | None = None
 
-    def _patch_fallback(self) -> Optional[Tuple[float, float]]:
+    def _patch_fallback(self) -> tuple[float, float] | None:
         """The patch anchor of a paste onto an empty stage, or ``None`` without a patch viewport."""
         if not self.channel.stage or self.patch_viewport_centre is None:
             return None

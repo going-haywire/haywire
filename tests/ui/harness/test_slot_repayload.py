@@ -7,6 +7,8 @@ panel's name is now independent of the binding id. Asserted in a browser: the mo
 the edge geometry are Vue's and the layout engine's.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

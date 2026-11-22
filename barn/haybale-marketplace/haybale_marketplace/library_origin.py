@@ -68,7 +68,7 @@ def is_project_library(lib: LibraryInfo, marketplace_path: str | None) -> bool:
 def compute_library_origin(
     lib: LibraryInfo,
     marketplace_path: str | None,
-    catalog_entry: "Haybale | None",
+    catalog_entry: Haybale | None,
 ) -> LibraryOrigin:
     """Compute lib's LibraryOrigin.
 

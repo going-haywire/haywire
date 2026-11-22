@@ -35,10 +35,11 @@ from __future__ import annotations
 import json
 import time
 
+from nicegui import ui
+
 from haywire.api.workbench import AccessTier, BaseEditor, editor, get_activity_tracker, hui, redraw_on
 from haywire.core.signals import FarmhandActivity
 from haywire.ui.components.popup import Popup
-from nicegui import ui
 
 #: Rows to render. The tracker keeps more; this is what fits without turning a
 #: glanceable list into a scroll marathon.

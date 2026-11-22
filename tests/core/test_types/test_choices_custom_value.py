@@ -4,6 +4,8 @@ A select with ``new_value_mode`` lets the user type such a value. The value is a
 plain string; the options are presentation and must not pick it up.
 """
 
+from __future__ import annotations
+
 import importlib
 from typing import Any
 

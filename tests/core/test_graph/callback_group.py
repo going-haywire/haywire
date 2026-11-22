@@ -5,6 +5,8 @@ Input (card pin `in_sub_in`) and `sub_out` on the Subgraph Output (card pin
 `out_sub_out`), both `CALLBACK` and `RESOLVED`, the Output's inlet relaying.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any
 

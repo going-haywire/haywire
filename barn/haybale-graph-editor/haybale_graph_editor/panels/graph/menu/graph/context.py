@@ -16,9 +16,7 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
-from haywire.api.workbench import AccessTier, BasePanel, PanelLayout, Paste, hui, panel
-from haywire.core.node.info import NodeInfo
-
+from haybale_graph_editor.panels.node_menu_builder import NodeMenuBuilder
 from haybale_graph_editor.surfaces import (
     GraphActions,
     GraphContext,
@@ -26,7 +24,8 @@ from haybale_graph_editor.surfaces import (
     GraphMoreActions,
     GraphToolBar,
 )
-from haybale_graph_editor.panels.node_menu_builder import NodeMenuBuilder
+from haywire.api.workbench import AccessTier, BasePanel, PanelLayout, Paste, hui, panel
+from haywire.core.node.info import NodeInfo
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -45,7 +44,7 @@ class GraphContextPanel(BasePanel):
 
     actions: GraphActions
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             with ui.row().classes("items-center justify-end gap-1 w-full"):
                 self.render_surface(GraphToolBar, ctx)
@@ -71,7 +70,7 @@ class PastePanel(BasePanel):
 
     actions: GraphActions
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             hui.icon_action(
                 hui.icon.paste, tooltip="Paste", on_click=self.actions.paste_at_click, command=Paste
@@ -90,7 +89,7 @@ class FocusGraphPanel(BasePanel):
 
     actions: GraphActions
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             hui.icon_action(
                 hui.icon.focus_graph,
@@ -116,13 +115,13 @@ class TrimCanvasPanel(BasePanel):
     actions: GraphActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         from haybale_graph_editor.states.edit_state import EditState
 
         graph = ctx.data[EditState].active_graph
         return graph is not None and len(graph.node_wrappers) >= 1
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             hui.icon_action(
                 hui.icon.trim_canvas,
@@ -149,12 +148,12 @@ class NewNodeToolbarPanel(BasePanel):
     actions: GraphActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         from haybale_graph_editor.states.edit_state import EditState
 
         return ctx.data[EditState].active_graph is not None
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             hui.icon_action(
                 hui.icon.node_new,
@@ -184,7 +183,7 @@ class GraphMorePanel(BasePanel):
 
     actions: GraphActions
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             with hui.dropdown("more_horiz", tooltip="More actions", closes=True):
                 self.render_surface(GraphMoreActions, ctx)
@@ -210,7 +209,7 @@ class CreateNodeMenuPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         node_factory = ctx.app.node_factory
@@ -266,12 +265,12 @@ class ResetNodeCardsMenuPanel(BasePanel):
     actions: GraphActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         from haybale_graph_editor.states.edit_state import EditState
 
         return ctx.data[EditState].active_graph is not None
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             hui.menu_row(
                 "Reset Node Detail",
@@ -311,12 +310,12 @@ class ArrangeAllMenuPanel(BasePanel):
     actions: GraphActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         from haybale_graph_editor.states.edit_state import EditState
 
         graph = ctx.data[EditState].active_graph
         return graph is not None and len(graph.node_wrappers) >= 2
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             hui.menu_row("Arrange All", icon=hui.icon.arrange_all, on_click=self.actions.arrange_graph)

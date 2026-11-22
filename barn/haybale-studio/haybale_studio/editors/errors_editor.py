@@ -25,8 +25,11 @@ the selected entry's full formatted report (snapshotted at log() time).
 splitter position intact when the list changes underneath the user.
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable
 from datetime import datetime
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING
 
 from nicegui import ui
 
@@ -52,8 +55,9 @@ from haywire.ui.components.popup import Popup
 from haywire.ui.errors.haywire_exception import render_error_details
 
 if TYPE_CHECKING:
-    from haywire.api.workbench import SessionContext
     from nicegui.element import Element
+
+    from haywire.api.workbench import SessionContext
 
 # The tab's count badge, by the worst unseen severity.
 _SEVERITY_TONE = {
@@ -79,7 +83,7 @@ _SEVERITY_RANK = {
 }
 
 
-def _format_timestamp(ts: Optional[float]) -> str:
+def _format_timestamp(ts: float | None) -> str:
     if ts is None:
         return ""
     return datetime.fromtimestamp(ts).strftime("%H:%M:%S")
@@ -102,18 +106,18 @@ class ErrorsEditor(BaseEditor):
 
     def __init__(self, wrapper):
         super().__init__(wrapper)
-        self._context: Optional["SessionContext"] = None
-        self._rows_container: Optional[ui.column] = None
-        self._detail_container: Optional[ui.column] = None
-        self._count_label: Optional[ui.label] = None
+        self._context: SessionContext | None = None
+        self._rows_container: ui.column | None = None
+        self._detail_container: ui.column | None = None
+        self._count_label: ui.label | None = None
         self._entries_by_seq: dict[int, HaywireException] = {}
-        self._selected_seq: Optional[int] = None
+        self._selected_seq: int | None = None
 
     # ------------------------------------------------------------------
     # Rendering
     # ------------------------------------------------------------------
 
-    def draw(self, context: "SessionContext", container: "Element") -> None:
+    def draw(self, context: SessionContext, container: Element) -> None:
         self._context = context
         with container:
             with ui.splitter(value=45, limits=(15, 85)).classes("w-full h-full") as splitter:
@@ -321,7 +325,7 @@ class ErrorsEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     @react_on(ErrorLogged, ErrorLedgerChanged)
-    def _on_ledger_signal(self, context: "SessionContext", signal: Signal) -> None:
+    def _on_ledger_signal(self, context: SessionContext, signal: Signal) -> None:
         """A new error was recorded, or triage state changed — refresh list + badge.
 
         ``@react_on`` (targeted) rather than a full editor redraw so the detail
@@ -374,13 +378,13 @@ class ErrorsEditor(BaseEditor):
         """Return whether this session may open the editors that show an error's source."""
         return self._context is not None and self._context.can_edit()
 
-    def _open_in_studio_callback(self) -> "Callable[[str, int | None], None] | None":
+    def _open_in_studio_callback(self) -> Callable[[str, int | None], None] | None:
         """Return the details popup's "Open in Studio" action, or ``None`` if this session may not use it."""
         context = self._context
         if context is None or not self._can_open_source():
             return None
 
-        def _open(filepath: str, line_number: "int | None") -> None:
+        def _open(filepath: str, line_number: int | None) -> None:
             open_file_in_studio(filepath, line_number, context)
 
         return _open

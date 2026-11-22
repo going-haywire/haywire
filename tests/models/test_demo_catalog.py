@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from haywire.core.library.identity import LibraryIdentity
 from haywire.core.catalog import CatalogRegistry
+from haywire.core.library.identity import LibraryIdentity
 
 
 def _catalog_folder() -> Path:

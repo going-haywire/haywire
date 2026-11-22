@@ -6,13 +6,9 @@ import json
 import logging
 import re
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
-
-from haywire.api import library_storage_dir
-from haywire.api.workbench import AppState, state
-from haywire.core.errors.ledger import get_error_ledger
+from typing import Any
 
 from haybale_studio.questionnaire.definition import (
     answer_keys,
@@ -22,6 +18,9 @@ from haybale_studio.questionnaire.definition import (
     visible_answers,
 )
 from haybale_studio.questionnaire.signals import QuestionnaireChanged
+from haywire.api import library_storage_dir
+from haywire.api.workbench import AppState, state
+from haywire.core.errors.ledger import get_error_ledger
 
 logger = logging.getLogger(__name__)
 
@@ -45,19 +44,19 @@ class Questionnaire:
     incomplete: bool = False
     """Whether it was submitted with visible questions unanswered."""
     posted_at: str = ""
-    posted_by: Optional[str] = None
-    submitted_at: Optional[str] = None
-    submitted_by: Optional[str] = None
-    user_agent: Optional[str] = None
+    posted_by: str | None = None
+    submitted_at: str | None = None
+    submitted_by: str | None = None
+    user_agent: str | None = None
     ledger_seq_posted: int = 0
     """The error ledger's cursor when it was posted."""
-    ledger_seq_submitted: Optional[int] = None
+    ledger_seq_submitted: int | None = None
     """The error ledger's cursor when it was submitted."""
-    closed: Optional[str] = None
+    closed: str | None = None
     """Why it left the studio: ``"read"`` (an agent read the submitted Findings),
     ``"discarded"`` (a user discarded it), or ``None`` while on show."""
-    closed_at: Optional[str] = None
-    closed_by: Optional[str] = None
+    closed_at: str | None = None
+    closed_by: str | None = None
 
     @property
     def title(self) -> str:
@@ -110,9 +109,9 @@ class QuestionnaireState(AppState):
 
     def __init__(self) -> None:
         super().__init__()
-        self.current: Optional[Questionnaire] = None
+        self.current: Questionnaire | None = None
         """The Questionnaire on show, or ``None`` before the first post."""
-        self._folder: Optional[Path] = None
+        self._folder: Path | None = None
 
     @property
     def folder(self) -> Path:
@@ -135,13 +134,13 @@ class QuestionnaireState(AppState):
 
     # -- changes -------------------------------------------------------------
 
-    def post(self, definition: dict, principal: Optional[str]) -> Questionnaire:
+    def post(self, definition: dict, principal: str | None) -> Questionnaire:
         """Make ``definition`` the current Questionnaire, replacing the one before.
 
         ``definition`` must already have passed
         :func:`haybale_studio.questionnaire.definition.validate`.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         slug = re.sub(r"[^a-z0-9]+", "-", str(definition.get("title", "")).lower()).strip("-")[:40]
         self.current = Questionnaire(
             id=self._free_id(f"{now:%Y%m%d-%H%M%S}-{slug or 'questionnaire'}"),
@@ -172,7 +171,7 @@ class QuestionnaireState(AppState):
             q.answers[name] = value
         self._changed()
 
-    def submit(self, *, principal: Optional[str], user_agent: Optional[str], anyway: bool = False) -> None:
+    def submit(self, *, principal: str | None, user_agent: str | None, anyway: bool = False) -> None:
         """Submit the current Questionnaire; it takes no more answers after.
 
         Args:
@@ -191,13 +190,13 @@ class QuestionnaireState(AppState):
         q.answers = visible_answers(q.definition, q.answers)
         q.status = SUBMITTED
         q.incomplete = bool(unanswered(q.definition, q.answers))
-        q.submitted_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        q.submitted_at = datetime.now(UTC).isoformat(timespec="seconds")
         q.submitted_by = principal
         q.user_agent = user_agent
         q.ledger_seq_submitted = get_error_ledger().current_seq
         self._changed()
 
-    def close(self, reason: str, *, principal: Optional[str]) -> None:
+    def close(self, reason: str, *, principal: str | None) -> None:
         """Take the current Questionnaire out of the studio; its Findings stay readable.
 
         Args:
@@ -210,13 +209,13 @@ class QuestionnaireState(AppState):
         if q is None or not q.on_show:
             return
         q.closed = reason
-        q.closed_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        q.closed_at = datetime.now(UTC).isoformat(timespec="seconds")
         q.closed_by = principal
         self._changed()
 
     # -- reading -------------------------------------------------------------
 
-    def findings(self) -> Optional[dict[str, Any]]:
+    def findings(self) -> dict[str, Any] | None:
         """Return the Findings of the current Questionnaire, or ``None`` before the first post.
 
         Holds the answers, the status, what is still unanswered, the failed or

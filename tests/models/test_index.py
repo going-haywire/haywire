@@ -11,7 +11,6 @@ import pytest
 
 from haybale_models.keys import MODELS_VOLUME
 from haybale_models.store.index import ModelIndex
-
 from haywire.core.volumes import VolumeStore, volume_location
 
 

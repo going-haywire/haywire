@@ -16,6 +16,8 @@ stays frozen at its pre-cull position even after the node is panned back into
 view, until an incidental trigger (a hover, a drag) repaints it.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

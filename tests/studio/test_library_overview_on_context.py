@@ -1,6 +1,8 @@
 """E2E: LibraryOverview is opens='on_context'; no auto-populate; first click opens
 a singleton tab; second click with different library switches the same tab."""
 
+from __future__ import annotations
+
 import pytest
 
 from haybale_marketplace.editors.library_overview_editor import LibraryOverviewEditor

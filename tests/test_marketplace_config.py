@@ -1,5 +1,7 @@
 """Smoke-test that GLOBAL_MARKETPLACE_DIR lives in haybale_marketplace.config."""
 
+from __future__ import annotations
+
 import importlib
 
 import pytest

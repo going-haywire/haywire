@@ -1,10 +1,13 @@
-import pytest
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any, cast
 
+import pytest
+
 from haywire.core.types.base import BaseType
-from haywire.core.types.port import DataPort
 from haywire.core.types.enums import PortType
+from haywire.core.types.port import DataPort
 from haywire.ui.widget.base import BaseWidget
 from tests.ui.widget._sync_fixtures import _RecordingElement
 

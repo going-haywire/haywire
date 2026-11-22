@@ -11,7 +11,6 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.node.layout import CHANNELS, PATCH, STAGE
 from haywire.core.node.properties import NodeProperties
-
 from tests.conftest import make_edge, make_node
 
 

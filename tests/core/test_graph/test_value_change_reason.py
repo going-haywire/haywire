@@ -16,7 +16,6 @@ import pytest
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler, ThreadingTimerScheduler
 from haywire.core.graph.types import ChangeReason, ValidationResult
-
 from tests.conftest import make_node
 
 _VALUE_REASONS = [ChangeReason.NODE_VALUE_CHANGED, ChangeReason.GRAPH_CONTENT_CHANGED]

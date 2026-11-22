@@ -1,20 +1,29 @@
 """Tests for the unified SelectionMenu command panels (count-aware labels,
 batch redraw/revalidate/reset, poll contracts)."""
 
-from unittest.mock import MagicMock
+from __future__ import annotations
 
 from typing import Any, cast
+from unittest.mock import MagicMock
+
+import pytest
 
 from haybale_graph_editor.panels.graph.menu.selection.rebuild import (
     RebuildSelectionMenuPanel as RebuildSelectionPanel,
+)
+from haybale_graph_editor.panels.graph.menu.selection.rebuild import (
     RedrawSelectionMenuPanel as RedrawSelectionPanel,
+)
+from haybale_graph_editor.panels.graph.menu.selection.rebuild import (
     ResetSelectionMenuPanel as ResetSelectionPanel,
+)
+from haybale_graph_editor.panels.graph.menu.selection.rebuild import (
     RevalidateSelectionMenuPanel as RevalidateSelectionPanel,
 )
-import pytest
-
 from haybale_graph_editor.panels.graph.menu.selection.selection import (
     DeleteSelectionMenuPanel as DeleteSelectionPanel,
+)
+from haybale_graph_editor.panels.graph.menu.selection.selection import (
     selection_label,
 )
 from haybale_graph_editor.surfaces import SelectionActions, SelectionDevelopMenu, SelectionRebuildMenu
@@ -134,7 +143,6 @@ def test_copy_and_delete_rows_carry_their_keyboard_command(monkeypatch, disabled
     from haybale_graph_editor.panels.graph.menu.selection.selection import (
         CopySelectionMenuPanel as CopySelectionPanel,
     )
-
     from haywire.core.signals import Copy, Delete
 
     commands = []

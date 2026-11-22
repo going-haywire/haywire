@@ -12,10 +12,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haybale_graph_editor.panels._selection_forms import disabled_icon, edge_style_subject
-
-from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
-
 from haybale_graph_editor.surfaces import EdgeStyle, SelectionActions, SelectionToolbar
+from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -39,15 +37,15 @@ class EdgeStyleToolbarPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return edge_style_subject(ctx).editable
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             with hui.dropdown(hui.icon.theme, tooltip="Style", align="center", direction="up"):
                 self.render_surface(EdgeStyle, ctx)
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         subject = edge_style_subject(ctx)
         if subject.status == "greyed":
             with layout:

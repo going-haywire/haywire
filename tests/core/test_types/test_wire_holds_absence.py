@@ -1,5 +1,7 @@
 """A wire type that holds absence gives the types declared on it fields that can hold `None` (Q14, Q22)."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 import pytest
@@ -109,7 +111,6 @@ class TestWhatIsNotWrapped:
         from haybale_core.types import ARRAY, POOLED
         from haybale_core.types.array_type import ArrayField
         from haybale_core.types.pooled_type import PooledField
-
         from haywire.barn.builtin.types import CALLBACK
 
         assert type(ARRAY[CALLBACK].create_field()) is ArrayField

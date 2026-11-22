@@ -15,10 +15,12 @@ Coverage:
 - SettingDescriptor is the base class of setting
 """
 
-import pytest
-from haywire.core.settings import Settings, setting, SettingDescriptor
-from haywire.barn.builtin.types import BOOL, CHOICES, FLOAT, INT, STRING
+from __future__ import annotations
 
+import pytest
+
+from haywire.barn.builtin.types import BOOL, CHOICES, FLOAT, INT, STRING
+from haywire.core.settings import SettingDescriptor, Settings, setting
 
 # ---------------------------------------------------------------------------
 # Shared fixtures

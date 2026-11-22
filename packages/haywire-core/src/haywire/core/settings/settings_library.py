@@ -11,9 +11,8 @@ instantiation with no args produces a fully registry-wired instance.
 """
 
 from __future__ import annotations
-from typing import ClassVar
 
-from typing_extensions import dataclass_transform
+from typing import ClassVar, dataclass_transform
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.settings.decorator import SettingsClassIdentity

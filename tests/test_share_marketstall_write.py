@@ -1,5 +1,7 @@
 """The marketstall walk and write, split out of share_save_repo."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest

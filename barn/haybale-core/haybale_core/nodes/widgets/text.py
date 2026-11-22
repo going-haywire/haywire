@@ -1,5 +1,7 @@
 """Text."""
 
+from __future__ import annotations
+
 from haybale_core.nodes.widgets.base import BaseWidgetNode
 from haywire.api import STRING, TEXT_WIDGET, NodeType, node
 

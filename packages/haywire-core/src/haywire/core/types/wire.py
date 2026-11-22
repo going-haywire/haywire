@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 WILDCARD = "*"
 
 # id -> WireType subclass, filled by WireType.__init_subclass__.
-_WIRE_BY_ID: dict[str, type["WireType"]] = {}
+_WIRE_BY_ID: dict[str, type[WireType]] = {}
 
 
 class WireRole(Enum):

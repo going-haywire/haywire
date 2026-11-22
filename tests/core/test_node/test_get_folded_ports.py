@@ -7,7 +7,9 @@ knows which of get_visible_ports()/get_folded_ports() it wants — there was
 never a real caller asking for both through one object.
 """
 
-from typing import Any, List, cast
+from __future__ import annotations
+
+from typing import Any, cast
 
 import pytest
 
@@ -39,11 +41,11 @@ class _FakeNode:
         return sorted(self._ports, key=lambda p: p.order)
 
 
-def _fake_node(ports: List[Any]):
+def _fake_node(ports: list[Any]):
     return cast(Any, _FakeNode(ports))
 
 
-def _get_folded_ports(node) -> List[Any]:
+def _get_folded_ports(node) -> list[Any]:
     """Call the real, unbound method against the fake — get_folded_ports has
     no dependency on anything else NodeData carries."""
     return NodeData.get_folded_ports(node)

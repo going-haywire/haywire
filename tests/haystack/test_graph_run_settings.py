@@ -1,5 +1,7 @@
 """GraphRunSettings — purely-local per-entry run policy bag."""
 
+from __future__ import annotations
+
 
 def test_autorestart_defaults_false():
     from haybale_haystack.settings.graph_run_settings import GraphRunSettings

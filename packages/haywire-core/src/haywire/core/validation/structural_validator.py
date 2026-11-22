@@ -11,11 +11,12 @@ Validates domain-specific structural rules that go beyond formal validity:
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, List
-import logging
 
-from haywire.core.types.wire import WireRole
+import logging
+from typing import TYPE_CHECKING
+
 from haywire.core.types.enums import PortType
+from haywire.core.types.wire import WireRole
 from haywire.core.validation.interface import IStructuralValidator
 
 if TYPE_CHECKING:
@@ -47,7 +48,7 @@ class StructuralValidator(IStructuralValidator):
     - Graph-wide consistency checks
     """
 
-    def __init__(self, graph: "BaseGraph"):
+    def __init__(self, graph: BaseGraph):
         """
         Initialize structural validator.
 
@@ -60,7 +61,7 @@ class StructuralValidator(IStructuralValidator):
     # NODE VALIDATION
     # ========================================================================
 
-    def validate_node(self, wrapper: "NodeWrapper") -> tuple[bool, str | None, list[str]]:
+    def validate_node(self, wrapper: NodeWrapper) -> tuple[bool, str | None, list[str]]:
         """
         Validate structural constraints for a single node.
 
@@ -109,7 +110,7 @@ class StructuralValidator(IStructuralValidator):
         # (future: add other node-level structural checks here)
         return (True, None, [])
 
-    def _validate_event_node(self, wrapper: "NodeWrapper") -> tuple[bool, str | None, list[str]]:
+    def _validate_event_node(self, wrapper: NodeWrapper) -> tuple[bool, str | None, list[str]]:
         """
         Validate event node structural constraints.
 
@@ -159,7 +160,7 @@ class StructuralValidator(IStructuralValidator):
         # All checks passed
         return (True, None, [])
 
-    def _validate_data_node(self, wrapper: "NodeWrapper") -> tuple[bool, str | None, list[str]]:
+    def _validate_data_node(self, wrapper: NodeWrapper) -> tuple[bool, str | None, list[str]]:
         """
         Validate data node structural constraints.
 
@@ -201,7 +202,7 @@ class StructuralValidator(IStructuralValidator):
         # All checks passed
         return (True, None, [])
 
-    def _validate_reroute_node(self, wrapper: "NodeWrapper") -> tuple[bool, str | None, list[str]]:
+    def _validate_reroute_node(self, wrapper: NodeWrapper) -> tuple[bool, str | None, list[str]]:
         """
         Validate reroute node structural constraints.
 
@@ -249,7 +250,7 @@ class StructuralValidator(IStructuralValidator):
 
         return (True, None, [])
 
-    def _validate_boundary_node(self, wrapper: "NodeWrapper") -> tuple[bool, str | None, list[str]]:
+    def _validate_boundary_node(self, wrapper: NodeWrapper) -> tuple[bool, str | None, list[str]]:
         """
         Validate boundary node structural constraints.
 
@@ -299,7 +300,7 @@ class StructuralValidator(IStructuralValidator):
 
         return (True, None, [])
 
-    def _validate_graph_node(self, wrapper: "NodeWrapper") -> tuple[bool, str | None, list[str]]:
+    def _validate_graph_node(self, wrapper: NodeWrapper) -> tuple[bool, str | None, list[str]]:
         """
         Validate that a Graph-node's Subgraph is present.
 
@@ -340,9 +341,7 @@ class StructuralValidator(IStructuralValidator):
 
         return (True, None, [])
 
-    def validate_subgraph_contents(
-        self, wrappers: "list[NodeWrapper]"
-    ) -> tuple[bool, str | None, list[str]]:
+    def validate_subgraph_contents(self, wrappers: list[NodeWrapper]) -> tuple[bool, str | None, list[str]]:
         """
         Validate the node set of one Subgraph.
 
@@ -400,7 +399,7 @@ class StructuralValidator(IStructuralValidator):
 
         return (True, None, [])
 
-    def _validate_loopback_node(self, wrapper: "NodeWrapper") -> tuple[bool, str | None, list[str]]:
+    def _validate_loopback_node(self, wrapper: NodeWrapper) -> tuple[bool, str | None, list[str]]:
         """
         Validate loopback node structural constraints.
 
@@ -462,7 +461,7 @@ class StructuralValidator(IStructuralValidator):
         # All checks passed
         return (True, None, [])
 
-    def _validate_event_nodes_graph_wide(self) -> List[str]:
+    def _validate_event_nodes_graph_wide(self) -> list[str]:
         """Return an error for each event node that failed its own structural validation.
 
         Several event nodes may share one event subscription: each roots its
@@ -486,7 +485,7 @@ class StructuralValidator(IStructuralValidator):
     # GRAPH-WIDE VALIDATION
     # ========================================================================
 
-    def validate_graph(self) -> List[str]:
+    def validate_graph(self) -> list[str]:
         """
         Validate all structural constraints across the graph.
 

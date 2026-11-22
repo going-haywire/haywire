@@ -1,3 +1,4 @@
+from __future__ import annotations
 from haybale_core.types.array_type import ARRAY
 from haybale_core.types.array_type import ArrayField
 from haybale_core.types.drain_type import DRAIN

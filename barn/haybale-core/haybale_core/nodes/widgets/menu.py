@@ -1,5 +1,7 @@
 """Menu."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 from haybale_core.keys import ARRAY_WIDGET

@@ -1,7 +1,10 @@
 """Tests for SignalSource — the ABC contract for hosts that emit signals."""
 
+from __future__ import annotations
+
 import pytest
-from haywire.core.signals import SignalSource, Signal
+
+from haywire.core.signals import Signal, SignalSource
 
 
 def test_signal_source_is_abstract():

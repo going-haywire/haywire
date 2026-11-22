@@ -13,6 +13,8 @@ The ``icon`` attribute is the ``AppIcon`` class (all attributes are class-level
 strings), so ``hui.icon.add`` and ``AppIcon.add`` are identical.
 """
 
+from __future__ import annotations
+
 from haywire.ui.elements.elements import *  # noqa: F401, F403
 from haywire.ui.elements.flyout import (  # noqa: F401
     DROPDOWN_ALIGNMENTS,
