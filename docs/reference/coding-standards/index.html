@@ -6229,8 +6229,8 @@ agent's tool call. <strong>Enforced by</strong>: review. <strong>Scope</strong>:
 callbacks may omit annotations; a signature is never half annotated.
 <strong>Why</strong>: a half-typed signature looks checked and isn't; mypy skips the body of an
 unannotated function.
-<strong>Enforced by</strong>: mypy <code>check_untyped_defs</code> and <code>disallow_incomplete_defs</code> (planned) for
-half-annotated signatures; review for the public surface. <strong>Scope</strong>: repo.</p>
+<strong>Enforced by</strong>: mypy <code>check_untyped_defs</code> for the bodies, <code>disallow_incomplete_defs</code>
+(planned) for half-annotated signatures; review for the public surface. <strong>Scope</strong>: repo.</p>
 <h3 id="cs-t5-every-escape-hatch-names-its-code-and-its-reason">CS-T5 · Every escape hatch names its code and its reason<a class="headerlink" href="#cs-t5-every-escape-hatch-names-its-code-and-its-reason" title="Permanent link">&para;</a></h3>
 <p><code># type: ignore[code]</code>, <code># noqa: RULE</code> and <code>cast()</code> carry a reason on the same line or
 the line above, unless the code says it (<code>import-untyped</code>). An escape hatch that no
@@ -6238,7 +6238,7 @@ longer suppresses anything is deleted.</p>
 <p>✗ <code>value = cast(int, raw)</code> ✓ <code>value = cast(int, raw)  # the INT widget only ever stores int</code></p>
 <p><strong>Why</strong>: an unexplained suppression is never removed, and a stale one hides the next real
 error on that line.
-<strong>Enforced by</strong>: mypy <code>ignore-without-code</code> and <code>warn_unused_ignores</code>, ruff <code>PGH004</code> and
+<strong>Enforced by</strong>: mypy <code>ignore-without-code</code> and <code>warn_unused_ignores</code>; ruff <code>PGH004</code> and
 <code>RUF100</code> (planned); review for the reason. <strong>Scope</strong>: repo.</p>
 <h3 id="cs-t6-any-only-where-the-type-is-unknowable">CS-T6 · <code>Any</code> only where the type is unknowable<a class="headerlink" href="#cs-t6-any-only-where-the-type-is-unknowable" title="Permanent link">&para;</a></h3>
 <p>At a real boundary: parsed JSON or TOML, a <code>**kwargs</code> passthrough, an untyped third-party
