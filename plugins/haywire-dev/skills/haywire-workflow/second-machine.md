@@ -35,14 +35,20 @@ this machine; nothing is copied from the first.
 ## The other libraries (optional)
 
 Only when this machine works on or runs libraries from other repositories (spandrel,
-visiongraph, stream, …). Clone each next to `haywire-repo`, inside the folder that holds
-the umbrella environment's files, then build the umbrella there; its `README.md` lists the
-steps:
+visiongraph, stream, …). Clone the umbrella as the folder that holds the repositories,
+`haywire-repo` and each library this machine needs inside it, then build the umbrella;
+its `README.md` lists the steps:
 
 ```sh
-gh repo clone going-haywire/haybale-spandrel ../haybale-spandrel
-cd .. && uv sync                     # the umbrella: every library, editable
+gh repo clone going-haywire/umbrella haywire && cd haywire
+gh repo clone going-haywire/haywire haywire-repo
+gh repo clone going-haywire/haybale-spandrel      # only the libraries this machine needs
+bin/umbrella-sync                                  # the umbrella: every library here, editable
 ```
+
+The umbrella's `pyproject.toml`, `uv.lock` and `haywire.code-workspace` are this machine's
+own, written by `umbrella-sync` from the repositories cloned here and not tracked, so the
+two machines may clone different libraries.
 
 `haywire-repo` keeps its own environment for its tests. Models and devices (GPU, webcam,
 OAK-D) are this machine's own: a model downloads again here, and a node that needs a

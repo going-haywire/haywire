@@ -27,7 +27,7 @@ sequenceDiagram
     You->>Lib: clone each library you work on, beside core
     Note over Lib: one library: its own uv sync runs<br/>its tests and the studio with core
     opt several libraries in one studio
-        You->>Folder: ① drop the missing libraries from the umbrella's<br/>pyproject.toml locally, then uv sync
+        You->>Folder: ① bin/umbrella-sync: lists the libraries cloned<br/>on this machine, then uv sync
     end
     You->>CC: claude plugin marketplace add going-haywire/.github (once per machine)
     You->>CC: claude plugin install haywire-dev@going-haywire --scope project (each library clone)
@@ -37,7 +37,7 @@ sequenceDiagram
 |---|---|---|
 | The layout and the umbrella | developer | [going-haywire/umbrella](https://github.com/going-haywire/umbrella#readme), [ADR 0081](../adr/0081-libraries-from-other-repositories-run-from-an-umbrella-environment.md) |
 | One library | developer | [Library CONTRIBUTING: setting up](https://github.com/going-haywire/.github/blob/main/CONTRIBUTING.md#setting-up) |
-| ① Only some libraries | developer | ADR 0081, consequences: a missing repository is dropped from the umbrella's `pyproject.toml` locally |
+| ① Only some libraries | developer | [umbrella README](https://github.com/going-haywire/umbrella#readme): `bin/umbrella-sync` writes the untracked `pyproject.toml` and `uv.lock` from the repositories cloned on this machine |
 | The dev plugin | developer | [haywire-dev README](https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/README.md) |
 | Worktrees: core's and a library's | developer, lead | [The workflow skill: parallel sessions](https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/SKILL.md#parallel-sessions) |
 | A second machine | developer | [second-machine.md](https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/second-machine.md) |
