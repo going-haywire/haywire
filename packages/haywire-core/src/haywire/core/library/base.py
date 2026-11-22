@@ -135,8 +135,8 @@ class BaseLibrary(ABC):
                 return [
                     CompatibilityWarning(
                         version="0.0.14",                       # where the change landed
-                        component=FrameDisplayNode,   # or None for library-wide
-                        message="The 'frame' inlet widget strategy became "
+                        component=ViewImageNode,      # or None for library-wide
+                        message="The 'image' inlet widget strategy became "
                                 "author-declared; graphs saved before 0.0.14 may "
                                 "hide the preview widget. Reset the node to "
                                 "re-derive it from current code.",

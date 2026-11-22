@@ -622,7 +622,7 @@
     },
     "FrameDisplayNode_e397b53f": {
       "node_id": "FrameDisplayNode_e397b53f",
-      "registry_key": "haybale-visiongraph:node:FrameDisplayNode",
+      "registry_key": "haybale-visiongraph:node:ViewFrameNode",
       "node_data": {
         "node_id": "FrameDisplayNode_e397b53f",
         "ports": {
@@ -883,14 +883,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "FrameDisplayNode",
-          "registry_key": "haybale-visiongraph:node:FrameDisplayNode",
-          "label": "Frame Info Display",
+          "registry_id": "ViewFrameNode",
+          "registry_key": "haybale-visiongraph:node:ViewFrameNode",
+          "label": "View Frame",
           "description": "Displays information about frames with live preview",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "FrameDisplayNode",
-          "module": "haybale_visiongraph.nodes.numpy_frame_display_node",
+          "class_name": "ViewFrameNode",
+          "module": "haybale_visiongraph.nodes.view_frame_node",
           "tags": [],
           "search_tags": [
             "rgb",
@@ -930,7 +930,7 @@
     },
     "SegmentationNode_09e0c64d": {
       "node_id": "SegmentationNode_09e0c64d",
-      "registry_key": "haybale-visiongraph:node:SegmentationNode",
+      "registry_key": "haybale-visiongraph:node:SegmenterNode",
       "node_data": {
         "node_id": "SegmentationNode_09e0c64d",
         "ports": {
@@ -1161,14 +1161,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "SegmentationNode",
-          "registry_key": "haybale-visiongraph:node:SegmentationNode",
-          "label": "Segmentation",
+          "registry_id": "SegmenterNode",
+          "registry_key": "haybale-visiongraph:node:SegmenterNode",
+          "label": "Segmenter",
           "description": "Instance segmentation: detect objects and their pixel masks",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "SegmentationNode",
-          "module": "haybale_visiongraph.nodes.segmentation_node",
+          "class_name": "SegmenterNode",
+          "module": "haybale_visiongraph.nodes.segmenter_node",
           "tags": [],
           "search_tags": [
             "segmentation",
@@ -1206,7 +1206,7 @@
     },
     "AnnotateNode_5e8896eb": {
       "node_id": "AnnotateNode_5e8896eb",
-      "registry_key": "haybale-visiongraph:node:AnnotateNode",
+      "registry_key": "haybale-visiongraph:node:AnnotateResultsNode",
       "node_data": {
         "node_id": "AnnotateNode_5e8896eb",
         "ports": {
@@ -1413,14 +1413,14 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "AnnotateNode",
-          "registry_key": "haybale-visiongraph:node:AnnotateNode",
+          "registry_id": "AnnotateResultsNode",
+          "registry_key": "haybale-visiongraph:node:AnnotateResultsNode",
           "label": "Annotate Results",
           "description": "Draw estimator results (boxes / masks / poses) onto a frame",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "AnnotateNode",
-          "module": "haybale_visiongraph.nodes.annotate_node",
+          "class_name": "AnnotateResultsNode",
+          "module": "haybale_visiongraph.nodes.annotate_results_node",
           "tags": [],
           "search_tags": [
             "annotate",

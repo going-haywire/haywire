@@ -323,7 +323,7 @@ Override `compatibility_warnings()` to return an **append-only** history:
 
 ```python
 from haywire.api import CompatibilityWarning
-from haybale_image.nodes import FrameDisplayNode
+from haybale_image.nodes.view_image import ViewImageNode
 
 
 class Library(BaseLibrary):
@@ -331,8 +331,8 @@ class Library(BaseLibrary):
         return [
             CompatibilityWarning(
                 version="0.0.14",            # the version the change landed in
-                component=FrameDisplayNode,  # a node class, or None for library-wide
-                message="The 'rotation' inlet now takes radians instead of degrees. "
+                component=ViewImageNode,     # a node class, or None for library-wide
+                message="'Zoom image' now counts widths of the view instead of percent. "
                         "Check the value on nodes saved before 0.0.14.",
             ),
         ]
