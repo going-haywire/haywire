@@ -443,7 +443,9 @@ plugin, installed once per clone (the library's `CLAUDE.md` says how). What diff
 - **Releases** go through a release PR (*Releasing*): after a merged change, run
   `uv run --frozen haywire share --status`; if it is `READY`, list what is unreleased and ask
   "publish now, or wait for more?"; if a dependency floor waits for core, say so instead.
-  On "publish": `uv run --frozen haywire share --bump patch --pr`, then merge the release PR
-  once its checks are green. The merge run tags and publishes. Never tag by hand.
+  On "publish": `uv run --frozen haywire share --bump patch --pr`, which opens the release
+  PR (`STATE: RELEASE_BRANCH_PUSHED` means it could not: run its `NEXT:` command), then
+  merge the release PR once its checks are green. It runs in the task's worktree too, on a
+  branch at the default branch's tip. The merge run tags and publishes. Never tag by hand.
 - **`finish` and the task view** run from this skill's folder, as above; they read the
   default branch from the clone (`main` in haybale-stream).

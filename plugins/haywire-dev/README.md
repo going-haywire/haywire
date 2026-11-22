@@ -29,7 +29,9 @@ guard it.
   ```
 
   Until then a library session runs no hooks; `/plugin` lists the plugin under *Errors*
-  as enabled but not installed.
+  as enabled but not installed. A project-scope install belongs to one folder, so every
+  worktree of a library is a clone of its own here and needs the install too. One
+  install for all of them is #203.
 
 `tests/scripts/test_claude_hooks.py` keeps core's wiring and `hooks/hooks.json` in step.
 The skill and the hooks are core's to change, through a pull request in core; a library
