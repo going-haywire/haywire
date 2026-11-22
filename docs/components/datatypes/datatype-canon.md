@@ -1,4 +1,5 @@
 ---
+serve: product
 status: draft
 doc_template: canonical-example
 scope: Authoring IType subclasses (PrimitiveType / BaseType) and registering them with the type registry via @type

@@ -1,7 +1,7 @@
 """Studio sidecar identity file: <workspace>/.haywire/studio.json.
 
 Written when the studio mounts the Farmhand MCP endpoint so a later process
-(the claude-plugin's startup script) can identify WHICH project owns
+(the Farmhand bridge, ``haywire_studio.farmhand.bridge``) can identify WHICH project owns
 the studio on a given port — reuse it, ask the user, or clean up a stale one.
 
 Follows the same .haywire/ + .gitignore discipline as the rest of the
@@ -15,8 +15,9 @@ from __future__ import annotations
 import json
 import os
 import socket
-import time
 from pathlib import Path
+
+import psutil
 
 IDENTITY_FILENAME = "studio.json"
 
@@ -34,7 +35,7 @@ def write_identity(workspace_root: Path | str, port: int, *, auth_required: bool
 
     ``auth_required`` mirrors the security document's ``auth.enabled`` at the
     moment the studio mounted Farmhand, so a later process (the
-    claude-plugin's startup script) can tell whether this studio
+    Farmhand bridge) can tell whether this studio
     expects a credential without opening a connection first.
 
     Returns the dict written. Ensures the sidecar is gitignored.
@@ -49,7 +50,8 @@ def write_identity(workspace_root: Path | str, port: int, *, auth_required: bool
         "port": port,
         "project": root.name,
         "project_path": str(root),
-        "started_at": time.time(),
+        # The process's own start, which identity_status compares: the studio mounts Farmhand seconds later.
+        "started_at": psutil.Process(os.getpid()).create_time(),
         "host": socket.gethostname(),
         "role": "haywire-studio",
         "url": f"http://127.0.0.1:{port}",

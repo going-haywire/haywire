@@ -17,9 +17,9 @@ description: >
 
 The studio serves both the NiceGUI app and the **Farmhand MCP server** on
 `http://127.0.0.1:<port>/mcp/` (port defaults to 8124, `NetworkSettings.port`).
-The **farmhand proxy** as an MCP server for Claude Code — it bridges stdio to that HTTP endpoint, so studio tools (`haybale-studio_*`, `haybale-haystack_*`, `haybale-graph-editor_*`, `haybale-marketplace_*`, `haybale-testing_*`) appear directly in this session once the studio is up, with no reconnect needed.
+The **Farmhand bridge** (`haywire farmhand bridge`, started by the repository's `.mcp.json` from this folder's environment) is this session's MCP server `farmhand`: it finds this project's studio through `.haywire/studio.json`, so studio tools (`haybale-studio_*`, `haybale-haystack_*`, `haybale-graph-editor_*`, `haybale-marketplace_*`, `haybale-testing_*`) appear directly in this session once the studio is up, with no reconnect needed.
 
-The proxy bridges to a studio, it doesn't launch one — bring the studio itself
+The bridge connects to a studio, it doesn't launch one — bring the studio itself
 up/down with `scripts/studioctl`.
 
 ## When to use
@@ -111,16 +111,15 @@ Traps:
 - `stop` escalates SIGINT → SIGTERM → SIGKILL. SIGINT is the studio's designed
   shutdown (`run()` catches `KeyboardInterrupt`), so it's clean and fast (~0.5s).
 
-## Two always-available proxy tools
+## Two always-available bridge tools
 
-These are answered by the proxy itself (not forwarded), so they work even
+These are answered by the bridge itself (not forwarded), so they work even
 before the studio is up:
 
-- `farmhand_studio_status` — is the studio reachable? Reports which
-  URL/token it resolved and where from (env override, sidecar file, or
-  default guess), and distinguishes "nothing there" from "found it, but the
-  token is wrong" (401).
-- `farmhand_studio_connect` — point the proxy at a studio in a *different*
+- `farmhand_studio_status` — is the studio connected? If not, says why:
+  no studio for this project, a studio that wants a token the roster has no
+  principal for (with the command for the user), or a refused token (401).
+- `farmhand_studio_connect` — point the bridge at a studio in a *different*
   workspace/project that automatic discovery can't find (pass `port`, and
   `token` if required). Takes effect immediately, session-only, not persisted.
 
@@ -132,24 +131,24 @@ these are the same facts a manual `farmhand_studio_connect` call needs:
 - **Port**: `.haywire/studio.json` in the project root — a JSON sidecar the
   studio writes on startup (`pid`, `port`, `url`, …). Written only when
   `farmhand.enabled`.
-- **Token**: `/mcp` needs no `Authorization` header when `studio.json` has
-  `auth_required: false`. When `true`, use a roster agent token — mint one
-  with `haywire user add <name> --agent --tier edit`. If the project was
-  scaffolded into a *subdirectory* of the open workspace, check
-  `.haywire/studio.json` there too — the proxy checks one level down
-  automatically, but a manual read doesn't.
+- **Token**: when `studio.json` has `auth_required: true`, the bridge sends
+  the token of the agent principal `farmhand` (or `$FARMHAND_PRINCIPAL`),
+  read from the roster itself; the token never passes through this session.
+  Without that principal, the user runs
+  `haywire user add farmhand --agent --tier edit` in their own terminal,
+  once per machine. If the project was scaffolded into a *subdirectory* of the
+  open workspace, the bridge checks one level down too.
 - **Trailing slash is mandatory** if you ever hand-roll a request outside the
-  proxy: the endpoint is `/mcp/`. A bare `POST /mcp` 307-redirects, and most
+  bridge: the endpoint is `/mcp/`. A bare `POST /mcp` 307-redirects, and most
   POST clients drop the body on redirect.
 - **`<token>` placeholder bug**: if a token was ever pasted into a header
   literally as `<token>` instead of substituted, you'll see 401
   "not authenticated" — re-read the actual file contents, don't reuse a
   half-remembered value.
 
-If `farmhand_studio_status` isn't available at all, the MCP server itself
-didn't start — check `.mcp.json` is present at the repo root and that `npx`
-can reach the npm registry (the proxy is fetched as
-`@going-haywire/farmhand@latest` on every session start).
+If `farmhand_studio_status` isn't available at all, the bridge didn't start:
+check that `.mcp.json` is at the repository root and that this folder's
+environment exists (`uv run --frozen haywire farmhand bridge --help`).
 
 ## Files
 

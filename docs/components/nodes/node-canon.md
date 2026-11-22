@@ -1,4 +1,5 @@
 ---
+serve: product
 status: draft
 doc_template: canonical-example
 scope: Authoring node classes — BaseNode, @node decorator, lifecycle hooks, worker function, dynamic reconfiguration

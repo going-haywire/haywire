@@ -67,5 +67,10 @@
   },
   "enabledMcpjsonServers": [
     "farmhand"
-  ]
+  ],
+  "permissions": {
+    "allow": [
+      "mcp__farmhand"
+    ]
+  }
 }
