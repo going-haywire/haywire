@@ -5317,8 +5317,6 @@
 </span><span id="__span-0-68"><a id="__codelineno-0-68" name="__codelineno-0-68" href="#__codelineno-0-68"></a>            <span class="k">else</span><span class="p">:</span>
 </span><span id="__span-0-69"><a id="__codelineno-0-69" name="__codelineno-0-69" href="#__codelineno-0-69"></a>                <span class="k">for</span> <span class="n">edge_callback</span> <span class="ow">in</span> <span class="n">edge_callbacks</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
 </span><span id="__span-0-70"><a id="__codelineno-0-70" name="__codelineno-0-70" href="#__codelineno-0-70"></a>                    <span class="n">context</span><span class="o">.</span><span class="n">emit_callback</span><span class="p">(</span><span class="n">event_name</span><span class="o">=</span><span class="n">edge_callback</span><span class="p">,</span> <span class="n">payload</span><span class="o">=</span><span class="n">payload_dict</span><span class="p">)</span>
-</span><span id="__span-0-71"><a id="__codelineno-0-71" name="__codelineno-0-71" href="#__codelineno-0-71"></a>
-</span><span id="__span-0-72"><a id="__codelineno-0-72" name="__codelineno-0-72" href="#__codelineno-0-72"></a>        <span class="k">return</span> <span class="s2">&quot;exec&quot;</span>
 </span></code></pre></div>
 <p>from: <code>CallbackEmitProbeNode</code> — registry_key: <code>haybale-testing:node:CallbackEmitProbeNode</code></p>
 <p><strong>Role-specific:</strong> EXEC inlet (<code>execute</code>) + EXEC outlet (<code>exec</code>) makes this CONTROL. The worker returns the outlet ID <code>"exec"</code> to continue control flow. <code>context.emit_callback(event_name=..., payload=...)</code> dispatches to listener nodes by name. <code>POOLED[CALLBACK].as_inlet(...)</code> collects all connected listener IDs into a dict.</p>
@@ -5343,7 +5341,6 @@
 </span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
 </span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">worker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">ExecutionContext</span><span class="p">,</span> <span class="n">value_a</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">value_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="s2">&quot;result&quot;</span><span class="p">,</span> <span class="n">value_a</span> <span class="o">+</span> <span class="n">value_b</span><span class="p">)</span>
-</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>        <span class="k">return</span> <span class="kc">None</span>
 </span></code></pre></div>
 <p>from: <code>AddFloatProbeNode</code> — registry_key: <code>haybale-testing:node:AddFloatProbeNode</code></p>
 <p><strong>Role-specific:</strong> no EXEC ports, returns <code>None</code>, runs lazily on demand from downstream.</p>
@@ -5373,7 +5370,6 @@
 </span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>        <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 </span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>
 </span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="s2">&quot;timestamp&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
-</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>        <span class="k">return</span> <span class="s2">&quot;exec&quot;</span>
 </span></code></pre></div>
 <p>from: <code>BeginPlayProbeNode</code> — registry_key: <code>haybale-testing:node:BeginPlayProbeNode</code></p>
 <p><strong>Role-specific:</strong> <code>event_subscription = SystemEvent(SystemEventType.BEGIN_PLAY)</code> in <code>post_init()</code>. No EXEC inlet — the framework dispatches the event source instead. Worker returns the outlet ID <code>"exec"</code> to trigger control flow.</p>
@@ -5458,9 +5454,6 @@
 </span><span id="__span-3-75"><a id="__codelineno-3-75" name="__codelineno-3-75" href="#__codelineno-3-75"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">worker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">ExecutionContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-3-76"><a id="__codelineno-3-76" name="__codelineno-3-76" href="#__codelineno-3-76"></a>        <span class="c1"># Extract payload from trigger</span>
 </span><span id="__span-3-77"><a id="__codelineno-3-77" name="__codelineno-3-77" href="#__codelineno-3-77"></a>        <span class="n">payload</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">payload</span> <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">trigger</span> <span class="k">else</span> <span class="kc">None</span>
-</span><span id="__span-3-78"><a id="__codelineno-3-78" name="__codelineno-3-78" href="#__codelineno-3-78"></a>
-</span><span id="__span-3-79"><a id="__codelineno-3-79" name="__codelineno-3-79" href="#__codelineno-3-79"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="s2">&quot;payload&quot;</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>
-</span><span id="__span-3-80"><a id="__codelineno-3-80" name="__codelineno-3-80" href="#__codelineno-3-80"></a>        <span class="k">return</span> <span class="s2">&quot;triggered&quot;</span>
 </span></code></pre></div>
 <p>from: <code>CallbackEventNode</code> — registry_key: <code>haybale-example:node:CallbackEventNode</code></p>
 <p><strong>Emitter</strong> — source: <code>barn/haybale-example/haybale_example/nodes/emits/callback_emit.py</code></p>
@@ -5553,8 +5546,6 @@
 </span><span id="__span-4-86"><a id="__codelineno-4-86" name="__codelineno-4-86" href="#__codelineno-4-86"></a>                <span class="c1"># Non-sequential: emit to all callbacks</span>
 </span><span id="__span-4-87"><a id="__codelineno-4-87" name="__codelineno-4-87" href="#__codelineno-4-87"></a>                <span class="k">for</span> <span class="n">edge_callback</span> <span class="ow">in</span> <span class="n">edge_callbacks</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
 </span><span id="__span-4-88"><a id="__codelineno-4-88" name="__codelineno-4-88" href="#__codelineno-4-88"></a>                    <span class="n">context</span><span class="o">.</span><span class="n">emit_callback</span><span class="p">(</span><span class="n">event_name</span><span class="o">=</span><span class="n">edge_callback</span><span class="p">,</span> <span class="n">payload</span><span class="o">=</span><span class="n">payload_dict</span><span class="p">)</span>
-</span><span id="__span-4-89"><a id="__codelineno-4-89" name="__codelineno-4-89" href="#__codelineno-4-89"></a>
-</span><span id="__span-4-90"><a id="__codelineno-4-90" name="__codelineno-4-90" href="#__codelineno-4-90"></a>        <span class="k">return</span> <span class="s2">&quot;exec&quot;</span>
 </span></code></pre></div>
 <p>from: <code>CallbackEmitNode</code> — registry_key: <code>haybale-example:node:CallbackEmitNode</code></p>
 <p><strong>What the pair shows:</strong></p>
@@ -5706,8 +5697,6 @@
 </span><span id="__span-5-134"><a id="__codelineno-5-134" name="__codelineno-5-134" href="#__codelineno-5-134"></a>            <span class="k">return</span> <span class="s2">&quot;completed&quot;</span>
 </span><span id="__span-5-135"><a id="__codelineno-5-135" name="__codelineno-5-135" href="#__codelineno-5-135"></a>
 </span><span id="__span-5-136"><a id="__codelineno-5-136" name="__codelineno-5-136" href="#__codelineno-5-136"></a>        <span class="c1"># Continue loop - output current index</span>
-</span><span id="__span-5-137"><a id="__codelineno-5-137" name="__codelineno-5-137" href="#__codelineno-5-137"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="s2">&quot;index&quot;</span><span class="p">,</span> <span class="n">current_index</span><span class="p">)</span>
-</span><span id="__span-5-138"><a id="__codelineno-5-138" name="__codelineno-5-138" href="#__codelineno-5-138"></a>        <span class="k">return</span> <span class="s2">&quot;loop_body&quot;</span>
 </span></code></pre></div>
 <p>from: <code>ForLoopNode</code> — registry_key: <code>haybale-core:node:ForLoopNode</code></p>
 <p><strong>Role-specific:</strong></p>
