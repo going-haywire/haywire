@@ -25,7 +25,7 @@
           },
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/require-workflow-skill.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/require-workflow-read.sh"
           },
           {
             "type": "command",
@@ -34,23 +34,13 @@
         ]
       }
     ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/mark-workflow-skill.sh"
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
-        "matcher": "Skill",
+        "matcher": "Read|ReadMcpResourceTool",
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/mark-workflow-skill.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/mark-workflow-read.sh"
           }
         ]
       }

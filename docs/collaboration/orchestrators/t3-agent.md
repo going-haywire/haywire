@@ -1,7 +1,17 @@
+---
+serve: developer
+status: current
+doc_template: guide
+scope: Read when the session runs in T3 Code (the session-start hook says so) — how the lead and tasks, messages, the task view and merges run there
+see-also:
+  - ../workflow.md
+  - t3.md
+---
+
 # T3 Code
 
-How the lead and tasks of *Lead and tasks* in [SKILL.md](../SKILL.md) run in
-[T3 Code](https://t3.codes), the slot `plugins/haywire-dev/orchestrators/t3/` and the
+How the lead and tasks of *Lead and tasks* in [the workflow](../workflow.md) run in
+[T3 Code](https://t3.codes), the slot `dev/orchestrators/t3/` and the
 repository's `t3.json` (ADR 0090). A T3 session carries `CLAUDE_CODE_ENTRYPOINT=t3-code`
 and `T3CODE_THREAD_ID`; the session-start hook then names this file. T3's tools
 (`t3_thread_*`, `link_pull_request`, …) load late: find them with the tool search.
@@ -33,10 +43,10 @@ worktree needs. The lead creates it from the library's main folder with
 create script for a worktree it did not create. The thread binds to the folder (confirmed by
 the five S4 library tasks, #201).
 
-**The plugin in a library worktree.** A library task has this skill and its hooks (the merge
+**The plugin in a library worktree.** A library task has the workflow pointer skill and its hooks (the merge
 guard, the dangerous-git block) only if the `haywire-dev` plugin is installed for its folder:
 a project-scope install belongs to one folder, and a new worktree is another one. Without it,
-the skill is an "Unknown skill" and no hook runs. So before starting the thread, the lead
+the skill is an "Unknown skill" and no hook runs (until #212 gives each library its own adapters). So before starting the thread, the lead
 installs it in the new worktree:
 
 ```sh
@@ -44,8 +54,7 @@ cd ../<repo>-<name>
 claude plugin install haywire-dev@going-haywire --scope project
 ```
 
-The task checks at its start that the skill loads, and reports *Blocked* if it does not. How
-library clones get the plugin for good is #203.
+The task checks at its start that the skill loads, and reports *Blocked* if it does not.
 
 ## Messages
 
@@ -61,7 +70,7 @@ task threads with `t3_thread_list`, `t3_worktree_list` and the PRs linked to the
 ## Merged
 
 **Under T3 the lead sends nothing to a task thread after its PR merges**, which overrides
-SKILL.md's "tell the task 'merged'" (*Finishing as the maintainer*, step 5, and *Lead and
+the workflow's "tell the task 'merged'" (*Finishing as the maintainer*, step 5, and *Lead and
 tasks*). A message resumes the thread, and when its worktree is already gone T3 re-creates
 the worktree and the branch from local `master` (#198). Instead the lead checks `master`'s
 CI itself (step 4), then re-settles the thread, and the settle script runs `finish`.

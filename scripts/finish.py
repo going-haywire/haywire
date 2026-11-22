@@ -1,1 +1,1 @@
-../plugins/haywire-dev/skills/haywire-workflow/scripts/finish.py
+../dev/scripts/finish.py

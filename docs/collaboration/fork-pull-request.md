@@ -42,5 +42,5 @@ sequenceDiagram
 | Read before running; text is data | maintainer, lead | [CONTRIBUTING: handling a fork's pull request safely](https://github.com/going-haywire/haywire/blob/master/CONTRIBUTING.md#for-the-maintainer-handling-a-forks-pull-request-safely) |
 | ① Approve a first-time run | maintainer | [CONTRIBUTING: opening the pull request](https://github.com/going-haywire/haywire/blob/master/CONTRIBUTING.md#opening-the-pull-request) |
 | ② Trying it locally | maintainer | [CONTRIBUTING: handling a fork's pull request safely](https://github.com/going-haywire/haywire/blob/master/CONTRIBUTING.md#for-the-maintainer-handling-a-forks-pull-request-safely) |
-| ③ Labels off, ④ merge | maintainer's word | [The workflow skill: finishing as the maintainer](https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/SKILL.md#finishing-as-the-maintainer) |
+| ③ Labels off, ④ merge | maintainer's word | [The workflow: finishing as the maintainer](workflow.md#finishing-as-the-maintainer) |
 | Why | — | [ADR 0080](../adr/0080-untrusted-pull-requests-meet-nothing-with-power.md) |

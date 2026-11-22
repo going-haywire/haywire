@@ -18,6 +18,7 @@ import json
 import logging
 import os
 import sys
+import tomllib
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -47,6 +48,7 @@ CONNECT_TOOL = "farmhand_studio_connect"
 
 _DOCS_PREFIX = "farmhand://docs/"
 _MANIFEST_URI = "farmhand://docs/_manifest"
+_DEV_PREFIX = "farmhand://dev/"
 
 
 @dataclass(frozen=True)
@@ -138,7 +140,32 @@ def principal_token(name: str, document: Path | None = None) -> str | None:
     return principal.token
 
 
-def product_index() -> str:
+def developer_docs(project: Path) -> Path | None:
+    """Return the docs folder ``project`` declares for agent sessions, or ``None``.
+
+    The declaration is ``developer-docs`` in the ``[tool.haywire.agents]`` table of the
+    project's ``pyproject.toml``, a path relative to the project.
+    """
+    try:
+        data = tomllib.loads((project / "pyproject.toml").read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError):
+        return None
+    declared = data.get("tool", {}).get("haywire", {}).get("agents", {}).get("developer-docs")
+    if not isinstance(declared, str):
+        return None
+    folder = (project / declared).resolve()
+    return folder if folder.is_dir() else None
+
+
+def read_developer_doc(root: Path, rel_path: str) -> str:
+    """Read one page of a declared developer docs folder; refuse a path that leaves it."""
+    target = (root / rel_path).resolve()
+    if not target.is_relative_to(root) or target.suffix != ".md" or not target.is_file():
+        raise FileNotFoundError(f"No developer page at {rel_path!r}")
+    return target.read_text(encoding="utf-8")
+
+
+def product_index(developer_root: Path | None = None) -> str:
     """Return the bridge's server instructions: what this server is and which pages to read for what."""
     lines = [
         "This is Haywire's Farmhand bridge for this project. It is always connected; the running "
@@ -152,6 +179,11 @@ def product_index() -> str:
         scope = f": {entry['scope']}" if entry["scope"] else ""
         lines.append(f"- {_DOCS_PREFIX}{entry['path']} ({entry['title']}){scope}")
     lines.append(f"- {_MANIFEST_URI}: every other page, by path and title.")
+    if developer_root is not None:
+        lines += ["", "This repository is developed by the going-haywire workflow; read before acting:"]
+        for entry in served_docs("developer", developer_root):
+            scope = f": {entry['scope']}" if entry["scope"] else ""
+            lines.append(f"- {_DEV_PREFIX}{entry['path']} ({entry['title']}){scope}")
     return "\n".join(lines)
 
 
@@ -192,7 +224,8 @@ class Bridge:
         self.principal = principal
         self.document = document
         self.poll_s = poll_s
-        self.server: Server = Server("farmhand", instructions=product_index())
+        self.developer_root = developer_docs(project)
+        self.server: Server = Server("farmhand", instructions=product_index(self.developer_root))
         self._downstream: ServerSession | None = None
         self._upstream: ClientSession | None = None
         self._upstream_tools: list[types.Tool] = []
@@ -373,14 +406,18 @@ class Bridge:
         @server.list_resources()
         async def list_resources() -> list[types.Resource]:
             self._capture_session()
+            own = self._developer_resources()
             if self._upstream is not None:
-                return (await self._upstream.list_resources()).resources
-            return _local_resources()
+                return (await self._upstream.list_resources()).resources + own
+            return _local_resources() + own
 
         @server.read_resource()
         async def read_resource(uri) -> Iterable[ReadResourceContents]:
             self._capture_session()
             text = str(uri)
+            if text.startswith(_DEV_PREFIX) and self.developer_root is not None:
+                page = read_developer_doc(self.developer_root, text[len(_DEV_PREFIX) :])
+                return [ReadResourceContents(content=page, mime_type="text/markdown")]
             if self._upstream is not None:
                 result = await self._upstream.read_resource(uri)
                 return [
@@ -401,6 +438,19 @@ class Bridge:
                     )
                 ]
             raise FileNotFoundError(f"No resource at {text!r}")
+
+    def _developer_resources(self) -> list[types.Resource]:
+        if self.developer_root is None:
+            return []
+        return [
+            types.Resource(
+                uri=f"{_DEV_PREFIX}{entry['path']}",  # type: ignore[arg-type]  # AnyUrl accepts the string
+                name=entry["title"],
+                description=entry["scope"] or None,
+                mimeType="text/markdown",
+            )
+            for entry in served_docs("developer", self.developer_root)
+        ]
 
     async def serve(self, read_stream, write_stream) -> None:
         """Serve one harness session on these streams until it closes, connected to the studio meanwhile."""

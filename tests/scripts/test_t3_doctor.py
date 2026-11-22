@@ -12,7 +12,7 @@ import pytest
 pytestmark = pytest.mark.unit
 
 ROOT = Path(__file__).resolve().parents[2]
-DOCTOR = ROOT / "plugins" / "haywire-dev" / "orchestrators" / "t3" / "doctor.py"
+DOCTOR = ROOT / "dev" / "orchestrators" / "t3" / "doctor.py"
 SETUP, FINISH, STUDIO = json.loads((ROOT / "t3.json").read_text())["scripts"]
 IMPORTED_SETUP = {"id": "worktree-setup", **{k: v for k, v in SETUP.items() if k != "async"}}
 

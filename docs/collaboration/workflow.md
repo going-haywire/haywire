@@ -1,14 +1,21 @@
 ---
-name: haywire-workflow
-description: Step-by-step procedures for working in this repository through branches, pull requests and CI, for both roles — a contributor working on a fork and the maintainer — starting a task, live-checking a change in the studio with a Questionnaire, committing, pushing and opening a PR, reading CI, asking the user for a decision, merging, checking master after a merge, cleaning up, keeping a branch current, running parallel sessions in worktrees, and setting up a second machine. Use it whenever starting, shipping or merging a piece of work, when a PR or CI run needs attention, or when the user has to decide something.
+serve: developer
+status: current
+doc_template: guide
+scope: Read before the first branch, commit, push or gh pr command of a task in an org repository — branches, pull requests, CI, live check, merge, finish, releases, parallel sessions, lead and tasks
+see-also:
+  - basics.md
+  - second-machine.md
+  - orchestrators/index.md
 ---
 
 # Working through branches and pull requests
 
 The rules are in [CONTRIBUTING.md](https://github.com/going-haywire/haywire/blob/master/CONTRIBUTING.md) (the agent-only ones in CLAUDE.md,
 *Git and pull requests*); the reasons and traps in
-[.insights/project_pr_workflow.md](https://github.com/going-haywire/haywire/blob/master/.insights/project_pr_workflow.md). This skill
-is the how.
+[.insights/project_pr_workflow.md](https://github.com/going-haywire/haywire/blob/master/.insights/project_pr_workflow.md). This page
+is the how. Its commands write `<core>` for the core clone: `.` in core, `../haywire-repo` in an
+org library.
 
 **Your role** is in the session's opening context, from the `SessionStart` hook: *maintainer*
 when this GitHub login can write to `going-haywire/haywire`, *contributor* otherwise or when
@@ -17,8 +24,7 @@ role's. Without that line (the hook did not run), check it yourself:
 `gh repo view going-haywire/haywire --json viewerPermission` (ADMIN, MAINTAIN or WRITE make a
 maintainer).
 
-**In a library repository** (`going-haywire/haybale-*`, the skill comes from the
-`haywire-dev` plugin): read `going-haywire/haywire` below as the library's own repository and
+**In a library repository** (`going-haywire/haybale-*`): read `going-haywire/haywire` below as the library's own repository and
 `master` as its default branch, except for introductions, which live in core. What differs
 is in *In a library repository* at the end.
 
@@ -258,7 +264,7 @@ them.
    its own worktree, once its branch is merged:
 
    ```sh
-   python3 "${CLAUDE_SKILL_DIR}/scripts/finish.py" <branch>
+   python3 <core>/dev/scripts/finish.py <branch>
    ```
 
    `finish` is the only way to delete a branch: the hook blocks raw `git branch -D` and
@@ -384,7 +390,7 @@ the user and does everything below that is the lead's. A second machine's lead i
 
 **The orchestrator.** An app that runs the lead and the tasks as agent sessions and carries
 their messages is an *orchestrator*. Every one is optional and a contributor needs none.
-Each has a slot (ADR 0090): this skill's `orchestrators/<tool>.md` says how its events run
+Each has a slot (ADR 0090): its page `orchestrators/<tool>-agent.md` beside this one says how its events run
 there, and the session-start hook names the tool you run in and its file. Read that file
 before you start or report on a task. Without an orchestrator the user opens the sessions
 and relays the messages. A task has four events; each has one neutral part, which every
@@ -407,7 +413,7 @@ orchestrator's way. A library task's worktree goes beside the repositories (*Par
 sessions*).
 
 The brief holds the issue (URL), the branch, the acceptance points, the report rule below
-and where to report (the lead's name or address). Tell the task to load this skill first.
+and where to report (the lead's name or address). Tell the task to read this page first.
 
 **A task reports to the lead** through the orchestrator's messages, one line each, with
 the PR's URL:
@@ -427,15 +433,15 @@ maintainer*, step 4), warns the tasks whose PRs now conflict, and tells the task
 The task runs `finish` itself; the worktree's folder then goes the orchestrator's way.
 
 **The lead writes reports to the user by name**: task name, PR URL, state.
-`python3 "${CLAUDE_SKILL_DIR}/scripts/tasks.py"` lists every task with its PR and, when an orchestrator's slot can list
+`python3 <core>/dev/scripts/tasks.py` lists every task with its PR and, when an orchestrator's slot can list
 them, its session.
 
 ## In a library repository
 
 The org's libraries (`going-haywire/haybale-*`) follow the same steps. Their process files
 come from [going-haywire/.github](https://github.com/going-haywire/.github) (the library
-`CONTRIBUTING.md`, the reusable CI); this skill and the hooks come from the `haywire-dev`
-plugin, installed once per clone (the library's `CLAUDE.md` says how). What differs:
+`CONTRIBUTING.md`, the reusable CI); this page and the hooks come from core beside it
+(until #212, through the `haywire-dev` plugin, installed once per machine). What differs:
 
 - **Layout.** The library is cloned beside core (`../haywire-repo`), which its development
   project reaches by relative paths. A task's worktree goes beside the repositories, set up
@@ -456,5 +462,5 @@ plugin, installed once per clone (the library's `CLAUDE.md` says how). What diff
   PR (`STATE: RELEASE_BRANCH_PUSHED` means it could not: run its `NEXT:` command), then
   merge the release PR once its checks are green. It runs in the task's worktree too, on a
   branch at the default branch's tip. The merge run tags and publishes. Never tag by hand.
-- **`finish` and the task view** run from this skill's folder, as above; they read the
+- **`finish` and the task view** run from core's `dev/scripts/`, as above; they read the
   default branch from the clone (`main` in haybale-stream).

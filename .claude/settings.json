@@ -5,11 +5,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/plugins/haywire-dev/hooks/session-role.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/dev/hooks/session-role.sh"
           },
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/plugins/haywire-dev/hooks/session-place.sh",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/dev/hooks/session-place.sh",
             "timeout": 330
           }
         ]
@@ -21,36 +21,26 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/plugins/haywire-dev/hooks/block-dangerous-git.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/dev/hooks/block-dangerous-git.sh"
           },
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/plugins/haywire-dev/hooks/require-workflow-skill.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/dev/hooks/require-workflow-read.sh"
           },
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/plugins/haywire-dev/hooks/guard-pr-merge.sh"
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/plugins/haywire-dev/hooks/mark-workflow-skill.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/dev/hooks/guard-pr-merge.sh"
           }
         ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Skill",
+        "matcher": "Read|ReadMcpResourceTool",
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/plugins/haywire-dev/hooks/mark-workflow-skill.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/dev/hooks/mark-workflow-read.sh"
           }
         ]
       },

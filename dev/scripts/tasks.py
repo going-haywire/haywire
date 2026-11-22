@@ -34,7 +34,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 DEFAULT_BRANCHES = frozenset({"master", "main"})
-ORCHESTRATORS = Path(__file__).resolve().parents[3] / "orchestrators"
+ORCHESTRATORS = Path(__file__).resolve().parents[1] / "orchestrators"
 PR_FIELDS = "number,state,isDraft,url,mergeable,statusCheckRollup"
 PASSING = frozenset({"SUCCESS", "SKIPPED", "NEUTRAL"})
 
