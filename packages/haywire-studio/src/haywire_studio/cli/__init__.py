@@ -33,6 +33,7 @@ from haywire_studio.cli import (
     securitycmd,
     share,
     sslcmd,
+    studiocmd,
     user,
     verify,
     volumescmd,
@@ -57,6 +58,7 @@ SUBCOMMANDS: Sequence[_SubcommandModule] = (
     sslcmd,
     networkcmd,
     farmhandcmd,
+    studiocmd,
     securitycmd,
     volumescmd,
 )
