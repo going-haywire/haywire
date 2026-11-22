@@ -254,7 +254,7 @@ them.
 
    `finish` is the only way to delete a branch: the hook blocks raw `git branch -D` and
    `git push --delete`. It refuses unless the PR is merged and the local branch holds
-   nothing the PR's head lacks; it detaches the worktree at the default branch, then deletes
+   nothing found neither in the PR's head nor on the default branch; it detaches the worktree at the default branch, then deletes
    the local branch and the remote branch if GitHub has not already. Then it prints how
    to remove the empty folder: the orchestrator's way (*Lead and tasks*), or
    `git worktree remove <path>` from the main folder.

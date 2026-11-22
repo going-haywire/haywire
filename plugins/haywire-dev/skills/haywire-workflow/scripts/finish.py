@@ -3,13 +3,15 @@
 
 The only way agents delete branches: the hook blocks raw ``git branch -D`` and
 ``git push --delete``. ``finish`` deletes a branch only after it has found the
-branch's pull request and seen it merged, and only when the local branch holds
-nothing the pull request's head does not.
+branch's pull request and seen it merged, and only when every commit of the local
+branch is in the pull request's head or on the default branch.
 
 ``finish <branch>``
     Refuses ``master``, ``main`` and ``gh-pages``. Refuses unless the pull request is
     ``MERGED``, or ``CLOSED`` with ``--abandon`` (the user's word), and refuses when
-    the local branch has commits the pull request's head lacks. Inside the branch's
+    the local branch has a commit found neither in the pull request's head nor on
+    ``<remote>/<default branch>`` (fetched first; a failed fetch refuses), so a branch
+    re-created from the default branch is finished. Inside the branch's
     worktree it detaches to ``<remote>/<default branch>``; from another folder it
     removes the branch's worktree if that is clean. Then it deletes the local branch,
     and the remote branch if it still exists. Running it again changes nothing.
@@ -209,11 +211,17 @@ def check_provable(ctx: Context, branch: str, pr: dict, abandon: bool, have_loca
             run("git", "fetch", "--quiet", ctx.pr_remote, f"refs/pull/{pr['number']}/head")
         except CommandFailed as exc:
             raise Refused(f"cannot compare {branch} with {pr['url']}: {exc}") from exc
-    ahead = int(run("git", "rev-list", "--count", branch, f"^{head}").strip())
+    # A branch re-created from the default branch carries its commits; those are not lost.
+    target = f"{ctx.pr_remote}/{ctx.default_branch}"
+    try:
+        run("git", "fetch", "--quiet", ctx.pr_remote, ctx.default_branch)
+    except CommandFailed as exc:
+        raise Refused(f"cannot compare {branch} with {target}: {exc}") from exc
+    ahead = int(run("git", "rev-list", "--count", branch, f"^{head}", f"^{target}").strip())
     if ahead:
         raise Refused(
-            f"{branch} has {ahead} commit(s) the pull request's head lacks",
-            f"push or save them first: git log {head[:9]}..{branch}",
+            f"{branch} has {ahead} commit(s) found neither in the pull request's head nor on {target}",
+            f"push or save them first: git log {branch} ^{head[:9]} ^{target}",
         )
 
 

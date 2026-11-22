@@ -194,9 +194,53 @@ def test_unpushed_commits_are_refused(repo, capsys):
     commit(repo.main, "later")
     git(repo.main, "switch", "-q", "master")
     assert finish.main(["fix/edge"]) == 1
-    assert "1 commit(s) the pull request's head lacks" in capsys.readouterr().out
+    assert "1 commit(s) found neither in the pull request's head nor on origin/master" in (
+        capsys.readouterr().out
+    )
     assert "fix/edge" in repo.local()
     assert "fix/edge" in repo.remote()
+
+
+def test_a_branch_re_created_from_master_is_finished(repo, capsys):
+    sha = repo.branch("fix/edge", push=False)
+    repo.pr("fix/edge", sha)
+    git(repo.main, "branch", "-q", "-D", "fix/edge")
+    commit(repo.main, "other-pr")
+    git(repo.main, "push", "-q", "origin", "master")
+    git(repo.main, "branch", "-q", "fix/edge", "master")
+    assert finish.main(["fix/edge"]) == 0
+    assert "deleted local branch" in capsys.readouterr().out
+    assert repo.local() == {"master"}
+
+
+def test_a_re_created_branch_with_a_commit_found_nowhere_else_is_refused(repo, capsys):
+    sha = repo.branch("fix/edge", push=False)
+    repo.pr("fix/edge", sha)
+    git(repo.main, "branch", "-q", "-D", "fix/edge")
+    commit(repo.main, "other-pr")
+    git(repo.main, "push", "-q", "origin", "master")
+    git(repo.main, "switch", "-q", "-c", "fix/edge")
+    commit(repo.main, "lost")
+    git(repo.main, "switch", "-q", "master")
+    assert finish.main(["fix/edge"]) == 1
+    assert "1 commit(s) found neither" in capsys.readouterr().out
+    assert "fix/edge" in repo.local()
+
+
+def test_a_failed_fetch_of_the_default_branch_is_refused(repo, capsys, monkeypatch):
+    sha = repo.branch("fix/edge")
+    repo.pr("fix/edge", sha)
+    real_run = finish.run
+
+    def run(*cmd, cwd=None):
+        if cmd[:2] == ("git", "fetch") and cmd[-1] == "master":
+            raise finish.CommandFailed("`git fetch` failed: offline")
+        return real_run(*cmd, cwd=cwd)
+
+    monkeypatch.setattr(finish, "run", run)
+    assert finish.main(["fix/edge"]) == 1
+    assert "cannot compare fix/edge with origin/master" in capsys.readouterr().out
+    assert "fix/edge" in repo.local()
 
 
 def test_inside_its_worktree_the_folder_is_detached_at_master(repo, capsys, monkeypatch):
