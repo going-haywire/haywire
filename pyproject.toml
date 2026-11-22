@@ -196,6 +196,9 @@ ban-relative-imports = "all"
 "packages/haywire-core/src/haywire/barn/builtin/nodes/templates/**" = ["TID251"]
 # Relative imports are banned in haybale libraries only; packages/ keeps them.
 "!barn/**" = ["TID252"]
+# A package's __init__ import order is load-bearing: the packages import each
+# other while half-initialized, so sorting them breaks the cycles' order.
+"**/__init__.py" = ["I001"]
 # PT is a pytest-only style; production code has no test functions to lint.
 "!tests/**" = ["PT"]
 

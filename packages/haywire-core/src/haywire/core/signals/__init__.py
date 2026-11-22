@@ -10,47 +10,47 @@ Public surface:
 
 from __future__ import annotations
 
+from .signal import Signal, CommandSignal, EditorCommand
 from .bus import SignalBus, SignalHandler
-from .descriptor import signal_field
-from .dispatcher import SignalDispatcher
 from .host import SignalSource
+from .dispatcher import SignalDispatcher
 from .peer import SignalPeer
-from .signal import CommandSignal, EditorCommand, Signal
+from .descriptor import signal_field
 from .vocabulary import (
     ActiveGraphMoved,
-    AgentConnected,
-    AgentDisconnected,
-    BroadcastClose,
-    Close,
-    Copy,
-    Cut,
-    Delete,
-    Duplicate,
-    ErrorLedgerChanged,
-    ErrorLogged,
-    FarmhandActivity,
-    GraphDataMutated,
-    GraphHistoryChanged,
-    GraphSaved,
-    GraphUnsavedChanged,
-    LibraryCatalogChanged,
-    Paste,
-    PresenceChanged,
-    Redo,
-    Reveal,
-    RevealComponentDocs,
-    RevealComponentSource,
-    RevealGraphInstance,
-    RevealSignal,
-    RevealSource,
-    RosterChanged,
-    Save,
-    SelectAll,
     SelectionMoved,
     SubgraphNavigation,
+    RevealGraphInstance,
+    GraphDataMutated,
+    GraphSaved,
+    GraphHistoryChanged,
+    GraphUnsavedChanged,
+    LibraryCatalogChanged,
+    ErrorLogged,
+    ErrorLedgerChanged,
+    PresenceChanged,
+    FarmhandActivity,
+    RosterChanged,
+    AgentConnected,
+    AgentDisconnected,
+    RevealSignal,
+    Reveal,
+    RevealComponentSource,
+    RevealComponentDocs,
+    RevealSource,
+    Close,
+    BroadcastClose,
+    Copy,
+    Cut,
+    Paste,
+    Duplicate,
+    Delete,
+    Undo,
+    Redo,
+    Save,
     ToggleLock,
     ToggleStageView,
-    Undo,
+    SelectAll,
 )
 
 __all__ = [

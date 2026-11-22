@@ -13,10 +13,10 @@ from __future__ import annotations
 
 import re
 
-from haywire.core.marketstall.host_providers import config as _host_config
 from haywire.core.marketstall.host_providers.base import HostProvider, ParsedRef
 from haywire.core.marketstall.host_providers.github import GitHubProvider
 from haywire.core.marketstall.host_providers.gitlab import GitLabProvider
+from haywire.core.marketstall.host_providers import config as _host_config
 
 __all__ = [
     "HostProvider",

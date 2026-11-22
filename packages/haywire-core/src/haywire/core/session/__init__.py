@@ -37,35 +37,34 @@ Framework / library internals:
 
 from __future__ import annotations
 
+from .session import Session
+from .session_manager import SessionManager
+from .context import SessionContext
+from .protocols import IAppState
 from haywire.core.signals import (
+    # Bases
+    Signal,
+    CommandSignal,
+    # Transport
+    SignalBus,
+    SignalHandler,
+    SignalSource,
+    # Fan-out
+    SignalDispatcher,
+    SignalPeer,
+    # Descriptor
+    signal_field,
     # Observations
     ActiveGraphMoved,
-    BroadcastClose,
-    Close,
-    CommandSignal,
+    SelectionMoved,
     GraphDataMutated,
     LibraryCatalogChanged,
     # Imperative commands
     Reveal,
-    SelectionMoved,
-    # Bases
-    Signal,
-    # Transport
-    SignalBus,
-    # Fan-out
-    SignalDispatcher,
-    SignalHandler,
-    SignalPeer,
-    SignalSource,
-    # Descriptor
-    signal_field,
+    Close,
+    BroadcastClose,
 )
-
-from .context import SessionContext
-from .handlers import react_on, redraw_on
-from .protocols import IAppState
-from .session import Session
-from .session_manager import SessionManager
+from .handlers import redraw_on, react_on
 from .workspace.manager import WorkspaceManager
 
 __all__ = [

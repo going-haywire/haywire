@@ -11,10 +11,10 @@ haybale-core and registered via register_components().
 
 from __future__ import annotations
 
+from haywire.ui.themes.workbench import BaseTheme
+from haywire.ui.themes.registry import ThemeRegistry
 from haywire.ui.themes.decorator import theme
 from haywire.ui.themes.icons import ICONS
-from haywire.ui.themes.registry import ThemeRegistry
-from haywire.ui.themes.workbench import BaseTheme
 
 __all__ = [
     "BaseTheme",

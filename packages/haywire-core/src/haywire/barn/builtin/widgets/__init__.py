@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from .annotation_text_widget import AnnotationTextWidget
 from .arrow_head_widget import ArrowHeadWidget
 from .basic_widgets import (
@@ -15,10 +14,10 @@ from .basic_widgets import (
 from .color_widget import ColorWidget
 from .field_list_widget import FieldListWidget
 from .fold_widget import FoldWidget
-from .matrix_widget import MatrixWidget
 from .optional_widget import OptionalWidget
 from .path_widget import PathWidget
 from .progress_widget import ProgressWidget
+from .matrix_widget import MatrixWidget
 from .vector_widget import VectorWidget
 
 __all__ = [

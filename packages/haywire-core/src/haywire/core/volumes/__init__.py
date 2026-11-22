@@ -15,8 +15,8 @@ from haywire.core.volumes.resolve import (
     VolumeStatus,
     VolumeUndefinedError,
     list_volumes,
-    resolve_volume_path,
     volume_location,
+    resolve_volume_path,
 )
 from haywire.core.volumes.store import (
     VolumeEntry,

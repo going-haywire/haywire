@@ -8,7 +8,6 @@ Contains folders for nodes, widgets, adapters, renderers, and custom types.
 from __future__ import annotations
 
 from pathlib import Path
-
 from haywire.api import (
     AdapterRegistry,
     BaseLibrary,

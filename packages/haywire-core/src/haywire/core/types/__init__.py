@@ -8,25 +8,25 @@ nodes through inlet/outlet connections.
 
 from __future__ import annotations
 
-from .base import BaseType, CompoundType, PrimitiveType, WrapperType
+from .interface import IType
+from .base import PrimitiveType, BaseType, CompoundType, WrapperType
 from .decorator import type
+from .identity import DataTypeIdentity
 from .enums import LayoutDirection, NodeDetail, PortOrigin, PortType, Propagation, StoreStrategy
 from .event import Event
-from .fields import BaseField, DataField, Drained, PrimitiveField
-from .identity import DataTypeIdentity
-from .interface import IType
-from .pipe import Pipes
+from .fields import DataField, Drained, PrimitiveField, BaseField
 from .port import DataPort
+from .widget_model import WidgetModel
+from .pipe import Pipes
 from .registry import TypeRegistry
 from .utils import (
-    ElementTypeSpec,
     PortSpec,
+    ElementTypeSpec,
     create_port_spec,
-    is_cattrs_serializable,
-    normalize_and_validate_default,
     serialize_element_type,
+    normalize_and_validate_default,
+    is_cattrs_serializable,
 )
-from .widget_model import WidgetModel
 from .wire import (
     WILDCARD,
     ArrowAt,

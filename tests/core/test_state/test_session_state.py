@@ -16,6 +16,13 @@ from haywire.core.settings.settings_library import LibrarySettings
 from haywire.core.state import AppState, LibraryState, SessionState
 
 
+# Module level, not inside each test: the annotations below are strings
+# (`from __future__ import annotations`), which get_type_hints resolves
+# against the module's globals only.
+class MySettings(LibrarySettings):
+    pass
+
+
 class TestSessionStateBase:
     def test_session_state_is_not_a_subclass_of_app_state(self):
         """AppState and SessionState are siblings, not parent/child."""
@@ -46,9 +53,6 @@ class TestSessionStateLibrarySettingsProhibition:
     def test_bare_library_settings_field_rejected(self):
         """A field annotated as a LibrarySettings subclass must raise at class definition."""
 
-        class MySettings(LibrarySettings):
-            pass
-
         with pytest.raises(TypeError, match="LibrarySettings"):
 
             class BadState(SessionState):
@@ -57,9 +61,6 @@ class TestSessionStateLibrarySettingsProhibition:
     def test_optional_library_settings_field_rejected(self):
         """`Optional[X]` and `X | None` annotations also caught."""
 
-        class MySettings(LibrarySettings):
-            pass
-
         with pytest.raises(TypeError, match="LibrarySettings"):
 
             class BadState(SessionState):
@@ -67,9 +68,6 @@ class TestSessionStateLibrarySettingsProhibition:
 
     def test_union_library_settings_field_rejected(self):
         """Union annotations with LibrarySettings somewhere in the union are caught."""
-
-        class MySettings(LibrarySettings):
-            pass
 
         with pytest.raises(TypeError, match="LibrarySettings"):
 
@@ -89,9 +87,6 @@ class TestSessionStateLibrarySettingsProhibition:
 
     def test_app_state_is_not_subject_to_the_check(self):
         """AppState may compose LibrarySettings (per library_state.md §5.1)."""
-
-        class MySettings(LibrarySettings):
-            pass
 
         # Must not raise.
         class GoodAppState(AppState):

@@ -8,8 +8,10 @@ extend = "../pyproject.toml"
 "haywire.barn".msg = "Import from haywire.api or haywire.api.workbench (ADR 0084); haywire.barn is internal."
 
 [lint.per-file-ignores]
-# PT is a pytest-only style; libraries hold no tests.
+# PT is a pytest-only style; libraries hold no tests. A package's __init__
+# import order is load-bearing (the root config says why).
 "**" = ["PT"]
+"**/__init__.py" = ["I001"]
 # Libraries that still import internals: not yet moved onto the Author API, or
 # moved and holding an allowlist in tests/api/allowlist.py, which a test keeps
 # shrinking. A library leaves this list when its allowlist is empty.

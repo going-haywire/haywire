@@ -18,18 +18,18 @@ Framework / library internals:
 
 from __future__ import annotations
 
-from .base import SettingDescriptor
-from .decorator import SettingsClassIdentity, settings
-from .descriptor import Promotable, UiState, graph, setting, shadow, watch
-from .registry import SettingsRegistry
 from .settings import Settings, bag, settings_fields
-from .settings_edge import EdgeSettings
-from .settings_framework import FrameworkSettings
-from .settings_graph import GraphSettings
-from .settings_library import LibrarySettings
 from .settings_node import NodeSettings
-from .types import Color, Icon, Mat3, Mat4, Vec2f, Vec2i, Vec3f, Vec3i, Vec4f, Vec4i, get_vec_meta
+from .settings_graph import GraphSettings
+from .settings_edge import EdgeSettings
+from .descriptor import setting, shadow, watch, graph, Promotable, UiState
+from .base import SettingDescriptor
 from .value import SettingValue
+from .types import Color, Icon, Mat3, Mat4, Vec2i, Vec3i, Vec4i, Vec2f, Vec3f, Vec4f, get_vec_meta
+from .registry import SettingsRegistry
+from .settings_library import LibrarySettings
+from .settings_framework import FrameworkSettings
+from .decorator import SettingsClassIdentity, settings
 
 __all__ = [
     # Node-author API

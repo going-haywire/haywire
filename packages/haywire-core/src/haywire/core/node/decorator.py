@@ -8,7 +8,9 @@ from dataclasses import asdict
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from haywire.core.library.utils import NODE, derive_library_identity, reg_key
-from haywire.core.node import BEHAVIOR_FIELDS, BaseNode, NodeBehaviorFlags, NodeIdentity
+from haywire.core.node.base import BaseNode
+from haywire.core.node.behavior import BEHAVIOR_FIELDS, NodeBehaviorFlags
+from haywire.core.node.identity import NodeIdentity
 
 if TYPE_CHECKING:
     from haywire.core.settings import NodeSettings

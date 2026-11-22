@@ -20,6 +20,7 @@ from haywire.api import (
     WidgetRegistry,
     library,
 )
+
 from haywire.api.workbench import EditorRegistry, PanelRegistry
 
 

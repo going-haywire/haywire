@@ -232,8 +232,9 @@ Forward references then need no quotes: ✗ `-> "Graph"` ✓ `-> Graph`.
 
 The framework resolves annotations with `get_type_hints` or `inspect.signature` on
 settings classes, state classes, Farmhand tools and node worker methods. With CS-T2,
-every annotation is a string resolved at that moment, so a name imported only under
-`TYPE_CHECKING` raises there, far from the import.
+every annotation is a string resolved at that moment against the module's globals, so a
+name imported only under `TYPE_CHECKING`, or a class defined inside a function (a test,
+typically), raises there, far from the import.
 
 ✗
 

@@ -1,27 +1,18 @@
 from __future__ import annotations
-
-from haybale_testing.panels.graph.menu.canvas.canvas import (
-    TestCreateNodeMenuPanel,
-    TestSessionStateMenuPanel,
-)
-from haybale_testing.panels.graph.menu.edge.edge import (
-    TestDeleteEdgeMenuPanel,
-    TestEdgeErrorsMenuPanel,
-    TestEdgePathMenuPanel,
-    TestEdgeWarningsMenuPanel,
-    TestInspectEdgeMenuPanel,
-)
-from haybale_testing.panels.graph.menu.node.node import (
-    TestCopyNodeMenuPanel,
-    TestDeleteNodeMenuPanel,
-    TestRedrawNodeMenuPanel,
-    TestResetNodeMenuPanel,
-    TestRevalidateNodeMenuPanel,
-)
-from haybale_testing.panels.graph.menu.selection.selection import (
-    TestCopySelectionMenuPanel,
-    TestPasteSelectionMenuPanel,
-)
+from haybale_testing.panels.graph.menu.canvas.canvas import TestCreateNodeMenuPanel
+from haybale_testing.panels.graph.menu.canvas.canvas import TestSessionStateMenuPanel
+from haybale_testing.panels.graph.menu.edge.edge import TestDeleteEdgeMenuPanel
+from haybale_testing.panels.graph.menu.edge.edge import TestInspectEdgeMenuPanel
+from haybale_testing.panels.graph.menu.edge.edge import TestEdgeErrorsMenuPanel
+from haybale_testing.panels.graph.menu.edge.edge import TestEdgePathMenuPanel
+from haybale_testing.panels.graph.menu.edge.edge import TestEdgeWarningsMenuPanel
+from haybale_testing.panels.graph.menu.node.node import TestDeleteNodeMenuPanel
+from haybale_testing.panels.graph.menu.node.node import TestCopyNodeMenuPanel
+from haybale_testing.panels.graph.menu.node.node import TestRedrawNodeMenuPanel
+from haybale_testing.panels.graph.menu.node.node import TestRevalidateNodeMenuPanel
+from haybale_testing.panels.graph.menu.node.node import TestResetNodeMenuPanel
+from haybale_testing.panels.graph.menu.selection.selection import TestCopySelectionMenuPanel
+from haybale_testing.panels.graph.menu.selection.selection import TestPasteSelectionMenuPanel
 
 # Backwards-compat aliases for external consumers using old names
 TestCreateNodePanel = TestCreateNodeMenuPanel

@@ -1,9 +1,8 @@
 from __future__ import annotations
-
 from pathlib import Path
 
-from haywire.api import BaseLibrary, SettingsRegistry, library
 from haywire.api.workbench import EditorRegistry, FarmhandRegistry, PanelRegistry, StateRegistry
+from haywire.api import BaseLibrary, SettingsRegistry, library
 
 
 @library(

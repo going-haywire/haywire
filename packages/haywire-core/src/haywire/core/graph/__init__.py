@@ -7,7 +7,8 @@
 from __future__ import annotations
 
 from .base import BaseGraph, Variable
-from .types import ChangeReason, ValidationResult
+
+from .types import ValidationResult, ChangeReason
 
 __all__ = [
     "BaseGraph",

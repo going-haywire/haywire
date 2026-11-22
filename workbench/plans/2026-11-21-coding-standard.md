@@ -105,7 +105,7 @@ redesigning DI.
 | R1 | done (#181, 9433968d2, 2026-11-21) | `.claude/rules/python-docs.md` renamed `coding-standards.md` (pointer); `docstring-cleanup-notes.md` kept: it holds design reasoning no ADR covers |
 | R2 | done (#193, 247315661, 2026-11-21) | |
 | R3 | done (#194, ca1698508, 2026-11-22) | 155 unused ignores (one fewer than counted); `LogEditor._flush` now skips a cleared log element |
-| R4 | PR open (#185) | one auto-fix commit, not one per package (squash merges it into one anyway); `UP031` ignored (its sites are JS templates) and `UP038` (deprecated upstream); PEP 695 generics: 16 by ruff's unsafe fix, the three registries and `ProgressSettings.track` by hand; `DataField.remove_source` joins the B027 exceptions; the squash commit goes into `.git-blame-ignore-revs` in the next slice |
+| R4 | PR open (#185) | one auto-fix commit, not one per package (squash merges it into one anyway); `UP031` ignored (its sites are JS templates) and `UP038` (deprecated upstream); PEP 695 generics: 16 by ruff's unsafe fix, the three registries and `ProgressSettings.track` by hand; `__init__.py` files keep their import order (exempt from `I001`): sorting them broke the packages' import cycles; `types/fields.py` and `node/{data,decorator}.py` import submodules, not their own package; two tests moved function-local classes to module level (CS-T3 now names that case); `DataField.remove_source` joins the B027 exceptions; `pr-intake` needed #196 for a PR over 300 files; the squash commit goes into `.git-blame-ignore-revs` in the next slice |
 | R5 | pending (#186) | |
 | R6 | pending (#187) | |
 | R7 | pending (#188) | |

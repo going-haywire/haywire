@@ -7,7 +7,7 @@ At an ``except`` site, call ``report_failure``; raise ``Refusal`` for expected r
 from __future__ import annotations
 
 from .boundary import report_failure, report_loss
-from .haywire_exception import ErrorSeverity, HaywireException
+from .haywire_exception import HaywireException, ErrorSeverity
 from .refusal import Refusal
 
 __all__ = [

@@ -1,21 +1,18 @@
 from __future__ import annotations
-
-from haybale_studio.panels.file_browser.menu.file import OpenInCodeEditorMenuPanel, OpenInFileViewerMenuPanel
-from haybale_studio.panels.properties.setting.app import (
-    ActivitySettingsPanel,
-    EditingSettingsPanel,
-    NodeSkinDefaultPanel,
-    ThemeSettingsPanel,
-)
-from haybale_studio.panels.properties.setting.canvas import (
-    ArrangeSettingsPanel,
-    CanvasSettingsPanel,
-    EdgeDefaultSettingsPanel,
-    EditorZoomPanSettingsPanel,
-    MinimapSettingsPanel,
-)
-from haybale_studio.panels.properties.setting.debug import DebugOverlaySettingsPanel, DebugSettingsPanel
+from haybale_studio.panels.properties.setting.app import ThemeSettingsPanel
+from haybale_studio.panels.properties.setting.app import NodeSkinDefaultPanel
+from haybale_studio.panels.properties.setting.app import EditingSettingsPanel
+from haybale_studio.panels.properties.setting.app import ActivitySettingsPanel
+from haybale_studio.panels.properties.setting.canvas import CanvasSettingsPanel
+from haybale_studio.panels.properties.setting.canvas import EditorZoomPanSettingsPanel
+from haybale_studio.panels.properties.setting.canvas import MinimapSettingsPanel
+from haybale_studio.panels.properties.setting.canvas import EdgeDefaultSettingsPanel
+from haybale_studio.panels.properties.setting.canvas import ArrangeSettingsPanel
+from haybale_studio.panels.properties.setting.debug import DebugOverlaySettingsPanel
+from haybale_studio.panels.properties.setting.debug import DebugSettingsPanel
 from haybale_studio.panels.properties.setting.execution import ExecutionSettingsPanel
+from haybale_studio.panels.file_browser.menu.file import OpenInCodeEditorMenuPanel
+from haybale_studio.panels.file_browser.menu.file import OpenInFileViewerMenuPanel
 
 # Backwards-compat aliases for external consumers using old names
 OpenInCodeEditorPanel = OpenInCodeEditorMenuPanel

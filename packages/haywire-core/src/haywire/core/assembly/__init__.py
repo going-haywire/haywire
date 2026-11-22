@@ -25,9 +25,9 @@ Usage:
 
 from __future__ import annotations
 
+from haywire.core.assembly.flow_assembly_manager import FlowAssemblyManager, AssemblyMetadata
 from haywire.core.assembly.control_flow_builder import ControlFlowBuilder
 from haywire.core.assembly.data_flow_builder import DataFlowBuilder
-from haywire.core.assembly.flow_assembly_manager import AssemblyMetadata, FlowAssemblyManager
 
 __all__ = [
     "FlowAssemblyManager",

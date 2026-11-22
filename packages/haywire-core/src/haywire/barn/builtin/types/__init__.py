@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from .add import ADD, ADDField
 from .annotation import ANNOTATION
 from .callback import CALLBACK
@@ -9,11 +8,11 @@ from .color import COLOR, ColorStr
 from .exec import EXEC
 from .field_list import FIELD_LIST, FieldEntry, is_valid_field_key
 from .fold import FOLD
-from .matrices import MAT3, MAT4
 from .optional import OPTIONAL
 from .path import FILE_PATH, FOLDER_PATH, PATH
 from .progress import PROGRESS
 from .specs import BOOL, FLOAT, INT, STRING, FLOATField, INTField
+from .matrices import MAT3, MAT4
 from .vectors import VEC2F, VEC2I, VEC3F, VEC3I, VEC4F, VEC4I
 
 __all__ = [

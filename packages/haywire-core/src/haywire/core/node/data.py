@@ -9,7 +9,7 @@ from dataclasses import replace
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from haywire.core.execution.event_source import EventSource
-from haywire.core.node import NodeIdentity
+from haywire.core.node.identity import NodeIdentity
 from haywire.core.settings import NodeSettings, Settings
 
 from ..execution.execution_context import ExecutionContext

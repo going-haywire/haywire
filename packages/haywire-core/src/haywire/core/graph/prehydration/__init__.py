@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from haywire.core.errors.haywire_exception import HaywireException
 
-from .upgrader import GraphDict, UnknownGraphFormat, UpgradeAncient, Upgrader
+from .upgrader import GraphDict, UnknownGraphFormat, Upgrader, UpgradeAncient
 from .v1 import UpgradeVersionOne
 from .v2 import UpgradeVersionTwo
 from .v3 import UpgradeVersionThree

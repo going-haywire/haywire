@@ -5,17 +5,17 @@ Node system for Haywire.
 
 from __future__ import annotations
 
-from .base import BaseNode
-from .behavior import BEHAVIOR_FIELDS, NodeBehaviorFlags, NodeType
-from .data import NodeData
-from .decorator import node
-from .factory import NodeFactory
 from .identity import NodeIdentity
 from .info import NodeInfo
-from .node_wrapper import NodeWrapper, NodeWrapperState
-from .properties import NodeProperties
-from .registry import NodeRegistry
+from .data import NodeData
+from .base import BaseNode
+from .behavior import NodeType, NodeBehaviorFlags, BEHAVIOR_FIELDS
+from .decorator import node
 from .user_data import NodeCache, NodeStore
+from .properties import NodeProperties
+from .node_wrapper import NodeWrapperState, NodeWrapper
+from .registry import NodeRegistry
+from .factory import NodeFactory
 
 __all__ = [
     # Identity

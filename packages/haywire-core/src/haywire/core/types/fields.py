@@ -13,7 +13,9 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, TypeVar, cast
 
-from haywire.core.types import BaseType, Event, IType, PrimitiveType
+from .base import BaseType, PrimitiveType
+from .event import Event
+from .interface import IType
 
 T = TypeVar("T")
 
