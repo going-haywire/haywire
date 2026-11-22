@@ -19,23 +19,23 @@ Properties form's does.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from nicegui import ui
 
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import route_for
 from haywire.api.workbench import LevelMode, hui, render_settings
 from haywire.core.di.context import get_settings_registry
 from haywire.core.node.properties import NodeProperties
 from haywire.ui.utils import anchor_cleanup_to_element
 
-from haybale_graph_editor.states.edit_state import EditState
-from haybale_graph_editor.states.graph_app_state import route_for
-
 if TYPE_CHECKING:
-    from haywire.core.graph.edit_route import EditRoute
-    from haywire.api.workbench import SessionContext
     from haywire.api import Settings
+    from haywire.api.workbench import SessionContext
+    from haywire.core.graph.edit_route import EditRoute
 
 Status = Literal["hidden", "greyed", "own", "neutral"]
 
@@ -51,8 +51,8 @@ class FormSubject:
 
     status: Status
     reason: str = ""
-    bags: "list[Settings]" = field(default_factory=list)
-    bag_class: "type[Settings] | None" = None
+    bags: list[Settings] = field(default_factory=list)
+    bag_class: type[Settings] | None = None
     noun: str = ""
 
     @property
@@ -60,7 +60,7 @@ class FormSubject:
         return self.status in ("own", "neutral")
 
 
-def edge_style_subject(ctx: "SessionContext") -> FormSubject:
+def edge_style_subject(ctx: SessionContext) -> FormSubject:
     """Return what the edge Style form edits for the current selection."""
     edit = ctx.data[EditState]
     graph = edit.active_graph
@@ -68,7 +68,7 @@ def edge_style_subject(ctx: "SessionContext") -> FormSubject:
         return FormSubject("hidden")
     wrappers = [graph.get_edge_wrapper(edge_id) for edge_id in sorted(edit.selected_edges)]
     styles = [w.style if w is not None else None for w in wrappers]
-    present: "list[Settings]" = [s for s in styles if s is not None]
+    present: list[Settings] = [s for s in styles if s is not None]
     if not present:
         return FormSubject("hidden")
     if len(present) < len(styles):
@@ -80,7 +80,7 @@ def edge_style_subject(ctx: "SessionContext") -> FormSubject:
     return FormSubject("neutral", bags=present, bag_class=type(present[0]), noun="edges")
 
 
-def node_appearance_subject(ctx: "SessionContext") -> FormSubject:
+def node_appearance_subject(ctx: SessionContext) -> FormSubject:
     """Return what the node Appearance form edits for the current selection."""
     edit = ctx.data[EditState]
     graph = edit.active_graph
@@ -109,10 +109,10 @@ def node_appearance_subject(ctx: "SessionContext") -> FormSubject:
 
 
 def render_form(
-    ctx: "SessionContext",
+    ctx: SessionContext,
     subject: FormSubject,
     *,
-    categories: "tuple[str, ...] | None" = None,
+    categories: tuple[str, ...] | None = None,
     graph: Any = None,
 ) -> None:
     """Render *subject*'s form: its own bag, or a neutral form fanning out to every bag.
@@ -143,9 +143,7 @@ def render_form(
     anchor_cleanup_to_element(column, neutral._cleanup)
 
 
-def fan_out_to(
-    neutral: "Settings", bags: "list[Settings]", route: "EditRoute"
-) -> "Callable[[str, Any, Any], None]":
+def fan_out_to(neutral: Settings, bags: list[Settings], route: EditRoute) -> Callable[[str, Any, Any], None]:
     """Return a change callback for *neutral* that applies each user edit to every bag in *bags*.
 
     A value the user sets is set on every bag; a field the user resets is reset on

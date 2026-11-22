@@ -25,7 +25,6 @@ be silently measuring the wrong graph. Run::
 
 from __future__ import annotations
 
-
 import time
 
 import pytest

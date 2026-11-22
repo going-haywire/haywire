@@ -1,5 +1,7 @@
 """Callback values: present values save and travel as their type (absence: `test_callback_absence.py`)."""
 
+from __future__ import annotations
+
 import pytest
 
 pytestmark = pytest.mark.integration

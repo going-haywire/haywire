@@ -1,5 +1,7 @@
 """A linked promoted inlet shows its edge's value; the setting keeps, saves and reveals its own value."""
 
+from __future__ import annotations
+
 import pytest
 
 from tests.core.node.test_promotion_single_cell import _link_and_push, _make_mixed_bag_node

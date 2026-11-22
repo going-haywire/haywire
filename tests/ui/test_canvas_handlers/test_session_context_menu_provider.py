@@ -7,14 +7,15 @@ Verifies that the provider:
 - Runs that cleanup even when no popup opens (the gesture still ended)
 """
 
-from typing import Any, cast
+from __future__ import annotations
 
 import importlib
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.core.session.context import SessionContext
+from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.registry import PanelRegistry

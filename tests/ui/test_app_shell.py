@@ -15,14 +15,15 @@ Bar rendering, tab-state mutations, visibility toggling, and hot-reload are
 tested in test_icon_slot.py / test_tab_slot.py / test_slot.py.
 """
 
+from __future__ import annotations
+
 import logging
 from types import SimpleNamespace
-
 from typing import Any, cast
 
 import haywire.core.graph.editor as graph_editor_module
-from haywire.ui.app.shell import AppShell
 from haywire.core.signals import Close, Reveal
+from haywire.ui.app.shell import AppShell
 from haywire.ui.editor.identity import OpenBehavior, SlotName
 
 

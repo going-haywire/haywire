@@ -1,15 +1,16 @@
 """The DEPTH_BUFFER type and DepthValue."""
 
+from __future__ import annotations
+
 import numpy as np
 import pytest
-from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
-
-from haywire.barn.builtin.carrier import CarrierValue
-from haywire.barn.builtin.types import CARRIER, FLOAT
 
 from haybale_image.types.depth import DEPTH_BUFFER
 from haybale_image.types.image import IMAGE, RGB_IMAGE
 from haybale_image.value import DepthValue
+from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
+from haywire.barn.builtin.carrier import CarrierValue
+from haywire.barn.builtin.types import CARRIER, FLOAT
 
 
 @pytest.mark.unit

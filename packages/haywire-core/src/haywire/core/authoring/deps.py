@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from haywire.core.library.identity import LibraryIdentity
 
 
-def linked_additions(source: str, identity: "LibraryIdentity", libraries: HaywireLibrarySource) -> list[str]:
+def linked_additions(source: str, identity: LibraryIdentity, libraries: HaywireLibrarySource) -> list[str]:
     """The haywire libraries ``source`` imports that ``identity`` does not list in ``linked_libraries``.
 
     The same predicate ``detect_deps`` applies to a whole library: an import
@@ -23,9 +23,7 @@ def linked_additions(source: str, identity: "LibraryIdentity", libraries: Haywir
     return [name for name in detected.library_linked if name not in declared and name != "haywire"]
 
 
-def undeclared_imports(
-    source: str, identity: "LibraryIdentity", libraries: HaywireLibrarySource
-) -> list[str]:
+def undeclared_imports(source: str, identity: LibraryIdentity, libraries: HaywireLibrarySource) -> list[str]:
     """The distributions ``source`` imports that the library's ``pyproject.toml`` does not declare.
 
     Returns distribution names, sorted. Empty when the library has no
@@ -47,7 +45,7 @@ def undeclared_imports(
     return sorted(name for name in names if norm_dep(name) not in declared)
 
 
-def _self_module(identity: "LibraryIdentity") -> str:
+def _self_module(identity: LibraryIdentity) -> str:
     return identity.module_name.split(".")[0]
 
 

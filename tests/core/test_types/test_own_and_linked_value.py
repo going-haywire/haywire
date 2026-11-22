@@ -1,5 +1,7 @@
 """A field keeps its own value and, while an edge feeds it, the linked value in front of it."""
 
+from __future__ import annotations
+
 import pytest
 
 pytestmark = pytest.mark.integration

@@ -1,5 +1,7 @@
 """The level mode a session gets from its tier and the lock."""
 
+from __future__ import annotations
+
 import pytest
 
 from haybale_graph_editor.access import level_mode

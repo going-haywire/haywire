@@ -5,6 +5,8 @@ canvases, Group canvases close), so a manager that leaves its props
 subscriptions behind pushes values to a deleted element on the next edit.
 """
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest

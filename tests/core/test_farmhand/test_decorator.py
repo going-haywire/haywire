@@ -1,5 +1,7 @@
 """@farmhand stamps identity; naming and annotations follow the spec."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.farmhand import Farmhand, ToolAnnotations, farmhand

@@ -1,10 +1,12 @@
 # haywire/core/debug/debug_settings.py
 """Debug and development preference singleton."""
 
+from __future__ import annotations
+
+from haywire.barn.builtin.types import BOOL, CHOICES, INT
 from haywire.core.namespaces import CATEGORY_LOG_LEVEL, CATEGORY_LOG_OUTPUT, NAMESPACE_DEBUG
 from haywire.core.settings import setting
 from haywire.core.settings.settings_framework import FrameworkSettings
-from haywire.barn.builtin.types import BOOL, CHOICES, INT
 
 _LEVEL_CHOICES = ["DEBUG", "INFO", "WARNING", "ERROR"]
 _GROUP_CHOICES = {"": "inherit", "DEBUG": "DEBUG", "INFO": "INFO", "WARNING": "WARNING", "ERROR": "ERROR"}

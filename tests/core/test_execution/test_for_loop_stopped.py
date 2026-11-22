@@ -1,5 +1,7 @@
 """For Loop: Break ends the loop through Stopped, running out ends it through Completed."""
 
+from __future__ import annotations
+
 import importlib
 from typing import Any
 

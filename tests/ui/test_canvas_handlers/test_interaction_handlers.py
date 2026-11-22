@@ -5,18 +5,20 @@ InteractionHandlers is a stateless handler object that translates canvas drag
 events into Editor calls (which handle undo internally).
 """
 
-import pytest
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
+import pytest
+
+from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map
 from haybale_graph_editor.editors.graph_canvas.handlers.interaction import InteractionHandlers
 from haywire.core.node.layout import PATCH, LayoutChannel
 from haywire.ui.components.graph.event_definitions import (
+    UserDragEndEvent,
     UserDragStartEvent,
     UserDragUpdateEvent,
-    UserDragEndEvent,
 )
-from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map
-
 from tests.conftest import edit_route
 
 pytestmark = pytest.mark.unit

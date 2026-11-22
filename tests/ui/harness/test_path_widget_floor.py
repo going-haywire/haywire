@@ -1,5 +1,7 @@
 """A path picker holding a very long path does not set its node's minimum width; its status line crops."""
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

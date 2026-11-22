@@ -4,6 +4,8 @@ Import order: editor first, per the repo test convention (avoids circular import
 haywire execution modules).
 """
 
+from __future__ import annotations
+
 import time
 from queue import Full
 from typing import Any

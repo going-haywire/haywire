@@ -8,13 +8,14 @@ overwrite-confirm flow.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING
 
 from nicegui import ui
 
-from haywire.core.workspace import default_save_dir
 from haywire.api.workbench import confirm_modal
+from haywire.core.workspace import default_save_dir
 from haywire.ui.modals import save_as_modal
 
 if TYPE_CHECKING:
@@ -22,7 +23,7 @@ if TYPE_CHECKING:
 
 
 def _compute_initial_path(
-    entry: "GraphContainer",
+    entry: GraphContainer,
     workspace_root: Path,
 ) -> str:
     """Return a relative-to-workspace initial path string for the save-as modal."""
@@ -44,10 +45,10 @@ def _compute_initial_path(
 def open_graph_save_as_dialog(
     *,
     app,
-    entry: "GraphContainer",
+    entry: GraphContainer,
     save_fn: Callable[[Path], bool],
-    on_success: Optional[Callable[[Path], None]] = None,
-    initial_path: Optional[str] = None,
+    on_success: Callable[[Path], None] | None = None,
+    initial_path: str | None = None,
 ) -> None:
     """Open the Save-As modal for a graph entry.
 

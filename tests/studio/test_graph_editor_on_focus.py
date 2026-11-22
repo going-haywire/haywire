@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Optional, cast
+from typing import Any, cast
 from unittest.mock import MagicMock
 
+from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor
 from haywire.core.access import AccessTier, LevelMode
 from haywire.core.signals import ActiveGraphMoved
-from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor
 
 
 def _make_data_with_edit_state(initial_active_graph=None, initial_active_graph_path=None):
@@ -51,7 +51,7 @@ class _FakeGraph:
 
 class _FakeEntry:
     def __init__(
-        self, binding_id: str, graph, path: Optional[Path] = None, display_name: str = "Entry"
+        self, binding_id: str, graph, path: Path | None = None, display_name: str = "Entry"
     ) -> None:
         self.binding_id = binding_id
         # GraphEditor.on_focus reads ``entry.editor.graph`` (the
@@ -70,7 +70,7 @@ class _FakeGraphAppState:
     def register(self, entry: _FakeEntry) -> None:
         self._by_id[entry.binding_id] = entry
 
-    def get(self, binding_id: str) -> Optional[_FakeEntry]:
+    def get(self, binding_id: str) -> _FakeEntry | None:
         return self._by_id.get(binding_id)
 
 
@@ -83,7 +83,7 @@ class _FakeSession:
         self.signals.append(signal)
 
 
-def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
+def _make_context(entry: _FakeEntry | None, existing_active_graph=None):
     graph_app_state = _FakeGraphAppState()
     if entry is not None:
         graph_app_state.register(entry)

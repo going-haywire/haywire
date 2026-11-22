@@ -17,8 +17,7 @@ removing or renaming a name here fails it until the list is edited.
 
 # haywire.core.node comes first: it fixes the import order of the node, edge,
 # graph and types packages, which form a cycle when entered elsewhere.
-from haywire.core.node import BaseNode, NodeRegistry, NodeType, NodeWrapper, node
-from haywire.core.node.node_warning import NodeWarning
+from __future__ import annotations
 
 from haywire.barn.builtin.carrier import CarrierValue
 from haywire.barn.builtin.field_text import fields_from_text, fields_to_text
@@ -101,9 +100,10 @@ from haywire.barn.builtin.widgets import (
 from haywire.barn.builtin.wires import CallbackWire, ControlWire, DataWire
 from haywire.core.adapter.base import BaseAdapter, adapter
 from haywire.core.adapter.registry import AdapterRegistry
+from haywire.core.catalog import CatalogEntry, CatalogRegistry, ModelFile, Resource
+from haywire.core.di.context import get_workspace_root
 from haywire.core.edge.arrow_heads import NO_ARROW_HEAD
 from haywire.core.edge.style import dash_choices
-from haywire.core.catalog import CatalogEntry, CatalogRegistry, ModelFile, Resource
 from haywire.core.errors import Refusal, report_failure
 from haywire.core.execution import (
     CallbackEvent,
@@ -117,7 +117,8 @@ from haywire.core.library.compatibility import CompatibilityWarning
 from haywire.core.library.decorator import library
 from haywire.core.library.deprecated_names import DeprecatedName, serve_deprecated
 from haywire.core.macro import MacroRegistry
-from haywire.core.di.context import get_workspace_root
+from haywire.core.node import BaseNode, NodeRegistry, NodeType, NodeWrapper, node
+from haywire.core.node.node_warning import NodeWarning
 from haywire.core.settings import (
     EdgeSettings,
     LibrarySettings,
@@ -144,7 +145,7 @@ from haywire.core.skin.tags import (
     SKIN_TAG_WIDGET_NODE,
 )
 from haywire.core.storage import library_storage_dir
-from haywire.core.tomlio import to_builtin, read_toml, write_toml
+from haywire.core.tomlio import read_toml, to_builtin, write_toml
 from haywire.core.types import (
     BaseType,
     CompoundType,
@@ -171,8 +172,8 @@ from haywire.core.volumes import (
     VolumeError,
     VolumePath,
     ensure_volume,
-    volume_location,
     resolve_volume_path,
+    volume_location,
     volume_name,
 )
 from haywire.ui.skin.base import BaseSkin

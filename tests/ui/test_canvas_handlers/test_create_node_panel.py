@@ -8,19 +8,19 @@ Verifies:
 - on_node_selected calls actions.test_create_node_at_click with the registry key
 """
 
+from __future__ import annotations
+
 import sys
 from types import SimpleNamespace
 from typing import Any, cast
-
 from unittest.mock import MagicMock, patch
 
-from haywire.core.state import LibraryStateContainer, StateRegistry
+from haybale_testing.panels.graph.menu.canvas.canvas import TestCreateNodeMenuPanel as CreateNodePanel
+from haybale_testing.surfaces import TestCanvasActions, TestCanvasMenu
 from haywire.core.session.context import SessionContext
+from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
-
-from haybale_testing.surfaces import TestCanvasActions, TestCanvasMenu
-from haybale_testing.panels.graph.menu.canvas.canvas import TestCreateNodeMenuPanel as CreateNodePanel
 
 _PANEL_MODULE = sys.modules[CreateNodePanel.__module__]
 

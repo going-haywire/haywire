@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-
 from pathlib import Path
-
-from haywire.api import VolumeError, volume_location
 
 from haybale_models.sources.base import ModelSource
 from haybale_models.sources.folder import FolderSource
+from haywire.api import VolumeError, volume_location
 
 
 def prefix_of(address: str) -> str | None:

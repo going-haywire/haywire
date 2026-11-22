@@ -3,6 +3,8 @@ Mirror propagation tests: verify that changing a global LibrarySetting via
 /api/set propagates to the mirrored NodeSettings field on re-render.
 """
 
+from __future__ import annotations
+
 import pytest
 import requests
 from playwright.sync_api import Page, expect

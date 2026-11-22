@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.api.workbench import BarnsSurface, BasePanel, PanelLayout, hui, panel, render_schema
-
 from haybale_haystack.settings.flow_meter_settings import FlowMeterSettings
+from haywire.api.workbench import BarnsSurface, BasePanel, PanelLayout, hui, panel, render_schema
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -23,6 +22,6 @@ if TYPE_CHECKING:
 class HaystackSettingsPanel(BasePanel):
     """Settings of the haystack library; today whether running graphs show flow meters."""
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(ctx, FlowMeterSettings, registry)

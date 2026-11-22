@@ -1,5 +1,7 @@
 """The origin a detached placement records on its interior."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest
@@ -12,6 +14,8 @@ from tests.core.test_macro.test_detach_placement import (
     _detach,
     _editor,
     _place,
+)
+from tests.core.test_macro.test_detach_placement import (
     macro_folder as macro_folder,
 )
 

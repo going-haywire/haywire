@@ -4,9 +4,12 @@ Unit tests for BaseNode.
 Tests the core node functionality.
 """
 
+from __future__ import annotations
+
 import pytest
-from haywire.core.node import node, BaseNode, NodeFactory
+
 from haywire.core.graph.base import BaseGraph
+from haywire.core.node import BaseNode, NodeFactory, node
 
 
 @pytest.mark.unit

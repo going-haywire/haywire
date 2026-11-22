@@ -35,34 +35,37 @@ Framework / library internals:
                           which slot); persisted to workspace_state.json
 """
 
-from .session import Session
-from .session_manager import SessionManager
-from .context import SessionContext
-from .protocols import IAppState
+from __future__ import annotations
+
 from haywire.core.signals import (
-    # Bases
-    Signal,
-    CommandSignal,
-    # Transport
-    SignalBus,
-    SignalHandler,
-    SignalSource,
-    # Fan-out
-    SignalDispatcher,
-    SignalPeer,
-    # Descriptor
-    signal_field,
     # Observations
     ActiveGraphMoved,
-    SelectionMoved,
+    BroadcastClose,
+    Close,
+    CommandSignal,
     GraphDataMutated,
     LibraryCatalogChanged,
     # Imperative commands
     Reveal,
-    Close,
-    BroadcastClose,
+    SelectionMoved,
+    # Bases
+    Signal,
+    # Transport
+    SignalBus,
+    # Fan-out
+    SignalDispatcher,
+    SignalHandler,
+    SignalPeer,
+    SignalSource,
+    # Descriptor
+    signal_field,
 )
-from .handlers import redraw_on, react_on
+
+from .context import SessionContext
+from .handlers import react_on, redraw_on
+from .protocols import IAppState
+from .session import Session
+from .session_manager import SessionManager
 from .workspace.manager import WorkspaceManager
 
 __all__ = [

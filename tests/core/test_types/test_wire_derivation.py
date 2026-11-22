@@ -1,10 +1,11 @@
 """Types declare a wire type, and every port derives its own from its type."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.types import PortType, WireRole
 from haywire.core.types.wire import WILDCARD
-
 from tests.conftest import make_node
 
 
@@ -80,7 +81,6 @@ class TestTypesDeclare:
 class TestPortsDerive:
     def test_a_data_inlet(self, graph_with_library_system):
         from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
-
         from haywire.barn.builtin.wires import DataWire
 
         node = make_node(graph_with_library_system, AddFloatProbeNode.class_identity.registry_key).node
@@ -93,7 +93,6 @@ class TestPortsDerive:
 
     def test_a_pooled_callback_inlet_takes_its_elements(self, graph_with_library_system):
         from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
-
         from haywire.barn.builtin.wires import CallbackWire, ControlWire
 
         node = make_node(graph_with_library_system, CallbackEmitProbeNode.class_identity.registry_key).node
@@ -104,7 +103,6 @@ class TestPortsDerive:
 
     def test_an_array_outlet_takes_its_elements(self, graph_with_library_system):
         from haybale_testing.nodes.testbed.edge_link_probe import EdgeLinkProbeNode
-
         from haywire.barn.builtin.wires import DataWire
 
         node = make_node(graph_with_library_system, EdgeLinkProbeNode.class_identity.registry_key).node
@@ -126,7 +124,6 @@ class TestPortsDerive:
 
     def test_a_bare_add_slot_is_the_wildcard_and_counts_as_dependent(self, graph_with_library_system):
         from haybale_testing.nodes.testbed.add_port_probe import AddPortProbeNode
-
         from haywire.barn.builtin.wires import DataWire
 
         node = make_node(graph_with_library_system, AddPortProbeNode.class_identity.registry_key).node

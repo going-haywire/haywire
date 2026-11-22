@@ -11,9 +11,9 @@ The Settings flavour parallel to GraphSettings and NodeSettings:
   unavailable.
 """
 
-from typing import TYPE_CHECKING
+from __future__ import annotations
 
-from typing_extensions import dataclass_transform
+from typing import TYPE_CHECKING, dataclass_transform
 
 from .descriptor import setting
 from .settings import Settings
@@ -50,9 +50,9 @@ class EdgeSettings(Settings):
 
     def __init__(
         self,
-        registry: "SettingsRegistry | None" = None,
-        edge: "EdgeWrapper | None" = None,
+        registry: SettingsRegistry | None = None,
+        edge: EdgeWrapper | None = None,
     ) -> None:
         super().__init__(registry=registry, node=None)
         # Back-reference to the owning edge (None for standalone/test bags).
-        self._edge: "EdgeWrapper | None" = edge
+        self._edge: EdgeWrapper | None = edge

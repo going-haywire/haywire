@@ -9,12 +9,14 @@ Before this guard, a field named `to_dict` shadowed the serializer and made
 declaration, fatal much later.
 """
 
+from __future__ import annotations
+
 import pytest
 
+from haywire.barn.builtin.types import BOOL, INT
 from haywire.core.di.test_config import create_test_settings_registry
 from haywire.core.settings import NodeSettings, setting
 from haywire.core.settings.settings import Settings
-from haywire.barn.builtin.types import BOOL, INT
 
 pytestmark = [pytest.mark.unit, pytest.mark.core]
 

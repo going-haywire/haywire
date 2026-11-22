@@ -3,11 +3,13 @@ routing through LibraryOrigin.is_protected — this is a centralization
 refactor, not a policy change.
 """
 
+from __future__ import annotations
+
 from haybale_marketplace.library_origin import LibraryOrigin, compute_library_origin
+from haywire.core.library.haybale import Haybale
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
-from haywire.core.library.haybale import Haybale
 
 
 def _lib(install_type: InstallType, folder_path: str, distribution_name: str = "") -> LibraryInfo:

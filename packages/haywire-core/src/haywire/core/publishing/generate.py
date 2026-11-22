@@ -19,7 +19,7 @@ from typing import Any
 from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.library.haybale_toml import HAYBALE_TOML, read_raw
 from haywire.core.publishing.manifest.errors import ManifestReadError
-from haywire.core.tomlio import edit_toml, to_builtin, read_toml
+from haywire.core.tomlio import edit_toml, read_toml, to_builtin
 
 __all__ = ["PROJECT_FIELDS", "pyproject_drift", "sync_pyproject_from_haybale"]
 

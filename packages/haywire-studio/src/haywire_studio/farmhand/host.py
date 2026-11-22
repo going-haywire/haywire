@@ -20,9 +20,8 @@ import json
 import logging
 import weakref
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
-from haywire.core.di.config import LibrarySystemService
 import mcp.types as types
 from mcp.server.lowlevel import NotificationOptions, Server
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
@@ -30,14 +29,15 @@ from mcp.server.transport_security import TransportSecuritySettings
 from nicegui import app as nicegui_app
 
 from haywire.core.access import AccessTier, required_tier
+from haywire.core.di.config import LibrarySystemService
 from haywire.core.docs.tree import doc_manifest, list_docs, read_doc
 from haywire.core.errors import Refusal, report_failure
 from haywire.core.farmhand import Farmhand, FarmhandContext, FarmhandError, FarmhandRegistry
+from haywire.core.farmhand.activity import get_activity_tracker
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.core.signals import AgentConnected, RosterChanged, SignalPeer
 
-from haywire.core.farmhand.activity import get_activity_tracker
 from .auth import connection_command
 
 if TYPE_CHECKING:
@@ -147,7 +147,7 @@ class FarmhandHost(SignalPeer):
         self,
         library_service: LibrarySystemService,
         workspace_root: str,
-        dispatcher: "SignalDispatcher",
+        dispatcher: SignalDispatcher,
     ):
         super().__init__(dispatcher)
 
@@ -155,13 +155,13 @@ class FarmhandHost(SignalPeer):
         self._workspace_root = workspace_root
         self._registry: FarmhandRegistry = library_service.get_farmhand_registry()
         self._tools: dict[str, type[Farmhand]] = {}
-        self._sessions: "weakref.WeakSet" = weakref.WeakSet()
-        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._sessions: weakref.WeakSet = weakref.WeakSet()
+        self._loop: asyncio.AbstractEventLoop | None = None
         self._server = _FarmhandServer("farmhand")
-        self._session_manager: Optional[StreamableHTTPSessionManager] = None
-        self._started: Optional[asyncio.Event] = None
-        self._stop: Optional[asyncio.Event] = None
-        self._runner: Optional[asyncio.Task] = None
+        self._session_manager: StreamableHTTPSessionManager | None = None
+        self._started: asyncio.Event | None = None
+        self._stop: asyncio.Event | None = None
+        self._runner: asyncio.Task | None = None
         #: Principals already announced, so AgentConnected fires once each.
         self._known_principals: set[str] = set()
 

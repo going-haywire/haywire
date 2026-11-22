@@ -12,6 +12,8 @@ terminal. They are the reason the ``allowlist_open`` docstring is allowed to
 claim it mirrors the middleware.
 """
 
+from __future__ import annotations
+
 import asyncio
 import ipaddress
 

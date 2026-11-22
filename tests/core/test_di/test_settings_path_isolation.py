@@ -12,6 +12,8 @@ exists only in test files — ended up in a real workspace, leaving every node i
 the studio falling back to the error skin.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest

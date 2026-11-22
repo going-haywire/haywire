@@ -1,5 +1,7 @@
 """PullBuffer, mix and the Audio Mixer node: per-input ports, buffering and summing."""
 
+from __future__ import annotations
+
 import importlib
 from typing import Any
 from unittest.mock import MagicMock

@@ -1,5 +1,7 @@
 """The haybale.toml reader: the splat contract, every raise, both derivations."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest

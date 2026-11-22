@@ -1,5 +1,7 @@
 """Browser regression for the Models editor's filter section: a real menu, real dropdowns."""
 
+from __future__ import annotations
+
 import re
 
 import pytest

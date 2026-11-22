@@ -1,4 +1,5 @@
 # Import order guard (see Global Constraints)
+from __future__ import annotations
 
 from haywire.barn.builtin.types import FLOAT, INT
 from haywire.core.di.test_config import create_test_settings_registry

@@ -1,5 +1,7 @@
 """Tests for ExecutionContext.app_data — class-keyed AppState access."""
 
+from __future__ import annotations
+
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.state import AppState, LibraryStateContainer, StateRegistry
 from haywire.core.state.data_namespace import AppDataNamespace

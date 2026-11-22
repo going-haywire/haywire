@@ -1,15 +1,16 @@
 """Tests for SessionContextMenuProvider's _OpenMenuContext lifecycle and action methods."""
 
-from typing import Any, cast
+from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import MagicMock
 
-from haywire.core.session.context import SessionContext
 from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import (
     SessionContextMenuProvider,
     _OpenMenuContext,
 )
+from haywire.core.session.context import SessionContext
 from haywire.ui.panel.registry import PanelRegistry
 
 

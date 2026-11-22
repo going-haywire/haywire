@@ -1,9 +1,10 @@
 """An Editor operation the graph refuses reports failure and leaves no undo step."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.graph.editor import Editor
-
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration

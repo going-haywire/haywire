@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from nicegui import ui
 
+from haybale_graph_editor.protocols import GraphContainer
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import GraphAppState
 from haywire.api.workbench import (
     AccessTier,
     ActiveGraphMoved,
@@ -21,10 +24,6 @@ from haywire.api.workbench import (
 from haywire.core.signals import GraphHistoryChanged
 from haywire.core.undo.origin import HistoryEntry, HistoryMove
 
-from haybale_graph_editor.protocols import GraphContainer
-from haybale_graph_editor.states.edit_state import EditState
-from haybale_graph_editor.states.graph_app_state import GraphAppState
-
 if TYPE_CHECKING:
     from nicegui.element import Element
 
@@ -35,7 +34,7 @@ def _clock(timestamp: float) -> str:
     return datetime.fromtimestamp(timestamp).strftime("%H:%M:%S") if timestamp else ""
 
 
-def graph_path(root: BaseGraph, graph: Any) -> Optional[list[str]]:
+def graph_path(root: BaseGraph, graph: Any) -> list[str] | None:
     """Return the Subgraph labels from ``root`` down to ``graph``; ``[]`` at ``root``, ``None`` outside."""
     if graph is root:
         return []
@@ -46,7 +45,7 @@ def graph_path(root: BaseGraph, graph: Any) -> Optional[list[str]]:
     return None
 
 
-def file_container(context: "SessionContext") -> Optional[GraphContainer]:
+def file_container(context: SessionContext) -> GraphContainer | None:
     """Return the container of the file holding the session's active graph, or ``None``.
 
     An interior's file is the one holding its outermost host, so a Group or macro
@@ -85,10 +84,10 @@ class HistoryEditor(BaseEditor):
         self._open: set[str] = set()
 
     @redraw_on(ActiveGraphMoved, GraphHistoryChanged)
-    def _on_history(self, ctx: "SessionContext", signal: object) -> None:
+    def _on_history(self, ctx: SessionContext, signal: object) -> None:
         pass
 
-    def draw(self, context: "SessionContext", container: "Element") -> None:
+    def draw(self, context: SessionContext, container: Element) -> None:
         document = file_container(context)
         with container:
             with ui.column().classes("w-full h-full gap-0"):
@@ -109,7 +108,7 @@ class HistoryEditor(BaseEditor):
                     with ui.column().classes("w-full gap-0 py-1"):
                         self._draw_rows(rows, root, history.last_move())
 
-    def _draw_rows(self, rows: list[HistoryEntry], root: BaseGraph, move: Optional[HistoryMove]) -> None:
+    def _draw_rows(self, rows: list[HistoryEntry], root: BaseGraph, move: HistoryMove | None) -> None:
         """Draw ``rows`` newest first, with the undo marker between the redo branch and the rest."""
         marked = False
         for index in reversed(range(len(rows))):
@@ -122,7 +121,7 @@ class HistoryEditor(BaseEditor):
             self._draw_marker(move)
 
     @staticmethod
-    def _draw_marker(move: Optional[HistoryMove]) -> None:
+    def _draw_marker(move: HistoryMove | None) -> None:
         with ui.row().classes("w-full items-center no-wrap gap-2 px-2 py-1"):
             ui.icon(hui.icon.undo, size="14px").style("color: var(--hw-accent)")
             text = "Now"

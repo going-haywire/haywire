@@ -17,8 +17,9 @@ from __future__ import annotations
 
 import copy
 import logging
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, Iterator, TypeVar, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from .signal import Signal
 
@@ -159,7 +160,7 @@ class _SignalFieldDescriptor:
         instance._signal_emit(self._signal_class())
 
 
-def signal_field(initial: T) -> T:
+def signal_field[T](initial: T) -> T:
     """Declare a signal field on a SignalSource subclass.
 
     Usage:
@@ -194,7 +195,7 @@ def iter_signal_fields(cls: type) -> Iterator[tuple[str, Any]]:
                 yield name, attr._initial
 
 
-def _seed_signal_fields(instance: "SignalSource") -> None:
+def _seed_signal_fields(instance: SignalSource) -> None:
     """Seed per-instance storage for every signal field on type(instance).
 
     Mutable defaults are deep-copied; immutables stored as-is. Called

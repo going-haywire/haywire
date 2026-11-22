@@ -1,5 +1,7 @@
 """Unit tests for ``Refusal`` and the error-boundary helpers."""
 
+from __future__ import annotations
+
 import logging
 
 import pytest

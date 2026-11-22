@@ -6,14 +6,12 @@ import threading
 
 import pytest
 
+from haybale_core.types import DRAIN
+from haybale_core.types.drain_type import DEFAULT_MAX_LEN
 from haywire.barn.builtin.types import CALLBACK, EXEC, FLOAT
 from haywire.barn.builtin.wires import DataWire
 from haywire.core.types import DataPort, Drained, PortType, Propagation
 from haywire.core.types.enums import StoreStrategy
-
-from haybale_core.types import DRAIN
-from haybale_core.types.drain_type import DEFAULT_MAX_LEN
-
 from tests.conftest import make_edge, make_node
 
 _ADD = "haybale-testing:node:AddFloatProbeNode"

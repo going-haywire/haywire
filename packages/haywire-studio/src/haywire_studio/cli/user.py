@@ -13,7 +13,6 @@ import getpass
 from pathlib import Path
 
 from haywire.core.access import AccessTier
-
 from haywire_studio.auth.operations import (
     add_agent,
     add_user,

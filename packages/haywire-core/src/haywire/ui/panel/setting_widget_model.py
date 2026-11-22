@@ -15,7 +15,8 @@ itself carries no policy at all; it is a thin adapter.
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from haywire.core.access import LevelMode
 from haywire.core.types.fields import DataField

@@ -2,27 +2,28 @@
 Tests for SelectionHandlers — manages selected_nodes, selected_edges, and clipboard state.
 """
 
+from __future__ import annotations
+
 import json
 from typing import Any
-
-import pytest
 from unittest.mock import MagicMock, patch
 
-from haywire.core.graph.clipboard import CLIPBOARD_FORMAT_VERSION
-from haywire.core.node.layout import PATCH
-from haywire.core.state import LibraryStateContainer, StateRegistry
-from haywire.core.session.context import SessionContext
-from haywire.core.signals import SelectionMoved
+import pytest
+
+from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map
 from haybale_graph_editor.editors.graph_canvas.handlers import selection as selection_module
 from haybale_graph_editor.editors.graph_canvas.handlers.selection import SelectionHandlers
+from haywire.core.graph.clipboard import CLIPBOARD_FORMAT_VERSION
+from haywire.core.node.layout import PATCH
+from haywire.core.session.context import SessionContext
+from haywire.core.signals import SelectionMoved
+from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.ui.components.graph.event_definitions import (
     SelectionChangedEvent,
     UserCopySelectedEvent,
     UserPasteClipboardEvent,
     UserRemoveEvent,
 )
-from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map
-
 from tests.conftest import edit_route
 
 pytestmark = pytest.mark.unit
@@ -795,10 +796,10 @@ def test_cut_copies_then_deletes(session, edit_state_cls):
 
 @pytest.mark.integration
 def test_cut_is_one_undo_step(graph_with_library_system, library_system, session, edit_state_cls):
-    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
     from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
     from haybale_graph_editor.editors.graph_canvas.handlers import visual_layer as visual_layer_module
     from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
+    from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
     from haywire.core.graph.editor import Editor
     from haywire.core.undo.config import UndoConfig
     from haywire.core.undo.history_manager import HistoryManager

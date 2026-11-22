@@ -7,20 +7,22 @@ consumers use. Module reload, ``sys.modules`` and ``importlib`` belong to
 ``BaseRegistry`` alone.
 """
 
-from typing import Dict, Generic, List, Optional, cast
-from abc import abstractmethod
+from __future__ import annotations
+
 import logging
+from abc import abstractmethod
+from typing import cast
 
 from ..errors import report_failure
 from ..library.identity import LibraryIdentity
-from .events import FileChangeEvent, HotReloadRegistry, T
+from .events import FileChangeEvent, HotReloadRegistry, RegisteredClass
 from .identity import BaseIdentity
-from .lifecycle_event import LifeCycleEvent, LifeCycleBatchCallback
+from .lifecycle_event import LifeCycleBatchCallback, LifeCycleEvent
 
 logger = logging.getLogger(__name__)
 
 
-class ComponentRegistry(HotReloadRegistry, Generic[T]):
+class ComponentRegistry[T: RegisteredClass](HotReloadRegistry):
     """Storage, folder bookkeeping and lifecycle notification for one component kind.
 
     Generic over ``T``, the element type a concrete registry stores. A
@@ -29,24 +31,24 @@ class ComponentRegistry(HotReloadRegistry, Generic[T]):
     """
 
     def __init__(self):
-        self._classes: Dict[str, type[T]] = {}  # registry_key -> class
+        self._classes: dict[str, type[T]] = {}  # registry_key -> class
 
         # stores the last life-cycle event for each class that has been processed
         # it keeps track of what was the last event type for each class,
         # even those that have been removed
         # registry_key -> event
-        self._regkey_to_last_lifecycle_event: Dict[str, LifeCycleEvent] = {}
+        self._regkey_to_last_lifecycle_event: dict[str, LifeCycleEvent] = {}
 
         # folder_path -> library_identity
-        self._folder_to_library: Dict[str, LibraryIdentity] = {}
+        self._folder_to_library: dict[str, LibraryIdentity] = {}
 
         # Queue of events to process after reload
-        self._lifecycle_event_queue: List[LifeCycleEvent] = []
+        self._lifecycle_event_queue: list[LifeCycleEvent] = []
 
         # Other registries that depend on this one
-        self._registry_subscribers: List[HotReloadRegistry] = []
+        self._registry_subscribers: list[HotReloadRegistry] = []
         # Direct consumers (factories, etc.)
-        self._batch_event_subscribers: List[LifeCycleBatchCallback] = []
+        self._batch_event_subscribers: list[LifeCycleBatchCallback] = []
 
         self.logger = logging.getLogger(__name__)
 
@@ -59,7 +61,7 @@ class ComponentRegistry(HotReloadRegistry, Generic[T]):
         self,
         folder_path: str,
         library_identity: LibraryIdentity,
-        exclude_patterns: Optional[list[str]] = None,
+        exclude_patterns: list[str] | None = None,
     ):
         """Scan ``folder_path`` and register everything it holds.
 
@@ -76,7 +78,7 @@ class ComponentRegistry(HotReloadRegistry, Generic[T]):
         self,
         folder_path: str,
         library_identity: LibraryIdentity,
-        exclude_patterns: Optional[list[str]] = None,
+        exclude_patterns: list[str] | None = None,
     ):
         """Unregister everything ``folder_path`` contributed.
 

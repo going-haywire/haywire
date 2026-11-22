@@ -1,9 +1,11 @@
 """``@library`` refuses a package whose components were decorated before its ``Library`` class."""
 
+from __future__ import annotations
+
 import importlib
 import sys
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 import pytest
 

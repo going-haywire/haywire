@@ -1,4 +1,4 @@
-from typing import Optional
+from __future__ import annotations
 
 import inspect
 import logging
@@ -6,8 +6,8 @@ import logging
 from haywire.core.library.utils import get_registry_id_from_key
 
 from ...core.registry.lifecycle_event import LifeCycleEvent
-from ..registry.base import BaseRegistry
 from ..library.identity import LibraryIdentity
+from ..registry.base import BaseRegistry
 from . import BaseNode
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class NodeRegistry(BaseRegistry[BaseNode]):
             return False
 
     def _register_class(
-        self, cls: type[BaseNode], library_identity: Optional[LibraryIdentity] = None
+        self, cls: type[BaseNode], library_identity: LibraryIdentity | None = None
     ) -> str | None:
         """Register a node class under the registry_key its ``@node`` decorator stamped,
         and return that key.

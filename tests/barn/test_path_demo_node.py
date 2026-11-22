@@ -1,5 +1,7 @@
 """PathDemoNode: one port per path type, each resolved to an absolute path on its outlet."""
 
+from __future__ import annotations
+
 import importlib
 from typing import Any
 from unittest.mock import MagicMock

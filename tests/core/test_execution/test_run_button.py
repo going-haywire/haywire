@@ -1,5 +1,7 @@
 """Run Button: a press on its button triggers its listeners once, while the graph runs."""
 
+from __future__ import annotations
+
 import threading
 import time
 from types import SimpleNamespace
@@ -10,7 +12,6 @@ import pytest
 from haywire.barn.builtin.widget_keys import BUTTON_WIDGET
 from haywire.core.graph.base import BaseGraph
 from haywire.core.types.enums import PortType
-
 from tests.conftest import make_node
 from tests.wait import wait_until
 

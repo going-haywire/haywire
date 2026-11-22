@@ -5,6 +5,8 @@ GraphEditor surface. Decoupled from any specific graph source — source
 libraries register their containers, this library renders them.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from haywire.api import BaseLibrary, NodeRegistry, SettingsRegistry, SkinRegistry, library

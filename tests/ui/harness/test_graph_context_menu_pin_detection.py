@@ -10,6 +10,8 @@ nodes with real pins, full GraphCanvasManager wiring) since it already
 exposes ``.connection-pin`` elements — see ``test_graph_connect.py``.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError

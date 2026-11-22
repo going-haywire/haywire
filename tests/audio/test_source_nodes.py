@@ -1,5 +1,7 @@
 """Audio Clock, File Player and Recorder nodes."""
 
+from __future__ import annotations
+
 import importlib
 from typing import Any
 from unittest.mock import MagicMock

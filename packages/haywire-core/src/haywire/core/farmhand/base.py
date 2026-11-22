@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, Optional
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from haywire.core.farmhand.schema import derive_input_schema
 
@@ -20,11 +20,11 @@ class Farmhand:
     set input_schema_override for constraints hints can't express.
     """
 
-    class_identity: ClassVar["FarmhandIdentity"]
-    class_library: ClassVar["LibraryIdentity"]
-    input_schema_override: ClassVar[Optional[dict]] = None
+    class_identity: ClassVar[FarmhandIdentity]
+    class_library: ClassVar[LibraryIdentity]
+    input_schema_override: ClassVar[dict | None] = None
 
-    async def run(self, ctx: "FarmhandContext", *args: Any, **kwargs: Any) -> dict:
+    async def run(self, ctx: FarmhandContext, *args: Any, **kwargs: Any) -> dict:
         # *args/**kwargs mirror BaseNode.worker so concrete subclasses can declare
         # their own positional tool parameters without a signature-override error.
         raise NotImplementedError

@@ -7,6 +7,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from haybale_studio.farmhands._helpers import kind_registry_map, page, resolve_component_class
 from haywire.api.workbench import (
     AccessTier,
     Farmhand,
@@ -19,8 +20,6 @@ from haywire.core.docs.canons import canon_uri
 from haywire.core.library.haybale_toml import read_haybale
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.library.utils import get_kind_from_key
-
-from haybale_studio.farmhands._helpers import kind_registry_map, page, resolve_component_class
 
 _READ_ONLY = ToolAnnotations(read_only_hint=True)
 

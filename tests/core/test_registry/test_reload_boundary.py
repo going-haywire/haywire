@@ -1,5 +1,7 @@
 """Hot-reload failures that used to reach only the logger land in the error ledger."""
 
+from __future__ import annotations
+
 import sys
 import types
 from typing import Any, cast

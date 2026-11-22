@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from nicegui import ui
 
-from haywire.core.library.identity import LibraryReloadAction
+from haybale_marketplace.editors._install_flow._state import InstallFlow
 from haywire.api.workbench import hui
+from haywire.core.library.identity import LibraryReloadAction
 from haywire.ui.components.stepper import busy_advance
 from haywire.ui.modals import restart_affordance
-
-from haybale_marketplace.editors._install_flow._state import InstallFlow
 
 
 def _plural(count: int, singular: str, plural: str | None = None) -> str:

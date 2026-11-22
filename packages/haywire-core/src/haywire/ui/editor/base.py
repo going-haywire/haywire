@@ -1,4 +1,6 @@
 # packages/haywire-core/src/haywire/ui/editor_framework/base.py
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, ClassVar, Literal
 
@@ -7,11 +9,12 @@ from nicegui import ui
 from .identity import EditorIdentity
 
 if TYPE_CHECKING:
-    from haywire.ui.editor.wrapper import EditorWrapper
+    from nicegui.element import Element
+
+    from haywire.core.library.identity import LibraryIdentity
     from haywire.core.session.context import SessionContext
     from haywire.core.signals import EditorCommand
-    from haywire.core.library.identity import LibraryIdentity
-    from nicegui.element import Element
+    from haywire.ui.editor.wrapper import EditorWrapper
 
 
 class BaseEditor(ABC):
@@ -29,9 +32,9 @@ class BaseEditor(ABC):
 
     class_identity: ClassVar[EditorIdentity]
     # Set by the @editor decorator at registration time.
-    class_library: ClassVar["LibraryIdentity"]
+    class_library: ClassVar[LibraryIdentity]
 
-    def __init__(self, wrapper: "EditorWrapper") -> None:
+    def __init__(self, wrapper: EditorWrapper) -> None:
         """Construct the editor and bind it to its runtime wrapper.
 
         The wrapper is the editor's gateway to identity (``editor_key`` /
@@ -42,9 +45,9 @@ class BaseEditor(ABC):
         Subclasses overriding ``__init__`` must accept ``wrapper`` and call
         ``super().__init__(wrapper)``.
         """
-        self.wrapper: "EditorWrapper" = wrapper
+        self.wrapper: EditorWrapper = wrapper
 
-    def on_focus(self, context: "SessionContext") -> None:
+    def on_focus(self, context: SessionContext) -> None:
         """
         Called when this wrapper transitions from not-active to active in its slot
         (not when re-selecting the already-active wrapper).
@@ -58,7 +61,7 @@ class BaseEditor(ABC):
         """
         pass
 
-    def accepts_command(self, context: "SessionContext", command: "EditorCommand") -> bool:
+    def accepts_command(self, context: SessionContext, command: EditorCommand) -> bool:
         """Return whether this editor takes ``command`` right now.
 
         Called after the session's access tier has already admitted the
@@ -71,7 +74,7 @@ class BaseEditor(ABC):
         """
         return True
 
-    def on_blur(self, context: "SessionContext") -> None:
+    def on_blur(self, context: SessionContext) -> None:
         """Called when another wrapper becomes active in the same slot.
 
         Symmetric counterpart to on_focus. Default is a no-op; override to
@@ -84,7 +87,7 @@ class BaseEditor(ABC):
         pass
 
     @abstractmethod
-    def draw(self, context: "SessionContext", container: "Element") -> None:
+    def draw(self, context: SessionContext, container: Element) -> None:
         """
         Build the editor UI into the given NiceGUI container element.
 
@@ -103,7 +106,7 @@ class BaseEditor(ABC):
 
     def draw_tab(
         self,
-        context: "SessionContext",
+        context: SessionContext,
         *,
         orientation: Literal["horizontal", "vertical"],
     ) -> None:

@@ -1,5 +1,7 @@
 """The generated type docs name a type's wire type, and a container's has none."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire_studio.packaging.docs.extract import _extra_for_kind

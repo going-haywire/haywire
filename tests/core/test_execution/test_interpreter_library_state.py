@@ -1,5 +1,7 @@
 """Tests verifying Interpreter forwards LibraryStateContainer to its VM."""
 
+from __future__ import annotations
+
 from haywire.core.execution.interpreter import Interpreter
 from haywire.core.state import LibraryStateContainer, StateRegistry
 

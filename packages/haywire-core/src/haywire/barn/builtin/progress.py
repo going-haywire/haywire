@@ -12,7 +12,7 @@ import threading
 import time
 from collections.abc import Iterable, Iterator
 from types import TracebackType
-from typing import Any, TypeVar
+from typing import Any
 
 from haywire.barn.builtin.types.progress import PROGRESS
 from haywire.core.settings import NodeSettings, Promotable, setting, settings_fields
@@ -23,10 +23,8 @@ STEP_INTERVAL_S = 0.05
 
 _RESERVED = ("busy", "track")
 
-_ItemT = TypeVar("_ItemT")
 
-
-def progress_field(label: str = "Progress", **kwargs: Any) -> "setting[PROGRESS]":
+def progress_field(label: str = "Progress", **kwargs: Any) -> setting[PROGRESS]:
     """Return a progress bar field for a ``ProgressSettings`` subclass.
 
     The bar is a row on the node card by default; the user can hide it with
@@ -103,7 +101,7 @@ class ProgressSettings(NodeSettings):
                     f"{cls.__qualname__}: a field may not be named {name!r}; ProgressSettings uses it"
                 )
 
-    def busy(self, field: str, label: str = "") -> "ProgressSpan":
+    def busy(self, field: str, label: str = "") -> ProgressSpan:
         """Return a block that shows bar *field* as busy with *label* until the block ends.
 
         The bar sweeps until ``ProgressSpan.step`` gives it a fraction.
@@ -116,13 +114,13 @@ class ProgressSettings(NodeSettings):
             raise ValueError(f"{type(self).__qualname__} has no progress field {field!r}")
         return ProgressSpan(self, field, label)
 
-    def track(
+    def track[ItemT](
         self,
         field: str,
-        items: Iterable[_ItemT],
+        items: Iterable[ItemT],
         label: str = "",
         total: int | None = None,
-    ) -> Iterator[_ItemT]:
+    ) -> Iterator[ItemT]:
         """Yield *items* unchanged while bar *field* fills with the share already passed.
 
         Args:
@@ -138,7 +136,7 @@ class ProgressSettings(NodeSettings):
         return _tracked(span, items, total)
 
 
-def _tracked(span: "ProgressSpan", items: Iterable[_ItemT], total: int | None) -> Iterator[_ItemT]:
+def _tracked[ItemT](span: ProgressSpan, items: Iterable[ItemT], total: int | None) -> Iterator[ItemT]:
     with span:
         for index, item in enumerate(items):
             if total:
@@ -156,7 +154,7 @@ class ProgressSpan:
         self._last_write = 0.0
         self._lock = threading.Lock()
 
-    def __enter__(self) -> "ProgressSpan":
+    def __enter__(self) -> ProgressSpan:
         self._write(None)
         return self
 

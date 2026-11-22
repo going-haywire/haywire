@@ -11,13 +11,15 @@ Import order: editor first, per the repo test convention (avoids circular
 imports when pulling in haywire execution modules).
 """
 
+from __future__ import annotations
+
 import threading
 import time
 
 import pytest
 
-from haywire.core.execution.flow_queue import FlowQueue
 from haywire.core.execution.event_source import Trigger
+from haywire.core.execution.flow_queue import FlowQueue
 
 
 class _StubFlow:

@@ -8,6 +8,8 @@ Creates a new haywire project with:
 - barn/ directory with auto-scaffolded local haybale library
 """
 
+from __future__ import annotations
+
 import os
 import re
 import subprocess
@@ -18,6 +20,7 @@ from typing import Any
 
 import toml
 
+from .config import add_recent_project, ensure_global_config, ensure_project_config
 from .playbook import render_playbook, render_release_gates
 from .publish_workflow import (
     PLAN_SCRIPT_PATH,
@@ -25,7 +28,6 @@ from .publish_workflow import (
     render_publish_plan,
     render_publish_workflow,
 )
-from .config import ensure_global_config, ensure_project_config, add_recent_project
 
 
 def _release_pin(dist: str = "haywire-studio") -> str:
@@ -781,7 +783,6 @@ def _register_dev_repo_locals_in_project(dev_repo: str, project_dir: Path) -> No
     """
     from haywire.core.library.dep_detect import find_module_dir
     from haywire.core.marketstall import DuplicateHeapNameError, add_heap_to_project
-
     from haywire.core.publishing import _read_library_dependencies
 
     project_mp = project_dir / ".haywire" / "marketplace.toml"

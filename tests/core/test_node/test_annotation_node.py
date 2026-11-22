@@ -1,17 +1,17 @@
 """The annotation node: a box of text whose card sides each grow a set of swinglets for styled arrows."""
 
+from __future__ import annotations
+
 from typing import Any
 
 import pytest
 
 from haywire.core.errors import Refusal
-
 from haywire.core.execution.event_source import SystemEventType
 from haywire.core.execution.interpreter import Interpreter
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.types import PortOrigin
-
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration

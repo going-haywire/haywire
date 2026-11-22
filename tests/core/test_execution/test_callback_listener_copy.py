@@ -1,5 +1,7 @@
 """A copied callback listener publishes the name it listens on: its own node id, not the original's."""
 
+from __future__ import annotations
+
 import importlib
 
 import pytest

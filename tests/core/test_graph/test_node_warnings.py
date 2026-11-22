@@ -1,5 +1,7 @@
 """NodeWrapperState carries advisory warnings, separate from errors."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.node.node_warning import NodeWarning

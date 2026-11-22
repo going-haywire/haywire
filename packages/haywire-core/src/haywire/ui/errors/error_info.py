@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 from nicegui import ui
-from haywire.ui import elements as hui
 
 from haywire.core.errors.haywire_exception import HaywireException
-
-from haywire.ui.errors.haywire_exception import render_error_details
+from haywire.ui import elements as hui
 from haywire.ui.components.popup import Popup
+from haywire.ui.errors.haywire_exception import render_error_details
 
 
 def error_render_detail(error: HaywireException) -> ui.element:

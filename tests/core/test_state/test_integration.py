@@ -5,6 +5,8 @@ to verify that LibraryState lifecycle is correctly driven by the existing
 library enable pipeline.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.di.config import LibrarySystemService, create_haywire_injector

@@ -5,6 +5,8 @@ raises on odd input, so every other loop iteration fails. Editing it shifts the
 baseline; add a new frozen node instead.
 """
 
+from __future__ import annotations
+
 from haywire.api import FLOAT, BaseNode, ExecutionContext, NodeType, node
 
 

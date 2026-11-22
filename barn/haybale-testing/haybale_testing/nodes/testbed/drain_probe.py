@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import threading
 
 from haywire.api import EXEC, FLOAT, BaseNode, ExecutionContext, NodeType, node

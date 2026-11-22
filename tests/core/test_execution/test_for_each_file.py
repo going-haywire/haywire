@@ -1,7 +1,10 @@
 """For Each File: a loop over a folder's files that records the files whose iteration failed (ADR 0066)."""
 
+from __future__ import annotations
+
 import importlib
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 
@@ -32,7 +35,7 @@ def _edge(graph: Any, src: Any, outlet: str, dst: Any, inlet: str) -> None:
 class _Runner:
     """Assembles a graph once and fires its flows on one VM, keeping every frame's context."""
 
-    def __init__(self, graph: Any, monkeypatch: Any, bail: Optional[str] = None):
+    def __init__(self, graph: Any, monkeypatch: Any, bail: str | None = None):
         graph.force_validation()
         self.flows = FlowAssemblyManager().assemble_graph(graph)
         self.vm = HaywireVM(exception_bail=(lambda: bail) if bail is not None else None)

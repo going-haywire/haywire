@@ -4,6 +4,8 @@ Drives the ``/graph-stack`` harness route: two overlapping on-stage nodes, ``bac
 ``front`` (z 1), on a canvas of the requested channel.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import FloatRect, Page
 

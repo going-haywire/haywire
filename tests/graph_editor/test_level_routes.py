@@ -27,7 +27,6 @@ from haywire.core.graph.scheduler import ThreadingTimerScheduler
 from haywire.core.graph.types import ChangeReason
 from haywire.ui.components.graph.event_definitions import UserDragUpdateEvent
 from haywire.ui.widget.base import BaseWidget
-
 from tests.conftest import edit_route, make_node
 
 pytestmark = pytest.mark.integration

@@ -13,7 +13,6 @@ from haywire.core.undo.actions.graph_actions import RebuildNodesAction
 from haywire.core.undo.base_action import ActionBase
 from haywire.core.undo.config import UndoConfig
 from haywire.core.undo.history_manager import HistoryManager
-
 from tests.conftest import make_edge
 
 pytestmark = [pytest.mark.integration]

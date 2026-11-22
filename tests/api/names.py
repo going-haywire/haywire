@@ -6,6 +6,8 @@ that imports it, and needs the deprecation window of ADR 0085 first.
 """
 
 #: ``haywire.api.__all__``, sorted.
+from __future__ import annotations
+
 COMPONENT = [
     "ADD",
     "ADDField",

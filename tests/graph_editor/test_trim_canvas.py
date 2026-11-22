@@ -14,7 +14,6 @@ from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.surfaces import GraphToolBar
 from haywire.core.node.layout import PATCH, STAGE
 from haywire.ui.components.graph.event_definitions import TrimCanvasEvent
-
 from tests.conftest import edit_route
 
 

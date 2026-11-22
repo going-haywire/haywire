@@ -17,7 +17,6 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.graph.subgraph import SubgraphDefinition
 from haywire.core.types.enums import PortOrigin, PortType
-
 from tests.conftest import make_node
 
 if TYPE_CHECKING:
@@ -148,9 +147,9 @@ class TestTheWidgetTravels:
 
     @pytest.fixture
     def slider_interface(self, graph_with_library_system: BaseGraph):
+        from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
         from haywire.barn.builtin.types import FLOAT
         from haywire.barn.builtin.widgets import SliderWidget
-        from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
 
         graph = graph_with_library_system
         definition = _definition(graph, key="sg_widget")
@@ -211,9 +210,9 @@ class TestOperableTravels:
 
     @pytest.fixture
     def edit_only_interface(self, graph_with_library_system: BaseGraph):
+        from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
         from haywire.barn.builtin.types import FLOAT
         from haywire.barn.builtin.widgets import SliderWidget
-        from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
 
         graph = graph_with_library_system
         definition = _definition(graph, key="sg_operable")
@@ -347,8 +346,8 @@ class TestARenameReachesTheCard:
 
     @pytest.fixture
     def card_over_a_named_interface(self, graph_with_library_system: BaseGraph):
-        from haywire.barn.builtin.types import FLOAT
         from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
+        from haywire.barn.builtin.types import FLOAT
 
         graph = graph_with_library_system
         definition = _definition(graph, key="sg_rename")

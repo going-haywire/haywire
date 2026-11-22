@@ -1,10 +1,12 @@
 """IMAGE and its layout-fixed variants GRAY_IMAGE, RGB_IMAGE and RGBA_IMAGE."""
 
+from __future__ import annotations
+
 from typing import Any, ClassVar, cast
 
-from haywire.api import CARRIER, DataWire, PrimitiveField, StoreStrategy, type as type_decorator
-
 from haybale_image.value import ImageValue, Layout
+from haywire.api import CARRIER, DataWire, PrimitiveField, StoreStrategy
+from haywire.api import type as type_decorator
 
 _COLOR = "#3f8fd2"
 

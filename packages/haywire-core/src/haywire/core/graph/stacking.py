@@ -35,7 +35,7 @@ class Restack(str, Enum):
     BACKWARD = "backward"
 
 
-def stacking_order(graph: "BaseGraph", channel: LayoutChannel) -> list[str]:
+def stacking_order(graph: BaseGraph, channel: LayoutChannel) -> list[str]:
     """Return the ids of the nodes ``channel`` includes, in paint order, bottom first.
 
     Example::
@@ -52,7 +52,7 @@ def stacking_order(graph: "BaseGraph", channel: LayoutChannel) -> list[str]:
 
 
 def restacked(
-    graph: "BaseGraph", node_ids: Iterable[str], how: Restack, channel: LayoutChannel
+    graph: BaseGraph, node_ids: Iterable[str], how: Restack, channel: LayoutChannel
 ) -> dict[str, int]:
     """Return the new stacking value of each node that ``how`` changes, applied to ``node_ids``.
 
@@ -108,7 +108,7 @@ def restacked(
     return {node_id: rank for rank, node_id in enumerate(order) if z(node_id) != rank}
 
 
-def top_z(graph: "BaseGraph", channel: LayoutChannel, exclude: Collection[str] = ()) -> int:
+def top_z(graph: BaseGraph, channel: LayoutChannel, exclude: Collection[str] = ()) -> int:
     """Return the stacking value that puts a node above every node ``channel`` includes.
 
     That is the highest value among the included nodes not in ``exclude``, plus one, or ``0``

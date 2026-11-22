@@ -1,5 +1,7 @@
 """JSON-Schema derivation from Farmhand.run() signatures."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.farmhand.schema import _ANY_TYPE, derive_input_schema

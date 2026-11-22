@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from haywire.core.errors import Refusal
-
 from haywire.barn.builtin.nodes.graph_node import GraphNode
+from haywire.core.errors import Refusal
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.subgraph import SubgraphDefinition
 from haywire.core.graph.subgraph_collapse import check_convex, derive_interface
@@ -16,7 +15,6 @@ from haywire.core.undo.actions.graph_actions import (
     CollapseToGraphNodeAction,
     ExpandGraphNodeAction,
 )
-
 from tests.conftest import make_node
 
 _PRINT = "haybale-testing:node:PrintProbeNode"

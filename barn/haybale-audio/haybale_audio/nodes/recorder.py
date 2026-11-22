@@ -1,5 +1,10 @@
 """Recorder — writes the audio blocks of a flow to a file."""
 
+from __future__ import annotations
+
+from haybale_audio.emitter import set_status
+from haybale_audio.io.files import BlockWriter
+from haybale_audio.value import AudioBlock
 from haywire.api import (
     EXEC,
     FILE_PATH,
@@ -7,17 +12,13 @@ from haywire.api import (
     STRING,
     BaseNode,
     ExecutionContext,
+    LabelWidget,
     NodeType,
     PathWidget,
-    LabelWidget,
     VolumePath,
     node,
     resolve_volume_path,
 )
-
-from haybale_audio.emitter import set_status
-from haybale_audio.io.files import BlockWriter
-from haybale_audio.value import AudioBlock
 
 _EXTENSIONS = [".wav", ".flac", ".ogg", ".mp3"]
 

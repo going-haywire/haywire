@@ -1,5 +1,7 @@
 """Output Path — compose a file path inside a folder's volume."""
 
+from __future__ import annotations
+
 from pathlib import PurePosixPath, PureWindowsPath
 
 from haywire.api import (

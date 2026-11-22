@@ -17,16 +17,19 @@ handler. The haywire-studio package is responsible for constructing the
 Session and calling AppShell.render().
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
+from collections.abc import Callable
 from contextlib import nullcontext
 from dataclasses import fields
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Literal, TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
+
 from nicegui import ui
 
-from haywire.ui import elements as hui
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
 from haywire.core.session.context import SessionContext
 from haywire.core.signals import (
@@ -40,6 +43,7 @@ from haywire.core.signals import (
     RevealSignal,
     RosterChanged,
 )
+from haywire.ui import elements as hui
 from haywire.ui.app.slot import Slot
 from haywire.ui.components.access_gate import AccessGate
 from haywire.ui.components.keymap import KeymapListener
@@ -69,14 +73,14 @@ def _pygments_doc_css() -> str:
 
 
 if TYPE_CHECKING:
-    from haywire.ui.app.aside_slot import AsideSlot
-    from haywire.ui.editor.registry import EditorRegistry
-    from haywire.ui.editor.base import BaseEditor
-    from haywire.core.session.session import Session
     from haywire.core.access import AccessTier
+    from haywire.core.session.session import Session
+    from haywire.ui.app.aside_slot import AsideSlot
+    from haywire.ui.editor.base import BaseEditor
+    from haywire.ui.editor.registry import EditorRegistry
 
 
-def identity_text(principal: "str | None", tier: "AccessTier") -> str:
+def identity_text(principal: str | None, tier: AccessTier) -> str:
     """StatusBar label — ``alice · admin``, or empty when authentication is off.
 
     This label is what makes the vanish-on-denial behaviour humane rather than
@@ -667,7 +671,7 @@ class AppShell:
         - Individual Slot subclasses for their own editor lifecycle
     """
 
-    def __init__(self, session: "Session", editor_registry: "EditorRegistry"):
+    def __init__(self, session: Session, editor_registry: EditorRegistry):
         """
         Create the AppShell.
 
@@ -1415,7 +1419,7 @@ window.addEventListener("wheel", function (e) {
         """
         from haywire.core.session.handlers import discover_reveal_handlers
 
-        by_signal: dict[type, list[type["BaseEditor"]]] = {}
+        by_signal: dict[type, list[type[BaseEditor]]] = {}
         for key in self._editor_registry.list_names():
             editor_cls = self._editor_registry.get(key)
             if editor_cls is None:
@@ -1427,9 +1431,7 @@ window.addEventListener("wheel", function (e) {
             handler = partial(self._dispatch_reveal_signal, editor_classes)
             self._lifecycle_unsubs.append(self.session.subscribe(signal_type, handler))
 
-    def _dispatch_reveal_signal(
-        self, editor_classes: "list[type[BaseEditor]]", command: "RevealSignal"
-    ) -> None:
+    def _dispatch_reveal_signal(self, editor_classes: list[type[BaseEditor]], command: RevealSignal) -> None:
         """Offer one ``RevealSignal`` to each class that declared ``@reveal_on``.
 
         Each class's hook runs first — it may seed session state the revealed
@@ -1455,7 +1457,7 @@ window.addEventListener("wheel", function (e) {
             if proceed:
                 self._reveal_editor(command, editor_cls)
 
-    def _reveal_editor(self, command: "RevealSignal", editor_cls: "type[BaseEditor] | None" = None) -> None:
+    def _reveal_editor(self, command: RevealSignal, editor_cls: type[BaseEditor] | None = None) -> None:
         """Ensure the editor described by ``command`` is active in its default slot.
 
         Resolves the target slot from the editor's ``class_identity.default_slot``

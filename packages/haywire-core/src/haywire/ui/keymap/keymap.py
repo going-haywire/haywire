@@ -11,8 +11,9 @@ the ones not yet logged in this process.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any, Callable, Mapping
+from typing import Any
 
 from haywire.core.access.tier import AccessTier
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException

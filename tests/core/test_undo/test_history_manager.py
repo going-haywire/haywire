@@ -5,6 +5,8 @@ test, so a real graph would only add noise. Each fake records execute/undo/
 cleanup calls so a test can assert on the sequence the manager produced.
 """
 
+from __future__ import annotations
+
 import time
 from typing import Any, cast
 

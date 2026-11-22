@@ -6,8 +6,9 @@ teardown is driven by studio.app.on_client_deleted — Session itself
 only manages its own bus subscriptions.
 """
 
-from unittest.mock import MagicMock
+from __future__ import annotations
 
+from unittest.mock import MagicMock
 
 from haywire.core.session.session import Session
 from haywire.core.signals import SelectionMoved

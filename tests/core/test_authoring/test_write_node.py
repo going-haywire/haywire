@@ -5,6 +5,8 @@ The file watcher is never started here. The tests play its part by handing a
 watcher does, so the registration path under test is the shipped one.
 """
 
+from __future__ import annotations
+
 import asyncio
 import re
 import threading

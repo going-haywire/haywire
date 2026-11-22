@@ -9,6 +9,8 @@ of them misses its block period by tens of milliseconds, with no single long hol
 The interval belongs to the process, so the count of running graphs is shared by every ``Interpreter``.
 """
 
+from __future__ import annotations
+
 import sys
 import threading
 

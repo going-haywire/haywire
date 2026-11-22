@@ -16,10 +16,8 @@ from haybale_models.resolver import FetchSpec, ModelMissing, folder_address, pla
 from haybale_models.sources import builtin_sources
 from haybale_models.store.index import ModelIndex
 from haybale_models.value.model_ref import ModelRef
-
 from haywire.core.catalog import CatalogRegistry, ModelFile, Resource
 from haywire.core.volumes import VolumeStore, volume_location
-
 from tests.models.conftest import make_hf_snapshot
 
 KEY = "lib:catalog:demo"

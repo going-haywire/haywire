@@ -14,11 +14,11 @@ from haybale_testing.surfaces import TestEdgeActions, TestEdgeMenu
 from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
 
 if TYPE_CHECKING:
-    from haywire.core.edge.edge_wrapper import EdgeWrapperState
     from haywire.api.workbench import SessionContext
+    from haywire.core.edge.edge_wrapper import EdgeWrapperState
 
 
-def _state(ctx: "SessionContext") -> "EdgeWrapperState | None":
+def _state(ctx: SessionContext) -> EdgeWrapperState | None:
     wrapper = ctx.data[EditState].active_edge
     return wrapper.get_state() if wrapper is not None else None
 
@@ -33,12 +33,12 @@ class TestDeleteEdgeMenuPanel(BasePanel):
     actions: TestEdgeActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return ctx.data[EditState].active_edge is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         edge = ctx.data[EditState].active_edge
@@ -63,12 +63,12 @@ class TestInspectEdgeMenuPanel(BasePanel):
     actions: TestEdgeActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return ctx.data[EditState].active_edge is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         edge = ctx.data[EditState].active_edge
@@ -93,13 +93,13 @@ class TestEdgeErrorsMenuPanel(BasePanel):
     actions: TestEdgeActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         state = _state(ctx)
         return state is not None and state.get_error() is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         from haywire.core.errors.haywire_exception import HaywireException
@@ -128,13 +128,13 @@ class TestEdgePathMenuPanel(BasePanel):
     actions: TestEdgeActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         wrapper = ctx.data[EditState].active_edge
         return wrapper is not None and wrapper.edge is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         wrapper = ctx.data[EditState].active_edge
@@ -157,13 +157,13 @@ class TestEdgeWarningsMenuPanel(BasePanel):
     actions: TestEdgeActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         state = _state(ctx)
         return state is not None and state.has_warning()
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         state = _state(ctx)

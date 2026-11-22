@@ -1,5 +1,7 @@
 """MenuWidget with ``new_value_mode``: typed values are kept, the declared options never change."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest

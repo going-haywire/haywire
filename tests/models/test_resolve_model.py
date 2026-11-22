@@ -11,7 +11,6 @@ from typing import Any
 import pytest
 
 from haywire.core.volumes import VolumePath, VolumeStore, volume_location
-
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration

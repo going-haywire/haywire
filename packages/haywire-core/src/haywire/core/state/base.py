@@ -70,7 +70,7 @@ class AppState(LibraryState):
     # lifetime doesn't extend the SignalDispatcher; may resolve to None once
     # the dispatcher is torn down. Per-container rather than the ambient
     # accessor, so a test with its own container stays isolated.
-    _dispatcher: "weakref.ReferenceType[SignalDispatcher]"
+    _dispatcher: weakref.ReferenceType[SignalDispatcher]
 
     def __init__(self) -> None:
         """Seed per-instance storage for every `signal_field` descriptor.
@@ -112,7 +112,7 @@ class SessionState(LibraryState):
     # `session` is set by the container as a weakref.ref(Session) before on_enable runs.
     # Annotation uses bare weakref.ref to avoid an unresolvable forward ref to
     # Session (TYPE_CHECKING-only) breaking get_type_hints in __init_subclass__.
-    session: "weakref.ref"
+    session: weakref.ref
 
     def __init__(self) -> None:
         """Seed per-instance storage for every `signal_field` descriptor.

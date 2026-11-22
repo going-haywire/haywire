@@ -10,12 +10,11 @@ Two buttons: Cancel (abort) and Continue (proceed).
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from nicegui import ui
 
 from haywire.ui import elements as hui
-
 from haywire.ui.components.popup import Popup
 
 

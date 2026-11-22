@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 import asyncio
-import os
 import logging
+import os
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from fastapi import Request
-from haywire_studio.security.document import SecurityDocument
-from nicegui import ui, app
+from nicegui import app, ui
 
 # Core imports
 from haywire.core.di.config import create_library_system_service
@@ -18,11 +20,10 @@ from haywire.core.signals import ErrorLogged, FarmhandActivity, PresenceChanged
 
 # UI imports
 from haywire.ui.console_bridge import get_stdout_tee
-
 from haywire.ui.extends.codemirror import register_code_intelligence_render_endpoint
-
 from haywire_studio.auth.gate import PRINCIPAL_SCOPE_KEY
 from haywire_studio.error_hooks import ErrorHooks
+from haywire_studio.security.document import SecurityDocument
 
 from .code_intelligence import register_code_intelligence_endpoints
 
@@ -56,8 +57,8 @@ class HaywireApp:
         self._is_shutting_down = False
         # None until run() loads it. The Security settings panel reads it
         # defensively (getattr(..., None)) for exactly that window.
-        self.security_document: Optional[SecurityDocument] = None
-        self._shells: dict[str, "AppShell"] = {}
+        self.security_document: SecurityDocument | None = None
+        self._shells: dict[str, AppShell] = {}
         # Maps NiceGUI client.id → haywire session_id so on_client_deleted can
         # resolve which session to tear down without monkey-patching the
         # Client object.
@@ -66,8 +67,8 @@ class HaywireApp:
         # Bridges: each process-wide observable store → its cross-session signal.
         # Wired in on_startup (first moment a running loop exists), torn down in
         # on_app_shutdown. Holds the listener refs so remove_listener can undo them.
-        self._error_ledger_listener: Optional[Callable[[], None]] = None
-        self._activity_tracker_listener: Optional[Callable[[], None]] = None
+        self._error_ledger_listener: Callable[[], None] | None = None
+        self._activity_tracker_listener: Callable[[], None] | None = None
 
         # Installed in on_startup (needs the running loop), uninstalled on shutdown.
         self._error_hooks = ErrorHooks(self._session_of_client)
@@ -90,7 +91,7 @@ class HaywireApp:
     def _install_error_hooks(self) -> None:
         self._error_hooks.install()
 
-    def _session_of_client(self, client_id: str) -> Optional["Session"]:
+    def _session_of_client(self, client_id: str) -> Session | None:
         session_id = self._client_to_session.get(client_id)
         return self.session_manager.get_session(session_id) if session_id else None
 
@@ -218,9 +219,9 @@ class HaywireApp:
 
     def setup_shared_services(self):
         """Setup services shared across all sessions."""
-        from haywire.core.state import LibraryStateContainer
         from haywire.core.session.session_manager import SessionManager
         from haywire.core.signals import SignalDispatcher
+        from haywire.core.state import LibraryStateContainer
 
         # Registries and factories (from DI)
         self.node_registry = self.library_service.get_node_registry()
@@ -263,7 +264,7 @@ class HaywireApp:
         the ``DebugSettings`` instance, so dropping it would leak the cell
         adapter with no way left to detach it.
         """
-        from haywire.core.debug.debug_settings import DebugSettings, LOG_SCROLLBACK_LINES_KEY
+        from haywire.core.debug.debug_settings import LOG_SCROLLBACK_LINES_KEY, DebugSettings
 
         self._debug_settings = DebugSettings()
         get_stdout_tee().max_history = getattr(self._debug_settings, LOG_SCROLLBACK_LINES_KEY)
@@ -340,9 +341,10 @@ class HaywireApp:
 
         @ui.page("/", title="Haywire")
         def main_page(request: Request):
+            from nicegui import context
+
             from haywire.ui.app.shell import AppShell
             from haywire.ui.editor.registry import EditorRegistry
-            from nicegui import context
 
             print(f"Creating UI for session: {context.client.id[:8]}")
 

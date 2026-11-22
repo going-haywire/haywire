@@ -3,6 +3,8 @@
 Tests for the PanelRegistry and @panel decorator (surface model).
 """
 
+from __future__ import annotations
+
 from typing import Protocol, runtime_checkable
 
 import pytest
@@ -10,7 +12,6 @@ import pytest
 from haywire.ui.panel import BasePanel, panel
 from haywire.ui.panel.registry import PanelRegistry
 from haywire.ui.surface import Surface
-
 
 # ---------------------------------------------------------------------------
 # Test fixtures

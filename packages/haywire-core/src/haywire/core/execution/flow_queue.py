@@ -8,20 +8,21 @@ Each flow has its own queue that:
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Dict, Optional
-from queue import Queue, Empty, Full
-from threading import Event, Lock
-from enum import Enum
+
 import logging
 import time
+from enum import Enum
+from queue import Empty, Full, Queue
+from threading import Event, Lock
+from typing import TYPE_CHECKING, Any
 
 from haywire.core.execution.flow_metrics import FlowSnapshot
 
 if TYPE_CHECKING:
-    from haywire.core.execution.flow import Flow
     from haywire.core.execution.event_source import Trigger
-    from haywire.core.execution.vm import HaywireVM
     from haywire.core.execution.execution_group import ExecutionGroup
+    from haywire.core.execution.flow import Flow
+    from haywire.core.execution.vm import HaywireVM
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,7 @@ class FlowQueue:
         vm: HaywireVM,
         queue_mode: QueueMode = QueueMode.BLOCK,
         max_queue_size: int = 100,
-        group: Optional[ExecutionGroup] = None,
+        group: ExecutionGroup | None = None,
     ) -> None:
         """
         Initialize the queue.
@@ -88,15 +89,15 @@ class FlowQueue:
         # Execution time statistics (in nanoseconds)
         self._frame_count = 0
         self._exec_time_sum_ns = 0
-        self._exec_time_min_ns: Optional[int] = None
-        self._exec_time_max_ns: Optional[int] = None
-        self._exec_min_iteration: Optional[int] = None
-        self._exec_max_iteration: Optional[int] = None
+        self._exec_time_min_ns: int | None = None
+        self._exec_time_max_ns: int | None = None
+        self._exec_min_iteration: int | None = None
+        self._exec_max_iteration: int | None = None
 
         # Node execution statistics
         self._node_exec_total = 0
-        self._node_exec_min: Optional[int] = None
-        self._node_exec_max: Optional[int] = None
+        self._node_exec_min: int | None = None
+        self._node_exec_max: int | None = None
 
         logger.debug(f"Created queue for flow {flow.flow_id}")
 
@@ -220,7 +221,7 @@ class FlowQueue:
         finally:
             self._is_executing.clear()
 
-    def wait_for_completion(self, timeout: Optional[float] = None) -> bool:
+    def wait_for_completion(self, timeout: float | None = None) -> bool:
         """
         Wait for all queued triggers to complete.
 
@@ -299,7 +300,7 @@ class FlowQueue:
         """Check if flow is currently executing."""
         return self._is_executing.is_set()
 
-    def get_execution_stats(self) -> Dict[str, Any]:
+    def get_execution_stats(self) -> dict[str, Any]:
         """
         Get execution time statistics.
 

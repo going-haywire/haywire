@@ -10,15 +10,14 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import route_for
 from haywire.api.workbench import LevelMode, PanelLayout, hui, stamp_requires
 from haywire.core.node.previous_setup import PREVIOUS_SETUP_WARNING
 
-from haybale_graph_editor.states.edit_state import EditState
-from haybale_graph_editor.states.graph_app_state import route_for
-
 if TYPE_CHECKING:
-    from haywire.core.graph.edit_route import EditRoute
     from haywire.api.workbench import SessionContext
+    from haywire.core.graph.edit_route import EditRoute
 
 HEADING = "Settings reset by a code change"
 
@@ -34,13 +33,13 @@ ACTIONS = (
 """Label, icon, tooltip and whether it restores, for the two commands."""
 
 
-def holds_previous_setup(ctx: "SessionContext") -> bool:
+def holds_previous_setup(ctx: SessionContext) -> bool:
     """True when the active node holds a previous setup."""
     node = ctx.data[EditState].active_node
     return node is not None and node.previous_setup is not None
 
 
-def draw_previous_setup(ctx: "SessionContext", layout: PanelLayout, *, in_menu: bool) -> None:
+def draw_previous_setup(ctx: SessionContext, layout: PanelLayout, *, in_menu: bool) -> None:
     """Draw the message and Restore | Discard for the active node.
 
     Args:
@@ -71,7 +70,7 @@ def draw_previous_setup(ctx: "SessionContext", layout: PanelLayout, *, in_menu: 
                 stamp_requires(command, LevelMode.EDIT)
 
 
-def resolve_previous_setup(route: "EditRoute | None", node_id: str, *, restore: bool) -> None:
+def resolve_previous_setup(route: EditRoute | None, node_id: str, *, restore: bool) -> None:
     """Restore or discard the node's previous setup through the route's editor; nothing below edit."""
     editor = route.editor() if route is not None else None
     if editor is None:

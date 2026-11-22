@@ -10,6 +10,8 @@ hook (see ErrorNodeSkin, which used to override show_of() the same way) that
 degrades to unfolded rather than raising on a broken props bag.
 """
 
+from __future__ import annotations
+
 import pathlib
 from typing import cast
 

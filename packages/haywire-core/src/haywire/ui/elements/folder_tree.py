@@ -10,6 +10,8 @@ Symlinked directories are leaves (never followed). Excluded directory names
 and dot-entries (except ``.haywire``) are skipped.
 """
 
+from __future__ import annotations
+
 import copy
 from collections.abc import Callable
 from pathlib import Path

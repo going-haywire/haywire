@@ -6,19 +6,21 @@ edit route, which records undo actions internally. Undo grouping is achieved by
 the fence pair on drag start/end.
 """
 
-import logging
-from typing import TYPE_CHECKING, Optional
+from __future__ import annotations
 
+import logging
+from typing import TYPE_CHECKING
+
+from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_event
 from haywire.api.workbench import GraphDataMutated, LevelMode
 from haywire.core.node.layout import PATCH, LayoutChannel
 from haywire.ui.components.graph.event_definitions import (
+    EdgeClickedEvent,
+    UserDragEndEvent,
     UserDragStartEvent,
     UserDragUpdateEvent,
-    UserDragEndEvent,
     UserResizeEndEvent,
-    EdgeClickedEvent,
 )
-from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_event
 
 if TYPE_CHECKING:
     from haywire.core.graph.edit_route import EditRoute
@@ -44,8 +46,8 @@ class InteractionHandlers:
 
     def __init__(
         self,
-        route: "EditRoute",
-        session: "Optional[Session]" = None,
+        route: EditRoute,
+        session: Session | None = None,
         channel: LayoutChannel = PATCH,
     ):
         """Set up the handlers for ``route``'s graph.

@@ -16,6 +16,8 @@ Promotion entries are structural: they render only for a bag with an owning
 node, which is why this uses ``/node-attached`` rather than ``/node``.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

@@ -1,5 +1,7 @@
 """Studio socket configuration (read once at startup; restart to apply)."""
 
+from __future__ import annotations
+
 from haywire.api import INT, LibrarySettings, setting, settings
 from haywire_studio.network import DEFAULT_STUDIO_PORT
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from haywire.core.adapter.base import IAdapter
@@ -25,9 +27,7 @@ class Pipe:
         "_sink_queues",
     )
 
-    def __init__(
-        self, outlet_port: "DataPort", sink: "DataPort", chain: IAdapter, is_lazy: bool, edge_id: str
-    ):
+    def __init__(self, outlet_port: DataPort, sink: DataPort, chain: IAdapter, is_lazy: bool, edge_id: str):
         self._outlet_port = outlet_port
         self.sink = sink
         self.chain = chain
@@ -90,7 +90,7 @@ class Pipes:
     Handles both eager (push) and lazy (pull-on-demand) propagation.
     """
 
-    def __init__(self, outlet_port: "DataPort"):
+    def __init__(self, outlet_port: DataPort):
         self._outlet_port = outlet_port
         self._pipes: dict[str, Pipe] = {}
 

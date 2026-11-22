@@ -1,5 +1,7 @@
 """Autorestart after a reassembly-requiring validation stop."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest
@@ -128,7 +130,6 @@ def test_running_host_not_restarted_by_value_edit(graph_with_library_system, mon
     from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY, GraphNode
     from haywire.barn.builtin.nodes.subgraph_io import SubgraphOutputNode
     from haywire.core.graph.subgraph import SubgraphDefinition
-
     from tests.conftest import make_node
 
     graph = graph_with_library_system

@@ -6,7 +6,9 @@ turns a session's real tier and the lock into the mode it works a level in,
 which the level's ``EditRoute`` checks at every write.
 """
 
-from typing import Callable
+from __future__ import annotations
+
+from collections.abc import Callable
 
 from haywire.api.workbench import AccessTier, LevelMode
 

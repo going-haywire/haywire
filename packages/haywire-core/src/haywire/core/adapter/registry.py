@@ -2,9 +2,10 @@
 AdapterRegistry - IType-to-IType conversion registry with chain support
 """
 
+from __future__ import annotations
+
 import inspect
 from collections import deque
-from typing import Optional
 
 from ..library.identity import LibraryIdentity
 from ..registry.base import BaseRegistry
@@ -53,7 +54,7 @@ class AdapterRegistry(BaseRegistry[BaseAdapter]):
             return False
 
     def _register_class(
-        self, cls: type[BaseAdapter], library_identity: Optional[LibraryIdentity] = None
+        self, cls: type[BaseAdapter], library_identity: LibraryIdentity | None = None
     ) -> str | None:
         """
         Register adapter class.

@@ -4,6 +4,8 @@ Covers DissolveRerouteAction: child-action structure, partial connection
 handling, and the editor entry point.
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest
@@ -72,9 +74,9 @@ class _FakeGraph:
 def test_dissolve_fully_connected_creates_bridge_and_remove():
     """Normal case: 1 upstream + 1 downstream → RemoveElementsAction + 1 AddEdgeAction."""
     from haywire.core.undo.actions.graph_actions import (
+        AddEdgeAction,
         DissolveRerouteAction,
         RemoveElementsAction,
-        AddEdgeAction,
     )
 
     upstream = _make_edge("A", "result", "reroute_1", "in", "e_up")
@@ -97,9 +99,9 @@ def test_dissolve_fully_connected_creates_bridge_and_remove():
 def test_dissolve_fan_out_creates_multiple_bridges():
     """Outlet fans to two sinks → RemoveElementsAction + 2 AddEdgeActions."""
     from haywire.core.undo.actions.graph_actions import (
+        AddEdgeAction,
         DissolveRerouteAction,
         RemoveElementsAction,
-        AddEdgeAction,
     )
 
     upstream = _make_edge("A", "result", "reroute_1", "in", "e_up")
@@ -125,9 +127,9 @@ def test_dissolve_fan_out_creates_multiple_bridges():
 def test_dissolve_control_fan_in_bridges_all_upstreams():
     """CONTROL reroute with 2 upstreams + 1 downstream → Remove + 2 AddEdgeActions."""
     from haywire.core.undo.actions.graph_actions import (
+        AddEdgeAction,
         DissolveRerouteAction,
         RemoveElementsAction,
-        AddEdgeAction,
     )
 
     up1 = _make_edge("A", "exec", "reroute_1", "in", "e_up1")
@@ -150,9 +152,9 @@ def test_dissolve_control_fan_in_bridges_all_upstreams():
 def test_dissolve_no_upstream_skips_bridges():
     """No upstream edge → only RemoveElementsAction, no AddEdgeAction."""
     from haywire.core.undo.actions.graph_actions import (
+        AddEdgeAction,
         DissolveRerouteAction,
         RemoveElementsAction,
-        AddEdgeAction,
     )
 
     downstream = _make_edge("reroute_1", "out", "B", "value_a", "e_down")
@@ -168,9 +170,9 @@ def test_dissolve_no_upstream_skips_bridges():
 def test_dissolve_no_downstream_skips_bridges():
     """No downstream edge → only RemoveElementsAction, no AddEdgeAction."""
     from haywire.core.undo.actions.graph_actions import (
+        AddEdgeAction,
         DissolveRerouteAction,
         RemoveElementsAction,
-        AddEdgeAction,
     )
 
     upstream = _make_edge("A", "result", "reroute_1", "in", "e_up")

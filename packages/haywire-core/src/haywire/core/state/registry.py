@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import inspect
 import logging
-from typing import Optional
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.base import BaseRegistry
@@ -44,7 +43,7 @@ class StateRegistry(BaseRegistry[LibraryState]):
             return False
 
     def _register_class(
-        self, cls: type[LibraryState], library_identity: Optional[LibraryIdentity] = None
+        self, cls: type[LibraryState], library_identity: LibraryIdentity | None = None
     ) -> str | None:
         """Attach a class_identity if missing, then delegate to BaseRegistry._register."""
         # LibraryState classes derive their registry_key from the owning library,

@@ -1,5 +1,7 @@
 """Resolve Path: the absolute location of a volume path on this machine."""
 
+from __future__ import annotations
+
 import importlib
 from typing import Any
 

@@ -6,6 +6,8 @@ gitlab.com provider, which then built gitlab.com URLs for it — a link pointing
 at a server that does not have the repository, which is worse than no link.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.marketstall.host_providers import (

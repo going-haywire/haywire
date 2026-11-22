@@ -3,25 +3,28 @@ from __future__ import annotations
 import copy
 import inspect
 import re
-from typing import TYPE_CHECKING, Iterator, Any, Callable, ClassVar, Dict, List, Optional, cast
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import replace
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from haywire.core.execution.event_source import EventSource
 from haywire.core.node import NodeIdentity
-from ..types.enums import PortOrigin, PortType
-from ..types.wire import WireRole
+from haywire.core.settings import NodeSettings, Settings
+
 from ..execution.execution_context import ExecutionContext
 from ..library.identity import LibraryIdentity
 from ..types import DataPort, Drained, PortSpec
+from ..types.enums import PortOrigin, PortType
+from ..types.wire import WireRole
 from .behavior import NodeBehaviorFlags, NodeType
 from .user_data import NodeCache, NodeStore
-from haywire.core.settings import NodeSettings, Settings
 
 if TYPE_CHECKING:
-    from .declaration_merge import MergedPorts
     from haywire.core.node import NodeWrapper
     from haywire.core.types.registry import TypeRegistry
+
+    from .declaration_merge import MergedPorts
 
 #: One criterion a :meth:`NodeData.rejig` filter selects ports by: an exact
 #: port id, every port of one :class:`PortOrigin`, or a compiled pattern
@@ -31,7 +34,7 @@ PortCriterion = str | PortOrigin | re.Pattern[str]
 #: What ``rejig``'s ``include`` / ``exclude`` take: a bare ``str`` is a regex
 #: (kept for the single-pattern spelling), and a list holds ``PortCriterion``
 #: values whose matches are unioned.
-PortFilter = str | List[PortCriterion]
+PortFilter = str | list[PortCriterion]
 
 
 class NodeData:
@@ -52,13 +55,13 @@ class NodeData:
     class_behavior: ClassVar[NodeBehaviorFlags] = NodeBehaviorFlags()
     class_library: ClassVar[LibraryIdentity]
 
-    def worker(self, context: ExecutionContext, *args: Any, **kwargs: Any) -> "str | None":
+    def worker(self, context: ExecutionContext, *args: Any, **kwargs: Any) -> str | None:
         """Subclass hook — override to define node behaviour. See BaseNode.worker for details."""
         raise NotImplementedError(f"{type(self).__name__} must override worker()")
 
     def __init__(self, node_id: str, wrapper: NodeWrapper):
         """Initialize unified port collection and management state"""
-        from haywire.core.di.context import get_type_registry, get_settings_registry
+        from haywire.core.di.context import get_settings_registry, get_type_registry
 
         self.node_id = node_id
         self.wrapper = wrapper
@@ -75,14 +78,14 @@ class NodeData:
         """event nodes store here the event subscription"""
 
         # Cache type registry for port instantiation
-        self._type_registry: "TypeRegistry" = get_type_registry()
+        self._type_registry: TypeRegistry = get_type_registry()
 
         # ---------------------------------------------------------------------
         # Core containers
         # ---------------------------------------------------------------------
 
         # Ports
-        self.ports: Dict[str, DataPort] = {}
+        self.ports: dict[str, DataPort] = {}
         """Single source of truth for all ports (inlets and outlets)."""
 
         # Each Settings subclass declared in the node class body becomes an instance
@@ -93,8 +96,8 @@ class NodeData:
             _bag_instance._subscribe_settings()
             object.__setattr__(self, _bag_name, _bag_instance)
 
-        self._declaration: Dict[str, Dict[str, Any]] = {}
-        self._declaration_saved: Dict[str, Dict[str, Any]] = {}
+        self._declaration: dict[str, dict[str, Any]] = {}
+        self._declaration_saved: dict[str, dict[str, Any]] = {}
 
         self._cache: NodeCache = NodeCache()
 
@@ -102,7 +105,7 @@ class NodeData:
 
         # Keyed by port id: a str caches its hash at C level, while a set of
         # DataPort would call the Python-level DataPort.__hash__ on every mark.
-        self._has_dirty_ports: Dict[str, DataPort] = {}
+        self._has_dirty_ports: dict[str, DataPort] = {}
 
         self._has_run: bool = False
         """Whether this instance's worker has returned once. Until it has, a data node runs even
@@ -112,23 +115,23 @@ class NodeData:
         # Internal state
         # ---------------------------------------------------------------------
 
-        self._push_stack: List[set[str]] = []
+        self._push_stack: list[set[str]] = []
         """Stack of port ID sets for rejig operations."""
 
-        self._fold_stack: List[str] = []
+        self._fold_stack: list[str] = []
         """Stack of active group IDs for nested groups."""
 
-        self._fold_direction: Dict[str, PortType] = {}
+        self._fold_direction: dict[str, PortType] = {}
         """The direction each open fold has committed to, by fold port id."""
 
         self._port_order_counter: int = 0
         """Counter for assigning display order to ports."""
 
-        self._executor: Optional[Callable] = None
+        self._executor: Callable | None = None
         """Optimized execution callable."""
 
     @property
-    def declaration(self) -> Dict[str, Dict[str, Any]]:
+    def declaration(self) -> dict[str, dict[str, Any]]:
         """The ports ``init()`` added, each as its ``DataPort.declaration()``, by port id.
 
         What the node's code declares, whatever the node looks like now: a port
@@ -144,8 +147,8 @@ class NodeData:
         }
 
     def _ports_merged_onto_declaration(
-        self, saved_against: Dict[str, Any], ports_data: Optional[Dict[str, Any]]
-    ) -> "MergedPorts | None":
+        self, saved_against: dict[str, Any], ports_data: dict[str, Any] | None
+    ) -> MergedPorts | None:
         """Return *ports_data* brought from the declaration *saved_against* to this node's own.
 
         ``None`` when the two declarations conflict over what the ports hold, or when there
@@ -156,7 +159,7 @@ class NodeData:
         if not isinstance(ports_data, dict):
             return None
 
-        def default_value(entry: Dict[str, Any]) -> Any:
+        def default_value(entry: dict[str, Any]) -> Any:
             port = DataPort.from_spec(entry, self._type_registry, self.wrapper, self)
             return port._serialize_value()
 
@@ -165,7 +168,7 @@ class NodeData:
         )
 
     @property
-    def saved_declaration(self) -> Dict[str, Dict[str, Any]]:
+    def saved_declaration(self) -> dict[str, dict[str, Any]]:
         """The declaration as a graph file records it: each port without what its type says."""
         return self._declaration_saved
 
@@ -239,7 +242,7 @@ class NodeData:
     # Port Addition and Management
     # =========================================================================
 
-    def add(self, spec: "dict[Any, Any] | PortSpec") -> DataPort:
+    def add(self, spec: dict[Any, Any] | PortSpec) -> DataPort:
         """Add an inlet or outlet from a port spec and return the built port.
 
         The port joins the enclosing ``fold()`` block, if any, and is ordered
@@ -409,14 +412,14 @@ class NodeData:
                     matched.add(criterion)
         return matched
 
-    def _push(self, include: Optional[PortFilter] = None, exclude: Optional[PortFilter] = None) -> None:
+    def _push(self, include: PortFilter | None = None, exclude: PortFilter | None = None) -> None:
         """Internal: flag ports for potential removal. Use rejig() instead."""
         flagged = set(self.ports) if include is None else self._match_filter(include)
         if exclude is not None:
             flagged -= self._match_filter(exclude)
         self._push_stack.append(flagged)
 
-    def _pop(self) -> List[str]:
+    def _pop(self) -> list[str]:
         """Internal: remove flagged ports not refreshed. Use rejig() instead.
 
         Companions go with their owner: any port whose ``owner`` is gone is removed
@@ -450,7 +453,7 @@ class NodeData:
         self._executor = None
         return removed
 
-    def _destroy_port(self, port_id: str) -> Optional[str]:
+    def _destroy_port(self, port_id: str) -> str | None:
         """Internal: delete the port ``port_id`` and return its fold's id.
 
         Its edges are detached and stay in the graph, so a port re-added under the same id links them again.
@@ -473,7 +476,7 @@ class NodeData:
         return port.parent_fold
 
     @contextmanager
-    def rejig(self, include: Optional[PortFilter] = None, exclude: Optional[PortFilter] = None):
+    def rejig(self, include: PortFilter | None = None, exclude: PortFilter | None = None):
         """Flag ports for removal, yield for re-adding them, then remove the rest.
 
         Edges on re-added ports are preserved, and the removal pass runs even if
@@ -726,15 +729,15 @@ class NodeData:
                 continue
             yield port
 
-    def get_visible_ports(self) -> List[DataPort]:
+    def get_visible_ports(self) -> list[DataPort]:
         """The ports drawn on the node card, as a list. See ``iter_visible_ports``."""
         return list(self.iter_visible_ports())
 
-    def get_all_ports(self) -> List[DataPort]:
+    def get_all_ports(self) -> list[DataPort]:
         """Every port in display order, ignoring fold collapse."""
         return list(self._iter_ports())
 
-    def get_folded_ports(self) -> List[DataPort]:
+    def get_folded_ports(self) -> list[DataPort]:
         """The ports a folded node card draws: every linked port, whatever its fold state.
 
         Fold collapse is ignored so that an edge always finds its endpoint on a
@@ -753,11 +756,11 @@ class NodeData:
 
     def get_ports(
         self,
-        is_port_type: Optional[PortType] = None,
-        has_pin: Optional[bool] = None,
-        is_role: Optional[WireRole] = None,
-        is_not_role: Optional[WireRole] = None,
-        has_widget: Optional[bool] = None,
+        is_port_type: PortType | None = None,
+        has_pin: bool | None = None,
+        is_role: WireRole | None = None,
+        is_not_role: WireRole | None = None,
+        has_widget: bool | None = None,
     ) -> list[DataPort]:
         """Return the ports matching every filter given. ``None`` disables a filter.
 
@@ -805,7 +808,7 @@ class NodeData:
             if port.id not in visible_ids and port.is_linked():
                 yield port
 
-    def get_hidden_connected_ports(self, is_inlet: bool) -> List[DataPort]:
+    def get_hidden_connected_ports(self, is_inlet: bool) -> list[DataPort]:
         """Hidden linked ports as a list. See ``iter_hidden_connected_ports``."""
         return list(self.iter_hidden_connected_ports(is_inlet))
 
@@ -873,7 +876,7 @@ class NodeData:
 
         return self._create_executor(param_names_with_ports)
 
-    def _create_executor(self, param_names: List[str]) -> Callable:
+    def _create_executor(self, param_names: list[str]) -> Callable:
         ports = [self.ports[name] for name in param_names]
         n = len(ports)
 
@@ -921,7 +924,7 @@ class NodeData:
     # SERIALIZATION
     # =========================================================================
 
-    def _serialize_ports(self, include_data: bool = True) -> Dict[str, Any]:
+    def _serialize_ports(self, include_data: bool = True) -> dict[str, Any]:
         """Return each non-promoted port's ``to_dict()``, keyed by port ID.
 
         A promoted port is omitted: its promotion is recorded in the owning
@@ -938,9 +941,9 @@ class NodeData:
 
     def _deserialize_ports(
         self,
-        ports_data: Dict[str, Any],
+        ports_data: dict[str, Any],
         legacy: bool = False,
-        saved_against: Optional[Dict[str, Any]] = None,
+        saved_against: dict[str, Any] | None = None,
     ) -> bool:
         """Replace every port with the ones *ports_data* describes, and return True.
 

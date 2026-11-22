@@ -8,21 +8,23 @@ Enhanced with hot reload support: UINode subscribes to NodeWrapper change callba
 and automatically re-renders when the underlying node class is hot-reloaded.
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from nicegui import ui
+
+from haywire.api import BaseNode, NodeWrapper
+from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.graph.edit_route import EditRoute
 from haywire.core.graph.types import ChangeReason
-from haywire.api import BaseNode, NodeWrapper
 from haywire.core.node.layout import PATCH, LayoutChannel
-from haywire.core.errors.haywire_exception import HaywireException
-
-from haywire.ui.skin.factory import SkinFactory, NO_SKIN_DEFINED
-from haywire.ui.skin.nodecard import UINodeCard
-
 from haywire.ui.components.cull.cull import NodeCull
 from haywire.ui.components.graph.event_definitions import SyncNodeRedrawEvent
+from haywire.ui.skin.factory import NO_SKIN_DEFINED, SkinFactory
+from haywire.ui.skin.nodecard import UINodeCard
 
 logger = logging.getLogger(__name__)
 
@@ -71,13 +73,13 @@ class UINode:
         self.container: ui.element = container
         self._route = route
 
-        self._position: Optional[tuple[float, float]] = None
+        self._position: tuple[float, float] | None = None
 
         # Container slot for reliable cleanup
-        self.container_slot: Optional[ui.column] = None
+        self.container_slot: ui.column | None = None
 
         # Current UI representation
-        self.current_ui_card: Optional[UINodeCard] = None
+        self.current_ui_card: UINodeCard | None = None
 
         # Generate unique ID for this UINode
         self.ui_node_id = f"ui-node-{id(self)}"
@@ -85,9 +87,9 @@ class UINode:
         self._node_id = self.wrapper.node_id
         """Store the id for cleanup purposes"""
 
-        self.sync_event_emitter: Optional[Callable[[Any], None]] = None
+        self.sync_event_emitter: Callable[[Any], None] | None = None
 
-        self._bound_node: Optional[BaseNode] = None
+        self._bound_node: BaseNode | None = None
         self._subscribe_slot_fields()
         self._apply_locked_attr()
         self._apply_detail_attr()
@@ -95,7 +97,7 @@ class UINode:
         self._apply_stacking()
 
     @property
-    def position(self) -> Optional[tuple[float, float]]:
+    def position(self) -> tuple[float, float] | None:
         return self._position
 
     @position.setter
@@ -383,7 +385,7 @@ class UINode:
             self.container._props["data-node-enterable"] = "true"
             self.container.update()
 
-    def _skin_key(self) -> Optional[str]:
+    def _skin_key(self) -> str | None:
         """Return the registry key of the skin this view draws the node with.
 
         A stage canvas reads ``props.stage_skin``, a patch canvas ``props.skin``.

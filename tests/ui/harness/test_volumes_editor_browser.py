@@ -1,5 +1,7 @@
 """The Volumes editor's rows are exactly as wide as their slot, and the location line crops to fit it."""
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

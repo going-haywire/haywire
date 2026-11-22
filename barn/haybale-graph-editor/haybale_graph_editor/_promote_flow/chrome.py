@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
-
-from haywire.ui.components.stepper import Panel, show_step_flow
+from typing import TYPE_CHECKING
 
 from haybale_graph_editor._promote_flow._state import PromoteFlow, PromoteSource
 from haybale_graph_editor._promote_flow.panels import _panel_name, _panel_planned, _panel_promoted
+from haywire.ui.components.stepper import Panel, show_step_flow
 
 if TYPE_CHECKING:
-    from haywire.core.graph.editor import Editor
     from haywire.core.authoring.targets import AuthoringTarget
+    from haywire.core.graph.editor import Editor
     from haywire.core.macro.promote import PromotableSubgraph
 
 
@@ -24,7 +24,7 @@ class EditorPromoteSource:
     rather than widening the protocol to both.
     """
 
-    def __init__(self, editor: "Editor", library_system) -> None:
+    def __init__(self, editor: Editor, library_system) -> None:
         self._editor = editor
         self._library_system = library_system
 
@@ -45,9 +45,9 @@ class EditorPromoteSource:
 
 def show_promote_flow(
     source: PromoteSource,
-    definition: "PromotableSubgraph",
+    definition: PromotableSubgraph,
     node_id: str,
-    targets: list["AuthoringTarget"],
+    targets: list[AuthoringTarget],
     *,
     on_done: Callable[[], None] | None = None,
 ) -> PromoteFlow:

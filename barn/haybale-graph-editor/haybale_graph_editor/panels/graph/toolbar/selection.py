@@ -15,17 +15,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haybale_graph_editor.panels._gating import is_reroute_node
 from nicegui import ui
 
-from haywire.api.workbench import BasePanel, LevelMode, PanelLayout, hui, panel
-
-from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu, SelectionToolbar
-
-from haybale_graph_editor.panels._gating import locked_bag, selection_has_locked
+from haybale_graph_editor.panels._gating import is_reroute_node, locked_bag, selection_has_locked
 from haybale_graph_editor.panels.graph.menu.selection.selection import selection_label
 from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.states.graph_app_state import route_for
+from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu, SelectionToolbar
+from haywire.api.workbench import BasePanel, LevelMode, PanelLayout, hui, panel
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -58,7 +55,7 @@ class CollapseToolbarPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         # A locked node's geometry is frozen, so folding it is not on offer.
         # Any selection size — see selection_has_locked on why this is not
         # the Lock button's locked_bag.
@@ -75,7 +72,7 @@ class CollapseToolbarPanel(BasePanel):
     def _tip(collapsed: bool, n_nodes: int) -> str:
         return selection_label("Unfold" if collapsed else "Fold", n_nodes, 0)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         collapsed = self.actions.selection_is_collapsed()
         n_nodes = len(ctx.data[EditState].selected_nodes)
 
@@ -108,7 +105,7 @@ class LockToolbarPanel(BasePanel):
     """Lock or unlock ONE node — protection against accidental manipulation."""
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return locked_bag(ctx) is not None
 
     @staticmethod
@@ -119,7 +116,7 @@ class LockToolbarPanel(BasePanel):
     def _tip(locked: bool) -> str:
         return "locked" if locked else "unlocked"
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         props = locked_bag(ctx)
         if props is None:
             return
@@ -176,12 +173,12 @@ class SelectionOverflowPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         if is_reroute_node(ctx):
             return False
         return True
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             with hui.dropdown("more_horiz", tooltip="More actions", closes=True):
                 self.render_surface(SelectionMenu, ctx)

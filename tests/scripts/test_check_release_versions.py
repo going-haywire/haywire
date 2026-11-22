@@ -8,7 +8,6 @@ import pytest
 
 from scripts import check_release_versions
 
-
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 
 

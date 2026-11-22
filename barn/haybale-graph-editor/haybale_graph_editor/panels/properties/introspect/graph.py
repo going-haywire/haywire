@@ -12,11 +12,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.surfaces import GraphInspector
 from haywire.api.workbench import AccessTier, BasePanel, PanelLayout, hui, panel
 from haywire.core.signals import GraphSaved
-
-from haybale_graph_editor.surfaces import GraphInspector
-from haybale_graph_editor.states.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -48,12 +47,12 @@ class GraphInfoPanel(BasePanel):
     """Displays counts and framework-written metadata for the active graph."""
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return ctx.data[EditState].active_graph is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         graph = ctx.data[EditState].active_graph

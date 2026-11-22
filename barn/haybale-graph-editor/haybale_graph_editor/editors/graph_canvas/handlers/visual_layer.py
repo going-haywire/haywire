@@ -14,75 +14,76 @@ opening a graph O(nodes x edges): 672 edges on a 128-node graph took 18.9 s to
 reach the screen, against 184 ms for the same edges delivered in one message.
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import time
 import traceback
+from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import Callable, Dict, Iterable, Optional, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from nicegui import Client, ui
 
+from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_event
+from haybale_graph_editor.editors.graph_canvas.ui_edge import (
+    EdgeVisualState,
+    edge_sync_payload,
+    edge_visual_state,
+)
+from haybale_graph_editor.editors.graph_canvas.ui_node import UINode
+from haybale_graph_editor.states.edit_state import EditState
+from haywire.api import BaseNode, MacroRegistry
 from haywire.api.workbench import LevelMode, RevealComponentDocs
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.execution import gc_freeze
 from haywire.core.graph.stacking import Restack
 from haywire.core.graph.stage import stage_takes_edge
 from haywire.core.graph.types import ChangeReason, ValidationResult
-from haywire.api import BaseNode, MacroRegistry
 from haywire.core.node.layout import PATCH, LayoutChannel
 from haywire.core.types.wire import wires_match
-
 from haywire.ui.components.graph.event_definitions import (
-    CanvasMountedEvent,
-    UserRemoveEvent,
-    NodesMeasuredEvent,
-    NodeCreateRequestEvent,
-    SplitEdgeWithRerouteEvent,
-    CollapseToGroupEvent,
     AddToStageEvent,
-    DissolveRerouteEvent,
-    EnterGroupEvent,
-    ShowNodeDocsEvent,
+    CanvasMountedEvent,
+    CollapseToGroupEvent,
     DetachFromMacroEvent,
-    RevertToMacroEvent,
-    ForgetMacroOriginEvent,
-    ExpandGroupEvent,
-    RemoveFromStageEvent,
-    RestackEvent,
-    PromoteToMacroEvent,
-    OpenNewNodeWizardEvent,
+    DissolveRerouteEvent,
     EdgeCreatedEvent,
+    EdgeReconnectStartedEvent,
     ElementRedrawEvent,
     ElementResetEvent,
     ElementRevalidateEvent,
+    EnterGroupEvent,
+    ExpandGroupEvent,
+    ForgetMacroOriginEvent,
+    NodeCreateRequestEvent,
+    NodesMeasuredEvent,
+    OpenNewNodeWizardEvent,
+    PromoteToMacroEvent,
+    RemoveFromStageEvent,
+    RestackEvent,
+    RevertToMacroEvent,
+    ShowNodeDocsEvent,
+    SplitEdgeWithRerouteEvent,
+    SyncAllEdgesEvent,
+    SyncCanvasClearEvent,
+    SyncEdgeConnectCancelEvent,
+    SyncEdgeReconnectEvent,
+    SyncEdgeRemovalEvent,
     SyncNodePositionEvent,
     SyncNodeRemovalEvent,
     SyncNodeSizeEvent,
-    SyncEdgeRemovalEvent,
-    SyncAllEdgesEvent,
     SyncSelectionsEvent,
-    SyncCanvasClearEvent,
-    SyncEdgeReconnectEvent,
-    EdgeReconnectStartedEvent,
-    SyncEdgeConnectCancelEvent,
+    UserRemoveEvent,
 )
-
-from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_event
-from haybale_graph_editor.editors.graph_canvas.ui_node import UINode
-from haybale_graph_editor.editors.graph_canvas.ui_edge import (
-    EdgeVisualState,
-    edge_sync_payload,
-    edge_visual_state,
-)
-from haybale_graph_editor.states.edit_state import EditState
 
 if TYPE_CHECKING:
-    from haywire.core.graph.edit_route import EditRoute
-    from haywire.api.workbench import BaseGraph, SessionContext
     from haywire.api import NodeWrapper
-    from haywire.ui.skin.factory import SkinFactory
+    from haywire.api.workbench import BaseGraph, SessionContext
+    from haywire.core.graph.edit_route import EditRoute
     from haywire.ui.components.graph.canvas import GraphCanvasVue
+    from haywire.ui.skin.factory import SkinFactory
 
 logger = logging.getLogger(__name__)
 
@@ -127,26 +128,26 @@ class VisualLayerHandlers:
     # Class default too, so an instance built without __init__ reads the patch.
     channel: LayoutChannel = PATCH
 
-    reports_compatibility: Optional[bool] = None
+    reports_compatibility: bool | None = None
     """Whether this canvas reports the load's compatibility summary; ``None`` leaves it to the
     patch canvas, which reports, while a stage canvas does not."""
 
-    on_node_unmounted: Optional[Callable[[str], None]] = None
+    on_node_unmounted: Callable[[str], None] | None = None
     """Called with the node id when a node leaves this canvas because its channel membership
     ended (it left the stage); ``None`` reports nothing."""
 
-    on_canvas_mounted: Optional[Callable[[], None]] = None
+    on_canvas_mounted: Callable[[], None] | None = None
     """Called when the canvas element mounts in the browser; ``None`` reports nothing."""
 
     def __init__(
         self,
-        graph: "BaseGraph",
-        route: "EditRoute",
-        skin_factory: "SkinFactory",
-        canvas_vue: "GraphCanvasVue",
-        context: Optional["SessionContext"] = None,
+        graph: BaseGraph,
+        route: EditRoute,
+        skin_factory: SkinFactory,
+        canvas_vue: GraphCanvasVue,
+        context: SessionContext | None = None,
         channel: LayoutChannel = PATCH,
-        patch_viewport_centre: Optional[Callable[[], Optional[Tuple[float, float]]]] = None,
+        patch_viewport_centre: Callable[[], tuple[float, float] | None] | None = None,
     ):
         """Set up the handlers for ``graph``'s canvas.
 
@@ -166,11 +167,11 @@ class VisualLayerHandlers:
         self.canvas_vue = canvas_vue
         self.context = context
 
-        self.node_panels: Dict[str, UINode] = {}
+        self.node_panels: dict[str, UINode] = {}
         # Last visual state emitted per edge. Doubles as the "is this edge
         # already drawn?" registry — membership, not the value, is what
         # ``on_validated`` and ``process_start_reconnect`` test.
-        self.edge_states: Dict[str, EdgeVisualState] = {}
+        self.edge_states: dict[str, EdgeVisualState] = {}
         # True while sync_with_graph_chunked mounts nodes; edges wait until it ends.
         self.mounting = False
         # Set by fit_view_after_validation; the next on_validated fits the view and clears it.
@@ -285,7 +286,7 @@ class VisualLayerHandlers:
         """Fit the viewport once the next validation result has moved and resized the canvas."""
         self._fit_pending = True
 
-    def _canvas_position(self, node: BaseNode) -> Tuple[float, float]:
+    def _canvas_position(self, node: BaseNode) -> tuple[float, float]:
         """Return the node's position on this canvas, the channel origin included."""
         position = node.props.get_position(self.channel)
         if not self.channel.origin:
@@ -325,7 +326,7 @@ class VisualLayerHandlers:
             return len(self.graph.node_wrappers)
         return sum(1 for w in self.graph.node_wrappers.values() if self.channel.includes(w.node.props))
 
-    def content_bounds(self) -> Optional[Tuple[float, float, float, float]]:
+    def content_bounds(self) -> tuple[float, float, float, float] | None:
         """Return ``(min_x, min_y, max_x, max_y)`` around this canvas's nodes, in canvas units.
 
         Reads saved positions, so it works before any card is drawn; each card is
@@ -433,9 +434,9 @@ class VisualLayerHandlers:
 
     async def sync_with_graph_chunked(
         self,
-        on_progress: Optional[Callable[[int, int], None]] = None,
-        on_phase: Optional[Callable[[str], None]] = None,
-        on_nodes_mounted: Optional[Callable[[], None]] = None,
+        on_progress: Callable[[int, int], None] | None = None,
+        on_phase: Callable[[str], None] | None = None,
+        on_nodes_mounted: Callable[[], None] | None = None,
     ) -> None:
         """Mount the graph a node at a time, yielding to the event loop between.
 
@@ -625,7 +626,7 @@ class VisualLayerHandlers:
         edge_count: int,
         *,
         chunked: bool = False,
-        nodes_t: Optional[float] = None,
+        nodes_t: float | None = None,
     ) -> None:
         """Log what the load cost.
 
@@ -679,7 +680,7 @@ class VisualLayerHandlers:
     # Node visual management
     # -------------------------------------------------------------------------
 
-    def add_node_visual(self, node: BaseNode, position: Tuple[float, float] = (100, 100)) -> bool:
+    def add_node_visual(self, node: BaseNode, position: tuple[float, float] = (100, 100)) -> bool:
         """Create and register a UINode for the given node.
 
         Idempotent per node id, mirroring ``remove_node_visual``'s guard.
@@ -773,7 +774,7 @@ class VisualLayerHandlers:
         for node_id in list(self.node_panels.keys()):
             self.remove_node_visual(node_id)
 
-    def update_node_position(self, node_id: str, position: Tuple[float, float]):
+    def update_node_position(self, node_id: str, position: tuple[float, float]):
         """Update a node's visual position and emit a sync event."""
         if node_id not in self.node_panels:
             return
@@ -825,7 +826,7 @@ class VisualLayerHandlers:
     # Edge visual management
     # -------------------------------------------------------------------------
 
-    def _register_edge_visual(self, edge_wrapper: EdgeWrapper) -> Optional[dict]:
+    def _register_edge_visual(self, edge_wrapper: EdgeWrapper) -> dict | None:
         """Record an edge's visual state and return its sync payload.
 
         Registers only — the caller batches the returned payload into the
@@ -844,7 +845,7 @@ class VisualLayerHandlers:
         self.edge_states[edge_id] = state
         return edge_sync_payload(edge_wrapper, state)
 
-    def _refresh_edge_visual(self, edge_id: str) -> Optional[dict]:
+    def _refresh_edge_visual(self, edge_id: str) -> dict | None:
         """Re-run the visual policy for a drawn edge; payload only if it changed.
 
         The unchanged case is the common one — a validation pass marks many
@@ -914,7 +915,7 @@ class VisualLayerHandlers:
         )
         self.canvas_vue.emit_sync_event(sync_event)
 
-    def _make_sole_active_node(self, wrapper: "NodeWrapper") -> None:
+    def _make_sole_active_node(self, wrapper: NodeWrapper) -> None:
         """Make ``wrapper`` the whole selection, and its active (primary) element.
 
         A freshly created node is a single-element, user-initiated change, so it
@@ -1045,9 +1046,9 @@ class VisualLayerHandlers:
             ui.notify("Failed to delete elements", type="warning")
 
     # Class default too, so an instance built without __init__ has no patch canvas to ask.
-    patch_viewport_centre: Optional[Callable[[], Optional[Tuple[float, float]]]] = None
+    patch_viewport_centre: Callable[[], tuple[float, float] | None] | None = None
 
-    def _patch_fallback(self) -> Optional[Tuple[float, float]]:
+    def _patch_fallback(self) -> tuple[float, float] | None:
         """The patch position of a node made on an empty stage, or ``None`` without a patch viewport."""
         if not self.channel.stage or self.patch_viewport_centre is None:
             return None
@@ -1239,10 +1240,9 @@ class VisualLayerHandlers:
         editor = self.route.editor()
         if editor is None:
             return
+        from haybale_graph_editor._promote_flow import EditorPromoteSource, show_promote_flow
         from haywire.core.authoring.targets import authoring_targets
         from haywire.core.di.config import get_library_system
-
-        from haybale_graph_editor._promote_flow import EditorPromoteSource, show_promote_flow
 
         wrapper = self.graph.get_node_wrapper(event.node_id)
         if wrapper is None:
@@ -1289,10 +1289,9 @@ class VisualLayerHandlers:
         editor = self.route.editor()
         if editor is None:
             return
+        from haybale_graph_editor._new_node_flow import EditorNewNodeHost, new_node_flow, show_new_node_flow
         from haywire.core.authoring import is_clone_source
         from haywire.core.di.config import get_library_system
-
-        from haybale_graph_editor._new_node_flow import EditorNewNodeHost, new_node_flow, show_new_node_flow
 
         if self.context is None:
             return

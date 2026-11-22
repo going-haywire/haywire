@@ -4,6 +4,8 @@ Drives the real ``draw()`` against a real SessionContext, so the icon/state
 pairing and the write are caught here rather than in the browser.
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 from unittest.mock import MagicMock
 

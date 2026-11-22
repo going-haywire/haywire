@@ -1,8 +1,16 @@
 """Save Image — write an image to a file in a volume."""
 
-from pathlib import Path, PurePosixPath
-from typing import Any, Optional
+from __future__ import annotations
 
+from pathlib import Path, PurePosixPath
+from typing import Any
+
+from haybale_image.io.codecs import EncodeOptions, encode_image
+from haybale_image.io.formats import FORMAT_BY_EXTENSION, Format, format_for
+from haybale_image.io.placement import IfExists, atomic_write, claim_target
+from haybale_image.io.png_text import FIELDS_KEYWORD, with_text_chunk
+from haybale_image.settings.image_settings import ImageSettings
+from haybale_image.value import ImageValue
 from haywire.api import (
     BOOL,
     EXEC,
@@ -10,11 +18,11 @@ from haywire.api import (
     STRING,
     BaseNode,
     ExecutionContext,
+    MenuWidget,
     NodeSettings,
     NodeType,
     PathWidget,
     ProgressSettings,
-    MenuWidget,
     UiState,
     VolumePath,
     bag,
@@ -25,13 +33,6 @@ from haywire.api import (
     setting,
     shadow,
 )
-
-from haybale_image.io.codecs import EncodeOptions, encode_image
-from haybale_image.io.formats import FORMAT_BY_EXTENSION, Format, format_for
-from haybale_image.io.placement import IfExists, atomic_write, claim_target
-from haybale_image.io.png_text import FIELDS_KEYWORD, with_text_chunk
-from haybale_image.settings.image_settings import ImageSettings
-from haybale_image.value import ImageValue
 
 DEPTH_CHOICES = ("source", "8", "16", "32")
 
@@ -183,13 +184,13 @@ class SaveImageNode(BaseNode):
         )
 
     def post_init(self) -> None:
-        self._shown_format: Optional[Format] = None  # None: every format's settings are shown
+        self._shown_format: Format | None = None  # None: every format's settings are shown
         self.hb_refresh_format_bags(self.value("path"))
 
     def hb_on_path_changed(self, port: Any, value: Any) -> None:
         self.hb_refresh_format_bags(value)
 
-    def hb_refresh_format_bags(self, path: Optional[VolumePath]) -> None:
+    def hb_refresh_format_bags(self, path: VolumePath | None) -> None:
         """Show only the settings of the format ``path``'s extension names.
 
         A path with no or an unknown extension, or ``None``, shows every format's
@@ -231,7 +232,7 @@ class SaveImageNode(BaseNode):
         self.out("saved", _sibling(path, claimed))
         return "next"
 
-    def _fields_text(self, image: ImageValue, fmt: Format) -> Optional[str]:
+    def _fields_text(self, image: ImageValue, fmt: Format) -> str | None:
         """Return the text to store for ``image``'s fields, or ``None`` when none is to be stored.
 
         Raises:
@@ -253,7 +254,7 @@ class SaveImageNode(BaseNode):
         )
 
 
-def _format_or_none(path: Optional[VolumePath]) -> Optional[Format]:
+def _format_or_none(path: VolumePath | None) -> Format | None:
     """The format ``path``'s extension names, or ``None`` for no path or no known extension."""
     if path is None:
         return None

@@ -1,5 +1,7 @@
 """Test the ambient LibraryStateContainer getter."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest
@@ -24,7 +26,7 @@ def test_get_raises_before_set():
 
 
 def test_set_then_get():
-    from haywire.core.di.context import set_library_state_container, get_library_state_container
+    from haywire.core.di.context import get_library_state_container, set_library_state_container
 
     container = MagicMock()
     set_library_state_container(container)

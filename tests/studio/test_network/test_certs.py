@@ -1,5 +1,7 @@
 """The certificate material on disk — key, cert, and reading them back."""
 
+from __future__ import annotations
+
 import ipaddress
 import stat
 
@@ -47,7 +49,7 @@ def test_not_valid_before_is_backdated(names):
     import datetime
 
     cert = sign_cert(generate_key(), names)
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
     assert cert.not_valid_before_utc < now - datetime.timedelta(minutes=30)
 
 

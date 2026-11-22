@@ -1,5 +1,7 @@
 """Unit tests for the studio's error safety net and last-resort hooks."""
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import sys

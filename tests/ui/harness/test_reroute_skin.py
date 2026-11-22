@@ -18,6 +18,8 @@ passes against the bug and earns nothing for its runtime. This test checks the
 edges before growing the card anyway, so that case stays covered.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

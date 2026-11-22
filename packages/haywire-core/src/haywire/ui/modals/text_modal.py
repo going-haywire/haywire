@@ -8,12 +8,13 @@ values can be edited comfortably, then hands the confirmed text back via
 the modal is purely an editing surface and holds no value of its own.
 """
 
-from typing import Callable, Optional
+from __future__ import annotations
+
+from collections.abc import Callable
 
 from nicegui import ui
 
 from haywire.ui import elements as hui
-
 from haywire.ui.components.popup import Popup
 
 
@@ -25,7 +26,7 @@ def text_modal(
     confirm_label: str = "OK",
     width: str = "480px",
     on_confirm: Callable[[str], None],
-    on_cancel: Optional[Callable[[], None]] = None,
+    on_cancel: Callable[[], None] | None = None,
 ) -> Popup:
     """Open a multi-line text editor modal and return the opened :class:`Popup`.
 

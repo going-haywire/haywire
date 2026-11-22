@@ -1,4 +1,6 @@
 # Custom data type for testing
+from __future__ import annotations
+
 from haywire.api import FLOAT, type
 
 

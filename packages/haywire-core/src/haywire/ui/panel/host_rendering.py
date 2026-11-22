@@ -26,10 +26,11 @@ it; ``counting_leaves()`` below is the host-side reader.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from functools import partial
-from typing import TYPE_CHECKING, Any, Callable, Generator
+from typing import TYPE_CHECKING, Any
 
 from haywire.core.access import required_tier
 from haywire.core.errors.haywire_exception import HaywireException
@@ -53,10 +54,10 @@ _render_path: ContextVar[tuple[str, ...]] = ContextVar("_render_path", default=(
 # The panel class whose draw() is on the stack, so content can name the panel
 # that drew it without being passed it. Set by render_panel; read through
 # `drawing_panel()`. Nested panels report the innermost one.
-_drawing_panel: ContextVar[type["BasePanel"] | None] = ContextVar("_drawing_panel", default=None)
+_drawing_panel: ContextVar[type[BasePanel] | None] = ContextVar("_drawing_panel", default=None)
 
 
-def drawing_panel() -> "type[BasePanel] | None":
+def drawing_panel() -> type[BasePanel] | None:
     """The panel class currently drawing, or None outside any panel's draw().
 
     None is an ordinary answer, not an error: settings are also rendered
@@ -123,12 +124,12 @@ def _guarded(
         return None, wrapped
 
 
-def _panel_name(panel_cls: type["BasePanel"]) -> str:
+def _panel_name(panel_cls: type[BasePanel]) -> str:
     """Best-effort display name; tolerates a non-class so the boundary can't crash."""
     return getattr(panel_cls, "__name__", repr(panel_cls))
 
 
-def panel_accessible(panel_cls: type["BasePanel"], ctx: "SessionContext") -> bool:
+def panel_accessible(panel_cls: type[BasePanel], ctx: SessionContext) -> bool:
     """Whether ``ctx``'s principal may see this panel at all.
 
     Checked *before* poll(), deliberately: a denied panel's poll() may read
@@ -142,7 +143,7 @@ def panel_accessible(panel_cls: type["BasePanel"], ctx: "SessionContext") -> boo
     return bool(ctx.can_access(required_tier(panel_cls)))
 
 
-def _poll_panel(panel_cls: type["BasePanel"], ctx: "SessionContext") -> bool:
+def _poll_panel(panel_cls: type[BasePanel], ctx: SessionContext) -> bool:
     """Poll a single panel for visibility under the error boundary.
 
     Returns the panel's reported visibility, or ``False`` if poll() raised —
@@ -157,7 +158,7 @@ def _poll_panel(panel_cls: type["BasePanel"], ctx: "SessionContext") -> bool:
     return err is None and bool(visible)
 
 
-def poll_surface(surface: type["Surface"], context: "SessionContext") -> bool:
+def poll_surface(surface: type[Surface], context: SessionContext) -> bool:
     """Poll a Surface under the same error boundary panels get.
 
     The surface-level twin of :func:`_poll_panel`, with the same false-on-raise
@@ -174,7 +175,7 @@ def poll_surface(surface: type["Surface"], context: "SessionContext") -> bool:
     return err is None and bool(applies)
 
 
-def _implements_draw_disabled(panel_cls: type["BasePanel"]) -> bool:
+def _implements_draw_disabled(panel_cls: type[BasePanel]) -> bool:
     """Whether ``panel_cls`` overrides ``draw_disabled`` rather than inheriting it.
 
     The default is a no-op, and a no-op must not count as "something drew" —
@@ -189,9 +190,9 @@ def _implements_draw_disabled(panel_cls: type["BasePanel"]) -> bool:
 
 
 def partition_panels(
-    panel_classes: list[type["BasePanel"]],
-    context: "SessionContext",
-) -> tuple[list[type["BasePanel"]], list[type["BasePanel"]]]:
+    panel_classes: list[type[BasePanel]],
+    context: SessionContext,
+) -> tuple[list[type[BasePanel]], list[type[BasePanel]]]:
     """Split ``panel_classes`` into ``(applies, disabled)``, both in order.
 
     A panel denied by ``requires=`` is dropped from **both** lists — a greyed
@@ -203,8 +204,8 @@ def partition_panels(
     Hosts render both lists interleaved in ``order`` — never
     applies-then-disabled, or a menu reshuffles as the selection changes.
     """
-    applies: list[type["BasePanel"]] = []
-    disabled: list[type["BasePanel"]] = []
+    applies: list[type[BasePanel]] = []
+    disabled: list[type[BasePanel]] = []
     for cls in panel_classes:
         if not panel_accessible(cls, context):
             continue
@@ -213,9 +214,9 @@ def partition_panels(
 
 
 def visible_panels(
-    panel_classes: list[type["BasePanel"]],
-    context: "SessionContext",
-) -> list[type["BasePanel"]]:
+    panel_classes: list[type[BasePanel]],
+    context: SessionContext,
+) -> list[type[BasePanel]]:
     """Poll-filter ``panel_classes`` down to the panels that apply, in order.
 
     The applicable half of :func:`partition_panels`, kept for hosts that want
@@ -234,11 +235,11 @@ BAND = 100
 
 
 def render_panels(
-    surface: type["Surface"],
-    applies: list[type["BasePanel"]],
-    disabled: list[type["BasePanel"]],
-    context: "SessionContext",
-    layout: "PanelLayout",
+    surface: type[Surface],
+    applies: list[type[BasePanel]],
+    disabled: list[type[BasePanel]],
+    context: SessionContext,
+    layout: PanelLayout,
     *,
     actions_host: object | None = None,
     registry: Any = None,
@@ -282,7 +283,7 @@ def render_panels(
             separator.delete()
 
 
-def _order(panel_cls: type["BasePanel"]) -> int:
+def _order(panel_cls: type[BasePanel]) -> int:
     return getattr(getattr(panel_cls, "class_identity", None), "order", 100)
 
 
@@ -293,9 +294,9 @@ def _child_count(container: Any) -> int:
 
 
 def render_panel(
-    panel_cls: type["BasePanel"],
-    context: "SessionContext",
-    layout: "PanelLayout",
+    panel_cls: type[BasePanel],
+    context: SessionContext,
+    layout: PanelLayout,
     *,
     actions_host: object | None = None,
     registry: Any = None,

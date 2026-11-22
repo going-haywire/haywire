@@ -1,5 +1,7 @@
 """scripts/check_version_changes.py: only a release PR may change a package version."""
 
+from __future__ import annotations
+
 import subprocess
 from pathlib import Path
 

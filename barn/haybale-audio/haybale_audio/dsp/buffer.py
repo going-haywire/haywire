@@ -1,5 +1,7 @@
 """A jitter buffer that turns blocks of any rate and size into frames at a fixed rate."""
 
+from __future__ import annotations
+
 import numpy as np
 
 from haybale_audio.dsp.channels import fit

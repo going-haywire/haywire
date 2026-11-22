@@ -1,8 +1,13 @@
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any
+
 from nicegui import ui
-from typing import Any, Dict, List, Optional, Callable
-from haywire.core.node.info import NodeInfo
-from haywire.core.node.factory import NodeFactory
+
 from haywire.api.workbench import hui
+from haywire.core.node.factory import NodeFactory
+from haywire.core.node.info import NodeInfo
 from haywire.ui.elements.flyout import FlyoutSiblings, flyout_category
 
 #: The macro root as ``_build_menu_tree`` titles it, from the ``macros/<library>``
@@ -24,13 +29,13 @@ class NodeMenuBuilder:
         self,
         node_factory: NodeFactory,
         on_node_selected: Callable[[NodeInfo], None],
-        on_context_click: Optional[Callable[[NodeInfo], None]] = None,
+        on_context_click: Callable[[NodeInfo], None] | None = None,
     ):
         self.node_factory = node_factory
         self._on_node_selected = on_node_selected
         self._on_context_click = on_context_click
-        self._menu_cache: Optional[Dict[str, List[NodeInfo]]] = None
-        self._menu_tree_cache: Optional[Dict] = None
+        self._menu_cache: dict[str, list[NodeInfo]] | None = None
+        self._menu_tree_cache: dict | None = None
 
     def invalidate_cache(self):
         """Invalidate menu caches when nodes are hot-reloaded."""
@@ -39,7 +44,7 @@ class NodeMenuBuilder:
 
     def create_node_menu(
         self,
-        recent_nodes: Optional[List[str]] = None,
+        recent_nodes: list[str] | None = None,
         show_search: bool = True,
     ) -> ui.column:
         """
@@ -158,7 +163,7 @@ class NodeMenuBuilder:
         btn.on("mouseenter", lambda _: tip.run_method("show"))
         btn.on("mouseleave", lambda _: tip.run_method("hide"))
 
-    def _add_recent_nodes_section(self, recent_nodes: List[str], siblings: FlyoutSiblings):
+    def _add_recent_nodes_section(self, recent_nodes: list[str], siblings: FlyoutSiblings):
         """Add a hover-opening flyout submenu for recently created nodes."""
         if not recent_nodes:
             return
@@ -198,7 +203,7 @@ class NodeMenuBuilder:
                 ui.separator()
             self._create_macro_section(macro_tree, siblings)
 
-    def _create_macro_section(self, macro_tree: Dict, siblings: FlyoutSiblings):
+    def _create_macro_section(self, macro_tree: dict, siblings: FlyoutSiblings):
         """Render the ``Macros`` root and one flyout per library beneath it.
 
         Drawn without the folder prefix the node categories carry, so the
@@ -206,8 +211,8 @@ class NodeMenuBuilder:
         filed directly under the root (no library) is drawn as a leaf beside
         the library flyouts.
         """
-        nodes: List[NodeInfo] = macro_tree.get("_nodes", [])
-        libraries: Dict = macro_tree.get("_children", {})
+        nodes: list[NodeInfo] = macro_tree.get("_nodes", [])
+        libraries: dict = macro_tree.get("_children", {})
 
         if not nodes and not libraries:
             return
@@ -222,18 +227,18 @@ class NodeMenuBuilder:
             for library_name, library_data in sorted(libraries.items()):
                 self._create_category_submenu(library_name, library_data, child_siblings)
 
-    def _get_menu_structure(self) -> Dict[str, List[NodeInfo]]:
+    def _get_menu_structure(self) -> dict[str, list[NodeInfo]]:
         """Get menu structure from factory with caching."""
         if self._menu_cache is None:
             self._menu_cache = self.node_factory.get_menu_structure()
         return self._menu_cache
 
-    def _build_menu_tree(self, menu_structure: Dict[str, List[NodeInfo]]) -> Dict:
+    def _build_menu_tree(self, menu_structure: dict[str, list[NodeInfo]]) -> dict:
         """Build hierarchical tree structure from flat menu paths."""
         if self._menu_tree_cache is not None:
             return self._menu_tree_cache
 
-        tree: Dict[str, Any] = {}
+        tree: dict[str, Any] = {}
 
         for menu_path, nodes in menu_structure.items():
             if not nodes:
@@ -263,7 +268,7 @@ class NodeMenuBuilder:
         self._menu_tree_cache = tree
         return tree
 
-    def _create_menu_tree_ui(self, menu_tree: Dict, siblings: FlyoutSiblings):
+    def _create_menu_tree_ui(self, menu_tree: dict, siblings: FlyoutSiblings):
         """Render the menu tree as a category list with nested flyout submenus.
 
         Each category becomes a hover-opening ``flyout_category``; direct nodes
@@ -273,10 +278,10 @@ class NodeMenuBuilder:
         for category_name, category_data in sorted(menu_tree.items()):
             self._create_category_submenu(category_name, category_data, siblings)
 
-    def _create_category_submenu(self, category_name: str, category_data: Dict, siblings: FlyoutSiblings):
+    def _create_category_submenu(self, category_name: str, category_data: dict, siblings: FlyoutSiblings):
         """Render one category as a hover-opening flyout holding its nodes and subcategories."""
-        nodes: List[NodeInfo] = category_data.get("_nodes", [])
-        children: Dict = category_data.get("_children", {})
+        nodes: list[NodeInfo] = category_data.get("_nodes", [])
+        children: dict = category_data.get("_children", {})
 
         if not nodes and not children:
             return

@@ -2,6 +2,8 @@
 Named color constants and unified theme keys for Haywire.
 """
 
+from __future__ import annotations
+
 from typing import Final
 
 

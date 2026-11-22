@@ -4,6 +4,8 @@ The wire and its style bag live here, beside the type, and not in ``wires.py``:
 the bag's fields need builtin types, and every builtin type imports ``wires.py``.
 """
 
+from __future__ import annotations
+
 from haywire.barn.builtin import widget_keys
 from haywire.core.edge.arrow_heads import DEFAULT_HEAD_SIZE, NO_ARROW_HEAD, head_size_choices
 from haywire.core.edge.style import dash_choices

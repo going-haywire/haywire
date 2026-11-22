@@ -1,5 +1,7 @@
 """_copy_button reports success and failure rather than failing silently."""
 
+from __future__ import annotations
+
 import inspect
 
 import pytest

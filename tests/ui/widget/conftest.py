@@ -11,14 +11,12 @@ edges, 11 NumberWidgets each) without tracking stale keys.
 
 from __future__ import annotations
 
-
 from typing import Any, cast
 
 import pytest
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
-
 
 # Lazily-captured persistent NiceGUI default client (see nicegui_slot_context).
 _CLIENT: list = []

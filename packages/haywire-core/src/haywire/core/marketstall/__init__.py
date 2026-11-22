@@ -4,6 +4,8 @@ Implements the section vocabulary ([[markets]], [[stalls]], [[haybales]], [[heap
 [[caches]]), the host-provider abstraction, and the URL resolution/refresh pipeline.
 """
 
+from __future__ import annotations
+
 from haywire.core.marketstall.cache import (
     cache_read,
     cache_write,
@@ -42,27 +44,36 @@ from haywire.core.marketstall.parsing import (
     serialize_project_marketplace,
 )
 from haywire.core.marketstall.platform import current_os, haybale_supports_current_os
-from haywire.core.marketstall.requirement import (
-    haywire_core_requirement,
-    requirement_specifier,
-)
-from haywire.core.marketstall.refresh import (
-    apply_blocked,
-    apply_heaps_shadow,
-    candidate_haybales,
-    dedupe_reporting_collisions,
-    preferred_sources,
-    fetch_sources,
-    mark_stale_against_previous,
-    refresh,
-)
 from haywire.core.marketstall.refresh import (
     # Aliased at the package boundary: bare `apply`/`resolve` are too generic
     # for a namespace that also exports apply_blocked, apply_heaps_shadow, etc.
     apply as apply_refresh,
 )
 from haywire.core.marketstall.refresh import (
+    apply_blocked,
+    apply_heaps_shadow,
+    candidate_haybales,
+    dedupe_reporting_collisions,
+    fetch_sources,
+    mark_stale_against_previous,
+    preferred_sources,
+    refresh,
+)
+from haywire.core.marketstall.refresh import (
     resolve as resolve_catalog,
+)
+from haywire.core.marketstall.requirement import (
+    haywire_core_requirement,
+    requirement_specifier,
+)
+from haywire.core.marketstall.subscribe import (
+    ResolvedSource,
+    SubscribeError,
+    SubscribeResult,
+    SubscriptionKind,
+    resolve_and_subscribe,
+    resolve_source,
+    subscribe,
 )
 from haywire.core.marketstall.types import (
     FetchedSources,
@@ -75,15 +86,6 @@ from haywire.core.marketstall.types import (
     SourceCollision,
     SourceOutcome,
     Subscription,
-)
-from haywire.core.marketstall.subscribe import (
-    ResolvedSource,
-    SubscribeError,
-    SubscribeResult,
-    SubscriptionKind,
-    resolve_and_subscribe,
-    resolve_source,
-    subscribe,
 )
 from haywire.core.marketstall.url_resolution import (
     BareRepoUrlRejectedError,

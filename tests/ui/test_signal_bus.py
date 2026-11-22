@@ -11,20 +11,20 @@
 - Session.cleanup() drops bus subscriptions
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any, ClassVar, cast
 from unittest.mock import MagicMock
 
 import pytest
 
-
-from haywire.core.signals import SignalBus
 from haywire.core.session.session import Session
 from haywire.core.signals import (
-    Signal,
     GraphDataMutated,
+    Signal,
+    SignalBus,
 )
-
 
 # ----------------------------------------------------------------------
 # Test fixtures: lightweight signal types

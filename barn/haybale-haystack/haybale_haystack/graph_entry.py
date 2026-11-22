@@ -13,18 +13,18 @@ import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
+from haybale_graph_editor.protocols import GraphContainer
+from haybale_haystack.settings.graph_run_settings import GraphRunSettings
 from haywire.api.workbench import get_library_state_container
 from haywire.core.execution.compile_result import CompileResult
 from haywire.core.execution.interpreter import Interpreter
-from haybale_graph_editor.protocols import GraphContainer
-from haybale_haystack.settings.graph_run_settings import GraphRunSettings
 
 if TYPE_CHECKING:
+    from haybale_haystack.states.haystack_state import HaystackState
     from haywire.api.workbench import BaseGraph as HaywireGraph
     from haywire.core.graph.editor import Editor
-    from haybale_haystack.states.haystack_state import HaystackState
 
 logger = logging.getLogger(__name__)
 
@@ -74,16 +74,16 @@ class GraphEntry(GraphContainer):
                       undo or redo in between as a change.
     """
 
-    graph: "HaywireGraph"
-    editor: "Editor"
-    path: Optional[Path] = None
+    graph: HaywireGraph
+    editor: Editor
+    path: Path | None = None
     unsaved: bool = False
-    interpreter: Optional["Interpreter"] = field(default=None, repr=False)
-    haystack: "Optional[HaystackState]" = field(default=None, repr=False)
+    interpreter: Interpreter | None = field(default=None, repr=False)
+    haystack: HaystackState | None = field(default=None, repr=False)
     run_settings: GraphRunSettings = field(default_factory=GraphRunSettings)
     kind: EntryKind = EntryKind.GRAPH
-    last_undo_availability: Optional[tuple[bool, bool, int]] = field(default=None, repr=False)
-    _abandoned: list["Interpreter"] = field(default_factory=list, init=False, repr=False)
+    last_undo_availability: tuple[bool, bool, int] | None = field(default=None, repr=False)
+    _abandoned: list[Interpreter] = field(default_factory=list, init=False, repr=False)
     """Stopped Interpreters whose runner threads are still stuck in a node."""
 
     @property
@@ -210,7 +210,7 @@ class GraphEntry(GraphContainer):
         if interpreter is not None and interpreter.has_abandoned_runners():
             self._abandoned.append(interpreter)
 
-    def save(self, save_as: "Optional[Path]" = None) -> "Optional[str]":
+    def save(self, save_as: Path | None = None) -> str | None:
         """Persist this entry via its owning HaystackState.
 
         Implements the :class:`GraphContainer` protocol's save method.

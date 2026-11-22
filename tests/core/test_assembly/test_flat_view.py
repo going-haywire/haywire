@@ -17,7 +17,6 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.graph.subgraph import SubgraphDefinition
 from haywire.core.node.node_wrapper import NodeWrapper
-
 from tests.conftest import make_node
 
 if TYPE_CHECKING:
@@ -34,14 +33,14 @@ _OUTPUT = "haywire-core:node:SubgraphOutputNode"
 _CARD = "haywire-core:node:GraphNode"
 
 
-def _assemble_one(graph: BaseGraph) -> "Flow":
+def _assemble_one(graph: BaseGraph) -> Flow:
     """Assemble ``graph``, asserting it yields exactly one flow."""
     flows = FlowAssemblyManager().assemble_graph(graph)
     assert len(flows) == 1, f"expected one flow, got {len(flows)}"
     return flows[0]
 
 
-def _node_info(graph: BaseGraph, node_id: str) -> "ControlNodeInfo":
+def _node_info(graph: BaseGraph, node_id: str) -> ControlNodeInfo:
     """The assembled flow's info for one control node, narrowed to non-Optional."""
     flow = _assemble_one(graph)
     assert flow.control_graph is not None
@@ -84,8 +83,7 @@ def control_group(graph_with_library_system: BaseGraph):
     The Group's inlet is left unconnected so its own port value is the input —
     a Graph-node owns its port values (decision 11).
     """
-    from haywire.barn.builtin.types import EXEC
-    from haywire.barn.builtin.types import FLOAT
+    from haywire.barn.builtin.types import EXEC, FLOAT
 
     graph = graph_with_library_system
     definition = _definition(graph)
@@ -340,8 +338,7 @@ class TestNesting:
 
     @pytest.fixture
     def nested(self, graph_with_library_system: BaseGraph):
-        from haywire.barn.builtin.types import EXEC
-        from haywire.barn.builtin.types import FLOAT
+        from haywire.barn.builtin.types import EXEC, FLOAT
 
         graph = graph_with_library_system
 

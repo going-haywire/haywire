@@ -1,5 +1,7 @@
 """FIELD_LIST values and the registry's list of types a field can have."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 
 import pytest

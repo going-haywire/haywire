@@ -17,7 +17,6 @@ from haywire.core.undo.actions.graph_actions import ResetSettingAction, SetSetti
 from haywire.core.undo.config import UndoConfig
 from haywire.core.undo.history_manager import ActionGroup, HistoryManager
 from haywire.core.undo.interfaces import IAction
-
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration

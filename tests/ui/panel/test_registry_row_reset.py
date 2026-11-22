@@ -13,6 +13,8 @@ global tier is hand-edited and never written by the app, so the app can only
 ever clear the workspace tier.
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest
@@ -22,7 +24,6 @@ from haywire.barn.builtin.types import STRING
 from haywire.core.settings import SettingsRegistry, setting
 from haywire.core.settings.settings_framework import FrameworkSettings
 from haywire.ui.panel.render_utils import render_schema
-
 from tests.ui.panel.render_ctx import make_render_ctx
 
 pytestmark = pytest.mark.integration

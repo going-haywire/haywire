@@ -4,12 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path, PurePosixPath
+from typing import TYPE_CHECKING
 from urllib.parse import unquote, urlsplit
 
-from typing import TYPE_CHECKING
-
 from haybale_models.keys import HF_VOLUME, MODELS_VOLUME
-
 from haywire.api import CatalogEntry, ModelFile, Resource, VolumeError, VolumePath, volume_location
 
 if TYPE_CHECKING:

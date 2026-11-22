@@ -22,7 +22,6 @@ Run::
 
 from __future__ import annotations
 
-
 import time
 from functools import lru_cache
 

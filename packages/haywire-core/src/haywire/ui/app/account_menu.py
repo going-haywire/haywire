@@ -11,7 +11,7 @@ lives with its Protocol in ``haywire.barn.builtin.surfaces``.
 
 from __future__ import annotations
 
-from typing import Any, Tuple
+from typing import Any
 
 from haywire.barn.builtin.surfaces import AccountActions, AccountMenuSurface
 from haywire.ui.panel.context_menu_base import BaseContextMenuProvider
@@ -22,7 +22,7 @@ __all__ = ["AccountActions", "AccountMenuProvider"]
 class AccountMenuProvider(BaseContextMenuProvider):
     """Opens :class:`AccountMenuSurface` and satisfies :class:`AccountActions`."""
 
-    def open(self, pos: Tuple[float, float]) -> None:
+    def open(self, pos: tuple[float, float]) -> None:
         """Show the menu at ``pos``, or nothing if this principal has no entries."""
         self._open_menu(AccountMenuSurface, pos)
 

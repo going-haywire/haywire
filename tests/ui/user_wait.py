@@ -1,5 +1,7 @@
 """Waiting in NiceGUI user-simulation tests, the counterpart of ``tests.ui.harness.nav.wait_until``."""
 
+from __future__ import annotations
+
 import asyncio
 import time
 from collections.abc import Callable

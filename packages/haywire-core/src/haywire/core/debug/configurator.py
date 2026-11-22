@@ -1,14 +1,15 @@
 # haywire/core/debug/configurator.py
 """Applies DebugSettings log levels to the Python logging hierarchy at runtime."""
 
+from __future__ import annotations
+
 import logging
 
 from ..namespaces import NAMESPACE_LIBRARY_LOG
-
-from .keys import LIBRARY_LOG_LEVEL_FIELD_METATADATA_KEY, lib_id_from_key
-from .debug_settings import GLOBAL_BASELINE_LOG_LEVEL_KEY, DebugSettings
 from ..settings.registry import SettingsRegistry
 from ..settings.value import SettingValue
+from .debug_settings import GLOBAL_BASELINE_LOG_LEVEL_KEY, DebugSettings
+from .keys import LIBRARY_LOG_LEVEL_FIELD_METATADATA_KEY, lib_id_from_key
 
 # Maps DebugSettings attribute name → Python logger namespace
 _GROUP_MAP: dict[str, str] = {
@@ -36,7 +37,7 @@ class LoggingConfigurator:
 
     def __init__(
         self,
-        registry: "SettingsRegistry",
+        registry: SettingsRegistry,
         debug_settings: DebugSettings | None = None,
     ) -> None:
         self._settings: DebugSettings = debug_settings if debug_settings is not None else DebugSettings()
@@ -60,7 +61,7 @@ class LoggingConfigurator:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _attach_registry(self, registry: "SettingsRegistry") -> None:
+    def _attach_registry(self, registry: SettingsRegistry) -> None:
         """
         Scan already-defined library keys (libraries loaded before configurator)
         and apply their levels, then subscribe for future changes.
@@ -75,7 +76,7 @@ class LoggingConfigurator:
                     pass
         registry.subscribe(None, self._on_registry_change)
 
-    def _register_library_from_key(self, key: str, registry: "SettingsRegistry") -> None:
+    def _register_library_from_key(self, key: str, registry: SettingsRegistry) -> None:
         lib_id = lib_id_from_key(key)
         if lib_id and lib_id not in self._library_namespaces:
             defn = registry.get_definition(key)
@@ -125,7 +126,7 @@ class LoggingConfigurator:
         elif name in _GROUP_MAP:
             self._apply_group(_GROUP_MAP[name], str(value) if value else "")
 
-    def _on_registry_change(self, name: str, sv: "SettingValue") -> None:
+    def _on_registry_change(self, name: str, sv: SettingValue) -> None:
         """Callback for SettingsRegistry changes — handle dynamic debug.library.<lib_id>.log_level keys."""
         if not name.startswith(NAMESPACE_LIBRARY_LOG + "."):
             return

@@ -18,8 +18,7 @@ task.
 
 from __future__ import annotations
 
-from haywire.core.publishing import barn
-from haywire.core.publishing import git
+from haywire.core.publishing import barn, git
 from haywire.core.publishing.drift.detect import detect_share_drift
 from haywire.core.publishing.drift.model import DepDrift
 from haywire.core.publishing.drift.report import _format_drift_report

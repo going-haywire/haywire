@@ -1,5 +1,7 @@
 """An array port holding [] is a port with a value, not a port without data."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import FLOAT

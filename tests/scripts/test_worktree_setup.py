@@ -1,5 +1,7 @@
 """The pure parts of scripts/worktree_setup.py: picking a studio port and writing it."""
 
+from __future__ import annotations
+
 from scripts.worktree_setup import FIRST_WORKTREE_PORT, choose_studio_port, studio_port, with_studio_port
 
 

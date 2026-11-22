@@ -1,5 +1,7 @@
 """Canvas props behind edge appearance: the hit padding setting."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.edge.settings import EdgeDefaultSettings

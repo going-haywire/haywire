@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
 from dataclasses import FrozenInstanceError
+
+import pytest
 
 from haywire.core.library.identity import LibraryReloadAction
 from haywire.ui.modals.install_progress_modal import PostInstallHints

@@ -4,6 +4,8 @@ Type aliases for descriptor annotations — purely for IDE hinting.
 At runtime these are just str.
 """
 
+from __future__ import annotations
+
 from typing import NamedTuple
 
 Color = str  # hex or rgba string, implies color-picker widget
@@ -66,6 +68,6 @@ class Mat4(list):
     size = 4
 
 
-def get_vec_meta(type_: type) -> "VecMeta | None":
+def get_vec_meta(type_: type) -> VecMeta | None:
     """Return VecMeta if type_ is a vector type, else None."""
     return _VEC_META.get(type_)

@@ -1,5 +1,7 @@
 """haywire auth — enable/disable/status, each gated on a working admin login."""
 
+from __future__ import annotations
+
 import argparse
 
 import pytest
@@ -89,7 +91,6 @@ def _ready_and_exposed(path, tmp_path):
     """Auth on with an admin, TLS configured, and exposed — the one state in
     which 'auth disable' must be refused."""
     from haywire.core.access import AccessTier
-
     from haywire_studio.auth.passwords import hash_password
     from haywire_studio.security.document import (
         NetworkPolicy,

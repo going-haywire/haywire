@@ -1,5 +1,7 @@
 """A second `share` of the same change is refused; an interrupted one is resumable."""
 
+from __future__ import annotations
+
 import subprocess
 from pathlib import Path
 

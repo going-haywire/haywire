@@ -6,10 +6,12 @@ functionality for all actions, including timing, validation, and
 basic merging logic.
 """
 
+from __future__ import annotations
+
 import time
 import uuid
 from abc import ABC
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ..errors import Refusal
 from .interfaces import IAction
@@ -26,7 +28,7 @@ class ActionBase(IAction, ABC):
     - Error handling utilities
     """
 
-    def __init__(self, description: Optional[str] = None):
+    def __init__(self, description: str | None = None):
         """
         Initialize the base action.
 
@@ -37,7 +39,7 @@ class ActionBase(IAction, ABC):
         self.timestamp = time.time()
         self._description = description
         self._executed = False
-        self._metadata: Dict[str, Any] = {}
+        self._metadata: dict[str, Any] = {}
 
     @property
     def description(self) -> str:
@@ -141,7 +143,7 @@ class ActionBase(IAction, ABC):
         time_diff = abs(self.timestamp - other.timestamp)
         return time_diff < 0.1
 
-    def merge(self, other: IAction) -> Optional[IAction]:
+    def merge(self, other: IAction) -> IAction | None:
         """
         Base merge implementation.
 
@@ -182,7 +184,7 @@ class ActionBase(IAction, ABC):
         """
         return self._metadata.get(key, default)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Serialize the action to a dictionary.
 
@@ -220,7 +222,7 @@ class CompositeAction(ActionBase):
     multiple atomic actions as a single logical operation.
     """
 
-    def __init__(self, actions: list[IAction], description: Optional[str] = None):
+    def __init__(self, actions: list[IAction], description: str | None = None):
         """
         Initialize the composite action.
 

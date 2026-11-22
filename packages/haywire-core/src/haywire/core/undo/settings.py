@@ -1,6 +1,8 @@
 # haywire/core/undo/settings.py
 """User-facing slice of the undo system's configuration."""
 
+from __future__ import annotations
+
 from haywire.barn.builtin.types import INT
 from haywire.core.settings import setting
 from haywire.core.settings.settings_framework import FrameworkSettings

@@ -19,7 +19,7 @@ from collections import deque
 from collections.abc import Collection
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from ..node.layout import PATCH
 from ..types.enums import LayoutDirection
@@ -50,7 +50,7 @@ class ArrangeGaps:
     """Between two unconnected parts of the graph, across the flow (``ArrangeScope.ALL``)."""
 
     @classmethod
-    def from_settings(cls) -> "ArrangeGaps":
+    def from_settings(cls) -> ArrangeGaps:
         """Return the gaps set in ``ArrangeSettings``, or the defaults when settings are not up."""
         try:
             from .arrange_settings import ArrangeSettings
@@ -79,7 +79,7 @@ class ArrangeScope(str, Enum):
     ALL = "all"
 
 
-def connected_nodes(graph: "BaseGraph", node_id: Optional[str], scope: ArrangeScope | str) -> set[str]:
+def connected_nodes(graph: BaseGraph, node_id: str | None, scope: ArrangeScope | str) -> set[str]:
     """Return the ids of the nodes ``scope`` covers from ``node_id``, the start node included.
 
     Every edge counts, control and data alike; a cycle is walked once. ``ALL`` ignores
@@ -122,7 +122,7 @@ def connected_nodes(graph: "BaseGraph", node_id: Optional[str], scope: ArrangeSc
 
 
 def arranged_nodes(
-    graph: "BaseGraph", scope: ArrangeScope | str, start: str | Collection[str] | None
+    graph: BaseGraph, scope: ArrangeScope | str, start: str | Collection[str] | None
 ) -> set[str]:
     """Return the ids of the nodes ``arrange_layout`` covers for ``scope`` and ``start``.
 
@@ -147,7 +147,7 @@ def arranged_nodes(
 
 
 def arrange_layout(
-    graph: "BaseGraph",
+    graph: BaseGraph,
     scope: ArrangeScope | str,
     start: str | Collection[str] | None = None,
     gaps: ArrangeGaps = DEFAULT_GAPS,
@@ -226,7 +226,7 @@ def arrange_layout(
 
 
 def rotated_positions(
-    graph: "BaseGraph", node_ids: Collection[str], clockwise: bool
+    graph: BaseGraph, node_ids: Collection[str], clockwise: bool
 ) -> dict[str, dict[str, float]]:
     """Return the patch positions that turn the layout of ``node_ids`` a quarter turn.
 
@@ -276,12 +276,12 @@ def _starts(start: str | Collection[str] | None) -> list[str]:
     return list(dict.fromkeys(start))
 
 
-def _nodes(graph: "BaseGraph") -> list[str]:
+def _nodes(graph: BaseGraph) -> list[str]:
     """The ids of the graph's nodes, in graph order."""
     return [node_id for node_id, wrapper in graph.node_wrappers.items() if wrapper.node is not None]
 
 
-def _adjacency(graph: "BaseGraph", members) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+def _adjacency(graph: BaseGraph, members) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
     """Successors and predecessors among ``members``, one entry per neighbour, in edge order."""
     succ: dict[str, list[str]] = {n: [] for n in members}
     pred: dict[str, list[str]] = {n: [] for n in members}
@@ -294,24 +294,24 @@ def _adjacency(graph: "BaseGraph", members) -> tuple[dict[str, list[str]], dict[
     return succ, pred
 
 
-def _graph_direction(graph: "BaseGraph") -> LayoutDirection:
+def _graph_direction(graph: BaseGraph) -> LayoutDirection:
     try:
         return LayoutDirection.coerce(graph.props.layout_direction)
     except Exception:
         return LayoutDirection.LEFT_TO_RIGHT
 
 
-def _size(graph: "BaseGraph", node_id: str) -> tuple[float, float]:
+def _size(graph: BaseGraph, node_id: str) -> tuple[float, float]:
     props = graph.node_wrappers[node_id].node.props
     return float(getattr(props, PATCH.width)), float(getattr(props, PATCH.height))
 
 
-def _position(graph: "BaseGraph", node_id: str) -> tuple[float, float]:
+def _position(graph: BaseGraph, node_id: str) -> tuple[float, float]:
     props = graph.node_wrappers[node_id].node.props
     return float(getattr(props, PATCH.x)), float(getattr(props, PATCH.y))
 
 
-def _locked(graph: "BaseGraph", node_id: str) -> bool:
+def _locked(graph: BaseGraph, node_id: str) -> bool:
     return bool(graph.node_wrappers[node_id].node.props.locked)
 
 
@@ -340,7 +340,7 @@ def _components(order: list[str], succ, pred) -> list[list[str]]:
     return components
 
 
-def _ranks(component: list[str], succ, pred, anchor: Optional[str], upstream: bool) -> dict[str, int]:
+def _ranks(component: list[str], succ, pred, anchor: str | None, upstream: bool) -> dict[str, int]:
     """The layer of each node: every edge that is not part of a cycle points to a later layer.
 
     The walk that finds the cycles starts at the anchor (backward for ``upstream``), else at the

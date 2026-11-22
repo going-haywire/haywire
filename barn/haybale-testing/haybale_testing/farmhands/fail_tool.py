@@ -1,5 +1,7 @@
 """Canned failing tool: exercises the structured error contract."""
 
+from __future__ import annotations
+
 from haywire.api.workbench import AccessTier, Farmhand, FarmhandContext, FarmhandError, farmhand
 
 

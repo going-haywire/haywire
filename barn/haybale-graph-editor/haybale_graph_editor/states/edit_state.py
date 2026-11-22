@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional, Set
+from typing import TYPE_CHECKING, Any
 
 from haywire.api.workbench import SessionState, signal_field, state
 
 if TYPE_CHECKING:
+    from haywire.api import DataPort, NodeWrapper
+    from haywire.api.workbench import BaseGraph, RevealGraphInstance
     from haywire.core.edge.edge_wrapper import EdgeWrapper
     from haywire.core.graph.edit_route import EditRoute
-    from haywire.api.workbench import BaseGraph, RevealGraphInstance
-    from haywire.api import DataPort, NodeWrapper
     from haywire.core.undo.actions.graph_actions import ClipboardData
 
 
@@ -16,21 +16,21 @@ if TYPE_CHECKING:
 class EditState(SessionState):
     """Per-session graph-editor state: selection, active items, clipboard."""
 
-    active_graph: Optional["BaseGraph"] = signal_field(None)
-    active_graph_path: Optional[Any] = signal_field(None)
-    active_route: Optional["EditRoute"] = signal_field(None)
+    active_graph: BaseGraph | None = signal_field(None)
+    active_graph_path: Any | None = signal_field(None)
+    active_route: EditRoute | None = signal_field(None)
     """The edit route of the active level for this session; ``None`` before a level is on screen."""
 
-    active_node: Optional["NodeWrapper"] = signal_field(None)
-    active_edge: Optional["EdgeWrapper"] = signal_field(None)
-    active_port: Optional["DataPort"] = signal_field(None)
+    active_node: NodeWrapper | None = signal_field(None)
+    active_edge: EdgeWrapper | None = signal_field(None)
+    active_port: DataPort | None = signal_field(None)
 
-    selected_nodes: Set[str] = signal_field(set())
-    selected_edges: Set[str] = signal_field(set())
+    selected_nodes: set[str] = signal_field(set())
+    selected_edges: set[str] = signal_field(set())
 
-    clipboard: Optional["ClipboardData"] = signal_field(None)
+    clipboard: ClipboardData | None = signal_field(None)
 
-    pending_reveal: Optional["RevealGraphInstance"] = signal_field(None)
+    pending_reveal: RevealGraphInstance | None = signal_field(None)
     """A reveal for a document whose tab is being opened; the new tab carries it out when it draws.
 
     Set only while the ``Reveal`` that opens the tab is being published, and ``None`` otherwise.

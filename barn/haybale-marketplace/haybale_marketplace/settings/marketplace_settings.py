@@ -1,5 +1,7 @@
 """MarketplaceSettings — library-wide settings for installing libraries."""
 
+from __future__ import annotations
+
 from haywire.api import CHOICES, LibrarySettings, setting, settings
 
 #: Suggested ``--torch-backend`` values; any other value uv accepts can be typed in.

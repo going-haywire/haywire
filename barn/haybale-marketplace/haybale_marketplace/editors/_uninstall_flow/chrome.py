@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional
-
-from haywire.ui.components.stepper import Panel, show_step_flow
 
 from haybale_marketplace.editors._uninstall_flow._state import UninstallFlow, UninstallSource
 from haybale_marketplace.editors._uninstall_flow.panels import (
@@ -14,6 +12,7 @@ from haybale_marketplace.editors._uninstall_flow.panels import (
     _panel_removed,
     _panel_selected,
 )
+from haywire.ui.components.stepper import Panel, show_step_flow
 
 
 class ManagerUninstallSource:
@@ -44,7 +43,7 @@ def show_uninstall_flow(
     library_id: str,
     label: str,
     *,
-    workspace_root: Optional[Path] = None,
+    workspace_root: Path | None = None,
     on_done: Callable[[], None] | None = None,
 ) -> UninstallFlow:
     """Open the Uninstall Library flow and return its state machine.

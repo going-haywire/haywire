@@ -22,7 +22,7 @@ class LevelMode(StrEnum):
         """Position in the cumulative order — higher includes lower."""
         return _RANKS[self]
 
-    def satisfies(self, required: "LevelMode") -> bool:
+    def satisfies(self, required: LevelMode) -> bool:
         """True when holding this mode is enough to meet ``required``."""
         return self.rank >= required.rank
 

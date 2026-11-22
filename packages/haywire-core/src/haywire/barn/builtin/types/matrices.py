@@ -1,5 +1,7 @@
 """Transform matrix types, beside the vectors: square, of floats, row by row."""
 
+from __future__ import annotations
+
 from typing import Any, ClassVar
 
 from haywire.barn.builtin import widget_keys
@@ -7,6 +9,7 @@ from haywire.core.settings.types import Mat3, Mat4
 from haywire.core.types import PrimitiveType
 from haywire.core.types import type as type_decorator
 from haywire.core.types.fields import DataField, PrimitiveField
+
 from ..wires import DataWire
 
 

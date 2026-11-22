@@ -5,6 +5,8 @@ and wires the slider into a Float Number off stage. Polled echoes show what the
 number's inlet and the menu's outlet hold, so these assert what reached the model.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page, expect
 

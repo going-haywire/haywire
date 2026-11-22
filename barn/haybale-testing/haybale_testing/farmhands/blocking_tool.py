@@ -1,5 +1,7 @@
 """Blocking tool routed through ctx.offload(): must not stall concurrent requests."""
 
+from __future__ import annotations
+
 import threading
 import time
 

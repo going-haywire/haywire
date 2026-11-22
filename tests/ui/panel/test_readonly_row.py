@@ -1,13 +1,14 @@
 """watch() fields render as disabled (greyed) widgets, not label-only rows.
 ui_state=DISABLED is the general chrome mechanism, applied uniformly."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest
 from nicegui import Client, ui
 
 from haywire.ui.panel.render_utils import render_settings
-
 from tests.ui.panel.render_ctx import make_render_ctx, node_route
 
 pytestmark = pytest.mark.integration

@@ -11,7 +11,6 @@ import pytest
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.types import Propagation
-
 from tests.conftest import make_node
 
 _ADD = "haybale-testing:node:AddFloatProbeNode"
@@ -40,8 +39,8 @@ def linked_pair(graph_with_library_system: BaseGraph):
 @pytest.fixture
 def callback_edge(graph_with_library_system):
     """An event node joined to an emit node by a callback edge."""
-    from haybale_testing.nodes.testbed.callback_event_probe import CallbackEventProbeNode
     from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
+    from haybale_testing.nodes.testbed.callback_event_probe import CallbackEventProbeNode
 
     graph = graph_with_library_system
     event = graph.create_node_wrapper(CallbackEventProbeNode.class_identity.registry_key, position=(0, 0))

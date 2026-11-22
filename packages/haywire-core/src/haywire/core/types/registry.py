@@ -5,14 +5,16 @@ This module provides the TypeRegistry class which handles registration,
 validation, and retrieval of all data types (type variants and custom compound types).
 """
 
-import inspect
-from typing import Optional, Type, Any, cast
+from __future__ import annotations
 
+import inspect
+from typing import Any, cast
+
+from ..library.identity import LibraryIdentity
+from ..registry.base import BaseRegistry
+from .identity import DataTypeIdentity
 from .interface import IType
 from .wire import WireRole, wire_type_of
-from .identity import DataTypeIdentity
-from ..registry.base import BaseRegistry
-from ..library.identity import LibraryIdentity
 
 
 def _is_value_type(cls: type) -> bool:
@@ -78,7 +80,7 @@ class TypeRegistry(BaseRegistry[IType]):
             return False
 
     def _register_class(
-        self, cls: type[IType], library_identity: Optional[LibraryIdentity] = None
+        self, cls: type[IType], library_identity: LibraryIdentity | None = None
     ) -> str | None:
         """
         Register a type class with library metadata.
@@ -195,7 +197,7 @@ class TypeRegistry(BaseRegistry[IType]):
         # For custom compound types, check direct isinstance
         return isinstance(instance, type_cls)
 
-    def resolve_type_from_spec(self, spec: dict) -> Type["IType"]:
+    def resolve_type_from_spec(self, spec: dict) -> type[IType]:
         """
         Resolve a type spec to a fully parameterized type class.
 

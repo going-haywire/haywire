@@ -1,5 +1,7 @@
 """Streaming resampler and the controller that keeps a FIFO's depth steady."""
 
+from __future__ import annotations
+
 import numpy as np
 import samplerate
 

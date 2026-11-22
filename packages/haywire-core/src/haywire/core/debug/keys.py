@@ -5,6 +5,8 @@ Imported by BaseLibrary, LoggingConfigurator, and DebugSettingsPanel so that
 the debug.library.* key structure is never duplicated as bare strings.
 """
 
+from __future__ import annotations
+
 from haywire.core.namespaces import NAMESPACE_LIBRARY_LOG
 
 LIBRARY_LOG_LEVEL_SUFFIX = "log_level"

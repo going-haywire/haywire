@@ -15,6 +15,10 @@ from nicegui import ui
 # bare specifier then fails to resolve.
 from nicegui.elements.sortable.sortable import Sortable as _Sortable  # noqa: F401
 
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import route_for
+from haybale_graph_editor.surfaces import PortInspector
+from haywire.api import PortOrigin
 from haywire.api.workbench import (
     AccessTier,
     ActiveGraphMoved,
@@ -28,13 +32,8 @@ from haywire.api.workbench import (
     set_hover_tip,
     stamp_requires,
 )
-from haywire.api import PortOrigin
 from haywire.ui.skin.pin_render import port_type_name
 from haywire.ui.utils import anchor_cleanup_to_element
-
-from haybale_graph_editor.surfaces import PortInspector
-from haybale_graph_editor.states.edit_state import EditState
-from haybale_graph_editor.states.graph_app_state import route_for
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -101,7 +100,7 @@ class NodePortsPanel(BasePanel):
     (``content.clear()``) and page close (``client.remove_all_elements``).
     """
 
-    def _render_port(self, port, node_id: str, widget_factory, context: "SessionContext") -> None:
+    def _render_port(self, port, node_id: str, widget_factory, context: SessionContext) -> None:
         """Render one port: its name and pen, over its live widget when one applies.
 
         Every row leads with the port's label, so the panel reads the same way
@@ -153,7 +152,7 @@ class NodePortsPanel(BasePanel):
         except Exception:
             hui.error_label(f"Error rendering port '{getattr(port, 'id', '?')}'")
 
-    def _render_port_header(self, port, node_id: str, widget_factory, context: "SessionContext") -> None:
+    def _render_port_header(self, port, node_id: str, widget_factory, context: SessionContext) -> None:
         """The port's name (its id, type and description on the hover tip), the pen and the eye."""
         with ui.row().classes("w-full items-center gap-1 no-wrap px-2 pt-1"):
             name = hui.hint(port.label or port.id).classes("truncate flex-1 min-w-0")
@@ -166,7 +165,7 @@ class NodePortsPanel(BasePanel):
             self._render_pen(port, node_id, widget_factory, context)
             self._render_visibility(port, node_id, context)
 
-    def _render_visibility(self, port, node_id: str, context: "SessionContext") -> None:
+    def _render_visibility(self, port, node_id: str, context: SessionContext) -> None:
         """The eye that hides or shows the port's row on the node card.
 
         On a promoted port it is a greyed, inert eye: its setting is hidden by demoting it.
@@ -183,7 +182,7 @@ class NodePortsPanel(BasePanel):
         stamp_requires(button)
 
     @staticmethod
-    def _toggle_hidden(port, node_id: str, button, context: "SessionContext") -> None:
+    def _toggle_hidden(port, node_id: str, button, context: SessionContext) -> None:
         """Flip the port's ``hidden`` through the edit route as one undo step, and the eye with it.
 
         Does nothing unless the session's edit route hands out an ``Editor`` (level mode edit).
@@ -195,7 +194,7 @@ class NodePortsPanel(BasePanel):
         if editor.set_port_hidden(node_id, port.id, not port.hidden):
             button.props(f"icon={hui.icon.hidden if port.hidden else hui.icon.shown}")
 
-    def _render_pen(self, port, node_id: str, widget_factory, context: "SessionContext") -> None:
+    def _render_pen(self, port, node_id: str, widget_factory, context: SessionContext) -> None:
         """The edit affordance, shown only on ports the user can actually edit."""
         if port.origin is PortOrigin.RESOLVED:
             pen = hui.icon_action(
@@ -205,7 +204,7 @@ class NodePortsPanel(BasePanel):
             )
             stamp_requires(pen)
 
-    def _open_editor(self, port, node_id: str, context: "SessionContext") -> None:
+    def _open_editor(self, port, node_id: str, context: SessionContext) -> None:
         """Open the edit dialog against the graph that is on screen now.
 
         Opens nothing unless the session's edit route at the level on screen hands out
@@ -233,7 +232,7 @@ class NodePortsPanel(BasePanel):
         lane: str,
         node_id: str,
         widget_factory,
-        context: "SessionContext",
+        context: SessionContext,
         parent_fold: str | None = None,
         depth: int = 0,
     ) -> None:
@@ -306,7 +305,7 @@ class NodePortsPanel(BasePanel):
         """
         return f"hw-ports:{node_id}:{lane}:{parent_fold or 'root'}"
 
-    def _on_reorder(self, node, sibling_ids: list[str], event, context: "SessionContext") -> None:
+    def _on_reorder(self, node, sibling_ids: list[str], event, context: SessionContext) -> None:
         """Apply a completed drop: move one id and hand the new order to the node.
 
         Refused, leaving the node's order alone, unless the session's edit route
@@ -340,12 +339,12 @@ class NodePortsPanel(BasePanel):
         editor.reorder_ports(node.node_id, list(sibling_ids))
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return ctx.data[EditState].active_node is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         node = ctx.data[EditState].active_node

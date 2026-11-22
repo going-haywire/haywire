@@ -18,17 +18,6 @@ from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
-from haywire.api.workbench import (
-    AccessTier,
-    BaseEditor,
-    SlotName,
-    confirm_modal,
-    editor,
-    hui,
-    react_on,
-    set_hover_tip,
-)
-from haywire.api import VolumeError, volume_location
 from huggingface_hub.utils import filter_repo_objects
 from nicegui import core, ui
 
@@ -63,11 +52,23 @@ from haybale_models.sources.https import HttpsSource
 from haybale_models.states.models_state import ModelsState
 from haybale_models.status import resource_status
 from haybale_models.store.index import IndexRecord
+from haywire.api import VolumeError, volume_location
+from haywire.api.workbench import (
+    AccessTier,
+    BaseEditor,
+    SlotName,
+    confirm_modal,
+    editor,
+    hui,
+    react_on,
+    set_hover_tip,
+)
 
 if TYPE_CHECKING:
+    from nicegui.element import Element
+
     from haywire.api import CatalogEntry, Resource
     from haywire.api.workbench import EditorWrapper, SessionContext
-    from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
 

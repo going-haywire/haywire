@@ -7,7 +7,6 @@ import argparse
 import pytest
 
 from haywire.core.access import AccessTier
-
 from haywire_studio.cli import networkcmd
 from haywire_studio.security.document import (
     NetworkPolicy,

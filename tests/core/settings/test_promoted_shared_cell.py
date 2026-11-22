@@ -4,6 +4,8 @@ A promoted port borrows the setting's DataField cell by reference, so the
 setting and the port return the same value because they share the cell.
 """
 
+from __future__ import annotations
+
 import pytest
 
 

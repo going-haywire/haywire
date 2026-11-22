@@ -1,5 +1,7 @@
 """Push-based revocation for already-open sockets."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 from haywire_studio.auth.eviction import evict_all, evict_principal

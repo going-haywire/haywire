@@ -1,5 +1,7 @@
 """RerouteNode: port-less default, on_startup port caching, lean worker forward."""
 
+from __future__ import annotations
+
 import pytest
 
 pytestmark = pytest.mark.unit

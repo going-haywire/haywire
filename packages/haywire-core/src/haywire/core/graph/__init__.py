@@ -4,9 +4,10 @@
 ``ValidationManager`` is internal; reach validation through ``BaseGraph``.
 """
 
-from .base import BaseGraph, Variable
+from __future__ import annotations
 
-from .types import ValidationResult, ChangeReason
+from .base import BaseGraph, Variable
+from .types import ChangeReason, ValidationResult
 
 __all__ = [
     "BaseGraph",

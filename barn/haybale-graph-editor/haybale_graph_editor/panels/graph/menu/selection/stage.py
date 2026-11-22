@@ -8,16 +8,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
-
 from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu
+from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
 
 
-def _staged_flags(ctx: "SessionContext") -> list[bool]:
+def _staged_flags(ctx: SessionContext) -> list[bool]:
     """The ``on_stage`` flag of each selected node that exists in the active graph."""
     edit = ctx.data[EditState]
     graph = edit.active_graph
@@ -31,11 +30,11 @@ def _staged_flags(ctx: "SessionContext") -> list[bool]:
     return flags
 
 
-def _selection_has_off_stage(ctx: "SessionContext") -> bool:
+def _selection_has_off_stage(ctx: SessionContext) -> bool:
     return not all(_staged_flags(ctx))
 
 
-def _selection_has_on_stage(ctx: "SessionContext") -> bool:
+def _selection_has_on_stage(ctx: SessionContext) -> bool:
     return any(_staged_flags(ctx))
 
 
@@ -57,10 +56,10 @@ class AddToStageMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _selection_has_off_stage(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             hui.menu_row("Add to Stage", icon=hui.icon.stage_add, on_click=self.actions.add_to_stage)
 
@@ -78,10 +77,10 @@ class RemoveFromStageMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _selection_has_on_stage(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             hui.menu_row(
                 "Remove from Stage",

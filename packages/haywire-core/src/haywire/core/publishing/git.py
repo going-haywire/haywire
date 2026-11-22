@@ -17,9 +17,9 @@ from __future__ import annotations
 import asyncio
 import os
 import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 
 # GIT_CONFIG_NOSYSTEM keeps a system-wide credential helper from re-enabling a
 # prompt we just disabled. The empty askpass values matter as much as the
@@ -151,7 +151,7 @@ async def git_remote_streaming(
 
     try:
         await asyncio.wait_for(_drain(), timeout=timeout)
-    except (TimeoutError, asyncio.TimeoutError):
+    except TimeoutError:
         proc.kill()
         await proc.wait()
         return GitResult(
@@ -203,7 +203,7 @@ async def run_streaming(
 
     try:
         await asyncio.wait_for(_drain(), timeout=timeout)
-    except (TimeoutError, asyncio.TimeoutError):
+    except TimeoutError:
         proc.kill()
         await proc.wait()
         output = "\n".join(lines)

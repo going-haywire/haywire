@@ -1,6 +1,8 @@
 # tests/test_haystack_state_rename.py
+from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
+
 import pytest
 
 

@@ -7,11 +7,12 @@ already holds does NOT re-fire _on_property_change. This pins that guarantee at
 the model layer, independent of the browser.
 """
 
+from __future__ import annotations
+
 import pytest
 
-
-from haywire.core.settings import SettingsRegistry
 from haybale_testing.nodes.testbed.settings_probe import SettingsProbeNode
+from haywire.core.settings import SettingsRegistry
 
 pytestmark = pytest.mark.unit
 

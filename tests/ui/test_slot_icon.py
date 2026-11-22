@@ -1,5 +1,7 @@
 """Tests for IconSlot — the bar-of-icons variant for the ACTION / CONTEXT slots."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from typing import Any, cast
 

@@ -6,6 +6,8 @@ surface's Protocol is its demand on whatever hosts it, and nothing inherits
 one, so every surface states its own (docs/adr/0029-surface-model.md).
 """
 
+from __future__ import annotations
+
 from haybale_graph_editor.surfaces.edge import EdgeActions, EdgeEditMenu, EdgeInspector, EdgeMenu, EdgeStyle
 from haybale_graph_editor.surfaces.graph import GraphInspector
 from haybale_graph_editor.surfaces.graph_context import (

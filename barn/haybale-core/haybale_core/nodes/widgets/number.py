@@ -1,5 +1,7 @@
 """Float Number and Int Number."""
 
+from __future__ import annotations
+
 from typing import Any
 
 from haybale_core.nodes.widgets.base import BaseWidgetNode

@@ -1,6 +1,8 @@
 """Test that the DI providers wire SignalDispatcher + SessionManager
 via DI and ambient context."""
 
+from __future__ import annotations
+
 
 def test_provider_returns_session_manager():
     """The provider returns a SessionManager configured with the container."""

@@ -1,5 +1,7 @@
 """Tests for the @state decorator."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.state import AppState, SessionState, state

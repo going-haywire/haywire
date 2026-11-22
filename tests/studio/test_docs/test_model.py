@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from haywire_studio.packaging.docs.model import ComponentRecord, LibraryDoc
 
 

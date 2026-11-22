@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import re
 
-from haywire.core.types import PrimitiveField
 from haywire.core.graph.base import BaseGraph
+from haywire.core.types import PrimitiveField
 
 
-def graph_to_python_script(graph: "BaseGraph") -> str:
+def graph_to_python_script(graph: BaseGraph) -> str:
     """
     Convert a graph to executable Python script that reconstructs it.
 

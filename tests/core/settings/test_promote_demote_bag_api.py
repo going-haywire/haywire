@@ -8,10 +8,11 @@ primarily for a node's post_init() call sites, e.g.:
         self.my_bag.promote("my_choice_field", PortType.CONFIG)
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.errors import Refusal
-
 from haywire.core.types.enums import PortType
 
 pytestmark = pytest.mark.integration

@@ -1,5 +1,7 @@
 """framework < graph < node skin chain on real nodes."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.di.context import get_settings_registry

@@ -5,6 +5,8 @@ headless path. The annotation and widget-node nodes and skins share it.
 """
 
 #: Font choices, each a family a skin maps to a CSS font stack.
+from __future__ import annotations
+
 FONTS = ("sans", "serif", "mono", "handwriting")
 
 #: CSS font stack of each choice in ``FONTS``.

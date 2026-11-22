@@ -37,7 +37,6 @@ import logging
 from nicegui import ui
 
 from haywire.api.workbench import hui
-
 from haywire.ui.components.popup.popup import Popup
 
 logger = logging.getLogger(__name__)
@@ -46,7 +45,7 @@ logger = logging.getLogger(__name__)
 class GraphLoadModal:
     """Handle for the blocking load overlay. Create via :func:`graph_load_modal`."""
 
-    def __init__(self, popup: Popup, label: "ui.label", bar: "ui.linear_progress", total: int):
+    def __init__(self, popup: Popup, label: ui.label, bar: ui.linear_progress, total: int):
         self._popup = popup
         self._label = label
         self._bar = bar

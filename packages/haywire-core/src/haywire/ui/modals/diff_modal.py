@@ -19,8 +19,10 @@ are disabled and an ``empty_message`` is shown — the caller doesn't need to
 short-circuit before opening.
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from typing import Callable, Optional, Sequence
 
 from nicegui import ui
 
@@ -45,9 +47,9 @@ def diff_modal(
     sections: Sequence[DiffSection],
     primary_label: str,
     on_primary: Callable[[], None],
-    secondary_label: Optional[str] = None,
-    on_secondary: Optional[Callable[[], None]] = None,
-    on_cancel: Optional[Callable[[], None]] = None,
+    secondary_label: str | None = None,
+    on_secondary: Callable[[], None] | None = None,
+    on_cancel: Callable[[], None] | None = None,
     width: str = "480px",
     empty_message: str = "No changes to apply.",
 ) -> Popup:

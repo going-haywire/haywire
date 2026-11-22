@@ -6,13 +6,15 @@ Extends BaseRegistry for hot-reload support, folder scanning, lifecycle
 events, dependency tracking, and snapshot rollback.
 """
 
+from __future__ import annotations
+
 import inspect
 import logging
-from typing import Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
+from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEventCallback
-from haywire.core.library.identity import LibraryIdentity
 
 from .base import BaseEditor
 
@@ -37,7 +39,7 @@ class EditorRegistry(BaseRegistry[BaseEditor]):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self._lifecycle_event_subscribers: Dict[str, List[LifeCycleEventCallback]] = {}
+        self._lifecycle_event_subscribers: dict[str, list[LifeCycleEventCallback]] = {}
 
     def _class_filter(self, cls) -> bool:
         """Return True if cls is a valid, decorated BaseEditor subclass."""
@@ -52,18 +54,18 @@ class EditorRegistry(BaseRegistry[BaseEditor]):
             return False
 
     def _register_class(
-        self, cls: type[BaseEditor], library_identity: Optional[LibraryIdentity] = None
-    ) -> "str | None":
+        self, cls: type[BaseEditor], library_identity: LibraryIdentity | None = None
+    ) -> str | None:
         """Register an editor class by its registry_key."""
         registry_key = cls.class_identity.registry_key
         logger.debug(f"EditorRegistry: Registering '{registry_key}' ({cls.__name__})")
         return super()._register(registry_key, cls, library_identity)
 
-    def _unregister_class(self, registry_key: str) -> "type[BaseEditor] | None":
+    def _unregister_class(self, registry_key: str) -> type[BaseEditor] | None:
         """Unregister an editor class by its registry_key."""
         return super()._unregister(registry_key)
 
-    def get_by_key(self, registry_key: str) -> "type[BaseEditor] | None":
+    def get_by_key(self, registry_key: str) -> type[BaseEditor] | None:
         """Find an editor class by its full registry_key.
 
         Used by AppShell to resolve workspace editor_key strings to actual
@@ -78,7 +80,7 @@ class EditorRegistry(BaseRegistry[BaseEditor]):
         """
         return self._classes.get(registry_key)
 
-    def get_by_default_slot(self, slot: "SlotName | str") -> "Dict[str, type[BaseEditor]]":
+    def get_by_default_slot(self, slot: SlotName | str) -> dict[str, type[BaseEditor]]:
         """Get all editor classes suggested for a given default slot.
 
         Args:

@@ -1,5 +1,7 @@
 """Audio blocks through real flows: Audio Clock, Audio Event, Reblock, Audio Event, Recorder."""
 
+from __future__ import annotations
+
 import importlib
 import time
 from types import SimpleNamespace
@@ -9,7 +11,6 @@ import soundfile as sf
 
 from haywire.core.execution.interpreter import Interpreter
 from haywire.core.graph.base import BaseGraph
-
 from tests.conftest import make_edge, make_node
 from tests.wait import wait_until
 

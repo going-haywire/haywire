@@ -8,8 +8,11 @@ Key changes:
 4. Clean and focused - just overrides what's needed
 """
 
+from __future__ import annotations
+
+import builtins
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Type, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 from haywire.api import CompoundType, DataField, IType, PortType, WireRole, declaring_type_of, type
 
@@ -55,7 +58,7 @@ class POOLED(CompoundType[T]):
     - _configure_port: takes the element's colour and refuses a control element
     """
 
-    field_class: "Optional[Type[DataField]]" = None  # Will be set to PooledField after it's defined
+    field_class: builtins.type[DataField] | None = None  # Will be set to PooledField after it's defined
 
     # ========================================================================
     # HOOKS - Override to customize behavior
@@ -124,8 +127,8 @@ class PooledField(DataField):
         """True when the element type's fields hold absence; ``None`` then removes its source's entry."""
         return self._element_holds_absence
 
-    _sources: Dict[str, Any] = field(default_factory=dict, init=False, repr=False)
-    _default_kwargs: Dict[str, Any] = field(default_factory=dict)
+    _sources: dict[str, Any] = field(default_factory=dict, init=False, repr=False)
+    _default_kwargs: dict[str, Any] = field(default_factory=dict)
     _element_holds_absence: bool = field(default=False, init=False, repr=False)
 
     def __post_init__(self):
@@ -144,7 +147,7 @@ class PooledField(DataField):
         create = getattr(element, "create_field", None)
         self._element_holds_absence = create is not None and create().accepts_absence()
 
-    def get_value(self) -> Dict[str, Any]:
+    def get_value(self) -> dict[str, Any]:
         """
         Get dict of all source values.
 
@@ -198,7 +201,7 @@ class PooledField(DataField):
         if old is not None:
             self.fire(dict(self._sources), old)
 
-    def get_stored_type(self) -> Type[IType]:
+    def get_stored_type(self) -> builtins.type[IType]:
         # other than most other fields, pooled field actually stores the element type
         element_type = self.type_cls.element_type_cls
         assert element_type is not None
@@ -206,9 +209,9 @@ class PooledField(DataField):
         # it holds a plain Python type (float, int, ...). POOLED is a
         # CompoundType, so here it is always an IType subclass — narrow to match
         # the contract every caller relies on (.class_identity / issubclass).
-        return cast(Type[IType], element_type)
+        return cast(builtins.type[IType], element_type)
 
-    def _get_own(self) -> Dict[str, Any]:
+    def _get_own(self) -> dict[str, Any]:
         """Return a copy of the per-source values; a pooled field has no value besides them."""
         return dict(self._sources)
 
@@ -246,7 +249,7 @@ class PooledField(DataField):
             self.is_dirty = True
             self.fire(dict(self._sources), old)
 
-    def get_values_list(self) -> List[Any]:
+    def get_values_list(self) -> list[Any]:
         """
         Get values as list (for iteration).
 
@@ -255,7 +258,7 @@ class PooledField(DataField):
         """
         return list(self._sources.values())
 
-    def get_source_ids(self) -> List[str]:
+    def get_source_ids(self) -> list[str]:
         """
         Get list of source node IDs.
 

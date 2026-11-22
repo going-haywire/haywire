@@ -1,13 +1,14 @@
 # tests/core/test_settings/test_hot_reload.py
 """Tests for SettingsRegistry hot-reload: register_schema / unregister."""
 
+from __future__ import annotations
+
+from haywire.barn.builtin.types import INT, STRING
 from haywire.core.settings import setting
-from haywire.core.settings.settings_framework import FrameworkSettings
-from haywire.core.settings.settings_library import LibrarySettings
 from haywire.core.settings.decorator import settings
 from haywire.core.settings.registry import SettingsRegistry
-from haywire.barn.builtin.types import INT, STRING
-
+from haywire.core.settings.settings_framework import FrameworkSettings
+from haywire.core.settings.settings_library import LibrarySettings
 
 # ---------------------------------------------------------------------------
 # register_schema for FrameworkSettings

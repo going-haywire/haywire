@@ -1,5 +1,7 @@
 """on_reload is stored in its wire form; the enum is reachable for ordering."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest

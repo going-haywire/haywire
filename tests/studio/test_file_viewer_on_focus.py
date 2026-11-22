@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, cast
-
 from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import MagicMock
 
-from haywire.core.session.context import SessionContext
 from haybale_studio.editors.file_viewer import FileViewerEditor
+from haywire.core.session.context import SessionContext
 
 
 def _make_context(existing_active_file=None):

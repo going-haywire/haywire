@@ -1,5 +1,7 @@
 """Tests for the `haywire init` project scaffolding command."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest
@@ -58,7 +60,7 @@ def scaffold_project_dev(tmp_path, monkeypatch, fake_home):
     """Scaffold a project with --dev pointing to this repo."""
     monkeypatch.chdir(tmp_path)
 
-    from haywire_studio.init import init_project, _get_dev_repo_root
+    from haywire_studio.init import _get_dev_repo_root, init_project
 
     init_project("test-project-dev", auto_sync=False, dev_repo=_get_dev_repo_root())
 

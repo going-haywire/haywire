@@ -1,11 +1,12 @@
 """Containers of control and callback elements run end to end (decision Q39)."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.execution.event_source import SystemEventType
 from haywire.core.execution.interpreter import Interpreter
 from haywire.core.types import WireRole
-
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration
@@ -63,7 +64,6 @@ def test_a_pool_of_exec_stays_refused(graph_with_library_system):
     """A pool of EXEC stays refused when a node builds the port, as its `init()` would (Q39)."""
     from haybale_core.types import POOLED
     from haybale_testing.nodes.testbed.container_signal_probes import ArrayExecProbeNode
-
     from haywire.barn.builtin.types import EXEC
 
     node = make_node(

@@ -1,5 +1,7 @@
 """Nested fold probe — a fold holds ports, not other folds, so this raises."""
 
+from __future__ import annotations
+
 from haywire.api import FLOAT, STRING, BaseNode, ExecutionContext, NodeType, node
 
 

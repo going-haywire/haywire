@@ -8,9 +8,9 @@ from __future__ import annotations
 def kind_registry_map() -> dict[str, type]:
     """Registry-key kind segment -> registry class (the component registries + farmhand)."""
     from haywire.core.adapter.registry import AdapterRegistry
+    from haywire.core.catalog.registry import CatalogRegistry
     from haywire.core.farmhand import FarmhandRegistry
     from haywire.core.macro.registry import MacroRegistry
-    from haywire.core.catalog.registry import CatalogRegistry
     from haywire.core.node.registry import NodeRegistry
     from haywire.core.settings import SettingsRegistry
     from haywire.core.state import StateRegistry

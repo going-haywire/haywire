@@ -1,5 +1,7 @@
 """``DataPort.set_widget_config`` — the seam a node changes its widget's config through."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest

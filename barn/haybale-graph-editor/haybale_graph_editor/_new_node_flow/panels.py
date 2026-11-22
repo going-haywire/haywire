@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from nicegui import ui
 
-from haywire.core.node.info import NodeInfo
-from haywire.api.workbench import hui
-from haywire.ui.components.stepper import advance, busy_advance
-
 from haybale_graph_editor._new_node_flow._state import NewNodeFlow
+from haywire.api.workbench import hui
+from haywire.core.node.info import NodeInfo
+from haywire.ui.components.stepper import advance, busy_advance
 
 _NO_TARGET_HELP = (
     "A new node needs a library installed with 'pip install -e' that registers a nodes/ folder and "

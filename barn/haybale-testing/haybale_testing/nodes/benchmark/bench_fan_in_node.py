@@ -4,6 +4,8 @@ Used by the ``graph_data_chain_*`` benchmarks (see ``benchmarks/cases.py``): joi
 branches of the chain. Editing it shifts the baseline; add a new frozen node instead.
 """
 
+from __future__ import annotations
+
 from haywire.api import FLOAT, BaseNode, ExecutionContext, NodeType, node
 
 

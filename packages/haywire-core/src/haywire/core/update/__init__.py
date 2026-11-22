@@ -5,6 +5,8 @@ on the framework it would be updating — so this lives in haywire-core and is
 surfaced by the app shell.
 """
 
+from __future__ import annotations
+
 from haywire.core.update.check import UpdateStatus, check_for_update
 from haywire.core.update.confirmed import (
     UPDATE_EXIT_CODE,

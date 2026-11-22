@@ -6,9 +6,9 @@ from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import MagicMock
 
-from haywire.ui.app.tab_slot import TabSlot
 import pytest
 
+from haywire.ui.app.tab_slot import TabSlot
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.identity import SlotName
 

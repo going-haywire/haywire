@@ -11,6 +11,8 @@ construction time:
 - a serializable widget_config (list/dict options) constructs fine
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest

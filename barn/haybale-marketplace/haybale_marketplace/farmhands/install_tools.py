@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from haybale_marketplace.farmhands.catalog_tools import _library_manager, _progress_cb
 from haywire.api.workbench import (
     AccessTier,
     Farmhand,
@@ -11,8 +12,6 @@ from haywire.api.workbench import (
     ToolAnnotations,
     farmhand,
 )
-
-from haybale_marketplace.farmhands.catalog_tools import _library_manager, _progress_cb
 
 
 @farmhand(

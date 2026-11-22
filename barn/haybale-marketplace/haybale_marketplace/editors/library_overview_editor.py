@@ -13,16 +13,42 @@ SessionContext.active_component on the bus) so that the right-panel
 ComponentDetailEditor can react.
 """
 
+from __future__ import annotations
+
 import asyncio
 import dataclasses
 import logging
+from collections.abc import Callable
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
-from nicegui import ui
-from nicegui import background_tasks
+from nicegui import background_tasks, ui
 
+from haybale_marketplace.editors._overview_actions import (
+    confirm_uninstall,
+    disable_library,
+    enable_library,
+    reload_installed,
+)
+from haybale_marketplace.editors._overview_edit_dialog import build_edit_dialog
+from haybale_marketplace.editors._overview_install_flow import (
+    install_package,
+    install_with_safety_check,
+    open_version_picker,
+)
+from haybale_marketplace.library_origin import LibraryOrigin, compute_library_origin
+from haywire.api import (
+    AdapterRegistry,
+    CatalogRegistry,
+    MacroRegistry,
+    NodeRegistry,
+    SettingsRegistry,
+    SkinRegistry,
+    ThemeRegistry,
+    TypeRegistry,
+    WidgetRegistry,
+)
 from haywire.api.workbench import (
     BaseEditor,
     EditorRegistry,
@@ -37,23 +63,14 @@ from haywire.api.workbench import (
     hui,
     redraw_on,
 )
-from haywire.api import (
-    AdapterRegistry,
-    CatalogRegistry,
-    MacroRegistry,
-    NodeRegistry,
-    SettingsRegistry,
-    SkinRegistry,
-    ThemeRegistry,
-    TypeRegistry,
-    WidgetRegistry,
-)
+from haywire.core.library.haybale import Haybale
+from haywire.core.library.info import LibraryInfo
 from haywire.core.library.utils import (
     ADAPTER,
+    CATALOG,
     EDITOR,
     FARMHAND,
     MACRO,
-    CATALOG,
     NODE,
     PANEL,
     SETTING,
@@ -63,26 +80,8 @@ from haywire.core.library.utils import (
     TYPE,
     WIDGET,
 )
-
-from haywire.core.library.info import LibraryInfo
-from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall.locate import link_form, module_dir_path, resolve_row_path
 from haywire.ui.modals import info_modal
-
-
-from haybale_marketplace.editors._overview_actions import (
-    confirm_uninstall,
-    disable_library,
-    enable_library,
-    reload_installed,
-)
-from haybale_marketplace.editors._overview_edit_dialog import build_edit_dialog
-from haybale_marketplace.library_origin import LibraryOrigin, compute_library_origin
-from haybale_marketplace.editors._overview_install_flow import (
-    install_package,
-    install_with_safety_check,
-    open_version_picker,
-)
 
 if TYPE_CHECKING:
     from nicegui.element import Element
@@ -222,22 +221,22 @@ class LibraryOverviewEditor(BaseEditor):
 
     def __init__(self, wrapper):
         super().__init__(wrapper)
-        self._container: "Element | None" = None
+        self._container: Element | None = None
         # Fixed (non-scrolling) sub-container — header + metadata + tabs bar
-        self._fixed: "ui.column | None" = None
+        self._fixed: ui.column | None = None
         # Scrollable sub-container — tab panels / placeholder
-        self._scroll: "ui.column | None" = None
+        self._scroll: ui.column | None = None
 
     # ─────────────────────────────────────────────────────────────────────────
     # Public editor interface
     # ─────────────────────────────────────────────────────────────────────────
 
     @redraw_on(SessionContext.active_library, LibraryCatalogChanged)
-    def _refresh_on_library_change(self, context: "SessionContext", event) -> None:
+    def _refresh_on_library_change(self, context: SessionContext, event) -> None:
         # Empty body — the decorator triggers wrapper.redraw() after return.
         pass
 
-    def draw(self, context: "SessionContext", container: "Element") -> None:
+    def draw(self, context: SessionContext, container: Element) -> None:
         self._container = container
         self._rebuild(context)
 
@@ -245,7 +244,7 @@ class LibraryOverviewEditor(BaseEditor):
     # Top-level rebuild
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _rebuild(self, context: "SessionContext") -> None:
+    def _rebuild(self, context: SessionContext) -> None:
         if self._container is None:
             return
 
@@ -267,7 +266,7 @@ class LibraryOverviewEditor(BaseEditor):
 
         self._render_center(lib, context)
 
-    def _catalog_row_for(self, info: LibraryInfo, context: "SessionContext") -> Haybale | None:
+    def _catalog_row_for(self, info: LibraryInfo, context: SessionContext) -> Haybale | None:
         """The marketplace [[caches]] entry matching an installed library, if any.
 
         Metadata never comes from here — that is ``info.row``'s job, whatever its
@@ -297,7 +296,7 @@ class LibraryOverviewEditor(BaseEditor):
         except Exception:
             return None
 
-    def _row_by_dist_name(self, dist_name: str, context: "SessionContext") -> Haybale | None:
+    def _row_by_dist_name(self, dist_name: str, context: SessionContext) -> Haybale | None:
         """The marketplace [[caches]] entry for an arbitrary distribution name.
 
         Used to resolve a deprecation notice's ``successor`` to an installable
@@ -336,7 +335,7 @@ class LibraryOverviewEditor(BaseEditor):
         label: str,
         icon: str,
         *,
-        block_reason: "str | None",
+        block_reason: str | None,
         on_click,
         color: str,
         flat: bool = True,
@@ -356,9 +355,9 @@ class LibraryOverviewEditor(BaseEditor):
 
     def _notes_click_target(
         self,
-        installed_lib: "LibraryInfo | None",
+        installed_lib: LibraryInfo | None,
         row: Haybale,
-        context: "SessionContext",
+        context: SessionContext,
     ) -> tuple[Callable[[], None], str] | None:
         """Clicking a local "Notes"  opened an editable in the
         studio's CodeEditor rather than linked out to a remote blob.
@@ -381,9 +380,9 @@ class LibraryOverviewEditor(BaseEditor):
     def _render_deprecation_banner(
         self,
         row: Haybale,
-        installed_lib: "LibraryInfo | None",
+        installed_lib: LibraryInfo | None,
         manager,
-        context: "SessionContext",
+        context: SessionContext,
     ) -> None:
         """A warning banner for a library carrying a ``[deprecated]`` notice.
 
@@ -422,7 +421,7 @@ class LibraryOverviewEditor(BaseEditor):
     # Center panel — unified renderer
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _render_center(self, info: "LibraryInfo", context: "SessionContext"):
+    def _render_center(self, info: LibraryInfo, context: SessionContext):
         """Render one library — installed or merely catalogued.
 
         Takes a single :class:`LibraryInfo`: metadata comes off ``info.row``
@@ -888,7 +887,7 @@ class LibraryOverviewEditor(BaseEditor):
         label: str,
         description: str,
         handler,
-        context: "SessionContext",
+        context: SessionContext,
     ):
         """One clickable component row, plus two shortcut buttons.
 
@@ -933,9 +932,9 @@ class LibraryOverviewEditor(BaseEditor):
     def _component_shortcut(
         icon: str,
         tooltip: str,
-        action: Callable[[str, "SessionContext"], None],
+        action: Callable[[str, SessionContext], None],
         key: str,
-        context: "SessionContext",
+        context: SessionContext,
     ) -> None:
         """An icon button that navigates without also firing the row click.
 
@@ -963,8 +962,8 @@ class LibraryOverviewEditor(BaseEditor):
         self,
         lib: LibraryInfo,
         registry,
-        config: "TabConfig",
-        context: "SessionContext",
+        config: TabConfig,
+        context: SessionContext,
     ):
         if not registry:
             ui.label(f"{config.comp_type.title()} registry not available.").classes(
@@ -996,7 +995,7 @@ class LibraryOverviewEditor(BaseEditor):
     def _select_component(
         self,
         registry_key: str,
-        context: "SessionContext",
+        context: SessionContext,
     ):
         """Set context.active_component (synthetic emit)"""
         context.active_component = registry_key
@@ -1007,7 +1006,7 @@ class LibraryOverviewEditor(BaseEditor):
         identity: dict,
         marketplace_path: str | None,
         manager,
-        context: "SessionContext",
+        context: SessionContext,
     ):
         """Write the edited metadata, then re-render. No reload, no restart."""
         if not marketplace_path:
@@ -1044,7 +1043,7 @@ class LibraryOverviewEditor(BaseEditor):
         pkg: Haybale,
         loading_row,
         content_area,
-        context: "SessionContext",
+        context: SessionContext,
     ):
         """Fetch overview content async and populate the content_area."""
         from haybale_marketplace.states.marketplace_state import MarketplaceState

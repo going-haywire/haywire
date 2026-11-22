@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from haywire.barn.builtin import widget_keys
 
 

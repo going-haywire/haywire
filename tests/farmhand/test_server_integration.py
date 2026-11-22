@@ -1,5 +1,7 @@
 """Served-app integration: capabilities, round-trip, errors, list_changed, affinity, offload, auth."""
 
+from __future__ import annotations
+
 import asyncio
 import json
 import time

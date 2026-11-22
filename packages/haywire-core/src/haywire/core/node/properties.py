@@ -4,18 +4,20 @@ Read and written as ``node.props.locked``, ``node.props.collapsed``, …, and
 serialized under the ``'props'`` key in the graph JSON.
 """
 
-from haywire.core.settings import NodeSettings, setting
-from haywire.core.settings.descriptor import graph
+from __future__ import annotations
+
+from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, FLOAT, INT, STRING
 from haywire.core.graph.properties import GraphProperties
 from haywire.core.node.layout import PATCH, LayoutChannel
+from haywire.core.settings import NodeSettings, setting
+from haywire.core.settings.descriptor import graph
 from haywire.core.skin.settings import (
     _layout_direction_choices,
     _node_detail_choices,
+    _node_theme_choices,
     _patch_skin_choices,
     _stage_skin_choices,
-    _node_theme_choices,
 )
-from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, INT, FLOAT, STRING
 
 
 class NodeProperties(NodeSettings):

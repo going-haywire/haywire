@@ -19,11 +19,12 @@ from pathlib import Path
 
 import huggingface_hub
 import huggingface_hub.utils
-from haybale_models.sources.base import DownloadCancelled
 from huggingface_hub._tree_cache import read_tree_cache
 from huggingface_hub.errors import LocalEntryNotFoundError
 from huggingface_hub.file_download import repo_folder_name
 from huggingface_hub.utils import _shared_blobs
+
+from haybale_models.sources.base import DownloadCancelled
 
 POLL_INTERVAL_S = 0.5
 """Seconds between progress polls of the ``.incomplete`` blob (tests may lower it)."""

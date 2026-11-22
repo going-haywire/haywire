@@ -1,5 +1,7 @@
 """Which wire roles are immediate, and which ports cache it."""
 
+from __future__ import annotations
+
 import pytest
 
 
@@ -46,8 +48,8 @@ class TestPortsCacheImmediacy:
     def test_an_edge_into_a_pooled_callback_inlet_fires_on_change_at_once(
         self, graph_with_library_system, library_system
     ):
-        from haybale_testing.nodes.testbed.callback_event_probe import CallbackEventProbeNode
         from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
+        from haybale_testing.nodes.testbed.callback_event_probe import CallbackEventProbeNode
 
         graph = graph_with_library_system
         event = graph.create_node_wrapper(

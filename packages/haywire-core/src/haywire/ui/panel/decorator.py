@@ -49,8 +49,8 @@ from haywire.core.library.utils import PANEL, derive_library_identity, reg_key
 from haywire.core.session.handlers import validate_signal_types
 from haywire.ui.surface import Surface
 
-from .identity import PanelIdentity
 from .base import BasePanel
+from .identity import PanelIdentity
 
 
 def panel(**kwargs: Any):

@@ -125,12 +125,12 @@ class _FakeButton:
         self.cls: set[str] = set()
         self.pressed = ""
 
-    def classes(self, add: str | None = None, remove: str | None = None) -> "_FakeButton":
+    def classes(self, add: str | None = None, remove: str | None = None) -> _FakeButton:
         self.cls -= set((remove or "").split())
         self.cls |= set((add or "").split())
         return self
 
-    def props(self, text: str) -> "_FakeButton":
+    def props(self, text: str) -> _FakeButton:
         self.pressed = text.split("=", 1)[1]
         return self
 

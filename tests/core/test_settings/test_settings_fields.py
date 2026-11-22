@@ -7,11 +7,13 @@ operations off the bag's attribute namespace, which belongs to the author's
 fields.
 """
 
+from __future__ import annotations
+
 import pytest
 
+from haywire.barn.builtin.types import BOOL, INT
 from haywire.core.di.test_config import create_test_settings_registry
 from haywire.core.settings import NodeSettings, setting, settings_fields
-from haywire.barn.builtin.types import BOOL, INT
 
 pytestmark = [pytest.mark.unit, pytest.mark.core]
 

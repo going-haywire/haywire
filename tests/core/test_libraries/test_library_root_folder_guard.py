@@ -10,6 +10,8 @@ The convention holds across every library today (they all register subfolders).
 The assertion turns a silent future breakage into an error at registration.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest

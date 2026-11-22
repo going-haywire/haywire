@@ -5,6 +5,8 @@ what reached the model, not what a control displays. The text echo is
 ``"<value>|<writes>"``.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page, expect
 

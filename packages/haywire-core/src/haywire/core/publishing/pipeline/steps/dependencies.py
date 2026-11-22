@@ -33,11 +33,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from haywire.core.library.haybale_toml import HAYBALE_TOML, union_linked_libraries
 from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.library.dep_edit import add_dependencies, remove_dependencies, set_dependency
+from haywire.core.library.haybale_toml import HAYBALE_TOML, union_linked_libraries
 from haywire.core.marketstall.requirement import CORE
-
 from haywire.core.publishing.pipeline.errors import ManifestError
 from haywire.core.publishing.pipeline.fixes import _MANIFEST_FAILURE_TYPES
 from haywire.core.publishing.pipeline.steps.framework import parse_specifier
@@ -46,7 +45,7 @@ if TYPE_CHECKING:
     from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 
-def apply_framework(pipeline: "SharePipeline", specifier: str) -> list[Path]:
+def apply_framework(pipeline: SharePipeline, specifier: str) -> list[Path]:
     """Write *specifier* as the ``haywire-core`` floor in every barn library.
 
     Touches exactly one entry per file. The marketstall's ``require`` is
@@ -68,7 +67,7 @@ def apply_framework(pipeline: "SharePipeline", specifier: str) -> list[Path]:
     return pipeline.record(written)
 
 
-def apply_removals(pipeline: "SharePipeline", removals: dict[Path, list[str]]) -> list[Path]:
+def apply_removals(pipeline: SharePipeline, removals: dict[Path, list[str]]) -> list[Path]:
     """Drop the named distributions from each library's pyproject.
 
     *removals* maps a barn library dir to the distribution names the author
@@ -88,7 +87,7 @@ def apply_removals(pipeline: "SharePipeline", removals: dict[Path, list[str]]) -
 
 
 def apply_additions(
-    pipeline: "SharePipeline",
+    pipeline: SharePipeline,
     pyproject_entries: dict[Path, list[str]],
 ) -> list[Path]:
     """Declare the imported distributions the pyproject omits.
@@ -115,9 +114,7 @@ def apply_additions(
     return pipeline.record(written)
 
 
-def apply_linked_registrations(
-    pipeline: "SharePipeline", registrations: dict[Path, list[str]]
-) -> list[Path]:
+def apply_linked_registrations(pipeline: SharePipeline, registrations: dict[Path, list[str]]) -> list[Path]:
     """Add imported haywire libraries to ``haybale.toml``'s ``linked_libraries``.
 
     Applied automatically — the author is told, never asked. There is nothing
@@ -152,7 +149,7 @@ def apply_linked_registrations(
     return pipeline.record(written)
 
 
-def apply_floors(pipeline: "SharePipeline", floors: dict[Path, list[str]]) -> list[Path]:
+def apply_floors(pipeline: SharePipeline, floors: dict[Path, list[str]]) -> list[Path]:
     """Rewrite the specifiers the author chose to change on the floors screen.
 
     *floors* maps a library dir to fully-formed entries replacing the declared

@@ -1,6 +1,8 @@
 # haybale_testing/settings/testing.py
 """Library-level settings for the testing library."""
 
+from __future__ import annotations
+
 from haywire.api import (
     BOOL,
     CHOICES,

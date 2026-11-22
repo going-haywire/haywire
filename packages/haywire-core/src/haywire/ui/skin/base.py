@@ -1,22 +1,23 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable, ClassVar
 import logging
+from abc import ABC, abstractmethod
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, ClassVar
 
 import nicegui.ui as ui
 
 from haywire.core.access import LevelMode
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.types import DataPort
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.registry.identity import BaseIdentity
+from haywire.core.types import DataPort
 
 from .. import elements as hui
 from ..access_stamp import stamp_requires
-from ..widget.interface import IWidget
 from ..widget.factory_interface import IWidgetFactory
+from ..widget.interface import IWidget
 from ..widget.sizing import stamp_size_declaration
 from .nodecard import UINodeCard
 from .pin_icons import DEFAULT_PIN_ICONS, PinIconResolver
@@ -187,8 +188,8 @@ class BaseSkin(ABC):
 
     def _render_diagnostics_button(
         self,
-        errors: list["HaywireException"],
-        warnings: list["NodeWarning"],
+        errors: list[HaywireException],
+        warnings: list[NodeWarning],
         node_id: str,
         deprecation_str: str = "",
     ) -> None:

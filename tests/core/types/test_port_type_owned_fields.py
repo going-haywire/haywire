@@ -8,7 +8,6 @@ from haywire.barn.builtin.types import FLOAT
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import ThreadingTimerScheduler
 from haywire.core.types.port import DataPort
-
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration

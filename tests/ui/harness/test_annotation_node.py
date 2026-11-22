@@ -1,5 +1,7 @@
 """The annotation node in a browser: centred pins on four sides, hover-only slots, drops, text edit."""
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

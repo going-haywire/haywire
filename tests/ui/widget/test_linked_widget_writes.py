@@ -1,5 +1,7 @@
 """A widget on a linked inlet shows the linked value and refuses writes; the view snaps back."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest

@@ -1,11 +1,12 @@
 """A VISUAL wire crosses a Group boundary like any other wire type (decision Q41)."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.graph.subgraph import SubgraphDefinition
 from haywire.core.types import WireRole
 from haywire.core.undo.actions.graph_actions import CollapseToGraphNodeAction
-
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration

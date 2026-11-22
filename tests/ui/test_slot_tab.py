@@ -1,5 +1,7 @@
 """Tests for TabSlot — the tabbed variant for the EDIT / INFO slots."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -124,8 +126,8 @@ class _FakeContainer:
 
 
 def _install_ui_fakes(monkeypatch):
-    from haywire.ui.app import tab_slot as mod
     from haywire.ui.app import slot as slot_mod
+    from haywire.ui.app import tab_slot as mod
 
     created = []
 

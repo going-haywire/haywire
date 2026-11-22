@@ -1,5 +1,7 @@
 """Farmhand activity tracking — the record store, and what the presence row reads off it."""
 
+from __future__ import annotations
+
 import json
 from unittest.mock import MagicMock
 

@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-
 _MARKER_START = "<!-- marketstall:share-url:start -->"
 _MARKER_END = "<!-- marketstall:share-url:end -->"
 
@@ -87,8 +86,8 @@ def test_share_save_updates_root_readme(tmp_path: Path) -> None:
     """End-to-end: write_marketstall rewrites the root README's marker block."""
     from unittest.mock import patch
 
-    from haywire.core.publishing import write_marketstall
     from haywire.core.publishing import url as share_url
+    from haywire.core.publishing import write_marketstall
 
     # Scaffold: root README + one barn library.
     (tmp_path / ".git").mkdir()
@@ -113,8 +112,8 @@ def test_share_save_with_tag_writes_both_links_to_readme(tmp_path: Path) -> None
     """End-to-end: passing tag= gives the README a branch-live AND a frozen link."""
     from unittest.mock import patch
 
-    from haywire.core.publishing import write_marketstall
     from haywire.core.publishing import url as share_url
+    from haywire.core.publishing import write_marketstall
 
     (tmp_path / ".git").mkdir()
     (tmp_path / "README.md").write_text(f"# Project\n\n{_MARKER_START}\n*placeholder*\n{_MARKER_END}\n")
@@ -141,8 +140,8 @@ def test_share_save_with_tag_writes_both_links_to_readme(tmp_path: Path) -> None
 def test_share_save_updates_barn_library_readme(tmp_path: Path) -> None:
     from unittest.mock import patch
 
-    from haywire.core.publishing import write_marketstall
     from haywire.core.publishing import url as share_url
+    from haywire.core.publishing import write_marketstall
 
     (tmp_path / ".git").mkdir()
     lib_dir = tmp_path / "barn" / "haybale-foo"
@@ -165,8 +164,8 @@ def test_share_save_no_update_readme_flag_suppresses(tmp_path: Path) -> None:
     """--no-update-readme leaves all READMEs untouched."""
     from unittest.mock import patch
 
-    from haywire.core.publishing import write_marketstall
     from haywire.core.publishing import url as share_url
+    from haywire.core.publishing import write_marketstall
 
     (tmp_path / ".git").mkdir()
     (tmp_path / "README.md").write_text(f"{_MARKER_START}\n*placeholder*\n{_MARKER_END}\n")
@@ -188,8 +187,8 @@ def test_share_save_no_share_url_skips_readme_update(tmp_path: Path) -> None:
     """When share URL can't be derived (no remote), READMEs are not touched."""
     from unittest.mock import patch
 
-    from haywire.core.publishing import write_marketstall
     from haywire.core.publishing import url as share_url
+    from haywire.core.publishing import write_marketstall
 
     (tmp_path / ".git").mkdir()
     (tmp_path / "README.md").write_text(f"{_MARKER_START}\n*placeholder*\n{_MARKER_END}\n")
@@ -211,8 +210,8 @@ def test_share_save_finds_case_insensitive_readme(tmp_path: Path) -> None:
     """Per spec §6.6: 'Readme.md' (case variant) is found if README.md is absent."""
     from unittest.mock import patch
 
-    from haywire.core.publishing import write_marketstall
     from haywire.core.publishing import url as share_url
+    from haywire.core.publishing import write_marketstall
 
     (tmp_path / ".git").mkdir()
     (tmp_path / "Readme.md").write_text(  # lowercase 'e', capital 'R'

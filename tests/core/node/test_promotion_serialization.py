@@ -13,6 +13,8 @@ field "example_float") via the graph_with_library_system/library_system fixtures
 same pattern as the sibling promotion test files in this directory.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.node.promotion import demote_setting, is_field_promoted, promote_setting

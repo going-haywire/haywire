@@ -11,16 +11,14 @@ from types import SimpleNamespace
 from typing import cast
 
 from haybale_models.download import DownloadQueue
+from haybale_models.resolver import FetchSpec
 from haybale_models.sources import SourceSet
 from haybale_models.sources.folder import TorchHubSource
 from haybale_models.sources.https import HttpsSource
 from haybale_models.store.index import ModelIndex
 from haybale_models.store.records import FetchRecord, FetchRecords
-from haybale_models.resolver import FetchSpec
-
 from haywire.core.catalog import CatalogEntry, ModelFile, Resource
 from haywire.core.volumes import VolumeStore, volume_location
-
 from tests.wait import wait_until
 
 VOLUME = "haybale-models:volume:torchhub"

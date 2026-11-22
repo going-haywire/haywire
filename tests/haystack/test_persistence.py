@@ -1,8 +1,9 @@
 """Persistence — free functions for per-haystack TOML I/O."""
 
+from __future__ import annotations
+
 from pathlib import Path
 from unittest.mock import MagicMock
-
 
 import pytest
 
@@ -21,8 +22,8 @@ def tmp_workspace(tmp_path):
 
 
 def test_dump_haystack_writes_toml_at_expected_path(tmp_workspace):
-    from haybale_haystack.persistence import dump_haystack
     from haybale_haystack.graph_entry import GraphEntry
+    from haybale_haystack.persistence import dump_haystack
 
     g = MagicMock()
     p = tmp_workspace / "graphs" / "test.haywire"
@@ -42,8 +43,8 @@ def test_dump_haystack_writes_toml_at_expected_path(tmp_workspace):
 
 def test_dump_creates_haystacks_dir_if_missing(tmp_path):
     """haystacks/ dir is created on demand when it doesn't exist yet."""
-    from haybale_haystack.persistence import dump_haystack
     from haybale_haystack.graph_entry import GraphEntry
+    from haybale_haystack.persistence import dump_haystack
 
     (tmp_path / "graphs").mkdir()
     p = tmp_path / "graphs" / "x.haywire"
@@ -60,8 +61,8 @@ def test_dump_creates_haystacks_dir_if_missing(tmp_path):
 
 def test_dump_skips_unsaved_entries(tmp_workspace):
     """Entries with path=None (untitled) are excluded from the TOML."""
-    from haybale_haystack.persistence import dump_haystack
     from haybale_haystack.graph_entry import GraphEntry
+    from haybale_haystack.persistence import dump_haystack
 
     entry_unsaved = GraphEntry(graph=MagicMock(), editor=MagicMock(), path=None, unsaved=True)
 
@@ -77,8 +78,8 @@ def test_dump_skips_unsaved_entries(tmp_workspace):
 
 
 def test_dump_includes_execute_flag_for_running_entries(tmp_workspace):
-    from haybale_haystack.persistence import dump_haystack
     from haybale_haystack.graph_entry import GraphEntry
+    from haybale_haystack.persistence import dump_haystack
 
     g = MagicMock()
     p = tmp_workspace / "graphs" / "running.haywire"
@@ -104,8 +105,8 @@ def test_dump_includes_execute_flag_for_running_entries(tmp_workspace):
 
 def test_dump_stores_active_graph_as_relative_path(tmp_workspace):
     """active_path is stored under haystack.active_graph as a relative path."""
-    from haybale_haystack.persistence import dump_haystack
     from haybale_haystack.graph_entry import GraphEntry
+    from haybale_haystack.persistence import dump_haystack
 
     p = tmp_workspace / "graphs" / "active.haywire"
     p.write_text("")
@@ -139,8 +140,8 @@ def test_dump_omits_active_graph_key_when_none(tmp_workspace):
 
 def test_dump_stores_paths_relative_to_workspace(tmp_workspace):
     """Graph paths in TOML are relative to workspace_root, not absolute."""
-    from haybale_haystack.persistence import dump_haystack
     from haybale_haystack.graph_entry import GraphEntry
+    from haybale_haystack.persistence import dump_haystack
 
     p = tmp_workspace / "graphs" / "sub.haywire"
     p.write_text("")
@@ -174,6 +175,7 @@ def test_load_haystack_returns_none_for_missing_file(tmp_workspace):
 def test_load_haystack_skips_missing_graphs(tmp_workspace):
     """Graphs listed in the TOML that no longer exist on disk are skipped."""
     import toml
+
     from haybale_haystack.persistence import load_haystack
 
     toml_data = {
@@ -192,6 +194,7 @@ def test_load_haystack_skips_missing_graphs(tmp_workspace):
 def test_load_haystack_opens_existing_graphs(tmp_workspace):
     """Graphs that exist on disk are opened via state.open_graph."""
     import toml
+
     from haybale_haystack.persistence import load_haystack
 
     p = tmp_workspace / "graphs" / "real.haywire"
@@ -211,6 +214,7 @@ def test_load_haystack_opens_existing_graphs(tmp_workspace):
 def test_load_haystack_starts_execution_when_flag_set(tmp_workspace):
     """Graphs with execute=true have start_execution() called on their entry."""
     import toml
+
     from haybale_haystack.persistence import load_haystack
 
     p = tmp_workspace / "graphs" / "exec.haywire"
@@ -233,6 +237,7 @@ def test_load_haystack_starts_execution_when_flag_set(tmp_workspace):
 def test_load_haystack_returns_active_path(tmp_workspace):
     """load_haystack returns the active_graph path (absolute) when present."""
     import toml
+
     from haybale_haystack.persistence import load_haystack
 
     p = tmp_workspace / "graphs" / "act.haywire"
@@ -300,8 +305,9 @@ def test_delete_haystack_returns_false_for_missing(tmp_workspace):
 
 
 def test_rename_haystack_moves_file(tmp_workspace):
-    from haybale_haystack.persistence import rename_haystack
     import toml
+
+    from haybale_haystack.persistence import rename_haystack
 
     toml_data = {"haystack": {"name": "old"}, "graphs": []}
     (tmp_workspace / "haystacks" / "old.toml").write_text(toml.dumps(toml_data))
@@ -314,8 +320,9 @@ def test_rename_haystack_moves_file(tmp_workspace):
 
 def test_rename_haystack_updates_name_in_toml(tmp_workspace):
     """The name field inside the TOML is updated to the new name."""
-    from haybale_haystack.persistence import rename_haystack
     import toml
+
+    from haybale_haystack.persistence import rename_haystack
 
     toml_data = {"haystack": {"name": "old"}, "graphs": []}
     (tmp_workspace / "haystacks" / "old.toml").write_text(toml.dumps(toml_data))
@@ -348,8 +355,9 @@ def test_rename_haystack_returns_false_when_dst_exists(tmp_workspace):
 
 def test_dump_writes_run_table_when_autorestart_set(tmp_workspace):
     import toml
-    from haybale_haystack.persistence import dump_haystack
+
     from haybale_haystack.graph_entry import GraphEntry
+    from haybale_haystack.persistence import dump_haystack
 
     p = tmp_workspace / "graphs" / "r.haywire"
     p.write_text("")
@@ -368,8 +376,9 @@ def test_dump_writes_run_table_when_autorestart_set(tmp_workspace):
 
 def test_dump_omits_run_table_when_default(tmp_workspace):
     import toml
-    from haybale_haystack.persistence import dump_haystack
+
     from haybale_haystack.graph_entry import GraphEntry
+    from haybale_haystack.persistence import dump_haystack
 
     p = tmp_workspace / "graphs" / "d.haywire"
     p.write_text("")
@@ -388,8 +397,9 @@ def test_dump_omits_run_table_when_default(tmp_workspace):
 def test_load_restores_autorestart_onto_entry(tmp_workspace):
     """load_haystack applies the [graphs.run] table to entry.run_settings."""
     import toml
-    from haybale_haystack.persistence import load_haystack
+
     from haybale_haystack.graph_entry import GraphEntry
+    from haybale_haystack.persistence import load_haystack
 
     gpath = tmp_workspace / "graphs" / "g.haywire"
     gpath.write_text("")
@@ -418,8 +428,9 @@ def test_load_restores_autorestart_onto_entry(tmp_workspace):
 def test_load_tolerates_missing_run_table(tmp_workspace):
     """Old haystacks without [graphs.run] load with defaults, no error."""
     import toml
-    from haybale_haystack.persistence import load_haystack
+
     from haybale_haystack.graph_entry import GraphEntry
+    from haybale_haystack.persistence import load_haystack
 
     gpath = tmp_workspace / "graphs" / "g2.haywire"
     gpath.write_text("")
@@ -442,9 +453,11 @@ def test_load_skips_graph_whose_autostart_fails(tmp_workspace, caplog):
     """A graph marked execute=true that fails to compile is skipped, not fatal,
     and loading continues for the rest."""
     import logging
+
     import toml
-    from haybale_haystack.persistence import load_haystack
+
     from haybale_haystack.graph_entry import GraphEntry
+    from haybale_haystack.persistence import load_haystack
     from haywire.core.execution.compile_result import CompileResult
 
     g1 = tmp_workspace / "graphs" / "ok.haywire"

@@ -4,6 +4,8 @@ Covers the SplitEdgeWithRerouteAction composite (child structure + real
 execution against a live graph) and the editor entry point.
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest
@@ -38,9 +40,9 @@ def test_split_action_resolves_outlet_type_and_builds_children():
     """Construction resolves the outlet IType and builds the 5 child actions in
     order: remove edge -> add node -> add ports -> two add-edges."""
     from haywire.core.undo.actions.graph_actions import (
-        RemoveElementsAction,
-        AddNodeAction,
         AddEdgeAction,
+        AddNodeAction,
+        RemoveElementsAction,
         _AddReroutePortsAction,
     )
 
@@ -222,9 +224,9 @@ def _reroute_validator_with_ports(ports):
     Each port is (port_type, wire_type, has_pin).
     """
     from haywire.barn.builtin import wires
-    from haywire.core.validation.structural_validator import StructuralValidator
     from haywire.core.node.behavior import NodeBehaviorFlags, NodeType
     from haywire.core.types.enums import PortType
+    from haywire.core.validation.structural_validator import StructuralValidator
 
     class _Port:
         def __init__(self, port_type, wire_type, has_pin):
@@ -402,10 +404,10 @@ class TestSplitEdgeRerouteIntegration:
 
     def test_split_control_edge_inserts_reroute(self, graph_with_library_system, library_system):
         """Splitting a CONTROL edge inserts a reroute with EXEC inlet/outlet."""
-        from haywire.barn.builtin.types import EXEC
-        from haywire.core.undo.actions.graph_actions import SplitEdgeWithRerouteAction
         from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
         from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
+        from haywire.barn.builtin.types import EXEC
+        from haywire.core.undo.actions.graph_actions import SplitEdgeWithRerouteAction
 
         graph = graph_with_library_system
 

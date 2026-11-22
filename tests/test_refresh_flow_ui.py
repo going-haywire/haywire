@@ -5,6 +5,8 @@ cache is not written until the final step, so a user who reads the fetch
 result and closes the popup changes nothing.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from unittest.mock import patch
 

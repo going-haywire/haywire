@@ -5,6 +5,8 @@ skin. Loaded at Priority 1 before any entry-point plugin, so that
 resolve when graphs and plugins reference them.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary

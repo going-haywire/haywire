@@ -9,6 +9,8 @@ Swapping the Group's card for a placement is the caller's to do, as one
 undoable action group; this module owns the file.
 """
 
+from __future__ import annotations
+
 import json
 import re
 import unicodedata

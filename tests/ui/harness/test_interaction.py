@@ -3,6 +3,8 @@ Interaction tests: verify value write/read-back, mirror indicator (• prefix),
 and the Reset item in the row's right-click Setting-row menu.
 """
 
+from __future__ import annotations
+
 import re
 
 import pytest

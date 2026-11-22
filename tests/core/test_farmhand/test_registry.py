@@ -1,5 +1,7 @@
 """FarmhandRegistry: class filter, register/lookup, lifecycle event surface."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.farmhand import Farmhand, FarmhandRegistry, ToolAnnotations

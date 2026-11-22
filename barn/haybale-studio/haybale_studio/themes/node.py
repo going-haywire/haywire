@@ -5,6 +5,8 @@ Hot-reloadable: edit this file in an editable install and ThemeRegistry
 will update automatically on the next library reload cycle.
 """
 
+from __future__ import annotations
+
 from haywire.api import BaseTheme, theme
 
 

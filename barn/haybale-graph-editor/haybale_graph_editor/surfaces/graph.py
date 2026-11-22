@@ -19,7 +19,7 @@ class GraphInspector(Surface):
     presentation = Presentation(label="Graph", icon=hui.icon.graph)
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         from haybale_graph_editor.states.edit_state import EditState
 
         return ctx.data[EditState].active_graph is not None

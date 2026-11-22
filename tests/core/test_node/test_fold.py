@@ -109,7 +109,6 @@ def test_a_fold_saved_without_a_widget_loads_with_the_fold_widget(graph_with_lib
 
 def _registered_probe(library_system):
     from haybale_testing.nodes.testbed.fold_probe import FoldProbeNode
-
     from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.scheduler import ThreadingTimerScheduler
 

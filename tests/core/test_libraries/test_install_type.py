@@ -1,5 +1,7 @@
 """InstallType.is_editable — the single authority for source-write permission."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.library.install_type import InstallType
@@ -31,11 +33,11 @@ def test_not_installed_is_not_editable():
 
 
 def test_not_installed_is_not_framework_origin():
-    from haywire.core.library.info import LibraryInfo
-    from haywire.core.library.install_type import InstallType
+    from haybale_marketplace.library_origin import LibraryOrigin, compute_library_origin
     from haywire.core.library.haybale import Haybale
     from haywire.core.library.identity import LibraryIdentity
-    from haybale_marketplace.library_origin import LibraryOrigin, compute_library_origin
+    from haywire.core.library.info import LibraryInfo
+    from haywire.core.library.install_type import InstallType
 
     info = LibraryInfo(
         row=Haybale(name="haybale-x", version="1.0.0", source="pypi"),

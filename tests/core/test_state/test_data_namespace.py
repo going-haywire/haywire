@@ -1,5 +1,7 @@
 """Unit tests for the AppDataNamespace proxy."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.library.identity import LibraryIdentity

@@ -1,5 +1,7 @@
 """A style bag is a settings flavour of its own, named by a wire type."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import FLOAT
@@ -60,7 +62,6 @@ def test_a_style_that_is_no_edge_bag_is_refused():
 
 def test_the_test_visual_wire_declares_every_recognised_field():
     from haybale_testing.wires import TestVisualStyle, TestVisualWire
-
     from haywire.core.edge.style import STYLE_FIELDS
     from haywire.core.settings import settings_fields
 

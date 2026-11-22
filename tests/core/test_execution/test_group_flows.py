@@ -1,7 +1,8 @@
 """Partitioning flows into execution groups (ADR 0064)."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import List
 
 from haywire.core.execution.execution_group import group_flows, shared_data_node_ids
 
@@ -17,20 +18,20 @@ class _Flow:
 
     name: str
     entry: str
-    control: List[str] = field(default_factory=list)
-    data: List[str] = field(default_factory=list)
+    control: list[str] = field(default_factory=list)
+    data: list[str] = field(default_factory=list)
 
     def get_entry_node_id(self) -> str:
         return self.entry
 
-    def get_control_node_ids(self) -> List[str]:
+    def get_control_node_ids(self) -> list[str]:
         return list(self.control)
 
-    def get_all_nodes(self) -> List[_Node]:
+    def get_all_nodes(self) -> list[_Node]:
         return [_Node(n) for n in [self.entry, *self.control, *self.data]]
 
 
-def _names(groups) -> List[List[str]]:
+def _names(groups) -> list[list[str]]:
     return [[f.name for f in g] for g in groups]
 
 

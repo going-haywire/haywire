@@ -17,7 +17,7 @@ import logging
 import uuid
 from functools import partial
 from queue import Empty, Full, Queue
-from typing import Any, Optional
+from typing import Any
 
 import cv2
 import numpy as np
@@ -76,7 +76,7 @@ class StreamingBackend:
         self.cond: asyncio.Condition = asyncio.Condition()
 
         self._thread_queue: Queue[bytes] = Queue(maxsize=self.frame_queue_size)
-        self._queue_reader_task: Optional[asyncio.Task] = None
+        self._queue_reader_task: asyncio.Task | None = None
         self._is_running = False
 
         self._register_endpoint()
@@ -188,7 +188,7 @@ class StreamingBackend:
                                 )
                                 last_id = self.frame_id
                                 frame = self.latest_frame
-                        except asyncio.TimeoutError:
+                        except TimeoutError:
                             continue
                         if not frame:
                             continue

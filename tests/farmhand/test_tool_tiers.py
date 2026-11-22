@@ -1,5 +1,7 @@
 """Every shipped Farmhand tool declares a deliberate access requirement; EDIT is the default."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.access import AccessTier
@@ -67,8 +69,6 @@ def _tool_classes():
     from haywire.core.di.config import create_library_system_service  # noqa: F401
 
     pytest.importorskip("haybale_studio")
-    from haywire.core.farmhand import FarmhandRegistry  # noqa: F401
-
     # Import the tool modules directly rather than booting a library system.
     import haybale_graph_editor.farmhands.editor_tools as editor_tools
     import haybale_haystack.farmhands.graph_tools as graph_tools
@@ -84,6 +84,7 @@ def _tool_classes():
     import haybale_testing.farmhands.blocking_tool as blocking_tool
     import haybale_testing.farmhands.echo_tool as echo_tool
     import haybale_testing.farmhands.fail_tool as fail_tool
+    from haywire.core.farmhand import FarmhandRegistry  # noqa: F401
 
     modules = [
         editor_tools,

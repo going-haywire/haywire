@@ -16,6 +16,8 @@ See .insights/feedback_nicegui_nested_menu_flyouts.md (#2) for the original
 diagnosis, and design-guide.md §2.9 for the ladder.
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest

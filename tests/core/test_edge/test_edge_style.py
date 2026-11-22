@@ -1,12 +1,13 @@
 """An edge's style bag: bound while the edge validates, saved under "style", rebound on a new class."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.graph.types import ChangeReason
 from haywire.core.settings import EdgeSettings, setting
-
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration
@@ -102,7 +103,6 @@ def test_a_failing_edge_keeps_its_style_verbatim_and_rebinds_it(graph):
 
 def test_a_new_bag_class_takes_the_old_values(graph, monkeypatch):
     from haybale_testing.wires import TestVisualWire
-
     from haywire.barn.builtin.types import COLOR
 
     _, _, edge = _visual_edge(graph)

@@ -2,12 +2,13 @@
 Basic type conversion adapters
 """
 
-import random
-from typing_extensions import override
+from __future__ import annotations
 
-from haywire.api import BaseAdapter, adapter
+import random
+from typing import override
 
 from haybale_testing.types.test_types import TEST_BOOL, TEST_FLOAT, TEST_INT, TEST_STRING
+from haywire.api import BaseAdapter, adapter
 
 
 @adapter(description="Convert bool to integer", converts_from=TEST_BOOL, converts_to=TEST_INT)

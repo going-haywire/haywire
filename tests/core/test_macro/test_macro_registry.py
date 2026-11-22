@@ -1,5 +1,7 @@
 """``MacroRegistry``: a .hwm becomes a component, or is refused with a reason."""
 
+from __future__ import annotations
+
 import json
 
 import pytest

@@ -1,5 +1,7 @@
 """The visual layer can summarise compatibility findings for the on-open notice."""
 
+from __future__ import annotations
+
 import pytest
 
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import (

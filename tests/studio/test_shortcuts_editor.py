@@ -13,14 +13,13 @@ from nicegui import ui
 from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
+from haybale_studio.editors.shortcuts_editor import ShortcutsEditor
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import _REACT_ON_ATTR, _REDRAW_ON_ATTR, react_on
 from haywire.core.signals import Copy, Delete, EditorCommand, Undo
 from haywire.core.signals.keys import format_combo
 from haywire.ui.editor.identity import SlotName
 from haywire.ui.keymap import Keymap, build_keymap
-
-from haybale_studio.editors.shortcuts_editor import ShortcutsEditor
 
 pytestmark = pytest.mark.unit
 

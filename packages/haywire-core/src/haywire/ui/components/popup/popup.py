@@ -1,5 +1,9 @@
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any
+
 from nicegui import ui
-from typing import Any, Optional, Callable
 
 
 class Popup(ui.element, component="popup.vue"):
@@ -18,15 +22,15 @@ class Popup(ui.element, component="popup.vue"):
 
     def __init__(
         self,
-        title: Optional[str] = None,
+        title: str | None = None,
         width: str = "auto",
         height: str = "auto",
         closable: bool = False,
         backdrop_click_close: bool = False,
         escape_close: bool = False,
         backdrop_color: str = "var(--hw-bg-overlay)",
-        position_x: Optional[float] = None,
-        position_y: Optional[float] = None,
+        position_x: float | None = None,
+        position_y: float | None = None,
         draggable: bool = False,
         clamp_to_viewport: bool = False,
         center_x: bool = False,
@@ -37,7 +41,7 @@ class Popup(ui.element, component="popup.vue"):
         with ui.context.client.layout:
             super().__init__()
 
-        self._on_close_callback: Optional[Callable] = None
+        self._on_close_callback: Callable | None = None
         self._escape_close = escape_close
         self._is_open = False
 
@@ -103,7 +107,7 @@ class Popup(ui.element, component="popup.vue"):
         self._is_open = False
         super().delete()
 
-    def on_close(self, callback: Callable) -> "Popup":
+    def on_close(self, callback: Callable) -> Popup:
         self._on_close_callback = callback
         return self
 
@@ -112,7 +116,7 @@ class Popup(ui.element, component="popup.vue"):
         return self._is_open
 
     @property
-    def content(self) -> "ui.column":
+    def content(self) -> ui.column:
         """Inner content column — place children without using popup as context manager."""
         return self._content
 
@@ -141,7 +145,7 @@ class Popup(ui.element, component="popup.vue"):
     # ------------------------------------------------------------------
 
     @classmethod
-    def create_context_menu(cls, title: str, x: float, y: float, **kwargs) -> "Popup":
+    def create_context_menu(cls, title: str, x: float, y: float, **kwargs) -> Popup:
         defaults = {
             "width": "auto",
             "height": "auto",

@@ -4,9 +4,12 @@ Unit tests for NodeFactory.
 These tests use DI fixtures but don't load full library system.
 """
 
+from __future__ import annotations
+
 import pytest
-from haywire.core.node import node, BaseNode, NodeFactory, NodeRegistry
+
 from haywire.core.graph.base import BaseGraph
+from haywire.core.node import BaseNode, NodeFactory, NodeRegistry, node
 from haywire.core.registry.base import BaseRegistry
 
 
@@ -64,8 +67,9 @@ class TestNodeFactory:
 
     def test_node_info_has_no_source_field(self):
         """NodeInfo must not have a 'source' field after NodeSourceInfo removal."""
-        from haywire.core.node.info import NodeInfo
         import dataclasses
+
+        from haywire.core.node.info import NodeInfo
 
         field_names = {f.name for f in dataclasses.fields(NodeInfo)}
         assert "source" not in field_names

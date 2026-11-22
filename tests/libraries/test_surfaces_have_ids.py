@@ -1,6 +1,8 @@
 # tests/libraries/test_surfaces_have_ids.py
 """Every Surface in the in-tree libraries declares an id and registers under it."""
 
+from __future__ import annotations
+
 from haywire.ui.surface import surface_by_id
 
 
@@ -31,9 +33,6 @@ def test_edge_split_get_panels_are_disjoint_and_neither_is_empty():
     classes for both surfaces (not synthetic test doubles) and checks
     get_panels() against a fresh registry, since @panel does not
     self-register."""
-    from haywire.core.library.identity import LibraryIdentity
-    from haywire.ui.panel.registry import PanelRegistry
-    from haybale_graph_editor.surfaces import EdgeInspector, EdgeMenu
     from haybale_graph_editor.panels.graph.menu.edge.edge import (
         DeleteEdgeMenuPanel,
         EdgeErrorsMenuPanel,
@@ -47,6 +46,9 @@ def test_edge_split_get_panels_are_disjoint_and_neither_is_empty():
         EdgeStatsPanel,
         EdgeWarningsPanel,
     )
+    from haybale_graph_editor.surfaces import EdgeInspector, EdgeMenu
+    from haywire.core.library.identity import LibraryIdentity
+    from haywire.ui.panel.registry import PanelRegistry
 
     identity = LibraryIdentity(
         label="Graph Editor Test",

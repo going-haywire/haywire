@@ -5,6 +5,8 @@ exposing exactly the path the wiring walks (node.wrapper.graph) — no
 library system needed.
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest

@@ -1,5 +1,7 @@
 """Settings promotion channel: listeners hear promote, demote and a restore that changes a field."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import INT

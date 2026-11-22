@@ -22,13 +22,11 @@ The terminal state is driven by ``hints`` (and optionally ``error``):
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from nicegui import ui
 
-from haywire.ui import elements as hui
-
 from haywire.core.library.identity import LibraryReloadAction
+from haywire.ui import elements as hui
 from haywire.ui.components.popup import Popup
 from haywire.ui.modals.restart_affordance import restart_affordance
 
@@ -48,7 +46,7 @@ class PostInstallHints:
 
     action: LibraryReloadAction = LibraryReloadAction.NONE
 
-    def merge(self, other: "PostInstallHints") -> "PostInstallHints":
+    def merge(self, other: PostInstallHints) -> PostInstallHints:
         """Return the more demanding of the two actions.
 
         ``RESTART`` outranks ``REFRESH`` outranks ``NONE``: if any library in
@@ -68,7 +66,7 @@ class LibraryOperationProgressModal:
     def __init__(
         self,
         popup: Popup,
-        log: "ui.log",
+        log: ui.log,
         spinner_row,
         done_row,
         error_banner,
@@ -93,9 +91,9 @@ class LibraryOperationProgressModal:
     def finish(
         self,
         *,
-        error: Optional[str] = None,
-        hints: Optional[PostInstallHints] = None,
-        restart_reason: Optional[str] = None,
+        error: str | None = None,
+        hints: PostInstallHints | None = None,
+        restart_reason: str | None = None,
     ) -> None:
         """Transition to the terminal state.
 

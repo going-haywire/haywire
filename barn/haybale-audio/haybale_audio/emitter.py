@@ -1,13 +1,14 @@
 """Shared pieces of the audio emitter nodes: a paced block thread and callback delivery."""
 
+from __future__ import annotations
+
 import threading
 import time
 from collections.abc import Callable
 from typing import Any
 
-from haywire.api import ExecutionContext
-
 from haybale_audio.value import AudioBlock
+from haywire.api import ExecutionContext
 
 #: Seconds behind schedule after which the pump restarts its schedule and skips the backlog.
 RESYNC_AFTER = 0.5

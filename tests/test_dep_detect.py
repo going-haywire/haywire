@@ -12,7 +12,6 @@ import importlib.metadata
 from pathlib import Path
 
 import pytest
-
 import toml
 
 from haywire.core.library.dep_detect import (

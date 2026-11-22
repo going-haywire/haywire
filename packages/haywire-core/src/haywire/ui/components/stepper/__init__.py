@@ -10,6 +10,8 @@ Usage: subclass :class:`StepFlow` with ``STEPS``/``STEP_TITLES`` and one
 then hand both to :func:`show_step_flow`.
 """
 
+from __future__ import annotations
+
 from .async_helpers import advance, busy_advance
 from .chrome import (
     ErrorDetail,

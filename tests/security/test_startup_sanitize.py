@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 
 from haywire.core.access import AccessTier
-
 from haywire_studio.security.document import (
     SECURITY_VERSION,
     NetworkPolicy,

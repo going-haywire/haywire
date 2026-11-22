@@ -16,7 +16,6 @@ from haywire.core.execution.event_source import Trigger
 from haywire.core.execution.vm import HaywireVM
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.volumes import VolumeStore, volume_location
-
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration

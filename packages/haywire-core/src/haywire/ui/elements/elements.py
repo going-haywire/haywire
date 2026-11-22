@@ -21,9 +21,10 @@ from __future__ import annotations
 
 import inspect as _inspect
 import json as _json
+from collections.abc import Awaitable, Callable
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import TYPE_CHECKING, Any, Awaitable, Callable
+from typing import TYPE_CHECKING, Any
 
 from nicegui import ui
 from nicegui.elements.mixins.text_element import TextElement as _TextElement

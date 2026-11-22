@@ -8,6 +8,8 @@ likely to be "fixed" by someone who notices it, so it is asserted here
 explicitly.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.di.context import get_settings_registry

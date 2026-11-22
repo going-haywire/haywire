@@ -5,13 +5,12 @@ classified as a regular or an editable install by where their module sits.
 """
 
 from __future__ import annotations
-import sys
+
 import logging
-from pathlib import Path
-from typing import Tuple
-from importlib.metadata import entry_points, EntryPoint
-from importlib import import_module
 from dataclasses import dataclass
+from importlib import import_module
+from importlib.metadata import EntryPoint, entry_points
+from pathlib import Path
 
 from .base import BaseLibrary
 from .identity import LibraryIdentity
@@ -48,10 +47,7 @@ class LibraryDiscovery:
         discovered = []
 
         try:
-            if sys.version_info >= (3, 10):
-                eps = entry_points(group=cls.ENTRY_POINT_GROUP)
-            else:
-                eps = entry_points().get(cls.ENTRY_POINT_GROUP, [])
+            eps = entry_points(group=cls.ENTRY_POINT_GROUP)
 
             for ep in eps:
                 try:
@@ -106,7 +102,7 @@ class LibraryDiscovery:
             return None
 
     @classmethod
-    def _get_library_path_and_type(cls, library_cls: type[BaseLibrary]) -> Tuple[Path, InstallType]:
+    def _get_library_path_and_type(cls, library_cls: type[BaseLibrary]) -> tuple[Path, InstallType]:
         """Return the directory holding the library's module and its install type.
 
         Raises:

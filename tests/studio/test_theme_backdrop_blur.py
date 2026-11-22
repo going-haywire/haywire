@@ -7,6 +7,8 @@ node_bg is translucent) asks for it. Per ADR-0030 a token missing from
 _CSS_TOKEN_MAP emits nothing and fails silently, which is what this guards.
 """
 
+from __future__ import annotations
+
 import pytest
 
 pytestmark = pytest.mark.unit

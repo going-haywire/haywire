@@ -15,7 +15,6 @@ import pytest
 from haywire.core.graph.base import BaseGraph
 from haywire.core.node.behavior import NodeType
 from haywire.core.node.node_wrapper import NodeWrapper
-
 from tests.conftest import make_node
 
 if TYPE_CHECKING:
@@ -28,7 +27,7 @@ _PRINT = "haybale-testing:node:PrintProbeNode"
 _CARD = "haywire-core:node:GraphNode"
 
 
-def _card(wrapper: NodeWrapper) -> "GraphNode":
+def _card(wrapper: NodeWrapper) -> GraphNode:
     """The wrapper's node, typed as the GraphNode it is."""
     return cast("GraphNode", wrapper.node)
 
@@ -123,10 +122,10 @@ class TestTheGraphNodeCard:
         assert card.node.behavior.is_mutable is True
 
     def test_a_control_crossed_card_is_a_control_node(self, graph_with_library_system: BaseGraph):
+        from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
         from haywire.barn.builtin.types import EXEC
         from haywire.core.graph.scheduler import SyncScheduler
         from haywire.core.graph.subgraph import SubgraphDefinition
-        from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
         from haywire.core.types.enums import PortType
 
         graph = graph_with_library_system
@@ -145,10 +144,10 @@ class TestTheGraphNodeCard:
 
     def test_the_role_follows_the_interface_when_it_changes(self, graph_with_library_system: BaseGraph):
         """Drop the control crossing and the card becomes a DATA node again."""
+        from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
         from haywire.barn.builtin.types import EXEC
         from haywire.core.graph.scheduler import SyncScheduler
         from haywire.core.graph.subgraph import SubgraphDefinition
-        from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
 
         graph = graph_with_library_system
         definition = graph.add_subgraph(

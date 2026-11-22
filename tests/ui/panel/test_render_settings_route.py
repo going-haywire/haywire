@@ -25,7 +25,6 @@ from haywire.core.settings import Settings, setting
 from haywire.core.undo.config import UndoConfig
 from haywire.ui.panel import render_utils
 from haywire.ui.panel.render_utils import render_settings
-
 from tests.conftest import make_node
 from tests.ui.panel.render_ctx import make_render_ctx
 
@@ -156,7 +155,6 @@ def _render(bag, route: EditRoute | None) -> tuple[Any, dict[str, Any]]:
 def _render_with_float_widget(bag, route: EditRoute, attr_name: str) -> Any:
     """Render *bag* with *route*, drawing *attr_name*'s row with a real float widget; return it."""
     from haywire.ui.widget import globals as widget_globals
-
     from tests.ui.widget._sync_fixtures import _BaseDefaultFloatWidget
 
     widgets: list[Any] = []

@@ -1,5 +1,7 @@
 """Macros: Subgraphs that live in their own file and are placed like nodes."""
 
+from __future__ import annotations
+
 from .registry import MacroRegistry
 from .source import (
     count_placements,

@@ -9,10 +9,6 @@ from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
-from haywire.core.access import AccessTier, access_resolver, set_access_resolver
-from haywire.core.session.context import SessionContext
-from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
-from haywire.ui.editor.wrapper import EditorWrapper
 from nicegui import Client, ui
 
 from haybale_graph_editor.notices import GraphNotice
@@ -22,6 +18,10 @@ from haybale_haystack.editors import haystack_editor as haystack_editor_module
 from haybale_haystack.editors.haystack_editor import HaystackEditor
 from haybale_haystack.graph_entry import EntryKind
 from haybale_haystack.states.haystack_state import HaystackState
+from haywire.core.access import AccessTier, access_resolver, set_access_resolver
+from haywire.core.session.context import SessionContext
+from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
+from haywire.ui.editor.wrapper import EditorWrapper
 
 pytestmark = pytest.mark.unit
 

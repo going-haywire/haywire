@@ -11,7 +11,6 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.types import DataPort, PortType, Propagation
 from haywire.core.undo.actions.graph_actions import CollapseToGraphNodeAction
-
 from tests.conftest import make_edge, make_node, run_frame
 
 pytestmark = [pytest.mark.integration]
@@ -45,8 +44,8 @@ def chain(graph_with_library_system: BaseGraph) -> Callable[..., tuple[Any, ...]
     graph = graph_with_library_system
 
     def build(middle: str, lazy_in=False, lazy_out=False, with_feed=True):
-        from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
         from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
+        from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
         from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
         begin = make_node(graph, BeginPlayProbeNode.class_identity.registry_key)
@@ -178,8 +177,8 @@ def test_an_outlet_refuses_on_change():
 
 
 def test_a_collapsed_swinglet_node_still_passes_its_write_on(graph_with_library_system):
-    from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
     from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
+    from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
     from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
     graph = graph_with_library_system

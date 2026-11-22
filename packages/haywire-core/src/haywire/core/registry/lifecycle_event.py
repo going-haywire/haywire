@@ -8,9 +8,12 @@ The event carries complete context about what changed, making it easy to
 filter and route at each layer of the system.
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Type, Any, Callable
+from typing import Any
 
 from ..errors.haywire_exception import HaywireException
 from ..library.identity import LibraryIdentity
@@ -68,18 +71,18 @@ class LifeCycleEvent:
     event_type: LifeCycleEventType
     """What kind of reload event occurred"""
 
-    affected_class: Optional[Type[Any]]
+    affected_class: type[Any] | None
     """The actual class that was affected (None for REMOVED/FAILED events)"""
 
     library_identity: LibraryIdentity
     """The library where the change occurred"""
 
     # Error information (for failed reloads)
-    error: Optional["HaywireException"] = None
+    error: HaywireException | None = None
     """The error if reload failed"""
 
     # Module tracking
-    module_name: Optional[str] = None
+    module_name: str | None = None
     """The Python module name"""
 
     def __post_init__(self):
@@ -155,7 +158,7 @@ class LifeCycleEvent:
         """Check if the affected class is available"""
         return self.affected_class is not None
 
-    def get_class(self) -> Type[Any]:
+    def get_class(self) -> type[Any]:
         """
         Get the affected class, raising error if not available.
 
@@ -179,7 +182,7 @@ class LifeCycleEvent:
         """
         return True  # By default, notify all
 
-    def create_derived_event(self, **overrides) -> "LifeCycleEvent":
+    def create_derived_event(self, **overrides) -> LifeCycleEvent:
         """
         Create a new event with some fields overridden.
 
@@ -196,7 +199,7 @@ class LifeCycleEvent:
         data.update(overrides)
         return LifeCycleEvent(**data)
 
-    def clone(self) -> "LifeCycleEvent":
+    def clone(self) -> LifeCycleEvent:
         """
         Create a deep copy of this LifeCycleEvent instance.
         """

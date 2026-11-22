@@ -1,5 +1,7 @@
 """`haywire init` writes a publish workflow that is a no-op unless distribute = "pypi"."""
 
+from __future__ import annotations
+
 import json
 import os
 import re

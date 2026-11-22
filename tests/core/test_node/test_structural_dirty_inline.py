@@ -67,11 +67,9 @@ def test_edges_waiting_on_pins_added_one_after_another_validate(library_system) 
     between the two additions: a flag left set by the first would swallow the second.
     """
     from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
-
     from haywire.barn.builtin.types import FLOAT
     from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.scheduler import SyncScheduler
-
     from tests.conftest import make_node
 
     graph = BaseGraph(filestem="inline", validation_scheduler=SyncScheduler())

@@ -15,7 +15,6 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.editor import Editor
 from haywire.core.types.enums import PortOrigin
 from haywire.core.undo.actions.graph_actions import SetPortMetadataAction
-
 from tests.conftest import make_node
 
 pytestmark = [pytest.mark.integration]

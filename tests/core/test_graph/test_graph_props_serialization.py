@@ -4,6 +4,8 @@ Only locally-set values serialize; an opinion-less graph emits an empty
 values block; a dict WITHOUT the block (pre-feature graph) loads clean.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.di.test_config import create_test_settings_registry

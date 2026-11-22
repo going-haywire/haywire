@@ -1,5 +1,7 @@
 """`haywire init` scaffolds .gitignore and .gitattributes that don't corrupt a publish."""
 
+from __future__ import annotations
+
 import subprocess
 from pathlib import Path
 

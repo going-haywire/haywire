@@ -1,9 +1,10 @@
 """Select Channel — picks, reorders or repeats the channels of a block."""
 
-from haywire.api import STRING, BaseNode, ExecutionContext, NodeType, node
+from __future__ import annotations
 
 from haybale_audio.dsp import channels as ops
 from haybale_audio.value import AudioBlock
+from haywire.api import STRING, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(

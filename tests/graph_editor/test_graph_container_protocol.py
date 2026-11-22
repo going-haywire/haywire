@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 
@@ -22,7 +22,7 @@ class _DummyContainer(GraphContainer):
     """Minimal dataclass subclass — mirrors how GraphEntry inherits."""
 
     editor: Any = field(default_factory=object)
-    path: Optional[Path] = None
+    path: Path | None = None
     unsaved: bool = False
 
     @property
@@ -33,7 +33,7 @@ class _DummyContainer(GraphContainer):
     def display_name(self) -> str:
         return self.path.stem if self.path is not None else "Untitled"
 
-    def save(self, save_as: Optional[Path] = None) -> Optional[str]:
+    def save(self, save_as: Path | None = None) -> str | None:
         return None
 
 

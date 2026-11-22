@@ -3,16 +3,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional
 
 from nicegui import ui
-
-from haywire.api.workbench import hui
-
-from haywire.core.library.haybale import Haybale
-from haywire.core.marketstall import RefreshReport, ResolvedSource
-from haywire.ui.components.stepper import Panel, show_step_flow
 
 from haybale_marketplace.editors._add_source_flow._state import AddSourceFlow, AddSourceTarget
 from haybale_marketplace.editors._add_source_flow.panels import (
@@ -22,6 +16,10 @@ from haybale_marketplace.editors._add_source_flow.panels import (
     _panel_refreshed,
     _panel_resolved,
 )
+from haywire.api.workbench import hui
+from haywire.core.library.haybale import Haybale
+from haywire.core.marketstall import RefreshReport, ResolvedSource
+from haywire.ui.components.stepper import Panel, show_step_flow
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +121,7 @@ def _error_detail(flow: AddSourceFlow, _rerender: Callable[[], None]) -> bool:
     return True
 
 
-def build_target(context) -> Optional[MarketplaceAddSourceTarget]:
+def build_target(context) -> MarketplaceAddSourceTarget | None:
     """Adapter for *context*, or None when marketplace state is unavailable."""
     from haybale_marketplace.states.marketplace_state import MarketplaceState
 

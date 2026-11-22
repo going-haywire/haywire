@@ -1,10 +1,12 @@
 """The registry of model catalog JSON files."""
 
+from __future__ import annotations
+
 import json
 import logging
 import re
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from haywire.core.errors import HaywireException
 from haywire.core.library.identity import LibraryIdentity
@@ -41,7 +43,7 @@ class CatalogRegistry(DocumentRegistry[CatalogEntry]):
         self,
         folder_path: str,
         library_identity: LibraryIdentity,
-        exclude_patterns: Optional[list[str]] = None,
+        exclude_patterns: list[str] | None = None,
     ):
         """Register the folder's entries, skipping files whose stem cannot be a key."""
         for path in sorted(Path(folder_path).glob(f"*{self.SUFFIX}")):
@@ -124,7 +126,7 @@ class CatalogRegistry(DocumentRegistry[CatalogEntry]):
         ``get`` is typed ``type[T]`` for the class registries that share the
         base; a document registry stores instances.
         """
-        return cast(Optional[CatalogEntry], self.get(registry_key))
+        return cast(CatalogEntry | None, self.get(registry_key))
 
     def entries(self) -> list[CatalogEntry]:
         """Every registered entry, in key order."""

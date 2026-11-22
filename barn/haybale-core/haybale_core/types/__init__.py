@@ -1,13 +1,9 @@
-from haybale_core.types.array_type import ARRAY
-from haybale_core.types.array_type import ArrayField
-from haybale_core.types.drain_type import DRAIN
-from haybale_core.types.drain_type import DrainField
-from haybale_core.types.pooled_type import POOLED
-from haybale_core.types.pooled_type import PooledField
-from haybale_core.types.specs import BYTES
-from haybale_core.types.specs import LIST
-from haybale_core.types.specs import DICT
+from __future__ import annotations
 
+from haybale_core.types.array_type import ARRAY, ArrayField
+from haybale_core.types.drain_type import DRAIN, DrainField
+from haybale_core.types.pooled_type import POOLED, PooledField
+from haybale_core.types.specs import BYTES, DICT, LIST
 
 __all__ = [
     "ArrayField",

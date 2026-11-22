@@ -1,12 +1,12 @@
-import haywire.core.graph.editor  # noqa: F401  (circular-import guard)
+from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+import haywire.core.graph.editor  # noqa: F401  (circular-import guard)
+from haybale_graph_editor.editors.graph_canvas.handlers.interaction import InteractionHandlers
 from haywire.core.node.layout import PATCH, LayoutChannel
 from haywire.core.signals import GraphDataMutated
 from haywire.ui.components.graph.event_definitions import UserResizeEndEvent
-from haybale_graph_editor.editors.graph_canvas.handlers.interaction import InteractionHandlers
-
 from tests.conftest import edit_route
 
 SWAPPED = LayoutChannel(

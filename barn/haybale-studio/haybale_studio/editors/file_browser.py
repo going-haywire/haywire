@@ -20,8 +20,10 @@ Trade-offs:
 - Refresh re-walks from the workspace root and resets all sentinels.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from nicegui import ui
 
@@ -29,8 +31,9 @@ from haywire.api.workbench import AccessTier, BaseEditor, SlotName, editor, hui
 from haywire.ui.elements.folder_tree import DEFAULT_EXCLUDE_DIRS, FolderTreeModel, folder_tree
 
 if TYPE_CHECKING:
-    from haywire.api.workbench import SessionContext
     from nicegui.element import Element
+
+    from haywire.api.workbench import SessionContext
 
 
 @editor(
@@ -52,10 +55,10 @@ class LazyFileBrowserEditor(BaseEditor):
 
     def __init__(self, wrapper):
         super().__init__(wrapper)
-        self._root_path: Optional[Path] = None
+        self._root_path: Path | None = None
         self._tree_container = None
-        self._tree: Optional[ui.tree] = None
-        self._model: Optional[FolderTreeModel] = None
+        self._tree: ui.tree | None = None
+        self._model: FolderTreeModel | None = None
         # Lazily-constructed per-session file context-menu provider.
         self._menu_provider = None
 
@@ -69,7 +72,7 @@ class LazyFileBrowserEditor(BaseEditor):
     # so it survives a browser refresh and avoids the Vue-mount race that the
     # old per-draw() ui.add_css() caused.
 
-    def draw(self, context: "SessionContext", container: "Element") -> None:
+    def draw(self, context: SessionContext, container: Element) -> None:
         app = context.app
         if app and hasattr(app, "workspace_root"):
             self._root_path = Path(app.workspace_root)
@@ -94,7 +97,7 @@ class LazyFileBrowserEditor(BaseEditor):
                     self._tree_container = ui.column().classes("w-full p-1 gap-0")
                     self._render_tree(context)
 
-    def _render_tree(self, context: "SessionContext") -> None:
+    def _render_tree(self, context: SessionContext) -> None:
         if self._tree_container is None:
             return
         self._tree_container.clear()
@@ -158,7 +161,7 @@ class LazyFileBrowserEditor(BaseEditor):
     # event handlers
     # ------------------------------------------------------------------
 
-    def _ensure_menu_provider(self, context: "SessionContext"):
+    def _ensure_menu_provider(self, context: SessionContext):
         """Lazily construct and cache the file context-menu provider for this session."""
         if self._menu_provider is None:
             from haybale_studio.editors.file_browser_menu.provider import SessionFileMenuProvider
@@ -173,10 +176,10 @@ class LazyFileBrowserEditor(BaseEditor):
 
     def _on_node_context(
         self,
-        node_id: Optional[str],
+        node_id: str | None,
         screen_x: float,
         screen_y: float,
-        context: "SessionContext",
+        context: SessionContext,
     ) -> None:
         """User right-clicked a tree node — open the file context menu."""
         if not node_id or (self._model is not None and self._model.is_sentinel(node_id)):
@@ -187,7 +190,7 @@ class LazyFileBrowserEditor(BaseEditor):
         provider = self._ensure_menu_provider(context)
         provider.on_file_context(pos=(screen_x, screen_y), path=path)
 
-    def _on_select(self, path: Path, context: "SessionContext") -> None:
+    def _on_select(self, path: Path, context: SessionContext) -> None:
         """Left-click handler.
 
         Files: select the file (assigning ``active_file`` emits the
@@ -202,6 +205,6 @@ class LazyFileBrowserEditor(BaseEditor):
         # active file" mode) react via the signal_field descriptor.
         context.active_file = path
 
-    def _refresh(self, context: "SessionContext") -> None:
+    def _refresh(self, context: SessionContext) -> None:
         """Drop all caches and rebuild from the workspace root down."""
         self._render_tree(context)

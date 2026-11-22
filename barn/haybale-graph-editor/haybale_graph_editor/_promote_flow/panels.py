@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from nicegui import ui
 
-from haywire.api.workbench import hui
-
-from haywire.ui.components.stepper import advance, busy_advance
-
 from haybale_graph_editor._promote_flow._state import PromoteFlow
+from haywire.api.workbench import hui
+from haywire.ui.components.stepper import advance, busy_advance
 
 
 def _panel_name(flow: PromoteFlow, rerender: Callable[[], None]) -> None:

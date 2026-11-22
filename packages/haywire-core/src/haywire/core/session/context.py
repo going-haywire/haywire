@@ -1,7 +1,7 @@
 # packages/haywire-core/src/haywire/ui/context.py
 from __future__ import annotations
 
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from haywire.core.access import AccessTier, LevelMode, resolve_tier
 from haywire.core.signals import Signal, SignalSource, signal_field
@@ -38,20 +38,20 @@ class SessionContext(SignalSource):
 
     # --- Plain fields (non-reactive) ---
     session_id: str
-    app: "IAppState"
-    session: "Session"  # set by Session.__init__ immediately after construction
-    app_data: "AppDataNamespace"
-    data: "SessionDataNamespace"
-    principal: Optional[str]  # set by the studio page handler; None when auth is off
+    app: IAppState
+    session: Session  # set by Session.__init__ immediately after construction
+    app_data: AppDataNamespace
+    data: SessionDataNamespace
+    principal: str | None  # set by the studio page handler; None when auth is off
 
     # --- Signal fields ---
-    active_file: Optional[Any] = signal_field(None)
-    active_library: Optional["LibraryInfo"] = signal_field(None)
-    active_component: Optional[str] = signal_field(None)
+    active_file: Any | None = signal_field(None)
+    active_library: LibraryInfo | None = signal_field(None)
+    active_component: str | None = signal_field(None)
     """The registry-key string of the component whose node is currently selected"""
 
-    active_workbench_theme_key: Optional[str] = signal_field(None)
-    active_node_theme_key: Optional[str] = signal_field(None)
+    active_workbench_theme_key: str | None = signal_field(None)
+    active_node_theme_key: str | None = signal_field(None)
 
     # Whether this session shows developer affordances — the ones that expose
     # the studio's own implementation rather than the user's graph, such as a
@@ -74,16 +74,16 @@ class SessionContext(SignalSource):
     # The editor binding that receives key commands, as its ``editor_binding_id``;
     # set from the browser on pointer-down. Per session: each tab points at its
     # own editor. ``None`` until the first pointer-down lands in an editor.
-    target_binding_id: Optional[str] = signal_field(None)
+    target_binding_id: str | None = signal_field(None)
 
     # This session's keymap, filtered by the principal's tier; set by the AppShell.
     # Per session, not app-wide, because the tier filter is per principal.
-    keymap: Optional["Keymap"] = signal_field(None)
+    keymap: Keymap | None = signal_field(None)
 
     level_mode: LevelMode = signal_field(LevelMode.VIEW)
     """The level mode of the level on screen in this session, as last claimed."""
 
-    def __init__(self, session_id: str, app: "IAppState") -> None:
+    def __init__(self, session_id: str, app: IAppState) -> None:
         # Lazy import: state.data_namespace transitively imports state.base,
         # which imports session.signals (for SignalSource). Importing it at
         # module top would close the cycle: session.signals → session.context

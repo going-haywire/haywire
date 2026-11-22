@@ -6,11 +6,12 @@ load-bearing half — the rows are single-node only (skin and theme resolve per
 node), and each declines rather than pointing at something arbitrary.
 """
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
 
-from haywire.core.session.context import SessionContext
 from haybale_graph_editor.panels.graph.menu.selection.selection import (
     EditSelectionMenuPanel,
     NodeSkinMenuPanel,
@@ -18,6 +19,7 @@ from haybale_graph_editor.panels.graph.menu.selection.selection import (
     NodeThemeMenuPanel,
     _single_node,
 )
+from haywire.core.session.context import SessionContext
 
 
 def _ctx(

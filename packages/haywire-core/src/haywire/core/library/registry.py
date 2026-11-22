@@ -1,21 +1,23 @@
+from __future__ import annotations
+
+import importlib
+import logging
 import os
 import sys
-import importlib
 import traceback
-from types import ModuleType
-from typing import Any, Callable, Dict, List, Optional, Type
+from collections.abc import Callable
 from pathlib import Path
-import logging
+from types import ModuleType
+from typing import Any
 
-from .base import BaseLibrary
-from .deprecated_names import recorded_deprecations
-from .utils import format_external_exception
-from .discovery import LibraryDiscovery, DiscoveredLibrary
-from .install_type import InstallType
-from .identity import LibraryIdentity
 from ..host import HostStore
 from ..registry.component import ComponentRegistry
-
+from .base import BaseLibrary
+from .deprecated_names import recorded_deprecations
+from .discovery import DiscoveredLibrary, LibraryDiscovery
+from .identity import LibraryIdentity
+from .install_type import InstallType
+from .utils import format_external_exception
 
 _HOST_STORE_SECTION = "libraries"
 _HOST_STORE_KEY_DISABLED = "disabled"
@@ -48,23 +50,23 @@ class LibraryRegistry:
     reads return defaults and writes never reach disk.
     """
 
-    def __init__(self, host_store: Optional[HostStore] = None):
-        self._libraries: Dict[str, BaseLibrary] = {}  # registry_id -> library_instance
+    def __init__(self, host_store: HostStore | None = None):
+        self._libraries: dict[str, BaseLibrary] = {}  # registry_id -> library_instance
         """key is library_registry_name (e.g. 'visiongraph'), value is the instantiated library object"""
         # registry_cls -> registry instance
-        self._class_registries: Dict[Type[ComponentRegistry], ComponentRegistry] = {}
+        self._class_registries: dict[type[ComponentRegistry], ComponentRegistry] = {}
 
         # LibraryRegistry specific attributes
-        self.discovered_libraries: Dict[str, Dict[str, Any]] = {}
+        self.discovered_libraries: dict[str, dict[str, Any]] = {}
         self._library_root_paths: list[str] = []  # Paths to search for libraries
         self._load_order: list[str] = []
         self.enforce_file_watching = False
         self.debounce_delay = 0.5
 
         # Track library sources to avoid duplicates
-        self._library_sources: Dict[str, str] = {}  # library_id -> source path
-        self._library_install_types: Dict[str, InstallType] = {}  # library_id -> install type
-        self._library_distribution_names: Dict[str, str] = {}  # library_id -> pip package name
+        self._library_sources: dict[str, str] = {}  # library_id -> source path
+        self._library_install_types: dict[str, InstallType] = {}  # library_id -> install type
+        self._library_distribution_names: dict[str, str] = {}  # library_id -> pip package name
 
         # Host-provided persistence (engine bootstrap state). When the host
         # supplies no store, a detached in-memory one is used so the registry
@@ -80,10 +82,10 @@ class LibraryRegistry:
         # Loading configuration
         self.load_core_libraries = False  # Load core libraries from src/haywire/libraries
         self.load_pip_packages = True  # Load from pip installed packages
-        self.core_libraries_path: Optional[str] = None  # Set during initialization
+        self.core_libraries_path: str | None = None  # Set during initialization
 
-        self._library_enabled_callbacks: List[Callable[[BaseLibrary], None]] = []
-        self._library_disabled_callbacks: List[Callable[[BaseLibrary], None]] = []
+        self._library_enabled_callbacks: list[Callable[[BaseLibrary], None]] = []
+        self._library_disabled_callbacks: list[Callable[[BaseLibrary], None]] = []
 
     def _register(self, library_instance: Any):
         """Register a library instance with its path"""
@@ -107,7 +109,7 @@ class LibraryRegistry:
         """List all registered library names"""
         return list(self._libraries.keys())
 
-    def add_class_registry(self, cls: Type[ComponentRegistry], instance: ComponentRegistry):
+    def add_class_registry(self, cls: type[ComponentRegistry], instance: ComponentRegistry):
         """Add a registry instance libraries can register their components with."""
         self._class_registries[cls] = instance
 
@@ -301,7 +303,7 @@ class LibraryRegistry:
         logger.info("Starting library discovery and loading process")
         logger.info("=" * 60)
 
-        all_discovered: Dict[str, DiscoveredLibrary] = {}
+        all_discovered: dict[str, DiscoveredLibrary] = {}
 
         # Priority 1: Core libraries (if enabled)
         if self.load_core_libraries and self.core_libraries_path:
@@ -364,7 +366,7 @@ class LibraryRegistry:
         logger.info(f"Library discovery complete: {len(self._libraries)} libraries loaded")
         logger.info("=" * 60)
 
-    def _scan_directory(self, directory: str) -> Dict[str, str]:
+    def _scan_directory(self, directory: str) -> dict[str, str]:
         """Scan a directory for library subdirectories.
 
         Returns:
@@ -465,7 +467,7 @@ class LibraryRegistry:
             )
             raise LibraryLoadError(f"Failed instantiating library {library_folder_name}: {e}") from e
 
-    def _bundled_module_path(self, library_path: str) -> Optional[str]:
+    def _bundled_module_path(self, library_path: str) -> str | None:
         """Return the dotted import path for a library bundled inside the installed
         ``haywire`` package, or ``None`` if ``library_path`` is outside it.
 
@@ -488,7 +490,7 @@ class LibraryRegistry:
             return None
         return ".".join(parts)
 
-    def _load_module_and_metadata(self, library_id: str, library_path: str) -> Optional[ModuleType]:
+    def _load_module_and_metadata(self, library_id: str, library_path: str) -> ModuleType | None:
         """Load the module holding a library's ``Library`` class.
 
         Handles flat and package structures, and a library bundled inside the
@@ -597,7 +599,7 @@ class LibraryRegistry:
 
         return discovered
 
-    def _instantiate_libraries(self, discovered: Dict[str, DiscoveredLibrary]) -> Dict[str, BaseLibrary]:
+    def _instantiate_libraries(self, discovered: dict[str, DiscoveredLibrary]) -> dict[str, BaseLibrary]:
         """Instantiate all discovered libraries"""
         instantiated = {}
 
@@ -650,7 +652,7 @@ class LibraryRegistry:
                 f"{format_external_exception()}"
             )
 
-    def _cleanup_removed_libraries(self, current_discovered: Dict[str, DiscoveredLibrary]):
+    def _cleanup_removed_libraries(self, current_discovered: dict[str, DiscoveredLibrary]):
         """Remove libraries that are no longer discovered"""
         current_lib_ids = set(current_discovered.keys())
         registered_lib_ids = set(self._libraries.keys())

@@ -1,5 +1,4 @@
-from haywire.api.workbench import BasePanel, PanelLayout, SessionContext, hui, panel
-
+from __future__ import annotations
 
 from haybale_graph_editor.panels._gating import is_reroute_node
 from haybale_graph_editor.panels.graph.menu.selection.selection import (
@@ -8,6 +7,7 @@ from haybale_graph_editor.panels.graph.menu.selection.selection import (
     selection_label,
 )
 from haybale_graph_editor.surfaces import SelectionActions, SelectionDevelopMenu, SelectionRebuildMenu
+from haywire.api.workbench import BasePanel, PanelLayout, SessionContext, hui, panel
 
 
 @panel(
@@ -29,17 +29,17 @@ class RebuildSelectionMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         if is_reroute_node(ctx):
             return False
         return _selection_nonempty(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             with hui.submenu_row("Rebuild", icon=hui.icon.refresh):
                 self.render_surface(SelectionRebuildMenu, ctx)
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         """The static form, greyed — a row that does not expand."""
         if is_reroute_node(ctx) is False:
             with layout:
@@ -60,10 +60,10 @@ class RedrawSelectionMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _selection_nonempty(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         n_nodes, n_edges = _selection_counts(ctx)
         with layout:
             hui.menu_row(
@@ -72,7 +72,7 @@ class RedrawSelectionMenuPanel(BasePanel):
                 on_click=self.actions.redraw_selection,
             )
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         """The static form, greyed — what the row should say with nothing selected."""
         with layout:
             hui.menu_row("Redraw", icon=hui.icon.refresh, enabled=False)
@@ -91,10 +91,10 @@ class RevalidateSelectionMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _selection_nonempty(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         n_nodes, n_edges = _selection_counts(ctx)
         with layout:
             hui.menu_row(
@@ -103,7 +103,7 @@ class RevalidateSelectionMenuPanel(BasePanel):
                 on_click=self.actions.revalidate_selection,
             )
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         """The static form, greyed — what the row should say with nothing selected."""
         with layout:
             hui.menu_row("Revalidate", icon=hui.icon.node_status, enabled=False)
@@ -122,10 +122,10 @@ class ResetSelectionMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _selection_nonempty(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         n_nodes, n_edges = _selection_counts(ctx)
         with layout:
             hui.menu_row(
@@ -134,7 +134,7 @@ class ResetSelectionMenuPanel(BasePanel):
                 on_click=self.actions.reset_selection,
             )
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         """The static form, greyed — what the row should say with nothing selected."""
         with layout:
             hui.menu_row("Reset", icon=hui.icon.reset, enabled=False)

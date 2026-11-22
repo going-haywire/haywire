@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
+
 from haywire.ui import elements as hui
 
 pytestmark = pytest.mark.unit
@@ -23,9 +24,8 @@ def test_the_bookkeeping_settings_stay_out_of_the_schema():
 
 
 def test_panel_is_registered_under_barns():
-    from haywire.barn.builtin.surfaces import BarnsSurface
-
     from haybale_haystack.panels.haystack_settings_panel import HaystackSettingsPanel
+    from haywire.barn.builtin.surfaces import BarnsSurface
 
     identity = HaystackSettingsPanel.class_identity
     assert identity.surface is BarnsSurface

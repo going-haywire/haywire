@@ -1,5 +1,7 @@
 """The gate — pure-ASGI, cookie OR bearer, http AND websocket."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.access import AccessTier

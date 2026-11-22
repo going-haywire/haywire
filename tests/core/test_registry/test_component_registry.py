@@ -1,5 +1,7 @@
 """``ComponentRegistry`` is the kind-agnostic half of the registry contract."""
 
+from __future__ import annotations
+
 import inspect
 
 import pytest

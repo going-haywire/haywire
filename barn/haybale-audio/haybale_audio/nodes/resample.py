@@ -1,23 +1,24 @@
 """Resample — converts audio blocks to another sample rate."""
 
+from __future__ import annotations
+
+from haybale_audio.dsp.resample import StreamResampler
+from haybale_audio.emitter import deliver_to_subscribers, set_status
+from haybale_audio.value import AudioBlock
 from haywire.api import (
     CHOICES,
     INT,
     STRING,
     BaseNode,
     ExecutionContext,
+    LabelWidget,
     NodeSettings,
     NodeType,
     Promotable,
-    LabelWidget,
     bag,
     node,
     setting,
 )
-
-from haybale_audio.dsp.resample import StreamResampler
-from haybale_audio.emitter import deliver_to_subscribers, set_status
-from haybale_audio.value import AudioBlock
 
 _QUALITY = {"Fast": "sinc_fastest", "Medium": "sinc_medium", "Best": "sinc_best", "Linear (cheap)": "linear"}
 
@@ -89,10 +90,10 @@ class ResampleNode(BaseNode):
     resample = bag(ResampleSettings)
 
     def init(self) -> None:
-        from haybale_core.types import POOLED
         from haybale_audio.types.audio import AUDIO
-        from haybale_audio.types.callback import AUDIO_CALLBACK
         from haybale_audio.types.audio_exec import AUDIO_EXEC
+        from haybale_audio.types.callback import AUDIO_CALLBACK
+        from haybale_core.types import POOLED
 
         self.add(AUDIO_EXEC.as_inlet("write", label="Write"))
         self.add(AUDIO.as_inlet("audio", label="Audio", description="Block to convert"))

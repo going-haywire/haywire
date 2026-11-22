@@ -314,7 +314,7 @@ def status(
             detail=f"{reachable} is not in the certificate's name list.",
         )
 
-    remaining = expires - datetime.datetime.now(datetime.timezone.utc)
+    remaining = expires - datetime.datetime.now(datetime.UTC)
     if remaining < _EXPIRY_WARNING:
         return _status(
             TlsState.EXPIRING,

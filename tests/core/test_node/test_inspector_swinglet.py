@@ -1,9 +1,10 @@
 """The inspector names a swinglet's direction `swinglet`, not `inlet`."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.node.inspector import NodeInstanceInspector
-
 from tests.conftest import make_node
 
 

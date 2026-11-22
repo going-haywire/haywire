@@ -16,7 +16,6 @@ import logging
 from pathlib import Path
 
 from haywire.core.access import AccessTier, set_access_resolver
-
 from haywire_studio.security.document import load_document, security_path
 from haywire_studio.security.errors import SecurityError
 from haywire_studio.security.roster import Roster

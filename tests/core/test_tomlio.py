@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from haywire.core.tomlio import edit_toml, to_builtin, read_toml, write_toml
+from haywire.core.tomlio import edit_toml, read_toml, to_builtin, write_toml
 
 pytestmark = pytest.mark.unit
 

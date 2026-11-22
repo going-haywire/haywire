@@ -6,6 +6,8 @@ not redeclare is inherited. Replacing a ``graph()`` mirror with a plain
 whose skin is a constraint rather than a preference wants (``RerouteNode``).
 """
 
+from __future__ import annotations
+
 from typing import cast
 
 import pytest
@@ -24,8 +26,8 @@ def _reroute(graph_obj):
 
 
 def test_overriding_bag_is_a_distinct_class_that_inherits_the_rest():
-    from haywire.barn.builtin.nodes.reroute import RerouteNode
     from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
+    from haywire.barn.builtin.nodes.reroute import RerouteNode
 
     # _settings_bags is typed dict[str, type]; cast to the bag base so the
     # Settings classmethods below are visible to mypy.

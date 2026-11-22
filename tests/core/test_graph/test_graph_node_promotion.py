@@ -11,7 +11,6 @@ from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.graph.subgraph import SubgraphDefinition
 from haywire.core.node.promotion import demote_setting, promote_setting
 from haywire.core.types.enums import PortOrigin, PortType
-
 from tests.conftest import make_node
 
 if TYPE_CHECKING:
@@ -26,7 +25,6 @@ _CARD = "haywire-core:node:GraphNode"
 def group(graph_with_library_system: BaseGraph):
     """A Group card over a one-inlet interface, with ``props.comment`` promoted to an inlet."""
     from haybale_testing.types.test_types import TEST_FLOAT
-
     from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
     from haywire.barn.builtin.nodes.subgraph_io import SubgraphInputNode
 

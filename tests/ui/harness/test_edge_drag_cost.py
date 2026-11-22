@@ -19,6 +19,8 @@ timing threshold flakes (three runs of one identical pan config have measured
 unmistakable — it goes from a handful to a multiple of the pin count.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

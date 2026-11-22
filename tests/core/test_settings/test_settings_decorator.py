@@ -1,5 +1,7 @@
 """@settings decorator stores deprecation_warning on SettingsClassIdentity."""
 
+from __future__ import annotations
+
 from haywire.core.settings.decorator import settings
 from haywire.core.settings.settings_library import LibrarySettings
 

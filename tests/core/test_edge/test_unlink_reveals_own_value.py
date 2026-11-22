@@ -1,5 +1,7 @@
 """Removing an inlet's last edge shows its own value, and the node hears of it through its propagation."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest

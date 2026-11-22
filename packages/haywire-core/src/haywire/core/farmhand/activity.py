@@ -35,9 +35,10 @@ import json
 import logging
 import time
 from collections import deque
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Deque, Iterator, Optional
+from typing import Any
 
 from haywire.core.di.context import get_activity_tracker, set_activity_tracker
 
@@ -85,21 +86,21 @@ class ActivityRecord:
     ``PAYLOAD_CHAR_CAP``, never raw objects.
     """
 
-    principal: Optional[str]
+    principal: str | None
     tool: str
     started_at: float
     started_wall: float
     arguments: str = "{}"
-    finished_at: Optional[float] = None
+    finished_at: float | None = None
     ok: bool = True
-    error: Optional[str] = None
-    result: Optional[str] = None
+    error: str | None = None
+    result: str | None = None
 
     @property
     def running(self) -> bool:
         return self.finished_at is None
 
-    def elapsed(self, now: Optional[float] = None) -> float:
+    def elapsed(self, now: float | None = None) -> float:
         """Seconds this call has been running, or took."""
         end = self.finished_at if self.finished_at is not None else (now or time.monotonic())
         return max(0.0, end - self.started_at)
@@ -120,7 +121,7 @@ class ActivityRecord:
         )
 
     @property
-    def finished_wall(self) -> Optional[float]:
+    def finished_wall(self) -> float | None:
         """Wall-clock finish time, or ``None`` while the call is running.
 
         Derived as ``started_wall + elapsed()``, so it never disagrees with
@@ -141,7 +142,7 @@ class ActivityTracker:
     """
 
     _running: dict[int, ActivityRecord] = field(default_factory=dict)
-    _history: Deque[ActivityRecord] = field(default_factory=lambda: deque(maxlen=HISTORY_LIMIT))
+    _history: deque[ActivityRecord] = field(default_factory=lambda: deque(maxlen=HISTORY_LIMIT))
     _tokens: Iterator[int] = field(default_factory=lambda: itertools.count(1))
     # Per-instance, so a fresh tracker starts with no listeners.
     _listeners: list[ActivityListener] = field(default_factory=list)
@@ -170,7 +171,7 @@ class ActivityTracker:
             except Exception:
                 logger.debug("ActivityTracker listener %r raised; continuing", listener, exc_info=True)
 
-    def start(self, principal: Optional[str], tool: str, arguments: Any = None) -> int:
+    def start(self, principal: str | None, tool: str, arguments: Any = None) -> int:
         """Record a call beginning. Returns the token to pass to :meth:`finish`.
 
         Args:
@@ -195,7 +196,7 @@ class ActivityTracker:
         token: int,
         *,
         ok: bool = True,
-        error: Optional[str] = None,
+        error: str | None = None,
         result: Any = None,
     ) -> None:
         """Record a call ending, appending it to the history and the audit log.
@@ -254,14 +255,14 @@ class ActivityTracker:
         self.finish(token, ok=False, error=error)
         return True
 
-    def current(self, principal: Optional[str]) -> Optional[ActivityRecord]:
+    def current(self, principal: str | None) -> ActivityRecord | None:
         """The most recently started call still running for ``principal``."""
         candidates = [r for r in self._running.values() if r.principal == principal]
         if not candidates:
             return None
         return max(candidates, key=lambda r: r.started_at)
 
-    def last(self, principal: Optional[str]) -> Optional[ActivityRecord]:
+    def last(self, principal: str | None) -> ActivityRecord | None:
         """The most recently finished call for ``principal``, if any is remembered."""
         for record in reversed(self._history):
             if record.principal == principal:
@@ -272,7 +273,7 @@ class ActivityTracker:
         """Every call currently in flight, newest first, across all principals."""
         return sorted(self._running.values(), key=lambda r: r.started_at, reverse=True)
 
-    def recent(self, limit: Optional[int] = None) -> list[ActivityRecord]:
+    def recent(self, limit: int | None = None) -> list[ActivityRecord]:
         """Finished calls, newest first.
 
         Args:
@@ -324,7 +325,7 @@ class ActivityTracker:
             logger.debug(f"Farmhand activity: audit log write skipped: {exc}")
 
 
-def _resolve_log_path() -> Optional[Path]:
+def _resolve_log_path() -> Path | None:
     """The audit log's absolute path, or ``None`` when logging is off.
 
     Resolves ``ActivitySettings.log_path`` against the workspace root; an

@@ -6,6 +6,8 @@ through ``HaywireVM.emit_callback``, so the two run on separate threads and
 interleave freely.
 """
 
+from __future__ import annotations
+
 from functools import partial
 from typing import Any
 
@@ -13,7 +15,6 @@ import pytest
 
 from haywire.core.execution.interpreter import Interpreter
 from haywire.core.graph.base import BaseGraph
-
 from tests.conftest import make_edge, make_node
 from tests.wait import wait_until
 

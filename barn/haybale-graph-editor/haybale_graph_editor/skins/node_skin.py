@@ -1,20 +1,20 @@
+from __future__ import annotations
+
 from abc import ABC
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
+
 from nicegui import ui
 
-from haywire.api.workbench import LevelMode, set_hover_tip, stamp_requires
-
-from haywire.core.errors import HaywireException
+from haybale_graph_editor.settings.node_skin_settings import NodeSkinSettings
 from haywire.api import BaseSkin, DataPort, LayoutDirection, NodeWrapper, PortType, render_pin
-
+from haywire.api.workbench import LevelMode, set_hover_tip, stamp_requires
+from haywire.core.errors import HaywireException
 from haywire.ui.skin.pin_render import (
     GHOST_PIN_SIZE,
     add_pin_tooltip,
     render_ghost_pin,
     resolve_layout_direction,
 )
-
-from haybale_graph_editor.settings.node_skin_settings import NodeSkinSettings
 
 if TYPE_CHECKING:
     from haywire.ui.widget.factory_interface import IWidgetFactory
@@ -52,7 +52,7 @@ class NodeSkin(BaseSkin, ABC):
     on a port or its type still wins over it; see ``PinIconResolver``.
     """
 
-    def __init__(self, widget_factory: "IWidgetFactory"):
+    def __init__(self, widget_factory: IWidgetFactory):
         super().__init__(widget_factory)
         self._ui_settings = NodeSkinSettings()
 
@@ -226,7 +226,7 @@ class NodeSkin(BaseSkin, ABC):
 
     def _render_pin_column(
         self,
-        ports: List[DataPort],
+        ports: list[DataPort],
         wrapper: NodeWrapper,
         layout: LayoutDirection,
         *,
@@ -333,8 +333,8 @@ class NodeSkin(BaseSkin, ABC):
         wrapper: NodeWrapper,
         layout: LayoutDirection,
         card_style: str,
-        inlets: List[DataPort],
-        outlets: List[DataPort],
+        inlets: list[DataPort],
+        outlets: list[DataPort],
     ):
         """A folded L2R/R2L card: one row, a pin column pinned to each side.
 
@@ -358,8 +358,8 @@ class NodeSkin(BaseSkin, ABC):
         wrapper: NodeWrapper,
         layout: LayoutDirection,
         card_style: str,
-        inlets: List[DataPort],
-        outlets: List[DataPort],
+        inlets: list[DataPort],
+        outlets: list[DataPort],
     ):
         """A folded T2B/B2T card: the title, between two edge pin strips.
 
@@ -402,7 +402,7 @@ class NodeSkin(BaseSkin, ABC):
     def _render_alternates_notice(
         self,
         wrapper: NodeWrapper,
-        runtime_errors: List["HaywireException"],
+        runtime_errors: list[HaywireException],
     ):
         """The inline "Alternate versions available" line — FULL only.
 
@@ -588,10 +588,10 @@ class NodeSkin(BaseSkin, ABC):
 
     def render_pin_strip(
         self,
-        ports: List[DataPort],
+        ports: list[DataPort],
         wrapper: NodeWrapper,
         layout: LayoutDirection,
-        ghost_for: "PortType | None" = None,
+        ghost_for: PortType | None = None,
         *,
         on_stage: bool,
     ):
@@ -731,7 +731,7 @@ class NodeSkin(BaseSkin, ABC):
         self,
         wrapper: NodeWrapper,
         layout: LayoutDirection | None = None,
-        only: "PortType | None" = None,
+        only: PortType | None = None,
     ):
         """Render inline ghost pins into the current flex context.
 

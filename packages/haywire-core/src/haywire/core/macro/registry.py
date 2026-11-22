@@ -1,10 +1,12 @@
 """The registry of ``.hwm`` macro documents."""
 
+from __future__ import annotations
+
 import json
 import logging
 import re
 from pathlib import Path
-from typing import Optional, cast
+from typing import cast
 
 from haywire.core.errors import HaywireException
 from haywire.core.library.identity import LibraryIdentity
@@ -44,7 +46,7 @@ class MacroRegistry(DocumentRegistry[MacroTemplate]):
         self,
         folder_path: str,
         library_identity: LibraryIdentity,
-        exclude_patterns: Optional[list[str]] = None,
+        exclude_patterns: list[str] | None = None,
     ):
         """Register the folder's macros, skipping files whose stem cannot be a key."""
         for path in sorted(Path(folder_path).glob(f"*{self.SUFFIX}")):
@@ -142,7 +144,7 @@ class MacroRegistry(DocumentRegistry[MacroTemplate]):
         base; a document registry stores instances, and this undoes that one
         cast for callers that read the template's own fields.
         """
-        return cast(Optional[MacroTemplate], self.get(registry_key))
+        return cast(MacroTemplate | None, self.get(registry_key))
 
     def _macro_keys_reachable_from(self, registry_key: str) -> set[str]:
         """Every macro key reachable by following placements from ``registry_key``."""

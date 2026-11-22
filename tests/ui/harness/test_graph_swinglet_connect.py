@@ -10,6 +10,8 @@ Connections are click-click, as in test_graph_connect.py: a click on a pin
 starts the drag, the next click commits it.
 """
 
+from __future__ import annotations
+
 import json
 
 import pytest

@@ -83,7 +83,7 @@ def sign_cert(
     if not entries:
         raise CertError("A certificate needs at least one name or address to cover.")
 
-    moment = now or datetime.datetime.now(datetime.timezone.utc)
+    moment = now or datetime.datetime.now(datetime.UTC)
     subject = x509.Name(
         [
             x509.NameAttribute(NameOID.COMMON_NAME, _common_name(names)),

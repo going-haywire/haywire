@@ -1,5 +1,7 @@
 """Resource families: component canons and installed-library docs."""
 
+from __future__ import annotations
+
 import pytest
 
 pytestmark = pytest.mark.integration

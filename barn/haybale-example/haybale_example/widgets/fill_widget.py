@@ -8,11 +8,13 @@ instance — mutating the held FILL in place would update nothing. Every edit
 therefore builds a new FILL (see ``_emit``).
 """
 
+from __future__ import annotations
+
 from typing import Any
 
 from nicegui import ui
 
-from haybale_example.types.fill import KINDS, LINEAR, RADIAL, SOLID, FILL
+from haybale_example.types.fill import FILL, KINDS, LINEAR, RADIAL, SOLID
 from haywire.api import BaseWidget, widget
 
 _KIND_LABELS = {SOLID: "Solid", LINEAR: "Linear", RADIAL: "Radial"}

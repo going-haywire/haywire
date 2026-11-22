@@ -1,5 +1,7 @@
 """Image Event — runs its flow for each image an image emitter delivers."""
 
+from __future__ import annotations
+
 from haywire.api import (
     CHOICES,
     EXEC,

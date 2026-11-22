@@ -15,15 +15,16 @@ What must hold, and is asserted here:
     into a torn-down canvas.
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
+from unittest.mock import MagicMock
 
 import pytest
-from unittest.mock import MagicMock
 
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
 from haywire.ui.components.graph.event_definitions import CanvasMountedEvent, SyncAllEdgesEvent
-
 from tests.conftest import edit_route
 
 _VISUAL_LAYER_LOGGER = "haybale_graph_editor.editors.graph_canvas.handlers.visual_layer"

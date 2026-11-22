@@ -6,7 +6,7 @@ raise ``TypeError`` there — deep in a flyout, with no useful frame — which i
 why ``Surface.__init_subclass__`` rejects one at class-definition time.
 """
 
-from tests.protocol_stubs import protocol_verbs, stub_for
+from __future__ import annotations
 
 from haybale_graph_editor.surfaces import (
     EdgeActions,
@@ -14,6 +14,7 @@ from haybale_graph_editor.surfaces import (
     PortActions,
     SelectionActions,
 )
+from tests.protocol_stubs import protocol_verbs, stub_for
 
 
 def _complete():

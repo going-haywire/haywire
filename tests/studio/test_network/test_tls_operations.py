@@ -1,5 +1,7 @@
 """The rules: setup, update, status classification, and the trust command."""
 
+from __future__ import annotations
+
 import datetime
 import hashlib
 import json
@@ -241,7 +243,7 @@ def test_status_unreadable_certificate(env):
 
 def test_status_expiring(env, monkeypatch):
     setup(directory=env.directory, path=env.settings)
-    soon = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=5)
+    soon = datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=5)
     monkeypatch.setattr("haywire_studio.network.certs.cert_expiry", lambda cert: soon)
     assert status(directory=env.directory, path=env.settings).state is TlsState.EXPIRING
 

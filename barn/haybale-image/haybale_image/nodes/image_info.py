@@ -1,8 +1,9 @@
 """Image Info — size, channel layout and bit depth of an image."""
 
-from haywire.api import INT, STRING, BaseNode, ExecutionContext, NodeType, node
+from __future__ import annotations
 
 from haybale_image.value.image_value import ImageValue
+from haywire.api import INT, STRING, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(

@@ -4,6 +4,8 @@ Smoke tests to verify basic test infrastructure.
 These tests ensure that the testing framework itself is working.
 """
 
+from __future__ import annotations
+
 import pytest
 from injector import Injector
 

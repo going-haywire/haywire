@@ -115,7 +115,7 @@ class NetworkPolicy:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "NetworkPolicy":
+    def from_dict(cls, data: dict) -> NetworkPolicy:
         if not isinstance(data, dict):
             raise SecurityError("The 'network' block must be a JSON object.")
         return cls(
@@ -148,7 +148,7 @@ class FarmhandPolicy:
         return {"enabled": self.enabled, "restrict_to_loopback": self.restrict_to_loopback}
 
     @classmethod
-    def from_dict(cls, data: dict) -> "FarmhandPolicy":
+    def from_dict(cls, data: dict) -> FarmhandPolicy:
         if not isinstance(data, dict):
             raise SecurityError("The 'farmhand' block must be a JSON object.")
         return cls(

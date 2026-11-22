@@ -1,5 +1,7 @@
 """The whole gate, end to end, against a real ASGI app."""
 
+from __future__ import annotations
+
 import pytest
 from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse
@@ -53,7 +55,8 @@ def test_removing_the_principal_locks_out_an_existing_cookie(client):
     api.post("/login", data={"username": "alice", "password": STRONG})
     assert api.get("/").status_code == 200
 
-    from haywire_studio.auth.operations import add_user as add, remove_principal
+    from haywire_studio.auth.operations import add_user as add
+    from haywire_studio.auth.operations import remove_principal
 
     add("root", STRONG + "z", AccessTier.ADMIN, path=path)
     remove_principal("alice", path=path)

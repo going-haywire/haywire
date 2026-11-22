@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 import shutil
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 from haywire.core.publishing.git import git, run_streaming
 from haywire.core.publishing.pipeline.errors import DocsGenerationError
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
     from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 
-def command(pipeline: "SharePipeline", json_path: Path | None = None) -> list[str]:
+def command(pipeline: SharePipeline, json_path: Path | None = None) -> list[str]:
     """The argv for docs generation. ``--all``, always a subprocess.
 
     A subprocess because ``generate_docs()`` builds a SECOND library system
@@ -52,7 +53,7 @@ def command(pipeline: "SharePipeline", json_path: Path | None = None) -> list[st
     return argv
 
 
-async def apply(pipeline: "SharePipeline", on_output: Callable[[str], None] | None = None) -> DocsResult:
+async def apply(pipeline: SharePipeline, on_output: Callable[[str], None] | None = None) -> DocsResult:
     """Regenerate every barn library's docs. Always runs — no yes/no gate.
 
     Must run AFTER the version bump: ``render_quickref`` embeds
@@ -96,7 +97,7 @@ async def apply(pipeline: "SharePipeline", on_output: Callable[[str], None] | No
     return DocsResult(coverage=coverage, written=written, output=result.stdout)
 
 
-def write_set(pipeline: "SharePipeline") -> list[Path]:
+def write_set(pipeline: SharePipeline) -> list[Path]:
     """Doc files under ``barn/`` that now differ from HEAD.
 
     Read from ``git status --porcelain`` rather than predicted, because the

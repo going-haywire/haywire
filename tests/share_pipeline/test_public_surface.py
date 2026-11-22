@@ -7,6 +7,8 @@ narrowing this surface is a deliberate follow-up, not something to do by
 accident.
 """
 
+from __future__ import annotations
+
 import importlib
 
 # Every name the wizard imports from the pipeline package today.

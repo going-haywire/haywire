@@ -2,18 +2,21 @@
 Basic widget implementations for common data types
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Any
+
 from nicegui import run, ui
 
 from haywire.barn.builtin.types import INT
 from haywire.core.types.utils import resolve_options
 from haywire.ui import elements as hui
+from haywire.ui.components.number.drag import NumberDrag
 from haywire.ui.modals import text_modal
-from haywire.ui.widget.decorator import widget
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.converters import DisplayTextConverter, PrimitiveUnwrappingConverter
-from haywire.ui.components.number.drag import NumberDrag
+from haywire.ui.widget.decorator import widget
 
 log = logging.getLogger(__name__)
 

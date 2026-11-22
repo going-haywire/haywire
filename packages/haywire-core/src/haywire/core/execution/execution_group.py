@@ -8,11 +8,13 @@ and runs under its wrapper's ``exec_lock``. See ADR 0064.
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Sequence, Set
+
 import logging
 import queue
 import threading
 import time
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from haywire.core.execution.flow import Flow
@@ -31,7 +33,7 @@ class _HasNodeId(Protocol):
 class _GroupableFlow(Protocol):
     def get_entry_node_id(self) -> str: ...
 
-    def get_control_node_ids(self) -> List[str]: ...
+    def get_control_node_ids(self) -> list[str]: ...
 
     def get_all_nodes(self) -> Sequence[_HasNodeId]: ...
 
@@ -51,7 +53,7 @@ def group_flows[F: _GroupableFlow](flows: Sequence[F]) -> list[list[F]]:
             i = parent[i]
         return i
 
-    owner: Dict[str, int] = {}
+    owner: dict[str, int] = {}
     for index, flow in enumerate(flows):
         for node_id in (flow.get_entry_node_id(), *flow.get_control_node_ids()):
             first = owner.setdefault(node_id, index)
@@ -59,7 +61,7 @@ def group_flows[F: _GroupableFlow](flows: Sequence[F]) -> list[list[F]]:
             if root_a != root_b:
                 parent[max(root_a, root_b)] = min(root_a, root_b)
 
-    groups: Dict[int, list[F]] = {}
+    groups: dict[int, list[F]] = {}
     for index, flow in enumerate(flows):
         groups.setdefault(find(index), []).append(flow)
     return list(groups.values())
@@ -67,14 +69,14 @@ def group_flows[F: _GroupableFlow](flows: Sequence[F]) -> list[list[F]]:
 
 def shared_data_node_ids(groups: Sequence[Sequence[_GroupableFlow]]) -> frozenset[str]:
     """Return the ids of data nodes that more than one group executes."""
-    control_ids: Set[str] = set()
+    control_ids: set[str] = set()
     for group in groups:
         for flow in group:
             control_ids.add(flow.get_entry_node_id())
             control_ids.update(flow.get_control_node_ids())
 
-    seen_in: Dict[str, int] = {}
-    shared: Set[str] = set()
+    seen_in: dict[str, int] = {}
+    shared: set[str] = set()
     for index, group in enumerate(groups):
         for flow in group:
             for node in flow.get_all_nodes():
@@ -108,13 +110,13 @@ class ExecutionGroup:
         group.stop(timeout_s=2.0)          # True once the runner has exited
     """
 
-    def __init__(self, group_id: str, flows: List["Flow"], vm: "HaywireVM"):
+    def __init__(self, group_id: str, flows: list[Flow], vm: HaywireVM):
         self.group_id = group_id
         self.flows = flows
         self.vm = vm
 
-        nodes: List["BaseNode"] = []
-        seen: Set[str] = set()
+        nodes: list[BaseNode] = []
+        seen: set[str] = set()
         for flow in flows:
             for node in flow.get_all_nodes():
                 if node.node_id not in seen:
@@ -126,11 +128,11 @@ class ExecutionGroup:
         self.cancel = threading.Event()
         """Set when a ``stop()`` escalates to ``kill()``: the running frame ends at its next control node."""
 
-        self._ready: "queue.Queue[Optional[FlowQueue]]" = queue.Queue()
+        self._ready: queue.Queue[FlowQueue | None] = queue.Queue()
         """Ready tokens in arrival order; ``None`` tells the runner to exit."""
         self._stop = threading.Event()
         self._exited = threading.Event()
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._gave_up = False
 
         # Frame barrier: the runner enters a frame only while not held.
@@ -144,7 +146,7 @@ class ExecutionGroup:
         self._thread.start()
         logger.debug(f"Started runner for {self.group_id} ({len(self.flows)} flows)")
 
-    def post(self, flow_queue: "FlowQueue") -> None:
+    def post(self, flow_queue: FlowQueue) -> None:
         """Announce one trigger newly queued on ``flow_queue``."""
         self._ready.put(flow_queue)
 
@@ -260,7 +262,7 @@ class ExecutionGroup:
         self.vm.call_startup(self.nodes, context_flow, self.cancel)
         try:
             while True:
-                token: Optional[FlowQueue] = self._ready.get()
+                token: FlowQueue | None = self._ready.get()
                 if token is None or self._stop.is_set():
                     break
                 if not self._enter_frame():

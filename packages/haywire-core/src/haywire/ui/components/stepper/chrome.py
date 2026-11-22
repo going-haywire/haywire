@@ -6,7 +6,8 @@ exposes. Per-step body content lives in the caller's own panel functions.
 
 from __future__ import annotations
 
-from typing import Callable, Mapping, Optional, TypeVar
+from collections.abc import Callable, Mapping
+from typing import TypeVar
 
 from nicegui import ui
 
@@ -136,7 +137,7 @@ def render_warnings(flow: StepFlow) -> None:
 def render_error(
     flow: FlowT,
     rerender: Callable[[], None],
-    error_detail: Optional[ErrorDetail[FlowT]] = None,
+    error_detail: ErrorDetail[FlowT] | None = None,
 ) -> None:
     """Inline error banner with a Retry button.
 

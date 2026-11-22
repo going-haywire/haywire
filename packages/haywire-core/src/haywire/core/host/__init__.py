@@ -3,6 +3,8 @@
 See ``store.py``.
 """
 
+from __future__ import annotations
+
 from haywire.core.host.store import HostStore
 
 __all__ = ["HostStore"]

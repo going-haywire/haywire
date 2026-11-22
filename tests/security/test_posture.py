@@ -5,9 +5,8 @@ from __future__ import annotations
 import pytest
 
 from haywire.core.access import AccessTier
-
-from haywire_studio.network.tls_operations import TlsState, TlsStatus
 from haywire_studio.network.names import LocalNames
+from haywire_studio.network.tls_operations import TlsState, TlsStatus
 from haywire_studio.security.document import FarmhandPolicy, NetworkPolicy, SecurityDocument
 from haywire_studio.security.posture import Severity, assess_document
 from haywire_studio.security.roster import KIND_USER, Principal, Roster

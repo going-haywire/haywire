@@ -1,10 +1,12 @@
 # haywire/ui/components/minimap/settings.py
 """Minimap layout and visibility preference singleton."""
 
+from __future__ import annotations
+
+from haywire.barn.builtin.types import BOOL, CHOICES, FLOAT, INT
 from haywire.core.namespaces import NAMESPACE_UI_MINIMAP
 from haywire.core.settings import setting
 from haywire.core.settings.settings_framework import FrameworkSettings
-from haywire.barn.builtin.types import BOOL, CHOICES, FLOAT, INT
 
 
 class MinimapSettings(FrameworkSettings, namespace=NAMESPACE_UI_MINIMAP):

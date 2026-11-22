@@ -13,6 +13,8 @@ and until now it had no DOM coverage at all. Two defects it shipped with:
    applied and a manual resize silently capped at max-w-sm (384px).
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

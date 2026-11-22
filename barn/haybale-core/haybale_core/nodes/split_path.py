@@ -1,5 +1,7 @@
 """Split Path — take a file path apart into its volume, base, subfolder, stem and extension."""
 
+from __future__ import annotations
+
 from pathlib import PurePosixPath
 from typing import Any
 

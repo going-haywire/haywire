@@ -2,11 +2,12 @@
 Inset NodeSkin — a Graph-node card whose body shows its interior's stage
 """
 
-from typing import List
+from __future__ import annotations
 
 from nicegui import ui
 
-from haywire.core.di.config import get_library_system
+from haybale_graph_editor.editors.graph_canvas.inset_view import InsetView
+from haybale_graph_editor.skins.node_skin import NodeSkin
 from haywire.api import (
     SKIN_TAG_GRAPH_NODE,
     SKIN_TAG_SPECIAL,
@@ -16,9 +17,7 @@ from haywire.api import (
     PortType,
     skin,
 )
-
-from haybale_graph_editor.editors.graph_canvas.inset_view import InsetView
-from haybale_graph_editor.skins.node_skin import NodeSkin
+from haywire.core.di.config import get_library_system
 
 #: The body's smallest size, in px; a manual card size adds room, never less.
 INSET_FLOOR_PX: tuple[int, int] = (240, 160)
@@ -84,8 +83,8 @@ class InsetSkin(NodeSkin):
         main_card: ui.card,
         wrapper: NodeWrapper,
         layout: LayoutDirection,
-        inlets: List[DataPort],
-        outlets: List[DataPort],
+        inlets: list[DataPort],
+        outlets: list[DataPort],
     ) -> None:
         """L2R / R2L: the title row, then a row holding a pin column, the body and a pin column."""
         main_card.classes(f"w-full node-card zoom-pan-lod0 {self.card_classes(wrapper)}").style(
@@ -111,8 +110,8 @@ class InsetSkin(NodeSkin):
         main_card: ui.card,
         wrapper: NodeWrapper,
         layout: LayoutDirection,
-        inlets: List[DataPort],
-        outlets: List[DataPort],
+        inlets: list[DataPort],
+        outlets: list[DataPort],
     ) -> None:
         """T2B / B2T: a pin strip, the title, the body, then the other pin strip."""
         widest = max(len(inlets), len(outlets)) + 1

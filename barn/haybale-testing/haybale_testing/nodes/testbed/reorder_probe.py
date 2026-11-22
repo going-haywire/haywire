@@ -1,5 +1,7 @@
 """Reorder probe — static and dynamic ports for port-ordering tests."""
 
+from __future__ import annotations
+
 from haywire.api import FLOAT, STRING, BaseNode, ExecutionContext, NodeType, node
 
 

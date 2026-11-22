@@ -17,8 +17,9 @@ Convenience factories:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from enum import Flag, IntEnum, auto
-from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar, overload
+from typing import TYPE_CHECKING, Any, TypeVar, overload
 
 from haywire.core.types.base import WrapperType
 from haywire.core.types.enums import StoreStrategy
@@ -78,7 +79,7 @@ class UiState(IntEnum):
     HIDDEN = 3
 
 
-class setting(SettingDescriptor, Generic[T]):
+class setting[T: IType](SettingDescriptor):
     """Reactive field descriptor for a ``Settings`` subclass.
 
     Declare fields on a ``Settings`` subclass to get reactive, typed
@@ -179,7 +180,7 @@ class setting(SettingDescriptor, Generic[T]):
 
     def __init__(
         self,
-        default: "Any | Callable[[], Any]" = None,
+        default: Any | Callable[[], Any] = None,
         *,
         label: str = "",
         description: str = "",
@@ -187,17 +188,17 @@ class setting(SettingDescriptor, Generic[T]):
         order: int = 0,
         min: Any = None,
         max: Any = None,
-        widget: "dict | None" = None,
-        widget_config: "dict | None" = None,
-        mirrors: "SettingDescriptor | str | None" = None,
-        type_: "type[T] | None" = None,
-        validator: "Callable | None" = None,
-        metadata: "dict | None" = None,
+        widget: dict | None = None,
+        widget_config: dict | None = None,
+        mirrors: SettingDescriptor | str | None = None,
+        type_: type[T] | None = None,
+        validator: Callable | None = None,
+        metadata: dict | None = None,
         ui_state: UiState = UiState.NORMAL,
         promotable: Promotable = Promotable.ALL,
-        promote_default: "PortType | None" = None,
+        promote_default: PortType | None = None,
         operable: bool = True,
-        store: "StoreStrategy | None" = None,
+        store: StoreStrategy | None = None,
     ) -> None:
         if store is not None and store not in (StoreStrategy.ALWAYS, StoreStrategy.NEVER):
             raise TypeError(
@@ -227,14 +228,14 @@ class setting(SettingDescriptor, Generic[T]):
         self._metadata: dict = metadata or {}
         self._ui_state: UiState = ui_state
         self._promotable: Promotable = promotable
-        self._promote_default: "PortType | None" = promote_default
+        self._promote_default: PortType | None = promote_default
         self._operable: bool = operable
         self._validator_lifted: bool = False
         self._attr_name: str = ""  # set by __set_name__
         """the literal attribute name you'd write as ``self.<bag>.<attr_name>``"""
         self._setting_key: str = ""  # namespaced registry key, set at registration
         """the registry key ``<namespace>.<attr_name>``"""
-        self._mirror_descriptor: "SettingDescriptor | None" = None  # set when mirrors= is a descriptor
+        self._mirror_descriptor: SettingDescriptor | None = None  # set when mirrors= is a descriptor
         self._graph_mirror: bool = False  # set True by the graph() factory
 
         if self._validator is not None and default is not None and not self.validate(default):
@@ -279,7 +280,7 @@ class setting(SettingDescriptor, Generic[T]):
         """True when this field's IType wraps another (``OPTIONAL[T]``)."""
         return isinstance(self._type, type) and issubclass(self._type, WrapperType)
 
-    def _apply_wrapper_rules(self, owner: "type | None" = None, name: str = "") -> None:
+    def _apply_wrapper_rules(self, owner: type | None = None, name: str = "") -> None:
         """Apply the rules that hold only for a wrapper-typed (``OPTIONAL[T]``) field.
 
         Lifts the validator so that clearing the field always passes: a
@@ -402,7 +403,7 @@ class setting(SettingDescriptor, Generic[T]):
         return self._setting_key or self._attr_name
 
     @overload
-    def __get__(self, obj: None, objtype: type | None = None) -> "setting[T]": ...
+    def __get__(self, obj: None, objtype: type | None = None) -> setting[T]: ...
     @overload
     def __get__(self, obj: object, objtype: type | None = None) -> Any: ...
     def __get__(self, obj: Any, objtype: type | None = None) -> Any:
@@ -433,7 +434,7 @@ class setting(SettingDescriptor, Generic[T]):
         obj._cell_for(self).set_value(value)
 
 
-class persistent_setting(setting, Generic[T]):
+class persistent_setting[T: IType](setting):
     """A `setting` whose writes persist through the registry's workspace tier.
 
     Every field on a ``FrameworkSettings`` or ``LibrarySettings`` schema is
@@ -456,7 +457,7 @@ class persistent_setting(setting, Generic[T]):
         if not self.validate(value):
             return
 
-        registry: "SettingsRegistry | None" = getattr(obj, "_registry", None)
+        registry: SettingsRegistry | None = getattr(obj, "_registry", None)
         if registry is None or not self._setting_key:
             # Per-instance cell write, including its resolved-value no-op guard.
             super().__set__(obj, value)
@@ -474,12 +475,12 @@ class persistent_setting(setting, Generic[T]):
         registry.save_to_json_debounced()
 
 
-def shadow(src: "setting[T]", **kwargs: Any) -> "setting[T]":
+def shadow[T: IType](src: setting[T], **kwargs: Any) -> setting[T]:
     """Writable mirror of *src* setting. Inherits src metadata; local writes are allowed."""
     return setting(mirrors=src, **kwargs)
 
 
-def watch(src: "setting[T]", **kwargs: Any) -> "setting[T]":
+def watch[T: IType](src: setting[T], **kwargs: Any) -> setting[T]:
     """Read-only-by-convention mirror of *src* setting. Inherits src metadata.
 
     Sugar over ``shadow()``: seeds ``ui_state=UiState.DISABLED`` (a greyed,
@@ -490,7 +491,7 @@ def watch(src: "setting[T]", **kwargs: Any) -> "setting[T]":
     return setting(mirrors=src, ui_state=UiState.DISABLED, promotable=Promotable.OUTLET, **kwargs)
 
 
-def graph(src: "setting[T]", **kwargs: Any) -> "setting[T]":
+def graph[T: IType](src: setting[T], **kwargs: Any) -> setting[T]:
     """Mirror of a field on the owning graph's settings bag (GraphSettings).
 
     The graph-tier analogue of ``shadow()``: while unset, the field tracks

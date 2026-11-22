@@ -16,17 +16,19 @@ Three registry queries, all routing on ``Surface.id``:
     that surface's whole ``hosts=`` tree.
 """
 
-from .identity import PanelIdentity
-from .layout import PanelLayout
+from __future__ import annotations
+
 from .base import BasePanel
-from .registry import PanelRegistry
-from .redraw_coordinator import PanelRedrawCoordinator
 
 # Import decorator last so the `panel` name resolves to the decorator function
 # rather than the `.panel` submodule (the `from .panel import BasePanel` above
 # binds `panel` as a submodule attribute on the package; importing the
 # decorator after that shadows it back to the function).
 from .decorator import panel  # noqa: E402
+from .identity import PanelIdentity
+from .layout import PanelLayout
+from .redraw_coordinator import PanelRedrawCoordinator
+from .registry import PanelRegistry
 
 __all__ = [
     "PanelIdentity",

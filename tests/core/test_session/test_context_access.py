@@ -1,5 +1,7 @@
 """SessionContext access predicates — read live authority, never a stamped tier."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest

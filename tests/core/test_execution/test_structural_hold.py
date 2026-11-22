@@ -6,9 +6,11 @@ graph is built on the fixture's ``SyncScheduler`` and then switched to a
 ``ThreadingTimerScheduler`` so batches run on their own thread.
 """
 
+from __future__ import annotations
+
 import threading
 import time
-from typing import Any, List
+from typing import Any
 
 import pytest
 
@@ -16,7 +18,6 @@ from haywire.core.execution.interpreter import Interpreter
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import ThreadingTimerScheduler
 from haywire.core.graph.types import ChangeReason
-
 from tests.conftest import make_edge, make_node
 from tests.wait import wait_until
 
@@ -35,7 +36,7 @@ class _Rig:
         assert isinstance(self.x.node, ControlPayloadProbeNode)
         make_edge(graph, self.a.node_id, "triggered", self.x.node_id, "exec_in")
 
-        self.order: List[str] = []
+        self.order: list[str] = []
         self.inside = threading.Event()
         self.gate = threading.Event()
         self.gate.set()

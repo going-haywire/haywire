@@ -15,8 +15,9 @@ so every ``await`` point (including ``offload``) is a cancellation point.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import Awaitable, Callable, Optional, ParamSpec, Protocol, TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, ParamSpec, Protocol, TypeVar
 
 from haywire.core.access import AccessTier, resolve_tier
 from haywire.core.di.context import (
@@ -43,8 +44,8 @@ class Fenceable(Protocol):
 class FarmhandContext:
     def __init__(
         self,
-        progress_reporter: Optional[Callable[[str], Awaitable[None]]] = None,
-        principal: Optional[str] = None,
+        progress_reporter: Callable[[str], Awaitable[None]] | None = None,
+        principal: str | None = None,
     ):
         self._progress_reporter = progress_reporter
         #: Who is calling. Set by the Farmhand host from the ASGI scope the auth

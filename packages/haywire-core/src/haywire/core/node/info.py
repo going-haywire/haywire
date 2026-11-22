@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Optional
 
 from haywire.core.library.identity import LibraryIdentity
+
 from .identity import NodeIdentity
 
 
@@ -10,7 +12,7 @@ class NodeInfo:
     """Composed node metadata used by NodeFactory discovery APIs."""
 
     identity: NodeIdentity
-    library: Optional[LibraryIdentity]
+    library: LibraryIdentity | None
     is_macro: bool = False
     """Whether this entry is a macro document rather than a node class.
 

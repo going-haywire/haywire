@@ -21,7 +21,6 @@ from haywire.core.graph.editor import Editor
 from haywire.core.graph.scheduler import ThreadingTimerScheduler
 from haywire.core.node.promotion import promote_setting
 from haywire.core.types.enums import PortType
-
 from tests.conftest import edit_route, make_node
 
 pytestmark = pytest.mark.integration

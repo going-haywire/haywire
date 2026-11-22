@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 
 from haywire.core.access import AccessTier
-
 from haywire_studio.security.document import (
     NetworkPolicy,
     SecurityDocument,

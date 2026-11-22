@@ -6,6 +6,8 @@ Holds a raw ``snapshot`` dict. Knows nothing about slots, editors, or
 OpenBehavior. Slots are responsible for interpreting and producing snapshots.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 from pathlib import Path

@@ -21,8 +21,8 @@ def test_graph_app_state_loads_via_library_system(library_system):
     ``Library.register_components()`` → state container. A registration
     regression would leave those unit tests green.
     """
-    from haywire.core.state import LibraryStateContainer
     from haybale_graph_editor.states.graph_app_state import GraphAppState
+    from haywire.core.state import LibraryStateContainer
 
     container = library_system.injector.get(LibraryStateContainer)
     instance = container.get(GraphAppState)

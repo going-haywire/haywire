@@ -19,7 +19,6 @@ from haywire.core.undo.actions.graph_actions import (
     SetSettingAction,
     SetSettingsAction,
 )
-
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration

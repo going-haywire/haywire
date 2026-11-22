@@ -1,5 +1,7 @@
 """F21: a framework schema reaches every registry, whenever either was built."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import INT

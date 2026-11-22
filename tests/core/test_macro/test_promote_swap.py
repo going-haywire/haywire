@@ -5,6 +5,8 @@ cards. One undoable unit: undo restores the Group and leaves the file, because
 a macro other graphs may already place must not vanish with one undo.
 """
 
+from __future__ import annotations
+
 import json
 
 import pytest

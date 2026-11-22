@@ -1,5 +1,7 @@
 """NodeWrapperState.replace_warnings swaps one kind and keeps the rest."""
 
+from __future__ import annotations
+
 from haywire.core.node.node_warning import NodeWarning
 from haywire.core.node.node_wrapper import NodeWrapperState
 

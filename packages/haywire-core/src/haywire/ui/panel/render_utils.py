@@ -25,10 +25,10 @@ from __future__ import annotations
 
 import inspect
 import logging
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from itertools import groupby
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from nicegui import ui
 
@@ -46,8 +46,8 @@ if TYPE_CHECKING:
     from haywire.core.graph.editor import Editor
     from haywire.core.node.data import NodeData
     from haywire.core.session.context import SessionContext
-    from haywire.core.settings.registry import SettingsRegistry
     from haywire.core.settings import Settings, setting
+    from haywire.core.settings.registry import SettingsRegistry
     from haywire.core.types.enums import PortType
     from haywire.core.types.fields import DataField
 
@@ -66,11 +66,11 @@ _COLUMN_STYLE = "container-type: inline-size; container-name: settings-panel;"
 
 
 def render_settings(
-    ctx: "SessionContext",
-    obj: "Settings",
+    ctx: SessionContext,
+    obj: Settings,
     *,
     categories: Iterable[str] | None = None,
-    route: "EditRoute | None",
+    route: EditRoute | None,
 ) -> None:
     """Render all ``setting()`` fields of a ``Settings`` instance as labelled form rows.
 
@@ -141,7 +141,7 @@ def render_settings(
         names = fields_by_category.get(category, [])
         wrapper.set_visibility(any(obj._effective_ui_state(n) is not UiState.HIDDEN for n in names))
 
-    def _render_one(item: tuple[str, "setting"]) -> None:
+    def _render_one(item: tuple[str, setting]) -> None:
         category = item[1]._category
 
         def _on_applied() -> None:
@@ -193,7 +193,7 @@ def render_settings(
     anchor_cleanup_to_element(column, _teardown)
 
 
-def render_schema(ctx: "SessionContext", schema_cls: type["Settings"], registry: "SettingsRegistry") -> None:
+def render_schema(ctx: SessionContext, schema_cls: type[Settings], registry: SettingsRegistry) -> None:
     """Render the fields declared on *schema_cls* as form rows, in declaration order.
 
     Filters to registry-known keys, so keys another caller registered under
@@ -236,7 +236,7 @@ def render_schema(ctx: "SessionContext", schema_cls: type["Settings"], registry:
     _render_grouped(ordered_defns, category_of=lambda d: d._category, render_one=_render_one)
 
 
-def render_keys(ctx: "SessionContext", prefix: str, registry: "SettingsRegistry") -> None:
+def render_keys(ctx: SessionContext, prefix: str, registry: SettingsRegistry) -> None:
     """Render all registry keys whose full key starts with *prefix*.
 
     Intended for dynamically registered keys (e.g. per-library log levels)
@@ -259,7 +259,7 @@ def render_keys(ctx: "SessionContext", prefix: str, registry: "SettingsRegistry"
 # ===========================================================================
 
 
-def _category_sort_key(category: str, order: int, tiebreak: "str | int") -> tuple[str, int, "str | int"]:
+def _category_sort_key(category: str, order: int, tiebreak: str | int) -> tuple[str, int, str | int]:
     """Shared (category, order, tiebreak) sort key. ``root`` sorts before all others.
 
     ``tiebreak`` is a setting key/name (alphabetical) for registry-backed callers,
@@ -269,7 +269,7 @@ def _category_sort_key(category: str, order: int, tiebreak: "str | int") -> tupl
     return ("" if category.lower() == "root" else category, order, tiebreak)
 
 
-def _sort_definitions(defns: "Iterable[setting]") -> list[setting]:
+def _sort_definitions(defns: Iterable[setting]) -> list[setting]:
     """Sort a collection of field descriptors by (category, order, setting_key)."""
     return sorted(
         defns,
@@ -312,7 +312,7 @@ def _render_grouped(
     return column
 
 
-def _render_definitions(ctx: "SessionContext", sorted_defns: list, registry: "SettingsRegistry") -> None:
+def _render_definitions(ctx: SessionContext, sorted_defns: list, registry: SettingsRegistry) -> None:
     """Render a pre-sorted list of registry-backed field descriptors.
 
     Each widget binds the registry-owned cell for its key, so
@@ -367,7 +367,7 @@ def _component_key(obj: Any) -> str | None:
     return getattr(identity, "registry_key", None) if identity is not None else None
 
 
-def _bag_source_key(obj: "Settings") -> str | None:
+def _bag_source_key(obj: Settings) -> str | None:
     """Where the code for this settings bag lives, as a registry key, or ``None``.
 
     A registered bag answers its own key; a ``NodeSettings`` bag answers the
@@ -381,7 +381,7 @@ def _bag_source_key(obj: "Settings") -> str | None:
     return _component_key(node) if node is not None else None
 
 
-def _open_component_source(ctx: "SessionContext", registry_key: str) -> None:
+def _open_component_source(ctx: SessionContext, registry_key: str) -> None:
     """Ask whoever hosts a source viewer to show ``registry_key``.
 
     Publishes a signal naming no editor, since core cannot import the barn
@@ -394,7 +394,7 @@ def _open_component_source(ctx: "SessionContext", registry_key: str) -> None:
     ctx.session.publish(RevealComponentSource(registry_key=registry_key))
 
 
-def component_source_path(ctx: "SessionContext", registry_key: str) -> "Path | None":
+def component_source_path(ctx: SessionContext, registry_key: str) -> Path | None:
     """The file ``registry_key``'s class is declared in, or ``None``.
 
     ``None`` covers every way this finds nothing: no app on the context, an
@@ -412,7 +412,7 @@ def component_source_path(ctx: "SessionContext", registry_key: str) -> "Path | N
         return None
 
 
-def _open_source_file(ctx: "SessionContext", registry_key: str) -> None:
+def _open_source_file(ctx: SessionContext, registry_key: str) -> None:
     """Ask whoever edits files to open ``registry_key``'s source file.
 
     The key is resolved to a path here, because ``RevealSource`` is
@@ -427,7 +427,7 @@ def _open_source_file(ctx: "SessionContext", registry_key: str) -> None:
     ctx.session.publish(RevealSource(binding_id=str(path), label=path.name))
 
 
-def _build_developer_menu(ctx: "SessionContext", *entries: tuple[str, str | None]) -> None:
+def _build_developer_menu(ctx: SessionContext, *entries: tuple[str, str | None]) -> None:
     """Draw the Develop submenu for a settings row, if it has anything to say.
 
     *entries* are ``(label, registry_key)`` pairs; a pair whose key is None is
@@ -471,14 +471,14 @@ def _build_developer_menu(ctx: "SessionContext", *entries: tuple[str, str | None
 
 
 def _render_field_row(
-    ctx: "SessionContext",
+    ctx: SessionContext,
     label_text: str,
     description: str,
     defn,
-    registry: "SettingsRegistry",
+    registry: SettingsRegistry,
     key: str,
     attr_name: str = "",
-    cell: "DataField | None" = None,
+    cell: DataField | None = None,
 ) -> Callable[[Any], None] | None:
     """Render one label + widget row against the registry, or ``None`` if hidden.
 
@@ -573,14 +573,14 @@ def _render_field_row(
 
 
 def _render_reactive_field_row(
-    ctx: "SessionContext",
-    obj: "Settings",
+    ctx: SessionContext,
+    obj: Settings,
     attr_name: str,
-    defn: "setting",
+    defn: setting,
     updaters: dict[str, Callable[[], None]],
     on_ui_state_applied: Callable[[], None] | None = None,
     *,
-    route: "EditRoute | None",
+    route: EditRoute | None,
 ) -> None:
     """Render a single reactive field row (instance path).
 
@@ -708,10 +708,10 @@ def _render_reactive_field_row(
         # row's chrome directly so it clears regardless of whether the value moved.
         _refresh_chrome()
 
-    def _structure_editor() -> "Editor | None":
+    def _structure_editor() -> Editor | None:
         return route.editor() if route is not None else None
 
-    def _promote(direction: "PortType") -> None:
+    def _promote(direction: PortType) -> None:
         from haywire.core.node.promotion import bag_accessor
 
         editor = _structure_editor()
@@ -776,7 +776,7 @@ def _render_reactive_field_row(
         # else a "Promote to" flyout holding the eligible directions. Always a
         # flyout, even at one eligible direction, so the entry keeps a fixed
         # position and the row menu's own shape does not shift per field.
-        directions: list["PortType"] = []
+        directions: list[PortType] = []
         if node is not None and not is_promoted:
             directions = list(eligible_promotion_directions(defn))
         offers_demote = node is not None and is_promoted
@@ -931,10 +931,10 @@ def _render_reactive_field_row(
 
 
 def _resolve_widget_instance(
-    defn: "setting",
+    defn: setting,
     on_edit: Callable[[Any], None],
-    bag: "Settings | None" = None,
-    cell: "DataField | None" = None,
+    bag: Settings | None = None,
+    cell: DataField | None = None,
     requires: LevelMode | None = None,
 ) -> tuple[Callable[[Any], None] | None, Callable[[bool], None], Callable[[], None], Callable[[bool], None]]:
     """Build the shared ``BaseWidget`` for *defn* via a ``SettingWidgetModel``.
@@ -958,8 +958,8 @@ def _resolve_widget_instance(
         again, for an edit the write policy refused. ``set_visible(bool)`` shows
         or hides the widget, leaving the row's label and menu in place.
     """
-    from haywire.ui.widget.globals import get_widget_class
     from haywire.ui.panel.setting_widget_model import SettingWidgetModel
+    from haywire.ui.widget.globals import get_widget_class
 
     key = defn.widget_key
     widget_cls = get_widget_class(key)
@@ -1051,7 +1051,7 @@ def _build_label_widget(
     return _apply_label, _set_label_enabled, _set_label_visible
 
 
-def _request_canvas_redraw(node: "NodeData") -> None:
+def _request_canvas_redraw(node: NodeData) -> None:
     """Best-effort canvas pin refresh after a promote or demote from the row menu.
 
     Requests a redraw the debounced validation pass picks up; a node with no
@@ -1075,10 +1075,10 @@ def _escape(v: Any) -> str:
 
 
 def _bag_on_edit(
-    obj: "Settings",
+    obj: Settings,
     attr_name: str,
     error_container,
-    route: "EditRoute | None",
+    route: EditRoute | None,
     on_refused: Callable[[], None] | None = None,
 ) -> Callable[[Any], None]:
     """Write policy for the instance path: validate → write through *route* → error chrome.
@@ -1108,7 +1108,7 @@ def _bag_on_edit(
     return on_edit
 
 
-def _registry_on_edit(registry: "SettingsRegistry", key: str, error_container) -> Callable[[Any], None]:
+def _registry_on_edit(registry: SettingsRegistry, key: str, error_container) -> Callable[[Any], None]:
     """Write policy for the registry path: set_global → debounced save → error chrome.
 
     Surfaces failures instead of swallowing them: set_global raises
@@ -1129,7 +1129,7 @@ def _registry_on_edit(registry: "SettingsRegistry", key: str, error_container) -
     return on_edit
 
 
-def _registry_reset(registry: "SettingsRegistry", key: str, error_container) -> None:
+def _registry_reset(registry: SettingsRegistry, key: str, error_container) -> None:
     """Clear *key*'s workspace tier and save, so it falls back to global or default.
 
     The save is not optional: only set values are written, so persisting is
@@ -1150,6 +1150,6 @@ def _registry_reset(registry: "SettingsRegistry", key: str, error_container) -> 
     error_container.clear()
 
 
-def _set_field_tip(label: ui.element, defn: "setting", name: str, description: str) -> None:
+def _set_field_tip(label: ui.element, defn: setting, name: str, description: str) -> None:
     """Give a settings row's label the hover tip pins use: ``name: TYPE`` over *description*."""
     set_hover_tip(label, name, type_name=getattr(defn._type, "__name__", ""), description=description)

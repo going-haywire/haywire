@@ -1,5 +1,7 @@
 """Tests for the Slot class."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -134,7 +136,7 @@ def _install_fake_tab_panels(monkeypatch):
 class _FakeEditor:
     """Stand-in BaseEditor that records draw/cleanup."""
 
-    instances: list["_FakeEditor"] = []
+    instances: list[_FakeEditor] = []
 
     def __init__(self, wrapper) -> None:
         self.wrapper = wrapper

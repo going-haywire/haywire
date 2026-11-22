@@ -1,13 +1,16 @@
 # tests/core/test_graph/test_clipboard_payload.py
 """Unit tests for the pure clipboard-payload builder."""
 
-import pytest
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
+import pytest
+
 from haywire.core.graph.clipboard import (
+    CLIPBOARD_FORMAT_VERSION,
     build_clipboard_payload,
     is_haywire_payload,
-    CLIPBOARD_FORMAT_VERSION,
 )
 
 pytestmark = pytest.mark.unit

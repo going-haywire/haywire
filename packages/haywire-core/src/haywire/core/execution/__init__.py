@@ -30,11 +30,20 @@ Usage:
     interpreter.stop_execution()
 """
 
+from __future__ import annotations
+
+from haywire.core.execution.callback_manager import CallbackManager
+from haywire.core.execution.event_source import (
+    CallbackEvent,
+    EventSource,
+    ExternalEvent,
+    SystemEvent,
+    SystemEventType,
+    Trigger,
+)
 from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.execution.interpreter import Interpreter
-from haywire.core.execution.vm import HaywireVM
-from haywire.core.execution.flow import Flow, ControlFlowGraph, ControlNodeInfo, LocalizedDataFlow
-from haywire.core.execution.flow_queue import FlowQueue, QueueMode
+from haywire.core.execution.execution_group import ExecutionGroup
+from haywire.core.execution.flow import ControlFlowGraph, ControlNodeInfo, Flow, LocalizedDataFlow
 from haywire.core.execution.flow_metrics import (
     FlowMeterSampler,
     FlowReading,
@@ -44,16 +53,9 @@ from haywire.core.execution.flow_metrics import (
     Severity,
     Thresholds,
 )
-from haywire.core.execution.execution_group import ExecutionGroup
-from haywire.core.execution.event_source import (
-    EventSource,
-    SystemEvent,
-    SystemEventType,
-    ExternalEvent,
-    CallbackEvent,
-    Trigger,
-)
-from haywire.core.execution.callback_manager import CallbackManager
+from haywire.core.execution.flow_queue import FlowQueue, QueueMode
+from haywire.core.execution.interpreter import Interpreter
+from haywire.core.execution.vm import HaywireVM
 
 __all__ = [
     # Main interface

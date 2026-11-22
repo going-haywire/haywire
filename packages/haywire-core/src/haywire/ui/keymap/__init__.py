@@ -4,6 +4,8 @@ See ``build_keymap`` for how combos are claimed and ``report_keymap_problems``
 for how unbindable declarations are reported.
 """
 
+from __future__ import annotations
+
 from .keymap import (
     Keymap,
     KeymapClash,

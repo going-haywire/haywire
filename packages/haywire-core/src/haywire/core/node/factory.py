@@ -1,14 +1,16 @@
 """Resolve node classes by registry key, and fan lifecycle events out to their subscribers."""
 
+from __future__ import annotations
+
 import logging
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING
 
 from haywire.core.errors.haywire_exception import HaywireException
-from . import BaseNode, NodeRegistry
-from .info import NodeInfo, matches_query
 
 from ..library.utils import get_kind_from_key
-from ..registry.lifecycle_event import LifeCycleEvent, LifeCycleBatchCallback, LifeCycleEventCallback
+from ..registry.lifecycle_event import LifeCycleBatchCallback, LifeCycleEvent, LifeCycleEventCallback
+from . import BaseNode, NodeRegistry
+from .info import NodeInfo, matches_query
 
 if TYPE_CHECKING:
     # Type-only: macro.registry imports haywire.core.node, so a runtime import here is a cycle.
@@ -28,17 +30,17 @@ class NodeFactory:
     and the macro registry, so a macro is offered like any other component.
     """
 
-    def __init__(self, node_registry: NodeRegistry, macro_registry: "MacroRegistry"):
+    def __init__(self, node_registry: NodeRegistry, macro_registry: MacroRegistry):
         """Initialize the factory and subscribe it to its registries' lifecycle events."""
         self.node_registry = node_registry
         self.macro_registry = macro_registry
 
         # batch notification callbacks
-        self._lifecycle_batch_subscribers: List[LifeCycleBatchCallback] = []
+        self._lifecycle_batch_subscribers: list[LifeCycleBatchCallback] = []
 
         # individual event notification callbacks
         # registry_key -> list of callbacks
-        self._lifecycle_event_subscribers: Dict[str, List[LifeCycleEventCallback]] = {}
+        self._lifecycle_event_subscribers: dict[str, list[LifeCycleEventCallback]] = {}
 
         self.node_registry.add_batch_event_subscriber(self._listen_on_lifecycle_event)
         # Same relay: a placement subscribes per registry key, so a macro
@@ -197,7 +199,7 @@ class NodeFactory:
     # Node Discovery and UI Services
     # ============================================================================
 
-    def _build_node_info(self, registry_key: str) -> Optional[NodeInfo]:
+    def _build_node_info(self, registry_key: str) -> NodeInfo | None:
         """The component's composed metadata, or ``None`` if the key is not registered.
 
         Resolves a macro key off the macro registry, whose templates carry the
@@ -220,7 +222,7 @@ class NodeFactory:
 
         return None
 
-    def _visible_keys(self) -> List[str]:
+    def _visible_keys(self) -> list[str]:
         """Every key the create menu and search may offer, nodes then macros."""
         keys = list(self.node_registry.list_visible_names())
         keys.extend(self.macro_registry.list_visible_names())
@@ -246,13 +248,13 @@ class NodeFactory:
         or None if no loaded library provides one."""
         return self.node_registry._get_graph_node()
 
-    def get_menu_structure(self) -> Dict[str, List[NodeInfo]]:
+    def get_menu_structure(self) -> dict[str, list[NodeInfo]]:
         """Return every visible node's ``NodeInfo``, grouped by its menu path.
 
         A node with no menu path lands under ``"misc"``. Hidden nodes are left
         out, so they stay usable but are never offered in the create menu.
         """
-        menu: Dict[str, List[NodeInfo]] = {}
+        menu: dict[str, list[NodeInfo]] = {}
 
         for key in self._visible_keys():
             node_info = self._build_node_info(key)
@@ -268,10 +270,10 @@ class NodeFactory:
 
         return menu
 
-    def search_nodes(self, query: str) -> List[NodeInfo]:
+    def search_nodes(self, query: str) -> list[NodeInfo]:
         """Return the visible nodes whose label, description or search tags contain
         *query*, matched case-insensitively."""
-        results: List[NodeInfo] = []
+        results: list[NodeInfo] = []
 
         for key in self._visible_keys():
             node_info = self._build_node_info(key)
@@ -280,13 +282,13 @@ class NodeFactory:
 
         return results
 
-    def list_templates(self) -> Dict[str, List[NodeInfo]]:
+    def list_templates(self) -> dict[str, list[NodeInfo]]:
         """Return every Node template's ``NodeInfo``, grouped by its library's label.
 
         A template is a node class declared with ``template=True``. Templates
         are hidden, so this is the only discovery call that lists them.
         """
-        grouped: Dict[str, List[NodeInfo]] = {}
+        grouped: dict[str, list[NodeInfo]] = {}
         for key in self.node_registry.list_names():
             node_info = self._build_node_info(key)
             if node_info is None or not node_info.identity.template:
@@ -295,13 +297,13 @@ class NodeFactory:
             grouped.setdefault(library, []).append(node_info)
         return grouped
 
-    def list_all_nodes(self) -> List[str]:
+    def list_all_nodes(self) -> list[str]:
         """Every registered node and macro registry key, hidden ones included."""
         keys = list(self.node_registry.list_names())
         keys.extend(self.macro_registry.list_names())
         return keys
 
-    def get_node_info(self, registry_key: str) -> Optional[NodeInfo]:
+    def get_node_info(self, registry_key: str) -> NodeInfo | None:
         """The node's ``NodeInfo``, or ``None`` if the key is not registered."""
 
         return self._build_node_info(registry_key)

@@ -1,5 +1,7 @@
 """A data inlet takes one edge; only a pooled inlet takes several."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import FLOAT

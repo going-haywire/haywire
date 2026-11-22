@@ -1,5 +1,7 @@
 """Instrumented tool: reports which thread/loop the handler ran on (ticket 06 evidence)."""
 
+from __future__ import annotations
+
 import asyncio
 import threading
 

@@ -1,9 +1,15 @@
 """Audio Mixer — sums several audio sources into one block per tick of a clock."""
 
+from __future__ import annotations
+
 import logging
 import threading
 import time
 
+from haybale_audio.dsp.buffer import PullBuffer
+from haybale_audio.dsp.mix import mix
+from haybale_audio.emitter import set_status
+from haybale_audio.value import AudioBlock
 from haywire.api import (
     ADD,
     BOOL,
@@ -12,20 +18,15 @@ from haywire.api import (
     STRING,
     BaseNode,
     ExecutionContext,
+    LabelWidget,
     NodeSettings,
     NodeType,
     PortOrigin,
     Promotable,
-    LabelWidget,
     bag,
     node,
     setting,
 )
-
-from haybale_audio.dsp.buffer import PullBuffer
-from haybale_audio.dsp.mix import mix
-from haybale_audio.emitter import set_status
-from haybale_audio.value import AudioBlock
 
 logger = logging.getLogger(__name__)
 
@@ -222,8 +223,8 @@ class AudioMixerNode(BaseNode):
 
     def _collecting_input(self, index: int) -> None:
         """Make input *index* one that collects blocks until the next tick, removing its `Write` pin."""
-        from haybale_core.types import DRAIN
         from haybale_audio.types.audio import AUDIO
+        from haybale_core.types import DRAIN
 
         port_id = f"{_PREFIX}{index}"
         with self.rejig(include=[port_id, f"write_{index}"]):

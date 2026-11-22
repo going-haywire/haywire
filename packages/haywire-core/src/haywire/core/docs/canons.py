@@ -11,7 +11,6 @@ Canon filenames are singular even though the area directory is plural
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from .tree import docs_root
 
@@ -37,7 +36,7 @@ def read_canon(area: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def _canon_file(root: Path, area: str) -> Optional[Path]:
+def _canon_file(root: Path, area: str) -> Path | None:
     """Return the single ``*-canon.md`` inside ``root/area``, or None."""
     return next(iter(sorted((root / area).glob("*-canon.md"))), None)
 

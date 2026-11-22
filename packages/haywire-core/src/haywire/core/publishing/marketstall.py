@@ -5,12 +5,13 @@ Reads metadata from the library's pyproject.toml and detects the git
 remote URL to produce a ready-to-paste TOML block.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlparse
 
 import toml
-
-from urllib.parse import urlparse
 
 from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.library.haybale import Deprecation, Haybale
@@ -29,7 +30,6 @@ from haywire.core.publishing.url import (
     _find_git_root,
     _get_remote_url,
 )
-
 
 #: How a project's libraries reach consumers. Project-scoped, not per-library:
 #: the unit of publishing is the project — one tag, one marketstall, one mode.

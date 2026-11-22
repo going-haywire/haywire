@@ -1,11 +1,13 @@
 """The stall watchdog prints the stacks of a process that every thread is held up in."""
 
+from __future__ import annotations
+
 import logging
 import time
 
 import pytest
-from haywire.core.debug.stall_watchdog import StallWatchdog, condense_dump
 
+from haywire.core.debug.stall_watchdog import StallWatchdog, condense_dump
 from tests.wait import wait_until
 
 

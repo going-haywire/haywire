@@ -10,7 +10,6 @@ import pytest
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.types import Drained, Propagation
-
 from tests.conftest import make_node
 
 _ADD = "haybale-testing:node:AddFloatProbeNode"

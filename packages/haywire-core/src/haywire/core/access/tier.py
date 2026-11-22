@@ -30,7 +30,7 @@ class AccessTier(StrEnum):
         """Position in the cumulative order — higher includes lower."""
         return _RANKS[self]
 
-    def satisfies(self, required: "AccessTier") -> bool:
+    def satisfies(self, required: AccessTier) -> bool:
         """True when holding this tier is enough to meet ``required``."""
         return self.rank >= required.rank
 

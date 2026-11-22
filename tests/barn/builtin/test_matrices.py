@@ -1,5 +1,7 @@
 """MAT3 and MAT4: identity defaults, row-major values and their shape check."""
 
+from __future__ import annotations
+
 import json
 from typing import Any
 

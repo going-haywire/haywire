@@ -10,8 +10,8 @@ import json
 import logging
 import os
 import threading
-from dataclasses import asdict, dataclass
 from collections.abc import Callable
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 logger = logging.getLogger(__name__)

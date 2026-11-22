@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from typing import Any, cast
 
 import pytest
+
 from haywire.core.di.config import create_library_system_service
 from haywire.core.node.base import BaseNode
 from haywire_studio.packaging.docs.extract import _node_bases, _record_from_class, extract_library

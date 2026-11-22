@@ -1,5 +1,7 @@
 """The style panels show for an edge with a style bag, and only for one."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 
 import pytest

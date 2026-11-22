@@ -1,7 +1,10 @@
 """A worker exception is reported, retried next evaluation, and bails by the run policy (ADR 0066)."""
 
+from __future__ import annotations
+
 import importlib
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 
@@ -66,8 +69,8 @@ class _Runner:
         self,
         graph: Any,
         monkeypatch: Any,
-        bail: Optional[str] = None,
-        on_bail_run: Optional[Callable[[], None]] = None,
+        bail: str | None = None,
+        on_bail_run: Callable[[], None] | None = None,
     ):
         graph.force_validation()
         self.flows = FlowAssemblyManager().assemble_graph(graph)

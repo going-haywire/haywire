@@ -6,6 +6,8 @@ ports based on a config value. Designed for testing edge survival
 across node reconfigurations and hot reloads.
 """
 
+from __future__ import annotations
+
 from haywire.api import BaseNode, ExecutionContext, NodeType, node
 
 

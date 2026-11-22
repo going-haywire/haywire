@@ -14,7 +14,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from haywire.core.graph.scheduler import SyncScheduler
-
 from tests.conftest import make_node
 from tests.core.test_macro.test_macro_reload import _ADD, _MACRO, _identity, _modified
 from tests.core.test_macro.test_macro_reload import _document as _reload_document
@@ -111,10 +110,10 @@ def _modified_instance(entry, *, grow_pin: bool = False):
 
 def _ctx(haystack, entry, card_id):
     """A session with the instance's card active on ``entry``'s canvas."""
+    from haybale_graph_editor.access import level_mode
     from haybale_graph_editor.states.edit_state import EditState
     from haybale_graph_editor.states.graph_app_state import GraphAppState
     from haybale_haystack.states.haystack_state import HaystackState
-    from haybale_graph_editor.access import level_mode
     from haywire.core.graph.edit_route import EditRoute
 
     edit = MagicMock()

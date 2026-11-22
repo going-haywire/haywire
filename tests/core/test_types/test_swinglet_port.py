@@ -1,11 +1,12 @@
 """A swinglet: one port that may be either end of an edge."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import FLOAT
 from haywire.core.types import DataPort, PortType, StoreStrategy
 from haywire.core.types.enums import ShowWidgetStrategy
-
 from tests.conftest import make_node
 
 
@@ -74,7 +75,6 @@ def test_get_ports_finds_a_swinglet_under_either_direction(graph_with_library_sy
 @pytest.mark.integration
 def test_a_swinglet_round_trips_through_a_save(graph_with_library_system):
     from haybale_testing.nodes.testbed.swinglet_probe import SwingletPassProbeNode
-
     from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.scheduler import SyncScheduler
 

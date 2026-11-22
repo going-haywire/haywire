@@ -17,11 +17,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from haywire.ui.components.graph.event_definitions import UserRemoveEvent
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import (
     VisualLayerHandlers,
 )
-
+from haywire.ui.components.graph.event_definitions import UserRemoveEvent
 from tests.conftest import edit_route
 
 pytestmark = pytest.mark.unit

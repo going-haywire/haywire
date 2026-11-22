@@ -12,6 +12,8 @@ not in the bag; a bag renderer draws every field it holds as editable.
 Serialized under the ``'meta'`` key in graph JSON.
 """
 
+from __future__ import annotations
+
 from haywire.barn.builtin.types import STRING
 from haywire.core.settings.descriptor import setting
 from haywire.core.settings.settings_graph import GraphSettings

@@ -6,7 +6,6 @@ from typing import Any, cast
 
 import pytest
 
-
 # Lazily-captured persistent NiceGUI default client (see nicegui_slot_context).
 _CLIENT: list = []
 

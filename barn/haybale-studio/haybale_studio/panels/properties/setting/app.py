@@ -14,6 +14,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from nicegui import ui
+
+from haybale_studio.settings.network_settings import NetworkSettings
+from haybale_studio.settings.theme_settings import NodeThemeSettings, WorkbenchThemeSettings
 from haywire.api.workbench import (
     AccessTier,
     AppSettingsSurface,
@@ -23,15 +26,10 @@ from haywire.api.workbench import (
     panel,
     render_schema,
 )
-
-from haybale_studio.settings.network_settings import NetworkSettings
-from haybale_studio.settings.theme_settings import WorkbenchThemeSettings, NodeThemeSettings
+from haywire.core.farmhand.settings import ActivitySettings
 from haywire.core.skin.settings import NodeDefaultSkinSettings
 from haywire.core.tooling.settings import ExternalToolsSettings
 from haywire.core.undo.settings import UndoSettings
-from haywire.core.farmhand.settings import ActivitySettings
-
-
 from haywire_studio.network.tls_operations import status as tls_status
 from haywire_studio.security.posture import Severity, assess_document
 
@@ -53,7 +51,7 @@ class ThemeSettingsPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
@@ -74,7 +72,7 @@ class NodeSkinDefaultPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
@@ -94,7 +92,7 @@ class EditingSettingsPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
@@ -118,7 +116,7 @@ class ActivitySettingsPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
@@ -155,7 +153,7 @@ class SecurityPanel(BasePanel):
     The port stays here: it is a local convenience, not a security control.
     """
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         document = getattr(ctx.app, "security_document", None)
         if document is None:
             hui.label("Security state is unavailable — the studio was started without one.")
@@ -168,7 +166,7 @@ class SecurityPanel(BasePanel):
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(ctx, NetworkSettings, registry)
 
-    def _draw_axes(self, posture: "Posture") -> None:
+    def _draw_axes(self, posture: Posture) -> None:
         network = (
             f"exposed at {posture.reachable_at or 'this machine'} ({posture.allowed_ranges})"
             if posture.reachable_by_others
@@ -191,7 +189,7 @@ class SecurityPanel(BasePanel):
                 hui.label(label).classes("w-24 opacity-70")
                 hui.label(value)
 
-    def _draw_findings(self, posture: "Posture") -> None:
+    def _draw_findings(self, posture: Posture) -> None:
         if not posture.findings:
             hui.label("Nothing to fix.").classes("mt-2 opacity-70")
             return

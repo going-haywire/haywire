@@ -27,10 +27,9 @@ def builtin_sources(
     *records* are the files fetched into the cache volumes; see ``FolderSource``.
     """
     # Imported here: ``haybale_models.hf`` imports this package, so a top-level import would cycle.
+    from haybale_models.sources.caches import cache_sources
     from haybale_models.sources.hf import HfSource
     from haybale_models.sources.https import HttpsSource
-
-    from haybale_models.sources.caches import cache_sources
 
     return SourceSet([HttpsSource(index), HfSource(hf_cache), *cache_sources(records)])
 

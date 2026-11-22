@@ -5,7 +5,9 @@ This demonstrates a custom type from test_a library that can be used
 by nodes in other libraries (like test_b).
 """
 
-from dataclasses import dataclass, field, asdict
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from haywire.api import BaseType, DataWire, type
@@ -49,7 +51,7 @@ class TEST_DATA(BaseType):
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "TEST_DATA":
+    def from_dict(cls, data: dict) -> TEST_DATA:
         """
         Deserialize test data from dictionary format.
 

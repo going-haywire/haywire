@@ -6,6 +6,8 @@ Job bar fills and resets per job), and a final blocking stage makes the Progress
 bar sweep. The work is simulated with ``time.sleep``.
 """
 
+from __future__ import annotations
+
 import time
 
 from haywire.api import (

@@ -1,5 +1,7 @@
 """What a selection-wide form edits: hidden across kinds, greyed if non-uniform, own bag or neutral form."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 
 import pytest
@@ -19,7 +21,6 @@ from haywire.core.graph.types import ChangeReason
 from haywire.core.node.properties import NodeProperties
 from haywire.core.types.enums import NodeDetail
 from haywire.core.undo.config import UndoConfig
-
 from tests.conftest import edit_route, make_edge, make_node
 
 pytestmark = pytest.mark.integration

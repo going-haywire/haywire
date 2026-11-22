@@ -1,11 +1,12 @@
 """An element removed and added again within one validation window is recorded as added."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import ThreadingTimerScheduler
 from haywire.core.graph.types import ChangeReason
-
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration

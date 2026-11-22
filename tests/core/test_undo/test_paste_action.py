@@ -1,5 +1,7 @@
 """Unit tests for node_data-carrying creation and the paste action."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -111,7 +113,7 @@ def _payload(nodes, edges):
 
 def test_paste_builds_child_actions_with_new_ids_and_remapped_edges(monkeypatch):
     from haywire.core.node.layout import position_of
-    from haywire.core.undo.actions.graph_actions import PasteClipboardAction, AddNodeAction, AddEdgeAction
+    from haywire.core.undo.actions.graph_actions import AddEdgeAction, AddNodeAction, PasteClipboardAction
 
     payload = _payload(
         nodes={
@@ -173,7 +175,7 @@ def test_paste_builds_child_actions_with_new_ids_and_remapped_edges(monkeypatch)
 
 def test_paste_builds_actions_for_unknown_registry_keys_too():
     """Unknown types are NOT rejected — they paste as placeholders (like load_from_dict)."""
-    from haywire.core.undo.actions.graph_actions import PasteClipboardAction, AddNodeAction
+    from haywire.core.undo.actions.graph_actions import AddNodeAction, PasteClipboardAction
 
     payload = _payload(
         nodes={
@@ -199,7 +201,7 @@ def test_paste_builds_actions_for_unknown_registry_keys_too():
 
 def test_paste_offsets_positions_to_paste_point():
     from haywire.core.node.layout import position_of
-    from haywire.core.undo.actions.graph_actions import PasteClipboardAction, AddNodeAction
+    from haywire.core.undo.actions.graph_actions import AddNodeAction, PasteClipboardAction
 
     payload = _payload(
         nodes={
@@ -287,7 +289,7 @@ def test_add_node_action_forwards_node_id():
 
 def test_paste_node_actions_carry_pre_minted_ids():
     """Each child AddNodeAction must carry the id its remapped edges point at."""
-    from haywire.core.undo.actions.graph_actions import PasteClipboardAction, AddNodeAction
+    from haywire.core.undo.actions.graph_actions import AddNodeAction, PasteClipboardAction
 
     payload = _payload(
         nodes={
@@ -321,7 +323,7 @@ def test_paste_skips_an_id_already_minted_in_the_same_paste():
     """The graph only checks ids it already holds, and pasted siblings are not in
     the graph yet at mint time — so paste must dedup against its own mints or two
     pasted nodes can collide (reachable with the short 6-hex suffix)."""
-    from haywire.core.undo.actions.graph_actions import PasteClipboardAction, AddNodeAction
+    from haywire.core.undo.actions.graph_actions import AddNodeAction, PasteClipboardAction
 
     payload = _payload(
         nodes={

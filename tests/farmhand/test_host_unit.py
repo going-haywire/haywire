@@ -1,5 +1,7 @@
 """Host mechanics that need no transport: capability advertisement, tool table, error format."""
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest

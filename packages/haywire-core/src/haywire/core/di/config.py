@@ -6,31 +6,37 @@ This module sets up the DI container with all necessary providers for
 registries, factories, and services.
 """
 
-import os
+from __future__ import annotations
+
 import logging
+import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
+
 from injector import Injector, Module, provider, singleton
 
 if TYPE_CHECKING:
     from ..registry.base import BaseRegistry
 
-from ..debug.configurator import LoggingConfigurator
-from ...ui.skin.registry import SkinRegistry
-from ...ui.widget.registry import WidgetRegistry
-from ...ui.skin.factory import SkinFactory
-from ...ui.widget.factory import WidgetFactory
-from ...ui.themes.registry import ThemeRegistry
 from ...ui.editor.registry import EditorRegistry
 from ...ui.panel.registry import PanelRegistry
-
+from ...ui.skin.factory import SkinFactory
+from ...ui.skin.registry import SkinRegistry
+from ...ui.themes.registry import ThemeRegistry
+from ...ui.widget.factory import WidgetFactory
+from ...ui.widget.registry import WidgetRegistry
+from ..adapter.factory import AdapterFactory
+from ..adapter.registry import AdapterRegistry
+from ..catalog.registry import CatalogRegistry
+from ..debug.configurator import LoggingConfigurator
+from ..farmhand.registry import FarmhandRegistry
 from ..host import HostStore
 from ..library.registry import LibraryRegistry
 from ..library.utils import (
     ADAPTER,
+    CATALOG,
     EDITOR,
     FARMHAND,
-    CATALOG,
     NODE,
     PANEL,
     SETTING,
@@ -42,26 +48,22 @@ from ..library.utils import (
     split_reg_key,
 )
 from ..macro.registry import MacroRegistry
-from ..catalog.registry import CatalogRegistry
-from ..node.registry import NodeRegistry
-from ..farmhand.registry import FarmhandRegistry
-from ..adapter.registry import AdapterRegistry
-from ..adapter.factory import AdapterFactory
-from ..types.registry import TypeRegistry
 from ..node.factory import NodeFactory
-from ..settings import SettingsRegistry
-from ..state import LibraryStateContainer, StateRegistry
+from ..node.registry import NodeRegistry
 from ..session.session_manager import SessionManager
+from ..settings import SettingsRegistry
 from ..signals import SignalDispatcher
+from ..state import LibraryStateContainer, StateRegistry
+from ..types.registry import TypeRegistry
 from .context import (
-    set_node_factory,
     set_adapter_factory,
-    set_library_state_container,
     set_catalog_registry,
-    set_type_registry,
-    set_settings_registry,
+    set_library_state_container,
+    set_node_factory,
     set_session_manager,
+    set_settings_registry,
     set_signal_dispatcher,
+    set_type_registry,
 )
 
 
@@ -75,13 +77,13 @@ class HaywireModule(Module):
 
     def __init__(
         self,
-        workspace_root: Optional[str] = None,
-        library_paths: Optional[List[str]] = None,
+        workspace_root: str | None = None,
+        library_paths: list[str] | None = None,
         enable_file_watching: bool = True,
-        settings_path: Optional[str] = None,
+        settings_path: str | None = None,
         watch_settings: bool = True,
-        host_store: Optional[HostStore] = None,
-        workspace_settings_path: Optional[str] = None,
+        host_store: HostStore | None = None,
+        workspace_settings_path: str | None = None,
     ):
         """
         Initialize the DI module.
@@ -391,7 +393,7 @@ class LibrarySystemService:
         self.injector = injector
         self._initialized = False
 
-    def initialize(self) -> "LibrarySystemService":
+    def initialize(self) -> LibrarySystemService:
         """
         Initialize the library system by loading all libraries.
 
@@ -686,7 +688,7 @@ class LibrarySystemService:
         # Print registered panels grouped by surface
         print("\n📋 Registered Panels:")
         all_panels = panel_registry.list_names()
-        by_surface: Dict[str, list] = {}
+        by_surface: dict[str, list] = {}
         for panel_key in all_panels:
             cls = panel_registry.get(panel_key)
             if cls is None:
@@ -807,7 +809,7 @@ class LibrarySystemService:
 
     # Maps the singular comp_type segment of a registry_key (lib_id:TYPE:class)
     # onto the getter method that returns the owning registry.
-    _REGISTRY_GETTERS: Dict[str, str] = {
+    _REGISTRY_GETTERS: dict[str, str] = {
         NODE: "get_node_registry",
         WIDGET: "get_widget_registry",
         TYPE: "get_type_registry",
@@ -822,7 +824,7 @@ class LibrarySystemService:
         CATALOG: "get_catalog_registry",
     }
 
-    def get_registry_for_key(self, registry_key: str) -> Optional["BaseRegistry"]:
+    def get_registry_for_key(self, registry_key: str) -> BaseRegistry | None:
         """Return the registry that owns ``registry_key``, or None.
 
         Resolves the appropriate registry from the comp_type segment of the
@@ -841,7 +843,7 @@ class LibrarySystemService:
         getter = getattr(self, getter_name, None)
         return getter() if getter is not None else None
 
-    def lookup_component_class(self, registry_key: str) -> Optional[type]:
+    def lookup_component_class(self, registry_key: str) -> type | None:
         """Return the component class registered under ``registry_key``, or None.
 
         Resolves the owning registry via :meth:`get_registry_for_key`, then
@@ -853,7 +855,7 @@ class LibrarySystemService:
             return None
         return registry.get(registry_key)
 
-    def get_component_doc_path(self, registry_key: str) -> Optional["Path"]:
+    def get_component_doc_path(self, registry_key: str) -> Path | None:
         """Return the path to a component's documentation file, or None.
 
         Looks up the library that owns this component and returns the path to the
@@ -938,13 +940,13 @@ class LibrarySystemService:
 
 
 def create_haywire_injector(
-    workspace_root: Optional[str] = None,
-    library_paths: Optional[List[str]] = None,
+    workspace_root: str | None = None,
+    library_paths: list[str] | None = None,
     enable_file_watching: bool = True,
-    settings_path: Optional[str] = None,
+    settings_path: str | None = None,
     watch_settings: bool = True,
-    host_store: Optional[HostStore] = None,
-    workspace_settings_path: Optional[str] = None,
+    host_store: HostStore | None = None,
+    workspace_settings_path: str | None = None,
 ) -> Injector:
     """
     Create and configure a Haywire DI injector.
@@ -984,13 +986,13 @@ def create_haywire_injector(
 
 
 def create_library_system_service(
-    workspace_root: Optional[str] = None,
-    library_paths: Optional[List[str]] = None,
+    workspace_root: str | None = None,
+    library_paths: list[str] | None = None,
     enable_file_watching: bool = True,
-    settings_path: Optional[str] = None,
+    settings_path: str | None = None,
     watch_settings: bool = True,
-    host_store: Optional[HostStore] = None,
-    workspace_settings_path: Optional[str] = None,
+    host_store: HostStore | None = None,
+    workspace_settings_path: str | None = None,
 ) -> LibrarySystemService:
     """
     Create and initialize a complete library system service.
@@ -1038,8 +1040,8 @@ def create_library_system_service(
 # Global Helper Functions for DI Access
 # ============================================================================
 
-_global_injector: Optional[Injector] = None
-_global_library_system: Optional[LibrarySystemService] = None
+_global_injector: Injector | None = None
+_global_library_system: LibrarySystemService | None = None
 
 
 def set_global_injector(injector: Injector | None) -> None:
@@ -1087,17 +1089,17 @@ def get_library_system() -> LibrarySystemService:
     return _global_library_system
 
 
-def get_theme_registry() -> "ThemeRegistry":
+def get_theme_registry() -> ThemeRegistry:
     """Get the ThemeRegistry from the global library system."""
     return get_library_system().get_theme_registry()
 
 
-def get_skin_registry() -> "SkinRegistry":
+def get_skin_registry() -> SkinRegistry:
     """Get the SkinRegistry from the global library system."""
     return get_library_system().get_skin_registry()
 
 
-def get_type_registry() -> "TypeRegistry":
+def get_type_registry() -> TypeRegistry:
     """Get the TypeRegistry from the global library system."""
     return get_library_system().get_type_registry()
 

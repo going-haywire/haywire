@@ -1,5 +1,7 @@
 """Canned read tool for Farmhand integration tests."""
 
+from __future__ import annotations
+
 from haywire.api.workbench import AccessTier, Farmhand, FarmhandContext, ToolAnnotations, farmhand
 
 

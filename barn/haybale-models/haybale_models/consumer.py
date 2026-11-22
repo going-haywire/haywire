@@ -5,13 +5,12 @@ from __future__ import annotations
 from collections.abc import Callable, Hashable
 from typing import TYPE_CHECKING, TypeVar
 
-from haywire.api.workbench import get_library_state_container
-from haywire.api import NodeWarning
-
 from haybale_models.matcher import Preference
 from haybale_models.resolver import ModelMissing, ResolvedModel, resolve
 from haybale_models.states.models_state import ModelsState
 from haybale_models.value.model_ref import ModelRef
+from haywire.api import NodeWarning
+from haywire.api.workbench import get_library_state_container
 
 if TYPE_CHECKING:
     from haywire.api import BaseNode

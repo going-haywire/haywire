@@ -25,8 +25,8 @@ def test_haystack_state_loads_via_library_system(library_system):
     Every other HaystackState test constructs the class directly and mocks its
     container, so this is the only coverage of the discovery path.
     """
-    from haywire.core.state import LibraryStateContainer
     from haybale_haystack.states.haystack_state import HaystackState
+    from haywire.core.state import LibraryStateContainer
 
     container = library_system.injector.get(LibraryStateContainer)
     instance = container.get(HaystackState)

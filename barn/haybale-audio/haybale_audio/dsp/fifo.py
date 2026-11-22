@@ -1,5 +1,7 @@
 """A thread-safe queue of audio frames between a producer and a pulling consumer."""
 
+from __future__ import annotations
+
 import threading
 from collections import deque
 

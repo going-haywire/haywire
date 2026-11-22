@@ -12,7 +12,6 @@ from haywire.core.access import LevelMode
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.ui.skin.base import BaseSkin
-
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration

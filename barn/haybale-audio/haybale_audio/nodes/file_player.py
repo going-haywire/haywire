@@ -1,5 +1,9 @@
 """File Player — plays an audio file as audio blocks, in real time."""
 
+from __future__ import annotations
+
+from haybale_audio.emitter import BlockPump, deliver_to_subscribers, set_status
+from haybale_audio.io.files import FileBlockReader
 from haywire.api import (
     BOOL,
     EXEC,
@@ -8,20 +12,17 @@ from haywire.api import (
     STRING,
     BaseNode,
     ExecutionContext,
+    LabelWidget,
     NodeSettings,
     NodeType,
     PathWidget,
     Promotable,
-    LabelWidget,
     VolumePath,
     bag,
     node,
     resolve_volume_path,
     setting,
 )
-
-from haybale_audio.emitter import BlockPump, deliver_to_subscribers, set_status
-from haybale_audio.io.files import FileBlockReader
 
 _EXTENSIONS = [".wav", ".flac", ".ogg", ".aiff", ".mp3"]
 
@@ -71,8 +72,8 @@ class FilePlayerNode(BaseNode):
     playback = bag(PlayerSettings)
 
     def init(self) -> None:
-        from haybale_core.types import POOLED
         from haybale_audio.types.callback import AUDIO_CALLBACK
+        from haybale_core.types import POOLED
 
         self.add(EXEC.as_inlet("start", label="Start"))
         self.add(EXEC.as_inlet("stop", label="Stop"))

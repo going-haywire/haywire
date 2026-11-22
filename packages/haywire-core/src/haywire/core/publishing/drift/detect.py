@@ -8,9 +8,10 @@ consumers. The gate below detects that drift at share time so the user can fix
 it before emitting.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
-from haywire.core.library.dep_edit import norm_dep
 from haywire.core.library.dep_detect import (
     DetectedDeps,
     EntryPointLibrarySource,
@@ -18,6 +19,7 @@ from haywire.core.library.dep_detect import (
     detect_deps,
     find_module_dir,
 )
+from haywire.core.library.dep_edit import norm_dep
 from haywire.core.publishing.drift.model import DepDrift
 from haywire.core.publishing.drift.versionspec import (
     _parse_floor_spec,

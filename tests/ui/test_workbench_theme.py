@@ -1,10 +1,11 @@
 # tests/ui/test_workbench_theme.py
 """Tests for BaseTheme field collection and to_css_vars()."""
 
-from haywire.ui.themes.workbench import BaseTheme, _FieldProxy
-from haywire.ui.themes.decorator import theme
-from haybale_testing.themes.workbench import TestDarkTheme, TestLightTheme
+from __future__ import annotations
 
+from haybale_testing.themes.workbench import TestDarkTheme, TestLightTheme
+from haywire.ui.themes.decorator import theme
+from haywire.ui.themes.workbench import BaseTheme, _FieldProxy
 
 # ---------------------------------------------------------------------------
 # Field collection

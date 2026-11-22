@@ -15,6 +15,8 @@ save pair ending on the delete leaves nothing to re-create the module.
 These tests pin the recovery, so the latch cannot come back by another route.
 """
 
+from __future__ import annotations
+
 import time
 from pathlib import Path
 

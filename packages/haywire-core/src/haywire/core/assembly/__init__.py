@@ -23,9 +23,11 @@ Usage:
         print(f"Flow: {flow.flow_id}, Event: {flow.event_subscription}")
 """
 
-from haywire.core.assembly.flow_assembly_manager import FlowAssemblyManager, AssemblyMetadata
+from __future__ import annotations
+
 from haywire.core.assembly.control_flow_builder import ControlFlowBuilder
 from haywire.core.assembly.data_flow_builder import DataFlowBuilder
+from haywire.core.assembly.flow_assembly_manager import AssemblyMetadata, FlowAssemblyManager
 
 __all__ = [
     "FlowAssemblyManager",

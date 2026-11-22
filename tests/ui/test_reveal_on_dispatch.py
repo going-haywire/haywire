@@ -12,6 +12,8 @@ haywire-core can ask for a reveal that a barn library answers without
 importing it (.insights/project_app_library_dependency_direction.md).
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any, cast

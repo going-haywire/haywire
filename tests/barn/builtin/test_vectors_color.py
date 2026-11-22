@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from haywire.barn.builtin.types import VEC2I, VEC3F
 from haywire.core.settings.types import Vec2i, Vec3f
 

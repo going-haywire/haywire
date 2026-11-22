@@ -8,13 +8,15 @@ This module provides:
 - build_event_handler_map: scan multiple handler sources into a dispatch map
 """
 
-from typing import Callable, Dict, List, Type
+from __future__ import annotations
+
+from collections.abc import Callable
 
 from haywire.api.workbench import LevelMode
 from haywire.ui.components.graph.event_definitions import BaseGraphEvent
 
 
-def handles_event(*event_classes: Type[BaseGraphEvent], requires: LevelMode = LevelMode.EDIT):
+def handles_event(*event_classes: type[BaseGraphEvent], requires: LevelMode = LevelMode.EDIT):
     """Decorator to register methods as handlers for specific event classes.
 
     Args:
@@ -52,7 +54,7 @@ def handler_requires(handler: Callable) -> LevelMode:
     return getattr(handler, "_handles_event_requires", LevelMode.EDIT)
 
 
-def build_event_handler_map(sources: List[object]) -> Dict[str, Callable]:
+def build_event_handler_map(sources: list[object]) -> dict[str, Callable]:
     """
     Build an event-type → handler mapping by scanning a list of handler sources.
 
@@ -66,7 +68,7 @@ def build_event_handler_map(sources: List[object]) -> Dict[str, Callable]:
     Returns:
         Dict mapping event_type strings to bound handler methods.
     """
-    handlers: Dict[str, Callable] = {}
+    handlers: dict[str, Callable] = {}
     for source in sources:
         for method_name in dir(source):
             method = getattr(source, method_name)

@@ -11,12 +11,14 @@ Verifies:
 - Registry reads _prop_fields() correctly
 """
 
-import pytest
-from haywire.core.settings import setting, FrameworkSettings, LibrarySettings
-from haywire.core.settings.registry import SettingsRegistry
-from haywire.core.settings.decorator import settings
-from haywire.barn.builtin.types import FLOAT, INT, STRING
+from __future__ import annotations
 
+import pytest
+
+from haywire.barn.builtin.types import FLOAT, INT, STRING
+from haywire.core.settings import FrameworkSettings, LibrarySettings, setting
+from haywire.core.settings.decorator import settings
+from haywire.core.settings.registry import SettingsRegistry
 
 # ---------------------------------------------------------------------------
 # FrameworkSettings extends Settings
@@ -149,8 +151,8 @@ class TestRegistryReadsPropFields:
     def test_auto_define_creates_setting_instance(self):
         """JSON auto-define creates setting instances."""
         import json
-        import tempfile
         import os
+        import tempfile
 
         registry = SettingsRegistry()
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -170,8 +172,8 @@ class TestRegistryReadsPropFields:
         """A settings-file entry with 'choices' auto-defines as setting[CHOICES] —
         widget_key is MENU_WIDGET and options land in widget_config."""
         import json
-        import tempfile
         import os
+        import tempfile
 
         from haywire.barn.builtin import widget_keys
 

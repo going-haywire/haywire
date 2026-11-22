@@ -15,20 +15,18 @@ DisableableElement root or as the §2.11 CSS on a container root / label
 fallback. _widget_is_disabled() accepts either signal.
 """
 
-import logging
+from __future__ import annotations
 
+import logging
 from typing import Any, cast
 
 import pytest
-
-
 from nicegui import Client, ui
 
+from haywire.barn.builtin.types import BOOL, FLOAT
 from haywire.core.settings import Settings, UiState, setting
 from haywire.core.types.enums import StoreStrategy
 from haywire.ui.panel.render_utils import render_settings
-from haywire.barn.builtin.types import BOOL, FLOAT
-
 from tests.ui.panel.render_ctx import make_render_ctx
 
 pytestmark = pytest.mark.integration
@@ -99,7 +97,7 @@ class GatedSettings(Settings):
     typo_gated = setting[FLOAT](1.0, label="Typo Gated", metadata={"enabled_when": ("does_not_exist", True)})
 
 
-def _render(bag) -> "ui.column":
+def _render(bag) -> ui.column:
     client = Client(cast(Any, _noop_page), request=None)
     with client:
         anchor = ui.column()

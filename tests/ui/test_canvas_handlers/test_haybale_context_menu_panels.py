@@ -7,16 +7,49 @@ Verifies registration metadata (action+focus) and poll() contracts for:
 - Selection panels: TestCopySelection, TestPasteSelection
 """
 
-from typing import Any, cast
+from __future__ import annotations
 
-import pytest
+from typing import Any, cast
 from unittest.mock import MagicMock
 
-from haywire.core.state import LibraryStateContainer, StateRegistry
-from haywire.core.undo.actions.graph_actions import ClipboardData
-from haywire.core.session.context import SessionContext
-from haywire.ui.panel import BasePanel
+import pytest
 
+from haybale_testing.panels.graph.menu.edge.edge import (
+    TestDeleteEdgeMenuPanel as DeleteEdgePanel,
+)
+from haybale_testing.panels.graph.menu.edge.edge import (
+    TestEdgeErrorsMenuPanel as EdgeErrorsPanel,
+)
+from haybale_testing.panels.graph.menu.edge.edge import (
+    TestEdgePathMenuPanel as EdgeConnectionPathPanel,
+)
+from haybale_testing.panels.graph.menu.edge.edge import (
+    TestEdgeWarningsMenuPanel as EdgeWarningsPanel,
+)
+from haybale_testing.panels.graph.menu.edge.edge import (
+    TestInspectEdgeMenuPanel as InspectEdgePanel,
+)
+from haybale_testing.panels.graph.menu.node.node import (
+    TestCopyNodeMenuPanel as CopyNodePanel,
+)
+from haybale_testing.panels.graph.menu.node.node import (
+    TestDeleteNodeMenuPanel as DeleteNodePanel,
+)
+from haybale_testing.panels.graph.menu.node.node import (
+    TestRedrawNodeMenuPanel as RedrawNodePanel,
+)
+from haybale_testing.panels.graph.menu.node.node import (
+    TestResetNodeMenuPanel as ResetNodePanel,
+)
+from haybale_testing.panels.graph.menu.node.node import (
+    TestRevalidateNodeMenuPanel as RevalidateNodePanel,
+)
+from haybale_testing.panels.graph.menu.selection.selection import (
+    TestCopySelectionMenuPanel as CopySelectionPanel,
+)
+from haybale_testing.panels.graph.menu.selection.selection import (
+    TestPasteSelectionMenuPanel as PasteSelectionPanel,
+)
 from haybale_testing.surfaces import (
     TestEdgeActions,
     TestEdgeMenu,
@@ -25,24 +58,10 @@ from haybale_testing.surfaces import (
     TestSelectionActions,
     TestSelectionMenu,
 )
-from haybale_testing.panels.graph.menu.node.node import (
-    TestDeleteNodeMenuPanel as DeleteNodePanel,
-    TestCopyNodeMenuPanel as CopyNodePanel,
-    TestRedrawNodeMenuPanel as RedrawNodePanel,
-    TestRevalidateNodeMenuPanel as RevalidateNodePanel,
-    TestResetNodeMenuPanel as ResetNodePanel,
-)
-from haybale_testing.panels.graph.menu.edge.edge import (
-    TestDeleteEdgeMenuPanel as DeleteEdgePanel,
-    TestInspectEdgeMenuPanel as InspectEdgePanel,
-    TestEdgeErrorsMenuPanel as EdgeErrorsPanel,
-    TestEdgeWarningsMenuPanel as EdgeWarningsPanel,
-    TestEdgePathMenuPanel as EdgeConnectionPathPanel,
-)
-from haybale_testing.panels.graph.menu.selection.selection import (
-    TestCopySelectionMenuPanel as CopySelectionPanel,
-    TestPasteSelectionMenuPanel as PasteSelectionPanel,
-)
+from haywire.core.session.context import SessionContext
+from haywire.core.state import LibraryStateContainer, StateRegistry
+from haywire.core.undo.actions.graph_actions import ClipboardData
+from haywire.ui.panel import BasePanel
 
 
 class FakeApp:

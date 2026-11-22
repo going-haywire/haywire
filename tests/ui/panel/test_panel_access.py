@@ -1,5 +1,7 @@
 """requires= enforcement in the single shared panel gate."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 from haywire.core.access import AccessTier

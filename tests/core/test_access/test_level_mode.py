@@ -1,5 +1,7 @@
 """LevelMode: the per-level mode a session edits in, ordered view < operate < edit."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.access import LevelMode, required_mode

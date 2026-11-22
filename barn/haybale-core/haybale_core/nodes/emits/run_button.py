@@ -1,8 +1,10 @@
 """Run Button — a button on the card that triggers Tick Event flows in a running graph."""
 
+from __future__ import annotations
+
 import threading
 import time
-from typing import Any, Optional
+from typing import Any
 
 from haywire.api import (
     BOOL,
@@ -71,8 +73,8 @@ class RunButtonNode(BaseNode):
 
     def post_init(self) -> None:
         self._lock = threading.Lock()
-        self._context: Optional[ExecutionContext] = None
-        self._last_emit: Optional[float] = None
+        self._context: ExecutionContext | None = None
+        self._last_emit: float | None = None
         self._settings._subscribe_field("run", self._on_run_changed)
 
     @property
@@ -83,7 +85,7 @@ class RunButtonNode(BaseNode):
         """Disarm the button when the graph stops."""
         self._context = None
 
-    def worker(self, context: ExecutionContext) -> Optional[str]:
+    def worker(self, context: ExecutionContext) -> str | None:
         if context.control_pin == "start":
             with self._lock:
                 self._settings.run = False

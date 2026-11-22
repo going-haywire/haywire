@@ -5,14 +5,23 @@ This module contains actions that operate on the graph structure,
 including node and edge manipulation, positioning, and selection.
 """
 
+from __future__ import annotations
+
 import copy
 import logging
 import time
-from collections.abc import Hashable, Sequence
-from typing import Any, Optional, Dict, List, Mapping, Tuple
+from collections.abc import Hashable, Mapping, Sequence
 from dataclasses import dataclass
+from typing import Any
 
+from ...edge.edge_wrapper import EdgeWrapper
 from ...errors import Refusal
+from ...graph.base import BaseGraph
+from ...graph.setting_owner import SettingOwner
+from ...graph.stacking import top_z
+from ...graph.stage import next_stage_spot, non_negative, patch_position_for_stage, stage_position_for_patch
+from ...graph.utils.node_remap import remap_node_ids
+from ...macro.origin import MacroOrigin
 from ...node import NodeWrapper
 from ...node.layout import (
     CHANNELS,
@@ -25,14 +34,7 @@ from ...node.layout import (
     with_stage_placement,
     with_z,
 )
-from ...graph.base import BaseGraph
-from ...graph.stage import next_stage_spot, non_negative, patch_position_for_stage, stage_position_for_patch
-from ...graph.stacking import top_z
-from ...macro.origin import MacroOrigin
-from ...edge.edge_wrapper import EdgeWrapper
 from ...types import Propagation
-from ...graph.setting_owner import SettingOwner
-from ...graph.utils.node_remap import remap_node_ids
 from ..base_action import ActionBase, CompositeAction
 from ..interfaces import IAction
 
@@ -56,7 +58,7 @@ _REROUTE_OUTLET_ID = "out"
 _REROUTE_FORWARD_HANDLER = "forward_immediate"
 
 
-def stacked_on_top(graph: BaseGraph, node_datas: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+def stacked_on_top(graph: BaseGraph, node_datas: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     """Return copies of ``node_datas`` stacked above every node already in ``graph``.
 
     For each layout channel, the entries that channel would show get consecutive stacking values
@@ -98,12 +100,12 @@ class AddNodeAction(ActionBase):
         self,
         graph: BaseGraph,
         registry_key: str,
-        description: Optional[str] = None,
-        node_data: Optional[Dict[str, Any]] = None,
-        node_id: Optional[str] = None,
+        description: str | None = None,
+        node_data: dict[str, Any] | None = None,
+        node_id: str | None = None,
         *,
-        position: Tuple[float, float] | None = None,
-        props: Optional[Mapping[str, Any]] = None,
+        position: tuple[float, float] | None = None,
+        props: Mapping[str, Any] | None = None,
         on_top: bool = True,
     ):
         """
@@ -135,9 +137,9 @@ class AddNodeAction(ActionBase):
         self.on_top = on_top
         self.node_data = node_data
         self.node_id = node_id
-        self.wrapper: "NodeWrapper | None" = None
+        self.wrapper: NodeWrapper | None = None
 
-        self.undo_wrapper: "NodeWrapper | None" = None
+        self.undo_wrapper: NodeWrapper | None = None
 
     def _execute_impl(self) -> None:
         """Add the node to the graph."""
@@ -192,8 +194,8 @@ class AddEdgeAction(ActionBase):
         sink_node_id: str,
         inlet_pin_id: str,
         propagation: Propagation = Propagation.EAGER,
-        style: Optional[Mapping[str, Any]] = None,
-        description: Optional[str] = None,
+        style: Mapping[str, Any] | None = None,
+        description: str | None = None,
     ):
         """
         Initialize the add edge action.
@@ -217,22 +219,22 @@ class AddEdgeAction(ActionBase):
         self.inlet_port_id = inlet_pin_id
         self.inlet_pin_id = inlet_pin_id
         self.propagation = propagation
-        self.style: Dict[str, Any] = dict(style or {})
+        self.style: dict[str, Any] = dict(style or {})
 
         # Wrapper created during execute
-        self.wrapper: Optional[EdgeWrapper] = None
+        self.wrapper: EdgeWrapper | None = None
 
-        self.undo_wrapper: Optional[EdgeWrapper] = None
+        self.undo_wrapper: EdgeWrapper | None = None
 
         # Ends that were bare ``ADD`` slots when the edge was made: linking grows a pin
         # there, which undo takes away again (node_id -> port ids).
-        self._slot_ends: Dict[str, List[str]] = {}
-        self._released: Dict[str, List[str]] = {}
+        self._slot_ends: dict[str, list[str]] = {}
+        self._released: dict[str, list[str]] = {}
 
-    def _slot_ends_of_edge(self) -> Dict[str, List[str]]:
+    def _slot_ends_of_edge(self) -> dict[str, list[str]]:
         from haywire.barn.builtin.types.add import ADD
 
-        ends: Dict[str, List[str]] = {}
+        ends: dict[str, list[str]] = {}
         for node_id, port_id in (
             (self.source_node_id, self.outlet_port_id),
             (self.sink_node_id, self.inlet_port_id),
@@ -298,7 +300,7 @@ class AddEdgeAction(ActionBase):
             self.undo_wrapper.cleanup()
 
 
-def _carried(edge: Mapping[str, Any]) -> Dict[str, Any]:
+def _carried(edge: Mapping[str, Any]) -> dict[str, Any]:
     """The propagation and style of a serialized edge, as keyword arguments of ``AddEdgeAction``."""
     return {
         "propagation": Propagation(edge.get("propagation", Propagation.EAGER.value)),
@@ -312,11 +314,11 @@ class MoveNodesAction(ActionBase):
     def __init__(
         self,
         graph: BaseGraph,
-        nodes: List[str],
+        nodes: list[str],
         deltaX: float,
         deltaY: float,
         channel: LayoutChannel = PATCH,
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         """
         Initialize the move nodes action.
@@ -366,7 +368,7 @@ class MoveNodesAction(ActionBase):
             and super().can_merge(other)
         )
 
-    def merge(self, other) -> Optional["MoveNodesAction"]:
+    def merge(self, other) -> MoveNodesAction | None:
         """Merge with another delta move action for the same nodes."""
         if not self.can_merge(other):
             return None
@@ -400,9 +402,9 @@ class MoveNodesToAction(ActionBase):
     def __init__(
         self,
         graph: BaseGraph,
-        positions: Dict[str, Dict[str, float]],
+        positions: dict[str, dict[str, float]],
         channel: LayoutChannel = PATCH,
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         node_count = len(positions)
         if node_count == 1:
@@ -415,7 +417,7 @@ class MoveNodesToAction(ActionBase):
         self.channel = channel
         self.target_positions = positions  # {nodeId: {x, y}}
         # Capture originals at construction time so undo is exact.
-        self.original_positions: Dict[str, Dict[str, float]] = {}
+        self.original_positions: dict[str, dict[str, float]] = {}
         for node_id in positions:
             wrapper = graph.get_node_wrapper(node_id)
             if wrapper and wrapper.node:
@@ -449,9 +451,9 @@ class SetStageMembershipAction(ActionBase):
     def __init__(
         self,
         graph: BaseGraph,
-        node_ids: List[str],
+        node_ids: list[str],
         on_stage: bool,
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         verb = "Add to stage" if on_stage else "Remove from stage"
         if len(node_ids) == 1:
@@ -463,7 +465,7 @@ class SetStageMembershipAction(ActionBase):
         self.node_ids = list(node_ids)
         self.on_stage = on_stage
         # Captured at construction so undo is exact.
-        self.original: Dict[str, Dict[str, Any]] = {}
+        self.original: dict[str, dict[str, Any]] = {}
         for node_id in self.node_ids:
             wrapper = graph.get_node_wrapper(node_id)
             if wrapper and wrapper.node:
@@ -504,10 +506,10 @@ class SetStageMembershipAction(ActionBase):
         self,
         node_id: str,
         on_stage: bool,
-        stage_x: Optional[float] = None,
-        stage_y: Optional[float] = None,
-        stage_size_adapt: Optional[str] = None,
-        stage_z: Optional[int] = None,
+        stage_x: float | None = None,
+        stage_y: float | None = None,
+        stage_size_adapt: str | None = None,
+        stage_z: int | None = None,
     ) -> None:
         """Write the given fields, ``on_stage`` last so a canvas mounts the node at its final place."""
         wrapper = self.graph.node_wrappers[node_id]
@@ -543,7 +545,7 @@ class RestackNodesAction(ActionBase):
         graph: BaseGraph,
         z_by_node: Mapping[str, int],
         channel: LayoutChannel = PATCH,
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         """Capture the current values of the nodes in ``z_by_node``.
 
@@ -553,8 +555,8 @@ class RestackNodesAction(ActionBase):
         super().__init__(description or f"Change stacking order of {len(z_by_node)} nodes")
         self.graph = graph
         self.channel = channel
-        self.target: Dict[str, int] = {}
-        self.original: Dict[str, int] = {}
+        self.target: dict[str, int] = {}
+        self.original: dict[str, int] = {}
         for node_id, z in z_by_node.items():
             wrapper = graph.get_node_wrapper(node_id)
             if wrapper and wrapper.node:
@@ -587,9 +589,9 @@ class RemoveElementsAction(ActionBase):
     def __init__(
         self,
         graph: BaseGraph,
-        nodes: Optional[List[str]] = None,
-        edges: Optional[List[str]] = None,
-        description: Optional[str] = None,
+        nodes: list[str] | None = None,
+        edges: list[str] | None = None,
+        description: str | None = None,
         release_pins: bool = False,
     ):
         """
@@ -624,17 +626,17 @@ class RemoveElementsAction(ActionBase):
         self.release_pins = release_pins
 
         # Store removed elements for restoration
-        self.removed_node_wrappers: Dict[str, NodeWrapper] = {}
-        self.removed_edge_wrappers: Dict[str, EdgeWrapper] = {}
+        self.removed_node_wrappers: dict[str, NodeWrapper] = {}
+        self.removed_edge_wrappers: dict[str, EdgeWrapper] = {}
         # node_id -> edge wrappers that were connected to it
-        self.node_connected_edge_wrappers: Dict[str, EdgeWrapper] = {}
+        self.node_connected_edge_wrappers: dict[str, EdgeWrapper] = {}
         # node_id -> ids of the ports the node released along with the edges
-        self.released_pins: Dict[str, List[str]] = {}
+        self.released_pins: dict[str, list[str]] = {}
 
     def _execute_impl(self) -> None:
         """Remove all specified elements and store them for undo."""
         # First, store and remove connections
-        ends: Dict[str, List[str]] = {}
+        ends: dict[str, list[str]] = {}
         for edge_id in self.edges:
             edge_wrapper = self.graph.get_edge_wrapper(edge_id)
             if edge_wrapper:
@@ -782,16 +784,16 @@ class ClipboardData:
     synchronous, permission-independent copy->paste within one session.
     """
 
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
     timestamp: float
 
 
 def stage_placement(
     graph: BaseGraph,
     channel: LayoutChannel,
-    position: Tuple[float, float],
-    patch_fallback: Optional[Tuple[float, float]],
-) -> Optional[Dict[str, Any]]:
+    position: tuple[float, float],
+    patch_fallback: tuple[float, float] | None,
+) -> dict[str, Any] | None:
     """Return the ``NodeProperties`` values placing a node made at canvas ``position`` on ``channel``.
 
     ``None`` on a channel that is not the stage. On the stage the node is on stage at the
@@ -823,14 +825,14 @@ class PasteClipboardAction(CompositeAction):
     def __init__(
         self,
         graph: BaseGraph,
-        payload: Dict[str, Any],
+        payload: dict[str, Any],
         paste_x: float,
         paste_y: float,
-        description: Optional[str] = None,
+        description: str | None = None,
         channel: LayoutChannel = PATCH,
-        patch_anchor: Optional[Tuple[float, float]] = None,
-        patch_fallback: Optional[Tuple[float, float]] = None,
-        stage_anchor: Optional[Tuple[float, float]] = None,
+        patch_anchor: tuple[float, float] | None = None,
+        patch_fallback: tuple[float, float] | None = None,
+        stage_anchor: tuple[float, float] | None = None,
     ):
         """
         Initialize the paste clipboard action.
@@ -912,12 +914,12 @@ class PasteClipboardAction(CompositeAction):
                 stage_off_x = stage_ax - stage_min_x
                 stage_off_y = stage_ay - stage_min_y
 
-        actions: List[IAction] = []
+        actions: list[IAction] = []
 
         # 1b. A copied Group gets a Subgraph of its own: one card per definition
         #     is what makes SubgraphDefinition.graph_node_wrapper() unambiguous,
         #     so the key is reminted and the cards below are rebound to it.
-        subgraph_key_map: Dict[str, str] = {}
+        subgraph_key_map: dict[str, str] = {}
         for source_key, definition_payload in subgraphs.items():
             new_key = graph.generate_unique_subgraph_key()
             subgraph_key_map[source_key] = new_key
@@ -928,12 +930,12 @@ class PasteClipboardAction(CompositeAction):
 
         # New element ids, exposed so the paste handler can auto-select the
         # freshly pasted subgraph on the canvas.
-        self.new_node_ids: List[str] = remap.new_node_ids
-        self.new_edge_ids: List[str] = [edge.edge_id for edge in remap.edges]
+        self.new_node_ids: list[str] = remap.new_node_ids
+        self.new_edge_ids: list[str] = [edge.edge_id for edge in remap.edges]
 
         # 3. Build child AddNodeActions (no registry_key validation — unknown
         #    types become placeholders, like file load).
-        placed: List[Tuple[Dict[str, Any], str, Dict[str, Any]]] = []
+        placed: list[tuple[dict[str, Any], str, dict[str, Any]]] = []
         for old_id, node in nodes.items():
             new_id = remap.id_map[old_id]
             src_x, src_y = layout_position_of(node, channel)
@@ -1020,8 +1022,8 @@ class _AddReroutePortsAction(ActionBase):
         itype: Any,
         inlet_id: str,
         outlet_id: str,
-        inlet_on_change: Optional[str] = None,
-        description: Optional[str] = None,
+        inlet_on_change: str | None = None,
+        description: str | None = None,
     ):
         super().__init__(description or f"Add reroute ports '{node_id}'")
         self.graph = graph
@@ -1076,11 +1078,11 @@ class SplitEdgeWithRerouteAction(CompositeAction):
         self,
         graph: BaseGraph,
         edge_id: str,
-        position: Tuple[float, float],
+        position: tuple[float, float],
         registry_key: str,
-        description: Optional[str] = None,
+        description: str | None = None,
         channel: LayoutChannel = PATCH,
-        patch_fallback: Optional[Tuple[float, float]] = None,
+        patch_fallback: tuple[float, float] | None = None,
     ):
         """Build the split; ``position`` is canvas coordinates of ``channel``'s canvas.
 
@@ -1088,7 +1090,7 @@ class SplitEdgeWithRerouteAction(CompositeAction):
         near the nodes on stage (``patch_position_for_stage`` with ``patch_fallback``).
         """
         self.graph = graph
-        self.reroute_node_id: Optional[str] = None
+        self.reroute_node_id: str | None = None
 
         edge = graph.get_edge_wrapper(edge_id)
         if edge is None:
@@ -1114,7 +1116,7 @@ class SplitEdgeWithRerouteAction(CompositeAction):
         new_node_id = graph.generate_unique_node_id(registry_key=registry_key)
         self.reroute_node_id = new_node_id
 
-        actions: List[IAction] = [
+        actions: list[IAction] = [
             RemoveElementsAction(graph=graph, edges=[edge_id]),
             AddNodeAction(
                 graph=graph,
@@ -1179,7 +1181,7 @@ class DissolveRerouteAction(CompositeAction):
         self,
         graph: BaseGraph,
         node_id: str,
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         wrapper = graph.get_node_wrapper(node_id)
         if wrapper is None:
@@ -1191,7 +1193,7 @@ class DissolveRerouteAction(CompositeAction):
         upstream = [e for e in all_edges if e.sink_node_id == node_id]
         downstream = [e for e in all_edges if e.source_node_id == node_id]
 
-        actions: List[IAction] = [
+        actions: list[IAction] = [
             RemoveElementsAction(graph=graph, nodes=[node_id]),
         ]
 
@@ -1252,14 +1254,14 @@ class SetPropertyAction(ActionBase):
         self._old_value: Any = None
         self._old_was_set = False
 
-    def _resolve(self) -> Tuple[Any, str, Optional[str]]:
+    def _resolve(self) -> tuple[Any, str, str | None]:
         """Return (node, kind, accessor) where kind is 'port' or 'setting'."""
         wrapper = self.graph.get_node_wrapper(self.node_id)
         if wrapper is None:
             raise Refusal(f"Node '{self.node_id}' not found")
         node = wrapper.node
 
-        def _find_bag() -> Optional[str]:
+        def _find_bag() -> str | None:
             for accessor in type(node)._settings_bags:
                 bag = getattr(node, accessor)
                 if self.name in type(bag)._settings_descriptors():
@@ -1295,7 +1297,7 @@ class SetPropertyAction(ActionBase):
         """Return what this write addresses: ``("port", node_id, name)``."""
         return ("port", self.node_id, self.name)
 
-    def amend_from(self, newer: "SetPropertyAction") -> None:
+    def amend_from(self, newer: SetPropertyAction) -> None:
         """Adopt ``newer``'s new value and ``last_write``, keeping this step's old value.
 
         ``newer`` has already been executed; this step stays the executed action it was and
@@ -1351,12 +1353,12 @@ def _require_same_run(step: Any, newer: Any) -> None:
         raise ValueError("Cannot amend a value step from a write of another run")
 
 
-def _stored(bag: Any, name: str) -> Tuple[bool, Any]:
+def _stored(bag: Any, name: str) -> tuple[bool, Any]:
     """What a setting field stores: whether it is set locally, and its value."""
     return bag._is_locally_set(name), getattr(bag, name)
 
 
-def _stored_changed(before: Tuple[bool, Any], after: Tuple[bool, Any]) -> bool:
+def _stored_changed(before: tuple[bool, Any], after: tuple[bool, Any]) -> bool:
     return before[0] != after[0] or value_changed(before[1], after[1])
 
 
@@ -1417,7 +1419,7 @@ class _SettingWriteAction(ActionBase):
         _restore(bag, self.name, self._old_was_set, self._old_value)
         self._mark_if_changed(before, _stored(bag, self.name))
 
-    def _mark_if_changed(self, before: Tuple[bool, Any], after: Tuple[bool, Any]) -> None:
+    def _mark_if_changed(self, before: tuple[bool, Any], after: tuple[bool, Any]) -> None:
         """Record whether the stored pair changed and, if so, mark the graph unsaved."""
         self.changed = _stored_changed(before, after)
         if not self.changed:
@@ -1457,7 +1459,7 @@ class SetSettingAction(_SettingWriteAction):
         """Return what this write addresses: ``("setting", owner, name)``."""
         return ("setting", self.owner, self.name)
 
-    def amend_from(self, newer: "SetSettingAction") -> None:
+    def amend_from(self, newer: SetSettingAction) -> None:
         """Adopt ``newer``'s new value and ``last_write``, keeping this step's old value.
 
         ``newer`` has already been executed; this step stays the executed action it was and
@@ -1536,7 +1538,7 @@ class SetSettingsAction(_SettingsFormAction):
         """Return what this write addresses: ``("settings", frozenset(owners), name)``."""
         return ("settings", frozenset(child.owner for child in self._set_children), self.name)
 
-    def amend_from(self, newer: "SetSettingsAction") -> None:
+    def amend_from(self, newer: SetSettingsAction) -> None:
         """Adopt ``newer``'s new value and ``last_write`` on every bag, keeping each old value.
 
         ``newer`` has already been executed; this step stays the executed action it was and
@@ -1572,7 +1574,7 @@ class ReorderPortsAction(ActionBase):
         Refusal: On execute or undo, if the node is not in the graph.
     """
 
-    def __init__(self, graph: BaseGraph, node_id: str, ordered_ids: List[str]):
+    def __init__(self, graph: BaseGraph, node_id: str, ordered_ids: list[str]):
         """
         Args:
             ordered_ids: Port ids of the group, in the order they should display.
@@ -1581,7 +1583,7 @@ class ReorderPortsAction(ActionBase):
         self.graph = graph
         self.node_id = node_id
         self.ordered_ids = list(ordered_ids)
-        self._previous: List[str] = []
+        self._previous: list[str] = []
 
     def _node(self) -> Any:
         wrapper = self.graph.get_node_wrapper(self.node_id)
@@ -1646,7 +1648,7 @@ class SetEdgePropagationAction(ActionBase):
         self.graph = graph
         self.edge_id = edge_id
         self.propagation = propagation
-        self._old: Optional[Propagation] = None
+        self._old: Propagation | None = None
 
     def _edge(self) -> EdgeWrapper:
         wrapper = self.graph.get_edge_wrapper(self.edge_id)
@@ -1672,7 +1674,7 @@ class SetEdgePropagationAction(ActionBase):
         wrapper.redraw()
         self._mark_if_changed(before, wrapper.propagation)
 
-    def _mark_if_changed(self, before: Optional[Propagation], after: Optional[Propagation]) -> None:
+    def _mark_if_changed(self, before: Propagation | None, after: Propagation | None) -> None:
         """Mark the graph unsaved (the edge's propagation is saved in it) when the mode changed."""
         if before is after:
             return
@@ -1714,7 +1716,7 @@ class SetPortMetadataAction(ActionBase):
         graph: BaseGraph,
         node_id: str,
         port_id: str,
-        description_: Optional[str] = None,
+        description_: str | None = None,
         **changes: Any,
     ):
         """
@@ -1736,7 +1738,7 @@ class SetPortMetadataAction(ActionBase):
         self.node_id = node_id
         self.port_id = port_id
         self.changes = changes
-        self._old: Dict[str, Any] = {}
+        self._old: dict[str, Any] = {}
 
     def _port(self) -> Any:
         wrapper = self.graph.get_node_wrapper(self.node_id)
@@ -1762,7 +1764,7 @@ class SetPortMetadataAction(ActionBase):
     def _undo_impl(self) -> None:
         self._apply(self._port(), self._old)
 
-    def _apply(self, port: Any, values: Dict[str, Any]) -> None:
+    def _apply(self, port: Any, values: dict[str, Any]) -> None:
         """Write ``values`` onto ``port``, then publish the change.
 
         Marked ``NODE_VALIDATION_REQUESTED``, which is in both the redraw set
@@ -1808,8 +1810,8 @@ class RemovePortAction(ActionBase):
         self.port_id = port_id
         # A promoted port is regenerated from its setting; a resolved one, its companions
         # and any fold they empty, from their saved specs and orders.
-        self._promotion: Optional[Tuple[str, str, Any]] = None
-        self._removed: List[Tuple[Dict[str, Any], int]] = []
+        self._promotion: tuple[str, str, Any] | None = None
+        self._removed: list[tuple[dict[str, Any], int]] = []
         self._memento: Any = None
 
     def _node(self) -> Any:
@@ -1873,7 +1875,7 @@ class RemovePortAction(ActionBase):
         """Call the node's ``hook``; record a raise or a port change in the ledger, never raise."""
         from ...errors import HaywireException, report_failure
 
-        context: Dict[str, Any] = {
+        context: dict[str, Any] = {
             "graph_id": self.graph.graph_id,
             "node_id": self.node_id,
             "registry_key": node.wrapper.registry_key if node.wrapper else None,
@@ -1927,7 +1929,7 @@ class PromoteSettingAction(ActionBase):
         self.accessor = accessor
         self.field = field
         self.direction = direction
-        self._port_id: Optional[str] = None
+        self._port_id: str | None = None
 
     def _node(self) -> Any:
         wrapper = self.graph.get_node_wrapper(self.node_id)
@@ -1956,7 +1958,7 @@ class PromoteSettingAction(ActionBase):
         self.graph._validation.mark_node_dirty(self.node_id, ChangeReason.NODE_VALIDATION_REQUESTED)
 
 
-def _move_subgraphs(source: BaseGraph, target: BaseGraph, keys: List[str]) -> None:
+def _move_subgraphs(source: BaseGraph, target: BaseGraph, keys: list[str]) -> None:
     """Move the Subgraph definitions named by ``keys`` from one table to the other.
 
     A key that ``source`` does not hold, or that ``target`` already holds, is
@@ -1999,16 +2001,16 @@ class _BuildSubgraphAction(ActionBase):
         key: str,
         label: str,
         plan: Any,
-        nodes: Dict[str, Any],
-        edges: Dict[str, Any],
+        nodes: dict[str, Any],
+        edges: dict[str, Any],
         input_node_id: str,
         output_node_id: str,
         input_registry_key: str,
         output_registry_key: str,
-        input_position: Tuple[float, float],
-        output_position: Tuple[float, float],
-        nested_keys: Optional[List[str]] = None,
-        description: Optional[str] = None,
+        input_position: tuple[float, float],
+        output_position: tuple[float, float],
+        nested_keys: list[str] | None = None,
+        description: str | None = None,
     ):
         super().__init__(description or f"Build subgraph '{key}'")
         self.graph = graph
@@ -2093,7 +2095,7 @@ class _BuildSubgraphAction(ActionBase):
                 # here on — an interface port is RESOLVED.
                 port_wire = wire_type_of(port.itype)
                 immediate = port_wire is not None and port_wire.role is WireRole.IMMEDIATE
-                kwargs: Dict[str, Any] = {
+                kwargs: dict[str, Any] = {
                     "label": port.label,
                     "description": port.description,
                     "origin": PortOrigin.RESOLVED,
@@ -2132,8 +2134,8 @@ class _LiftNestedSubgraphsAction(ActionBase):
         self,
         graph: BaseGraph,
         subgraph_key: str,
-        keys: List[str],
-        description: Optional[str] = None,
+        keys: list[str],
+        description: str | None = None,
     ):
         super().__init__(description or f"Lift nested subgraphs out of '{subgraph_key}'")
         self.graph = graph
@@ -2165,7 +2167,7 @@ class _DiscardTemplateInteriorAction(ActionBase):
     building it again is the whole restoration.
     """
 
-    def __init__(self, graph: BaseGraph, node_id: str, description: Optional[str] = None):
+    def __init__(self, graph: BaseGraph, node_id: str, description: str | None = None):
         super().__init__(description or f"Discard the interior of '{node_id}'")
         self.graph = graph
         self.node_id = node_id
@@ -2204,11 +2206,11 @@ class _DropSubgraphAction(ActionBase):
     uses.
     """
 
-    def __init__(self, graph: BaseGraph, key: str, description: Optional[str] = None):
+    def __init__(self, graph: BaseGraph, key: str, description: str | None = None):
         super().__init__(description or f"Drop subgraph '{key}'")
         self.graph = graph
         self.key = key
-        self._payload: Optional[Dict[str, Any]] = None
+        self._payload: dict[str, Any] | None = None
 
     def _execute_impl(self) -> None:
         definition = self.graph.get_subgraph(self.key)
@@ -2240,8 +2242,8 @@ class _RestoreSubgraphAction(ActionBase):
         self,
         graph: BaseGraph,
         key: str,
-        payload: Dict[str, Any],
-        description: Optional[str] = None,
+        payload: dict[str, Any],
+        description: str | None = None,
     ):
         super().__init__(description or f"Restore subgraph '{key}'")
         self.graph = graph
@@ -2295,12 +2297,12 @@ class CollapseToGraphNodeAction(CompositeAction):
     def __init__(
         self,
         graph: BaseGraph,
-        node_ids: List[str],
+        node_ids: list[str],
         card_registry_key: str,
         input_registry_key: str,
         output_registry_key: str,
         label: str = "Group",
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         from ...graph.subgraph_collapse import check_convex, derive_interface
         from ...graph.subgraph_crossing import card_port_id
@@ -2367,7 +2369,7 @@ class CollapseToGraphNodeAction(CompositeAction):
         input_node_id = graph.generate_unique_node_id(input_registry_key)
         output_node_id = graph.generate_unique_node_id(output_registry_key)
 
-        actions: List[IAction] = [
+        actions: list[IAction] = [
             RemoveElementsAction(graph=graph, nodes=list(selected)),
             _BuildSubgraphAction(
                 graph=graph,
@@ -2402,7 +2404,7 @@ class CollapseToGraphNodeAction(CompositeAction):
         # The pins are deduped but the crossings are not, so several crossings
         # can land on one pin and name the same card edge. One AddEdgeAction
         # each; a second on the same endpoints raises and aborts the composite.
-        emitted: set[Tuple[str, str, str, str]] = set()
+        emitted: set[tuple[str, str, str, str]] = set()
 
         for source_node_id, outlet_port_id, sink_node_id, inlet_port_id in crossings:
             if sink_node_id in nodes:
@@ -2462,7 +2464,7 @@ class ExpandGraphNodeAction(CompositeAction):
         self,
         graph: BaseGraph,
         node_id: str,
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         from ...graph.subgraph import SubgraphDefinition
         from ...graph.subgraph_crossing import boundary_port_id
@@ -2493,8 +2495,8 @@ class ExpandGraphNodeAction(CompositeAction):
 
         # Where each boundary port pointed, so the card's edges can be rewired
         # to the same inner ports.
-        inner_sinks: Dict[str, List[Tuple[str, str]]] = {}
-        inner_sources: Dict[str, Tuple[str, str]] = {}
+        inner_sinks: dict[str, list[tuple[str, str]]] = {}
+        inner_sources: dict[str, tuple[str, str]] = {}
         for edge in definition.edge_wrappers.values():
             if input_node is not None and edge.source_node_id == input_node.node_id:
                 inner_sinks.setdefault(edge.outlet_port_id, []).append(
@@ -2510,7 +2512,7 @@ class ExpandGraphNodeAction(CompositeAction):
             for w in contents
             if (key := getattr(w.node, "subgraph_key", None)) and definition.get_subgraph(key) is not None
         ]
-        actions: List[IAction] = [
+        actions: list[IAction] = [
             _LiftNestedSubgraphsAction(graph=graph, subgraph_key=definition.key, keys=nested_keys)
         ]
 
@@ -2614,7 +2616,7 @@ class _AdoptTemplateInteriorAction(ActionBase):
         target_key: str,
         template_key: str,
         origin: MacroOrigin | None = None,
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         super().__init__(description or f"Adopt interior '{source_key}' as '{target_key}'")
         self.graph = graph
@@ -2674,7 +2676,7 @@ class DetachPlacementFromMacroAction(CompositeAction):
         graph: BaseGraph,
         node_id: str,
         card_registry_key: str,
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         self.graph = graph
 
@@ -2714,12 +2716,12 @@ class DetachPlacementFromMacroAction(CompositeAction):
         self.subgraph_key = graph.generate_unique_subgraph_key()
         self.card_node_id = graph.generate_unique_node_id(card_registry_key)
 
-        node_data: Dict[str, Any] = {"store": {SUBGRAPH_KEY: self.subgraph_key}}
+        node_data: dict[str, Any] = {"store": {SUBGRAPH_KEY: self.subgraph_key}}
         if label:
             node_data["props"] = {"values": {"label": label}}
         node_data = with_position(node_data, *position)
 
-        actions: List[IAction] = [
+        actions: list[IAction] = [
             _AdoptTemplateInteriorAction(
                 graph=graph,
                 source_key=source_key,
@@ -2772,7 +2774,7 @@ class ClearMacroOriginAction(ActionBase):
         Refusal: If ``node_id`` is not a Group with an origin.
     """
 
-    def __init__(self, graph: BaseGraph, node_id: str, description: Optional[str] = None):
+    def __init__(self, graph: BaseGraph, node_id: str, description: str | None = None):
         super().__init__(description or "Forget Macro Origin")
         card = graph.get_node_wrapper(node_id)
         resolve = getattr(card.node, "resolve_definition", None) if card is not None else None
@@ -2849,13 +2851,13 @@ class PromoteGroupToMacroAction(CompositeAction):
         graph: BaseGraph,
         node_id: str,
         macro_registry_key: str,
-        description: Optional[str] = None,
+        description: str | None = None,
         drop_unmatched_edges: bool = False,
     ):
         from ...graph.subgraph import SubgraphDefinition
 
         self.graph = graph
-        self._reattached: List[_ReattachEdgeAction] = []
+        self._reattached: list[_ReattachEdgeAction] = []
 
         card = graph.get_node_wrapper(node_id)
         if card is None:
@@ -2885,12 +2887,12 @@ class PromoteGroupToMacroAction(CompositeAction):
         # The label the user gave this card is carried over as a prop, so a
         # renamed Group does not lose its name to the macro's own. Props
         # deserialize from the `values` bag, not from a flat dict.
-        node_data: Dict[str, Any] = {}
+        node_data: dict[str, Any] = {}
         if label:
             node_data["props"] = {"values": {"label": label}}
         node_data = with_position(node_data, *position)
 
-        actions: List[IAction] = [
+        actions: list[IAction] = [
             RemoveElementsAction(graph=graph, nodes=[node_id]),
             _DropSubgraphAction(graph=graph, key=definition.key),
             AddNodeAction(
@@ -2906,7 +2908,7 @@ class PromoteGroupToMacroAction(CompositeAction):
 
         for source_node_id, outlet_port_id, sink_node_id, inlet_port_id in edges:
             into_card = sink_node_id == node_id
-            edge_args: Dict[str, Any] = {
+            edge_args: dict[str, Any] = {
                 "graph": graph,
                 "source_node_id": source_node_id if into_card else self.placement_node_id,
                 "outlet_pin_id": outlet_port_id,
@@ -2937,8 +2939,8 @@ _BOUNDARY_MARGIN = 360.0
 
 
 def _boundary_positions(
-    nodes: Dict[str, Any],
-) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    nodes: dict[str, Any],
+) -> tuple[tuple[float, float], tuple[float, float]]:
     """Where the Subgraph Input and Output go, flanking the serialized ``nodes``.
 
     The Input sits before the contents and the Output after them, both centred
@@ -2962,7 +2964,7 @@ def _boundary_positions(
     )
 
 
-def _centroid(nodes: Dict[str, Any]) -> Tuple[float, float]:
+def _centroid(nodes: dict[str, Any]) -> tuple[float, float]:
     """The average position of the serialized ``nodes``, or the canvas middle if empty."""
     positions = [position_of(node) for node in nodes.values()]
     if not positions:
@@ -2973,7 +2975,7 @@ def _centroid(nodes: Dict[str, Any]) -> Tuple[float, float]:
     )
 
 
-def _claim(seen: set, key: Tuple[str, str, str, str]) -> bool:
+def _claim(seen: set, key: tuple[str, str, str, str]) -> bool:
     """Record ``key`` and report whether it is the first time it was seen."""
     if key in seen:
         return False
@@ -3023,9 +3025,9 @@ class RebuildNodesAction(ActionBase):
     def __init__(
         self,
         graph: BaseGraph,
-        before: Mapping[str, Dict[str, Any]],
+        before: Mapping[str, dict[str, Any]],
         description: str,
-        after: Optional[Mapping[str, Optional[Dict[str, Any]]]] = None,
+        after: Mapping[str, dict[str, Any] | None] | None = None,
     ):
         """
         Args:
@@ -3044,14 +3046,14 @@ class RebuildNodesAction(ActionBase):
         graph: BaseGraph,
         node_ids: Sequence[str],
         description: str,
-        after: Optional[Mapping[str, Optional[Dict[str, Any]]]] = None,
-    ) -> "RebuildNodesAction":
+        after: Mapping[str, dict[str, Any] | None] | None = None,
+    ) -> RebuildNodesAction:
         """Build the action from the nodes' current data.
 
         Raises:
             Refusal: If a node is not in the graph.
         """
-        before: Dict[str, Dict[str, Any]] = {}
+        before: dict[str, dict[str, Any]] = {}
         for node_id in node_ids:
             wrapper = graph.get_node_wrapper(node_id)
             if wrapper is None:
@@ -3070,7 +3072,7 @@ class RebuildNodesAction(ActionBase):
     def _undo_impl(self) -> None:
         self._rebuild({node_id: copy.deepcopy(data) for node_id, data in self.before.items()})
 
-    def _rebuild(self, data_by_node: Dict[str, Optional[Dict[str, Any]]]) -> None:
+    def _rebuild(self, data_by_node: dict[str, dict[str, Any] | None]) -> None:
         # Settle first: a pending add or remove outranks the rebuild reason in one batch.
         self.graph._validation.force_immediate_validation()
         self._check()

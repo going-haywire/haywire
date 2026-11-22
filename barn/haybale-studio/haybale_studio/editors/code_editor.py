@@ -6,7 +6,7 @@ CodeEditor — text/code editor for source-like files.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, Optional
+from typing import TYPE_CHECKING, Literal
 
 from nicegui import ui
 
@@ -47,7 +47,7 @@ CmLanguage = Literal[
 ]
 CmTheme = Literal["vscodeLight", "vscodeDark"]
 
-_LANGUAGE_BY_EXT: dict[str, Optional[CmLanguage]] = {
+_LANGUAGE_BY_EXT: dict[str, CmLanguage | None] = {
     ".md": "Markdown",
     ".py": "Python",
     ".json": "JSON",
@@ -86,29 +86,29 @@ class CodeEditor(BaseEditor):
         self._content: str = ""
         self._original: str = ""
         self._mode: str = "edit"  # "edit" | "preview" (preview only for .md)
-        self._editor: Optional[ui.codemirror] = None
-        self._preview: Optional[ui.markdown] = None
+        self._editor: ui.codemirror | None = None
+        self._preview: ui.markdown | None = None
         self._tab_panels = None  # ui.tab_panels (only present when .md)
-        self._mode_button: Optional[ui.button] = None
-        self._save_button: Optional[ui.button] = None
-        self._path_line: Optional[hui.FittedPath] = None
-        self._context: Optional["SessionContext"] = None
+        self._mode_button: ui.button | None = None
+        self._save_button: ui.button | None = None
+        self._path_line: hui.FittedPath | None = None
+        self._context: SessionContext | None = None
 
     # ------------------------------------------------------------------
     # identity / binding_id
     # ------------------------------------------------------------------
 
-    def _resolve_path(self) -> Optional[Path]:
+    def _resolve_path(self) -> Path | None:
         if self.wrapper._binding_id is None:
             return None
         return Path(self.wrapper._binding_id)
 
-    def _language_for(self, path: Optional[Path]) -> Optional[CmLanguage]:
+    def _language_for(self, path: Path | None) -> CmLanguage | None:
         if path is None:
             return None
         return _LANGUAGE_BY_EXT.get(path.suffix.lower())
 
-    def _is_markdown(self, path: Optional[Path]) -> bool:
+    def _is_markdown(self, path: Path | None) -> bool:
         return path is not None and path.suffix.lower() == ".md"
 
     # ------------------------------------------------------------------
@@ -116,7 +116,7 @@ class CodeEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     @redraw_on(SessionContext.active_workbench_theme_key)
-    def _redraw_on_theme(self, context: "SessionContext", event: Signal) -> None:
+    def _redraw_on_theme(self, context: SessionContext, event: Signal) -> None:
         """Redraw on workbench-theme change so CodeMirror picks up the new theme.
 
         Empty body — the decorator triggers wrapper.redraw() after return.
@@ -124,13 +124,13 @@ class CodeEditor(BaseEditor):
         pass
 
     @react_on(Save)
-    def _on_save(self, context: "SessionContext", event: Save) -> None:
+    def _on_save(self, context: SessionContext, event: Save) -> None:
         """Save the open file, or ask for a name when it has none."""
         self._save()
 
     @reveal_on(RevealSource)
     @classmethod
-    def _on_reveal_source(cls, context: "SessionContext", event: "RevealSource") -> bool:
+    def _on_reveal_source(cls, context: SessionContext, event: RevealSource) -> bool:
         """Claim a file this editor can actually edit.
 
         Class-level rather than ``@react_on`` because this editor is
@@ -150,12 +150,12 @@ class CodeEditor(BaseEditor):
         return True
 
     @staticmethod
-    def _codemirror_theme(context: "SessionContext") -> Literal["vscodeLight", "vscodeDark"]:
+    def _codemirror_theme(context: SessionContext) -> Literal["vscodeLight", "vscodeDark"]:
         """Return a CodeMirror theme name that matches the active Haywire workbench theme."""
         theme_key = context.active_workbench_theme_key or "dark"
         return "vscodeLight" if "light" in theme_key else "vscodeDark"
 
-    def draw(self, context: "SessionContext", container: "Element") -> None:
+    def draw(self, context: SessionContext, container: Element) -> None:
         self._context = context
         path = self._resolve_path()
         self._content = self._read_file(path) if path is not None else ""
@@ -210,7 +210,7 @@ class CodeEditor(BaseEditor):
 
         self._update_save_state()
 
-    def _render_editor_only(self, context: "SessionContext") -> None:
+    def _render_editor_only(self, context: SessionContext) -> None:
         path = self._resolve_path()
         with (
             ui.element("div")
@@ -221,7 +221,7 @@ class CodeEditor(BaseEditor):
         self._preview = None
         self._tab_panels = None
 
-    def _render_body_with_preview(self, context: "SessionContext") -> None:
+    def _render_body_with_preview(self, context: SessionContext) -> None:
         # Headless ui.tab_panels (no ui.tabs sibling) lets us switch
         # edit/preview by setting tab_panels.value while the codemirror stays
         # in the DOM with a stable layout. Same pattern slot.py uses to keep
@@ -247,7 +247,7 @@ class CodeEditor(BaseEditor):
             with ui.tab_panel("preview").style("padding: 1rem; height: 100%; overflow: auto;"):
                 self._preview = ui.markdown(self._content).classes("w-full text-sm")
 
-    def _make_codemirror(self, context: "SessionContext", language: Optional[CmLanguage]) -> ui.codemirror:
+    def _make_codemirror(self, context: SessionContext, language: CmLanguage | None) -> ui.codemirror:
         from haywire.ui.extends.codemirror import attach_code_intelligence
 
         cm = ui.codemirror(
@@ -316,7 +316,7 @@ class CodeEditor(BaseEditor):
         self._update_save_state()
         ui.notify(f"Saved {path.name}", type="positive")
 
-    def _open_save_as_dialog(self, context: "SessionContext") -> None:
+    def _open_save_as_dialog(self, context: SessionContext) -> None:
         path = self._resolve_path()
         default = path.name if path is not None else "untitled.txt"
 
@@ -343,10 +343,10 @@ class CodeEditor(BaseEditor):
 
     def _do_save_as(
         self,
-        context: "SessionContext",
-        dialog: "ui.dialog",
-        path_input: "ui.input",
-        warning_label: "ui.label",
+        context: SessionContext,
+        dialog: ui.dialog,
+        path_input: ui.input,
+        warning_label: ui.label,
     ) -> None:
         path_str = (path_input.value or "").strip()
         if not path_str:
@@ -389,7 +389,7 @@ class CodeEditor(BaseEditor):
         dialog.close()
 
     @staticmethod
-    def _default_base_dir(context: "SessionContext") -> Path:
+    def _default_base_dir(context: SessionContext) -> Path:
         app = getattr(context, "app", None)
         root = getattr(app, "workspace_root", None) if app is not None else None
         return Path(root) if root else Path.home()

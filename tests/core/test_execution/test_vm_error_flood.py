@@ -1,5 +1,7 @@
 """A node failing on every frame leaves one ledger entry, not one per frame."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest

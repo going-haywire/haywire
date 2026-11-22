@@ -8,7 +8,8 @@ See ADR 0062.
 from __future__ import annotations
 
 import threading
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 
@@ -17,7 +18,6 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.types import ChangeReason
 from haywire.core.undo.config import UndoConfig
-
 from tests.conftest import declare_differently
 
 pytestmark = pytest.mark.integration

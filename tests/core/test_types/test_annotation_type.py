@@ -1,5 +1,7 @@
 """The annotation wire: drawn and saved, never executed, styled per edge."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.edge.style import STYLE_FIELDS

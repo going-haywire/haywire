@@ -5,6 +5,8 @@ Used by ``graph_data_chain_root_fails`` and ``node_execute_raises`` (see
 baseline; add a new frozen node instead.
 """
 
+from __future__ import annotations
+
 from haywire.api import FLOAT, BaseNode, ExecutionContext, NodeType, node
 
 

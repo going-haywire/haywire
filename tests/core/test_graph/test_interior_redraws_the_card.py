@@ -16,7 +16,6 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.subgraph import SubgraphDefinition
 from haywire.core.graph.types import ValidationResult
 from haywire.core.node.node_wrapper import NodeWrapper
-
 from tests.conftest import make_node
 
 if TYPE_CHECKING:

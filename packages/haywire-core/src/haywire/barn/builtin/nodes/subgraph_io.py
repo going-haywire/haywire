@@ -46,11 +46,10 @@ from haywire.core.graph.subgraph_crossing import (
     enter_crossing_id,
     exit_crossing_id,
 )
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.core.node import BaseNode, NodeType, node
 from haywire.core.types import PortOrigin
-from haywire.core.types.wire import WireRole, wire_type_of
 from haywire.core.types.enums import PortType
-
+from haywire.core.types.wire import WireRole, wire_type_of
 
 #: Id prefix of the growing slot. Indices are never reused: a port id is baked
 #: into the id of every edge attached to it, so renumbering detaches them.

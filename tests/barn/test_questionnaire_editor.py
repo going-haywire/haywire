@@ -12,16 +12,15 @@ from nicegui import ui
 from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
+from haybale_studio.editors.questionnaire_editor import QuestionnaireEditor
+from haybale_studio.questionnaire.signals import QuestionnaireChanged, RevealQuestionnaire
+from haybale_studio.states.questionnaire_state import QuestionnaireState
 from haywire.core.access import AccessTier
 from haywire.core.session.handlers import discover_reveal_handlers
 from haywire.core.signals import SignalDispatcher, SignalPeer
 from haywire.ui.app.aside_slot import AsideSlot
 from haywire.ui.app.shell import AppShell
 from haywire.ui.editor.identity import OpenBehavior, SlotName
-
-from haybale_studio.editors.questionnaire_editor import QuestionnaireEditor
-from haybale_studio.questionnaire.signals import QuestionnaireChanged, RevealQuestionnaire
-from haybale_studio.states.questionnaire_state import QuestionnaireState
 
 pytestmark = pytest.mark.unit
 

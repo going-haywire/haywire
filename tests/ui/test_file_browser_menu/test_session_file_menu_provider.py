@@ -3,6 +3,8 @@
 Mirrors the test pattern in tests/ui/test_canvas_handlers/test_session_context_menu_provider.py.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 

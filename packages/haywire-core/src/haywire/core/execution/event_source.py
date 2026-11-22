@@ -5,9 +5,10 @@ Defines the types of events that can trigger flow execution.
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 from haywire.core.execution.flow_queue import QueueMode
 
@@ -155,5 +156,5 @@ class Trigger:
     """
 
     source_key: str
-    payload: Optional[Dict[str, Any]] = None
+    payload: dict[str, Any] | None = None
     timestamp: float = 0.0

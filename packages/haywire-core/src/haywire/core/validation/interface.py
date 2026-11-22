@@ -1,10 +1,10 @@
 # ============================================================================
 # ROOT INTERFACE WITH SHARED IMPLEMENTATIONS
 # ============================================================================
-
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
@@ -19,7 +19,7 @@ class IStructuralValidator(ABC):
     against structural constraints.
     """
 
-    def __init__(self, graph: "BaseGraph"):
+    def __init__(self, graph: BaseGraph):
         """
         Initialize structural validator.
 
@@ -29,7 +29,7 @@ class IStructuralValidator(ABC):
         self.graph = graph
 
     @abstractmethod
-    def validate_node(self, wrapper: "NodeWrapper") -> tuple[bool, str | None, list[str]]:
+    def validate_node(self, wrapper: NodeWrapper) -> tuple[bool, str | None, list[str]]:
         """
         Validate structural constraints for a single node.
 
@@ -41,9 +41,7 @@ class IStructuralValidator(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def validate_subgraph_contents(
-        self, wrappers: "list[NodeWrapper]"
-    ) -> tuple[bool, str | None, list[str]]:
+    def validate_subgraph_contents(self, wrappers: list[NodeWrapper]) -> tuple[bool, str | None, list[str]]:
         """
         Validate the node set of one Subgraph.
 
@@ -58,6 +56,6 @@ class IStructuralValidator(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def validate_graph(self) -> List[str]:
+    def validate_graph(self) -> list[str]:
         """Validate all structural constraints across the graph"""
         raise NotImplementedError()

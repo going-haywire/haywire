@@ -1,5 +1,7 @@
 """Test-only nodes carrying containers of control and callback elements."""
 
+from __future__ import annotations
+
 from haywire.api import CALLBACK, EXEC, BaseNode, ExecutionContext, NodeType, node
 
 

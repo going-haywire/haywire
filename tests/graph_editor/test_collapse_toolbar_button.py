@@ -16,10 +16,10 @@ from unittest.mock import MagicMock
 import pytest
 from nicegui import ui
 
-from haywire.ui import elements as hui
-from haywire.ui.panel.layout import PanelLayout
 from haybale_graph_editor.panels.graph.toolbar.selection import CollapseToolbarPanel
 from haybale_graph_editor.surfaces import SelectionToolbar
+from haywire.ui import elements as hui
+from haywire.ui.panel.layout import PanelLayout
 
 pytestmark = pytest.mark.unit
 

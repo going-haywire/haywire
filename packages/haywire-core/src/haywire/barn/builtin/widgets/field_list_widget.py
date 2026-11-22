@@ -16,7 +16,6 @@ from haywire.ui.hover_tip import TIP_ATTR, TIP_DESC_ATTR, TIP_TYPE_ATTR
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.decorator import widget
 
-
 _CORE_PREFIX = "haywire-core:"
 
 _OPTION_WITH_TIP = f"""

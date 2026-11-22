@@ -30,16 +30,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haybale_graph_editor.states.edit_state import EditState
 from haywire.api.workbench import SessionContext
 
-from haybale_graph_editor.states.edit_state import EditState
-
 if TYPE_CHECKING:
-    from haywire.core.node.properties import NodeProperties
     from haywire.api.workbench import SessionContext
+    from haywire.core.node.properties import NodeProperties
 
 
-def locked_bag(ctx: "SessionContext") -> "NodeProperties | None":
+def locked_bag(ctx: SessionContext) -> NodeProperties | None:
     """The props bag of the single node in play, or ``None``.
 
     ``None`` whenever there is not exactly ONE node selected: the Active axis
@@ -67,7 +66,7 @@ def locked_bag(ctx: "SessionContext") -> "NodeProperties | None":
         return None
 
 
-def selection_has_locked(ctx: "SessionContext") -> bool:
+def selection_has_locked(ctx: SessionContext) -> bool:
     """True when ANY selected node is locked.
 
     The gate for verbs a lock refuses (delete, collapse), at any selection
@@ -92,7 +91,7 @@ def selection_has_locked(ctx: "SessionContext") -> bool:
     return False
 
 
-def is_reroute_node(ctx: "SessionContext") -> bool:
+def is_reroute_node(ctx: SessionContext) -> bool:
     """True when the selection's primary node is a reroute node.
 
     The primary node is the one whose card is on show, and the one that
@@ -105,7 +104,7 @@ def is_reroute_node(ctx: "SessionContext") -> bool:
     return wrapper.node.behavior.is_reroute_node
 
 
-def is_boundary_node(ctx: "SessionContext") -> bool:
+def is_boundary_node(ctx: SessionContext) -> bool:
     """True when the selection's primary node is a boundary node.
 
     The primary node is the one whose card is on show, and the one that
@@ -118,7 +117,7 @@ def is_boundary_node(ctx: "SessionContext") -> bool:
     return wrapper.node.behavior.is_boundary_node
 
 
-def is_graph_node(ctx: "SessionContext") -> bool:
+def is_graph_node(ctx: SessionContext) -> bool:
     """True when the selection's primary node is a Graph-node — a Group's card.
 
     The primary node is the one whose card is on show and the one that receives
@@ -130,7 +129,7 @@ def is_graph_node(ctx: "SessionContext") -> bool:
     return wrapper.node.identity._is_graph_node
 
 
-def is_macro_placement(ctx: "SessionContext") -> bool:
+def is_macro_placement(ctx: SessionContext) -> bool:
     """True when the selection's primary node is a card standing for a macro.
 
     Disjoint from :func:`is_graph_node`: ``MacroNode`` clears ``_is_graph_node``
@@ -145,7 +144,7 @@ def is_macro_placement(ctx: "SessionContext") -> bool:
     return _is_placement(wrapper.node)
 
 
-def is_modified_instance(ctx: "SessionContext") -> bool:
+def is_modified_instance(ctx: SessionContext) -> bool:
     """True when the selection's primary node is a Group detached from a macro.
 
     Such a card is a Graph-node whose interior records the macro it was copied
@@ -163,7 +162,7 @@ def is_modified_instance(ctx: "SessionContext") -> bool:
     return modified_instance_origin(node) is not None
 
 
-def is_collapsible_selection(ctx: "SessionContext") -> bool:
+def is_collapsible_selection(ctx: SessionContext) -> bool:
     """True when at least two nodes are selected, so there is something to collapse.
 
     Convexity is not checked here: the answer depends on the graph's edges and
@@ -174,7 +173,7 @@ def is_collapsible_selection(ctx: "SessionContext") -> bool:
     return len(edit.selected_nodes) >= 2
 
 
-def is_cloneable_selection(ctx: "SessionContext") -> bool:
+def is_cloneable_selection(ctx: SessionContext) -> bool:
     """True when exactly one node is selected and its class may be cloned into a library.
 
     Framework role nodes (reroute, Graph-node, macro placement, boundaries),

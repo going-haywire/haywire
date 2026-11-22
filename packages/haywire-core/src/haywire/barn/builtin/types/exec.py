@@ -1,6 +1,9 @@
 """EXEC — the execution signal that sequences one node after another."""
 
+from __future__ import annotations
+
 from haywire.core.types import PrimitiveType, StoreStrategy, type
+
 from ..wires import ControlWire
 
 
@@ -16,5 +19,5 @@ class EXEC(PrimitiveType[dict]):
     """Execution signal carrying an optional `dict` payload."""
 
     @classmethod
-    def create_default(cls) -> "EXEC":
+    def create_default(cls) -> EXEC:
         return cls({})

@@ -19,7 +19,6 @@ import secrets
 from pathlib import Path
 
 from haywire.core.access import AccessTier
-
 from haywire_studio.auth.passwords import dummy_verify, hash_password, password_problem, verify_password
 from haywire_studio.security.document import load_document, save_document
 from haywire_studio.security.errors import SecurityError

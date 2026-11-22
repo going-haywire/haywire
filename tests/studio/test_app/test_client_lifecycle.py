@@ -5,7 +5,10 @@ shell.cleanup() FIRST, then sm.remove_session(sid). Session.cleanup() never
 reaches into AppShell.
 """
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock, call
+
 import pytest
 
 

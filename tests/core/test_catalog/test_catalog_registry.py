@@ -1,7 +1,9 @@
 """``CatalogRegistry``: an OpenModelDB-shaped JSON file becomes a catalog entry."""
 
-import json
+from __future__ import annotations
+
 import copy
+import json
 
 import pytest
 
@@ -303,8 +305,8 @@ def test_bad_stem_is_skipped(tmp_path, catalog_registry, identity):
 
 @pytest.mark.unit
 def test_kind_maps_know_catalog():
-    from haywire.core.library.kinds import KIND_FOLDERS, canon_area, kind_registry_map
     from haywire.core.catalog import CatalogRegistry
+    from haywire.core.library.kinds import KIND_FOLDERS, canon_area, kind_registry_map
 
     assert kind_registry_map()["catalog"] is CatalogRegistry
     assert KIND_FOLDERS["catalog"] == "catalog"
@@ -320,8 +322,8 @@ def test_models_scan_after_macros():
 
 @pytest.mark.unit
 def test_injector_provides_the_ambient_singleton(test_injector):
-    from haywire.core.di.context import get_catalog_registry
     from haywire.core.catalog import CatalogRegistry
+    from haywire.core.di.context import get_catalog_registry
 
     registry = test_injector.get(CatalogRegistry)
 

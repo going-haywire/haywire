@@ -1,20 +1,22 @@
 """Tests for SelectionToolbarProvider and SelectionToolbarHandlers."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest
 
-from haywire.core.access import LevelMode
-from haywire.ui.components.graph.event_definitions import (
-    SelectionBoundsEvent,
-    SelectionBoundsHideEvent,
-)
 from haybale_graph_editor.editors.graph_canvas.handlers import selection_toolbar as selection_toolbar_module
 from haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar import (
     SelectionToolbarHandlers,
     SelectionToolbarProvider,
 )
 from haybale_graph_editor.surfaces import SelectionActions
+from haywire.core.access import LevelMode
+from haywire.ui.components.graph.event_definitions import (
+    SelectionBoundsEvent,
+    SelectionBoundsHideEvent,
+)
 
 
 def _provider(monkeypatch, *, menu_provider=None, allows=lambda _required: True):

@@ -6,6 +6,8 @@ shows them; a skin may override the hook. The behaviour is covered in
 their own.
 """
 
+from __future__ import annotations
+
 import importlib
 import inspect
 

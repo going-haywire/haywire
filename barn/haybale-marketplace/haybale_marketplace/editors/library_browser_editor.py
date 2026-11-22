@@ -6,16 +6,16 @@ Displays installed and marketplace libraries in a compact scrollable list.
 Selecting a library updates context.active_library and fires LIBRARY_STATE_CHANGED.
 """
 
-import logging
+from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 from nicegui import ui
 
-from haywire.core.library.info import LibraryInfo
-from haywire.core.library.haybale import Haybale
+from haybale_marketplace.library_origin import compute_library_origin
 from haywire.api.workbench import (
     BaseEditor,
     LibraryCatalogChanged,
@@ -27,8 +27,8 @@ from haywire.api.workbench import (
     hui,
     redraw_on,
 )
-
-from haybale_marketplace.library_origin import compute_library_origin
+from haywire.core.library.haybale import Haybale
+from haywire.core.library.info import LibraryInfo
 
 if TYPE_CHECKING:
     from nicegui.element import Element
@@ -85,7 +85,7 @@ class LibraryBrowserEditor(BaseEditor):
         self._container = None
         self._list_container = None
         # Slot holding the search field — rebuilt when _filter_search toggles.
-        self._search_container: "Element | None" = None
+        self._search_container: Element | None = None
         self._search_query: str = ""
         self._filter_required: bool = True
         self._filter_enabled: bool = True
@@ -97,16 +97,16 @@ class LibraryBrowserEditor(BaseEditor):
         self._refresh_error: str | None = None
 
     @redraw_on(SessionContext.active_library, LibraryCatalogChanged)
-    def _refresh_on_library_change(self, context: "SessionContext", event) -> None:
+    def _refresh_on_library_change(self, context: SessionContext, event) -> None:
         # Empty body — the decorator triggers wrapper.redraw() after return.
         pass
 
-    def draw(self, context: "SessionContext", container: "Element") -> None:
+    def draw(self, context: SessionContext, container: Element) -> None:
         self._container = container
         with container:
             self._build_ui(context)
 
-    def _build_ui(self, context: "SessionContext") -> None:
+    def _build_ui(self, context: SessionContext) -> None:
         with ui.column().classes("w-full h-full gap-0"):
             # Header: editor icon + title + inline actions. Three actions is few
             # enough to show directly; a burger for three items costs a click to
@@ -153,7 +153,7 @@ class LibraryBrowserEditor(BaseEditor):
                 self._list_container = ui.column().classes("w-full gap-0 p-0")
                 self._render_list(context)
 
-    def _render_search_field(self, context: "SessionContext") -> None:
+    def _render_search_field(self, context: SessionContext) -> None:
         """(Re)build the search field slot based on _filter_search."""
         if self._search_container is None:
             return
@@ -173,20 +173,20 @@ class LibraryBrowserEditor(BaseEditor):
             )
             search.on("clear", lambda e: self._on_search("", context))
 
-    def _make_toggle(self, attr: str, color: str, icon: str, tooltip: str, context: "SessionContext"):
+    def _make_toggle(self, attr: str, color: str, icon: str, tooltip: str, context: SessionContext):
         active = getattr(self, f"_filter_{attr}")
         with ui.button().props("flat round dense size=xs").tooltip(tooltip) as btn:
             icon_el = ui.icon(icon).classes("hw-use-props-color")
             icon_el.props(f"color={color if active else 'grey'}")
         btn.on("click", lambda a=attr, ie=icon_el, c=color, ctx=context: self._toggle(a, ie, c, ctx))
 
-    def _toggle(self, attr: str, icon_el, color: str, context: "SessionContext"):
+    def _toggle(self, attr: str, icon_el, color: str, context: SessionContext):
         current = getattr(self, f"_filter_{attr}")
         setattr(self, f"_filter_{attr}", not current)
         icon_el.props(f"color={color if not current else 'grey'}")
         self._render_list(context)
 
-    def _make_search_toggle(self, context: "SessionContext"):
+    def _make_search_toggle(self, context: SessionContext):
         """Toggle that shows/hides the search field (rather than filtering the list)."""
         active = self._filter_search
         with ui.button().props("flat round dense size=xs").tooltip("Search libraries") as btn:
@@ -194,7 +194,7 @@ class LibraryBrowserEditor(BaseEditor):
             icon_el.props(f"color={'blue' if active else 'grey'}")
         btn.on("click", lambda ie=icon_el, ctx=context: self._toggle_search(ie, ctx))
 
-    def _toggle_search(self, icon_el, context: "SessionContext"):
+    def _toggle_search(self, icon_el, context: SessionContext):
         self._filter_search = not self._filter_search
         icon_el.props(f"color={'blue' if self._filter_search else 'grey'}")
         if not self._filter_search:
@@ -204,7 +204,7 @@ class LibraryBrowserEditor(BaseEditor):
             self._render_list(context)
         self._render_search_field(context)
 
-    def _on_search(self, args, context: "SessionContext"):
+    def _on_search(self, args, context: SessionContext):
         if isinstance(args, (list, tuple)):
             value = args[0] if args else ""
         else:
@@ -212,7 +212,7 @@ class LibraryBrowserEditor(BaseEditor):
         self._search_query = value or ""
         self._render_list(context)
 
-    def _on_refresh_click(self, context: "SessionContext") -> None:
+    def _on_refresh_click(self, context: SessionContext) -> None:
         """Open the Refresh Libraries flow.
 
         Stepped rather than one-shot: fetching is a network round-trip per
@@ -222,9 +222,8 @@ class LibraryBrowserEditor(BaseEditor):
         calls :meth:`_do_refresh` directly — there the user didn't ask for a
         refresh, so there is no decision to present.
         """
-        from haybale_marketplace.states.marketplace_state import MarketplaceState
-
         from haybale_marketplace.editors._refresh_flow import show_refresh_flow
+        from haybale_marketplace.states.marketplace_state import MarketplaceState
 
         if context.app_data is None or MarketplaceState not in context.app_data:
             ui.notify("Marketplace state not available", type="warning")
@@ -236,12 +235,12 @@ class LibraryBrowserEditor(BaseEditor):
             on_edit_global=lambda: self._on_edit_file_click(context),
         )
 
-    def _after_refresh_flow(self, context: "SessionContext") -> None:
+    def _after_refresh_flow(self, context: SessionContext) -> None:
         """Re-render once the flow closes — an applied refresh rewrote the cache."""
         self._refresh_error = None
         self._render_list(context)
 
-    def _on_add_source_click(self, context: "SessionContext") -> None:
+    def _on_add_source_click(self, context: SessionContext) -> None:
         """Open the Add Source flow.
 
         Stepped rather than a dialog: the flow probes the source and settles
@@ -263,7 +262,7 @@ class LibraryBrowserEditor(BaseEditor):
     # CONSUMES feeds; producing one is a different concern from the
     # per-library view this browser presents.
 
-    def _do_refresh(self, context: "SessionContext", *, missing_state_severity: str) -> None:
+    def _do_refresh(self, context: SessionContext, *, missing_state_severity: str) -> None:
         """Refresh the marketplace in one shot and re-render.
 
         The auto-flow path (post-Add-Source), where the user didn't ask for a
@@ -272,9 +271,8 @@ class LibraryBrowserEditor(BaseEditor):
         "warning" when a caller wants a missing state surfaced and "silent"
         when it should just skip and re-render.
         """
-        from haywire.core.marketstall import MalformedMarketplaceError
-
         from haybale_marketplace.states.marketplace_state import MarketplaceState
+        from haywire.core.marketstall import MalformedMarketplaceError
 
         if context.app_data is None or MarketplaceState not in context.app_data:
             if missing_state_severity == "warning":
@@ -312,7 +310,7 @@ class LibraryBrowserEditor(BaseEditor):
         ui.notify(" · ".join(msg_parts), type="positive")
         self._render_list(context)
 
-    def _on_edit_file_click(self, context: "SessionContext") -> None:
+    def _on_edit_file_click(self, context: SessionContext) -> None:
         """Open the global marketplace.toml in haybale-studio's CodeEditor.
 
         Publishes ``RevealSource`` and names no editor: whichever editor claims
@@ -336,7 +334,7 @@ class LibraryBrowserEditor(BaseEditor):
         session.publish(RevealSource(binding_id=str(mp), label=mp.name))
         ui.notify("Save your changes, then click Refresh to apply.", type="info")
 
-    def _get_unavailable_urls(self, context: "SessionContext") -> list[str]:
+    def _get_unavailable_urls(self, context: SessionContext) -> list[str]:
         """Return unavailable_urls from the last RefreshReport, or [] if no refresh has run."""
         from haybale_marketplace.states.marketplace_state import MarketplaceState
 
@@ -361,7 +359,7 @@ class LibraryBrowserEditor(BaseEditor):
                     ui.button("Close", on_click=dialog.close).props("flat")
         dialog.open()
 
-    def _render_list(self, context: "SessionContext") -> None:
+    def _render_list(self, context: SessionContext) -> None:
         if self._list_container is None:
             return
         self._list_container.clear()
@@ -513,6 +511,7 @@ class LibraryBrowserEditor(BaseEditor):
         if marketplace_path and marketplace_path.exists():
             try:
                 from packaging.version import Version
+
                 from haywire.core.marketstall import parse_project_marketplace
 
                 pm = parse_project_marketplace(marketplace_path)
@@ -614,7 +613,7 @@ class LibraryBrowserEditor(BaseEditor):
         self,
         lib: LibraryInfo,
         dot_color: str,
-        context: "SessionContext",
+        context: SessionContext,
         installed_names: set[str],
         has_update: bool = False,
         downgrade_to: str | None = None,
@@ -685,7 +684,7 @@ class LibraryBrowserEditor(BaseEditor):
                         lambda name=entry_name, ctx=context: self._on_remove_stale_click(name, ctx),
                     )
 
-    def _provenance_label_for(self, lib: LibraryInfo, context: "SessionContext") -> str | None:
+    def _provenance_label_for(self, lib: LibraryInfo, context: SessionContext) -> str | None:
         """Look up the user's [[stalls]] list to derive 'from {host}' vs 'via {host}'."""
         from haybale_marketplace.states.marketplace_state import MarketplaceState
 
@@ -697,7 +696,7 @@ class LibraryBrowserEditor(BaseEditor):
             return None
         return derive_provenance_label(lib.row, mf)
 
-    def _on_remove_stale_click(self, name: str, context: "SessionContext") -> None:
+    def _on_remove_stale_click(self, name: str, context: SessionContext) -> None:
         """Drop a stale [[caches]] entry from the project marketplace, then re-render."""
         from haybale_marketplace.states.marketplace_state import MarketplaceState
 
@@ -719,7 +718,7 @@ class LibraryBrowserEditor(BaseEditor):
             ui.notify(f"{name} was already gone from cache", type="info")
         self._render_list(context)
 
-    def _select_library(self, lib: LibraryInfo, context: "SessionContext"):
+    def _select_library(self, lib: LibraryInfo, context: SessionContext):
         # Assigning emits SessionContext.active_library / .active_component
         # synthetically on the bus; no manual signal emit needed.
         context.active_library = lib

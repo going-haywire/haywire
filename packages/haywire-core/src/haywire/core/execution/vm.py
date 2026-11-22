@@ -1,20 +1,22 @@
 """Haywire Virtual Machine - executes control and data flows."""
 
 from __future__ import annotations
-from typing import Callable, Dict, List, Optional, Any, Sequence, TYPE_CHECKING
+
 import logging
 import threading
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Any
 
+from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.execution.callback_manager import CallbackManager
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.execution.flow import ControlNodeInfo, LocalizedDataFlow, overrides
-from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.behavior import NodeType
 from haywire.core.state.data_namespace import AppDataNamespace
 
 if TYPE_CHECKING:
-    from haywire.core.execution.flow import Flow
     from haywire.core.execution.event_source import Trigger
+    from haywire.core.execution.flow import Flow
     from haywire.core.node import BaseNode
     from haywire.core.state import LibraryStateContainer
 
@@ -38,11 +40,11 @@ class HaywireVM:
 
     def __init__(
         self,
-        global_context: Optional[Dict[str, Any]] = None,
+        global_context: dict[str, Any] | None = None,
         max_stack_depth: int = 1000,
-        library_state_container: Optional[LibraryStateContainer] = None,
-        exception_bail: Optional[Callable[[], str]] = None,
-        on_bail_run: Optional[Callable[[], None]] = None,
+        library_state_container: LibraryStateContainer | None = None,
+        exception_bail: Callable[[], str] | None = None,
+        on_bail_run: Callable[[], None] | None = None,
     ) -> None:
         """
         Initialize VM.
@@ -66,17 +68,17 @@ class HaywireVM:
         self._on_bail_run = on_bail_run
 
         # Callback manager reference (set by interpreter)
-        self.callback_manager: Optional[CallbackManager] = None
+        self.callback_manager: CallbackManager | None = None
         self._library_state_container = library_state_container
         # Built once: the container never changes, and the namespace holds no per-frame state.
-        self._app_data: Optional[AppDataNamespace] = (
+        self._app_data: AppDataNamespace | None = (
             AppDataNamespace(library_state_container) if library_state_container is not None else None
         )
 
         logger.debug("HaywireVM initialized")
 
     def _create_execution_context(
-        self, flow: Flow, trigger: Optional[Trigger] = None, frame_number: int = 0
+        self, flow: Flow, trigger: Trigger | None = None, frame_number: int = 0
     ) -> ExecutionContext:
         """
         Create execution context for flow execution.
@@ -92,7 +94,7 @@ class HaywireVM:
         Returns:
             Complete ExecutionContext ready for node execution
         """
-        local_ctx: Dict[str, Any] = {
+        local_ctx: dict[str, Any] = {
             var_name: variable.current_value for var_name, variable in flow.graph_ref.variables.items()
         }
         return ExecutionContext(
@@ -105,7 +107,7 @@ class HaywireVM:
         )
 
     def call_startup(
-        self, nodes: Sequence[BaseNode], context_flow: Flow, cancel: Optional[threading.Event] = None
+        self, nodes: Sequence[BaseNode], context_flow: Flow, cancel: threading.Event | None = None
     ) -> None:
         """Retain every node in ``nodes`` for a run, calling ``on_startup()`` on first retain.
 
@@ -132,7 +134,7 @@ class HaywireVM:
                 node.wrapper.exec_lock.release()
 
     def call_shutdown(
-        self, nodes: Sequence[BaseNode], context_flow: Flow, cancel: Optional[threading.Event] = None
+        self, nodes: Sequence[BaseNode], context_flow: Flow, cancel: threading.Event | None = None
     ) -> None:
         """Release every node in ``nodes``, calling ``on_shutdown()`` on the last release.
 
@@ -155,7 +157,7 @@ class HaywireVM:
                 node.wrapper.exec_lock.release()
 
     @staticmethod
-    def _acquire_exec_lock(node: BaseNode, cancel: Optional[threading.Event]) -> bool:
+    def _acquire_exec_lock(node: BaseNode, cancel: threading.Event | None) -> bool:
         """Take ``node``'s ``exec_lock``; give up (``False``) once ``cancel`` is set."""
         lock = node.wrapper.exec_lock
         if cancel is None:
@@ -170,7 +172,7 @@ class HaywireVM:
         flow: Flow,
         trigger: Trigger,
         frame_number: int = 0,
-        cancel: Optional[threading.Event] = None,
+        cancel: threading.Event | None = None,
     ) -> int:
         """
         Execute a flow's control flow.
@@ -197,7 +199,7 @@ class HaywireVM:
         assert flow.control_graph is not None, "is_assembled() guarantees control_graph is set"
         control_nodes = flow.control_graph.control_nodes
 
-        loopback_stack: List[str] = []
+        loopback_stack: list[str] = []
 
         exec_ctx = self._create_execution_context(flow, trigger, frame_number)
         exec_ctx.cancel = cancel
@@ -215,8 +217,8 @@ class HaywireVM:
             )
 
         # Start from event node
-        current_node_id: Optional[str] = flow.get_entry_node_id()
-        current_inlet_id: Optional[str] = None  # Entry has no inlet
+        current_node_id: str | None = flow.get_entry_node_id()
+        current_inlet_id: str | None = None  # Entry has no inlet
 
         # Main execution loop
         while current_node_id is not None:
@@ -298,7 +300,7 @@ class HaywireVM:
 
     def _execute_control_node(
         self, node_info: ControlNodeInfo, flow: Flow, exec_ctx: ExecutionContext
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Execute a control node.
 
@@ -368,8 +370,8 @@ class HaywireVM:
         node.wrapper._add_runtime_error(error)
 
     def _navigate_next(
-        self, next_outlet_id: Optional[str], node_info: ControlNodeInfo, loopback_stack: List[str]
-    ) -> tuple[Optional[str], Optional[str]]:
+        self, next_outlet_id: str | None, node_info: ControlNodeInfo, loopback_stack: list[str]
+    ) -> tuple[str | None, str | None]:
         """
         Determine next node to execute based on worker result.
 
@@ -472,7 +474,7 @@ class HaywireVM:
         policy = self._exception_bail() if self._exception_bail is not None else "branch"
         exec_ctx.bail = policy if policy in ("run", "frame", "branch") else "branch"
 
-    def emit_callback(self, event_name: str, payload: Optional[Dict[str, Any]] = None) -> None:
+    def emit_callback(self, event_name: str, payload: dict[str, Any] | None = None) -> None:
         """
         Emit a callback to trigger other flows.
 

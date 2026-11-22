@@ -7,6 +7,8 @@ and builds it. A library shipping its own IType gets ``OPTIONAL[TheirType]``
 rendered correctly without this file changing.
 """
 
+from __future__ import annotations
+
 from typing import Any
 
 from nicegui import ui
@@ -140,7 +142,7 @@ class OptionalWidget(BaseWidget):
 
     # ---- element resolution ---------------------------------------------
 
-    def _element_type(self) -> "type[IType] | None":
+    def _element_type(self) -> type[IType] | None:
         """The wrapped IType, read off the cell rather than declared here.
 
         ``type_cls``, NOT ``get_stored_type()``: the two deliberately disagree
@@ -157,7 +159,7 @@ class OptionalWidget(BaseWidget):
             return element
         return None
 
-    def _inner_widget_class(self, element_cls: "type[IType] | None") -> Any:
+    def _inner_widget_class(self, element_cls: type[IType] | None) -> Any:
         """The element type's OWN declared widget class, or ``None``.
 
         Looked up by the element identity's ``widget_key`` — the same stamped
@@ -172,7 +174,7 @@ class OptionalWidget(BaseWidget):
             return None
         return WIDGET_REGISTRY.get(key)
 
-    def _restore_value(self, element_cls: "type[IType] | None") -> Any:
+    def _restore_value(self, element_cls: type[IType] | None) -> Any:
         props = self._config.get("properties", {})
         if "restore" in props:
             return props["restore"]

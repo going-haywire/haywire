@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import TYPE_CHECKING, Any, Final, Sequence
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, Final
 
 from ..errors import ErrorSeverity, HaywireException
 
@@ -45,7 +46,7 @@ def strip_previous_setups(document: dict[str, Any]) -> None:
             strip_previous_setups(subgraph)
 
 
-def setup_to_apply(wrapper: "NodeWrapper") -> dict[str, Any] | None:
+def setup_to_apply(wrapper: NodeWrapper) -> dict[str, Any] | None:
     """Return the node data that applies *wrapper*'s previous setup, or ``None`` when it holds none.
 
     The previous setup with the node's arrangement as it is now (position, stacking
@@ -128,7 +129,7 @@ def differing_paths(before: Any, after: Any, path: str = "") -> list[str]:
     return [] if before == after else [path]
 
 
-def report_previous_setup(wrapper: "NodeWrapper", *, operation: str, differs: Sequence[str] = ()) -> None:
+def report_previous_setup(wrapper: NodeWrapper, *, operation: str, differs: Sequence[str] = ()) -> None:
     """Record a ledger warning that *wrapper*'s node holds a previous setup. Never raises.
 
     Args:

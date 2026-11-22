@@ -10,9 +10,12 @@ Tests connection behaviors between different port types:
 - Array type adapter chains
 """
 
+from __future__ import annotations
+
 import pytest
-from haywire.core.graph.base import BaseGraph
+
 from haywire.core.edge.edge_wrapper import EdgeWrapper
+from haywire.core.graph.base import BaseGraph
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types import Propagation
 

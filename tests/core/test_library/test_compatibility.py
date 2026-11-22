@@ -1,14 +1,16 @@
 """Unit tests for Compatibility Warning semver parsing + trigger logic."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.library.compatibility import (
     CompatibilityChecker,
     CompatibilityFinding,
     CompatibilityWarning,
-    parse_semver,
     SavedNode,
     SemverError,
+    parse_semver,
 )
 
 

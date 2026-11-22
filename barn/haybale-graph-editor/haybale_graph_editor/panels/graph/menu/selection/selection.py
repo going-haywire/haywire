@@ -21,6 +21,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from nicegui import ui
+
+from haybale_graph_editor.panels import _previous_setup as previous_setup
 from haybale_graph_editor.panels._gating import (
     is_cloneable_selection,
     is_collapsible_selection,
@@ -29,12 +32,8 @@ from haybale_graph_editor.panels._gating import (
     is_modified_instance,
     is_reroute_node,
 )
-from nicegui import ui
-
-from haywire.api.workbench import AccessTier, BasePanel, Copy, Delete, PanelLayout, hui, panel
-
-from haybale_graph_editor.panels import _previous_setup as previous_setup
 from haybale_graph_editor.panels.graph.menu.component_rows import component_row, identity_of, key_and_label
+from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.surfaces import (
     SelectionActions,
     SelectionDetailMenu,
@@ -43,7 +42,7 @@ from haybale_graph_editor.surfaces import (
     SelectionMacroMenu,
     SelectionMenu,
 )
-from haybale_graph_editor.states.edit_state import EditState
+from haywire.api.workbench import AccessTier, BasePanel, Copy, Delete, PanelLayout, hui, panel
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -65,12 +64,12 @@ def selection_label(verb: str, n_nodes: int, n_edges: int) -> str:
     return f"{verb} Selection"
 
 
-def _selection_nonempty(ctx: "SessionContext") -> bool:
+def _selection_nonempty(ctx: SessionContext) -> bool:
     edit = ctx.data[EditState]
     return bool(edit.selected_nodes or edit.selected_edges)
 
 
-def _selection_counts(ctx: "SessionContext") -> tuple[int, int]:
+def _selection_counts(ctx: SessionContext) -> tuple[int, int]:
     edit = ctx.data[EditState]
     return len(edit.selected_nodes), len(edit.selected_edges)
 
@@ -87,7 +86,7 @@ def _selection_counts(ctx: "SessionContext") -> tuple[int, int]:
 #  -> DeleteSelectionMenuPanel
 
 
-def _selected_nodes_only(ctx: "SessionContext") -> bool:
+def _selected_nodes_only(ctx: SessionContext) -> bool:
     """True when the selection holds at least one NODE.
 
     Edges have no card, so an edge-only selection must not offer either axis —
@@ -123,7 +122,7 @@ class CollapseSelectionMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         if is_reroute_node(ctx):
             return False
         return _selected_nodes_only(ctx)
@@ -136,7 +135,7 @@ class CollapseSelectionMenuPanel(BasePanel):
     def _row_icon(collapsed: bool) -> str:
         return hui.icon.node_expand if collapsed else hui.icon.node_collapse
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         n_nodes = len(ctx.data[EditState].selected_nodes)
         collapsed = self.actions.selection_is_collapsed()
 
@@ -163,7 +162,7 @@ class CollapseSelectionMenuPanel(BasePanel):
         icon_el = next((c for c in row.default_slot.children if isinstance(c, ui.icon)), None)
         label_el = next((c for c in row.default_slot.children if isinstance(c, ui.label)), None)
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         if is_reroute_node(ctx) is False:
             with layout:
                 with layout:
@@ -181,13 +180,13 @@ class CopySelectionMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         edit = ctx.data[EditState]
         return bool(edit.selected_nodes or edit.selected_edges)
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         n_nodes, n_edges = _selection_counts(ctx)
@@ -199,18 +198,18 @@ class CopySelectionMenuPanel(BasePanel):
                 command=Copy,
             )
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         """The static form, greyed — what the row should say with nothing selected."""
         with layout:
             hui.menu_row("Copy", icon=hui.icon.copy, enabled=False, command=Copy)
 
 
-def _node_has_errors(ctx: "SessionContext") -> bool:
+def _node_has_errors(ctx: SessionContext) -> bool:
     node = ctx.data[EditState].active_node
     return node is not None and bool(node.state.get_errors())
 
 
-def _render_node_errors(ctx: "SessionContext", layout: PanelLayout) -> None:
+def _render_node_errors(ctx: SessionContext, layout: PanelLayout) -> None:
     from haywire.ui.errors.error_info import error_render_detail
 
     node = ctx.data[EditState].active_node
@@ -242,12 +241,12 @@ class NodeErrorsSelectionMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _node_has_errors(ctx)
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         _render_node_errors(ctx, layout)
@@ -266,10 +265,10 @@ class PreviousSetupSelectionMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return previous_setup.holds_previous_setup(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         previous_setup.draw_previous_setup(ctx, layout, in_menu=True)
 
 
@@ -291,12 +290,12 @@ class DissolveRerouteMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return is_reroute_node(ctx)
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         wrapper = ctx.data[EditState].active_node
@@ -312,7 +311,7 @@ class DissolveRerouteMenuPanel(BasePanel):
             )
 
 
-def _single_node(ctx: "SessionContext"):
+def _single_node(ctx: SessionContext):
     """The one selected node's wrapper, or None.
 
     Skin and theme resolve per node, so a multi-node selection has no single
@@ -357,15 +356,15 @@ class EditSelectionMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _single_node(ctx) is not None
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             with hui.submenu_row("Edit Source", icon=hui.icon.node_source):
                 self.render_surface(SelectionEditMenu, ctx)
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         if _selection_nonempty(ctx):
             with layout:
                 hui.menu_row("Edit Source", icon=hui.icon.node_source, enabled=False)
@@ -384,10 +383,10 @@ class NodeSourceMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _single_node(ctx) is not None
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         wrapper = _single_node(ctx)
         if wrapper is None:
             return
@@ -419,11 +418,11 @@ class NodeSkinMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return bool(cls._skin_key(ctx))
 
     @staticmethod
-    def _skin_key(ctx: "SessionContext") -> str:
+    def _skin_key(ctx: SessionContext) -> str:
         wrapper = _single_node(ctx)
         if wrapper is None:
             return ""
@@ -442,7 +441,7 @@ class NodeSkinMenuPanel(BasePanel):
             return ""
         return registry.get_default_skin_registry_key() or ""
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         key = self._skin_key(ctx)
         if not key:
             return
@@ -472,11 +471,11 @@ class NodeThemeMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return bool(cls._theme_key(ctx))
 
     @staticmethod
-    def _theme_key(ctx: "SessionContext") -> str:
+    def _theme_key(ctx: SessionContext) -> str:
         wrapper = _single_node(ctx)
         if wrapper is None:
             return ""
@@ -485,7 +484,7 @@ class NodeThemeMenuPanel(BasePanel):
         except Exception:
             return ""
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         key = self._theme_key(ctx)
         if not key:
             return
@@ -514,17 +513,17 @@ class DetailSelectionMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         if is_reroute_node(ctx):
             return False
         return _selected_nodes_only(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             with hui.submenu_row("Detail", icon=hui.icon.node_detail):
                 self.render_surface(SelectionDetailMenu, ctx)
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         if is_reroute_node(ctx) is False:
             with layout:
                 hui.menu_row("Detail", icon=hui.icon.node_detail, enabled=False)
@@ -548,10 +547,10 @@ class DetailRankMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _selected_nodes_only(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         from haywire.core.types import NodeDetail
 
         with layout:
@@ -562,7 +561,7 @@ class DetailRankMenuPanel(BasePanel):
                     on_click=lambda r=rank: self.actions.set_selection_detail(r.value),
                 )
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         from haywire.core.types import NodeDetail
 
         with layout:
@@ -599,10 +598,10 @@ class ClearDetailOverridesMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _selected_nodes_only(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             hui.menu_row(
                 _RESET_DETAIL_LABEL,
@@ -611,7 +610,7 @@ class ClearDetailOverridesMenuPanel(BasePanel):
                 on_click=self.actions.clear_selection_detail_overrides,
             )
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             hui.menu_row(_RESET_DETAIL_LABEL, icon=hui.icon.reset, enabled=False)
 
@@ -629,13 +628,13 @@ class DeleteSelectionMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         edit = ctx.data[EditState]
         return bool(edit.selected_nodes or edit.selected_edges)
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         n_nodes, n_edges = _selection_counts(ctx)
@@ -647,7 +646,7 @@ class DeleteSelectionMenuPanel(BasePanel):
                 command=Delete,
             )
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         """The static form, greyed — what the row should say with nothing selected."""
         with layout:
             hui.menu_row("Delete", icon=hui.icon.delete, enabled=False, command=Delete)
@@ -673,12 +672,12 @@ class CollapseToGroupMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return is_collapsible_selection(ctx)
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         n_nodes, _n_edges = _selection_counts(ctx)
@@ -706,12 +705,12 @@ class EnterMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return is_graph_node(ctx) or is_macro_placement(ctx)
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         wrapper = ctx.data[EditState].active_node
@@ -743,12 +742,12 @@ class GroupMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return is_graph_node(ctx)
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         wrapper = ctx.data[EditState].active_node
@@ -777,10 +776,10 @@ class SaveNewMacroMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return is_graph_node(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         wrapper = ctx.data[EditState].active_node
         if wrapper is None:
             return
@@ -813,12 +812,12 @@ class EditInstanceMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return is_macro_placement(ctx)
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         wrapper = ctx.data[EditState].active_node
@@ -857,12 +856,12 @@ class ModifiedInstanceMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return is_modified_instance(ctx)
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         wrapper = ctx.data[EditState].active_node
@@ -924,12 +923,12 @@ class CloneToLibraryMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return is_cloneable_selection(ctx)
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         wrapper = ctx.data[EditState].active_node
@@ -963,10 +962,10 @@ class MacroSelectionMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return is_graph_node(ctx) or is_macro_placement(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             with hui.submenu_row("Macro", icon=hui.icon.macro):
                 self.render_surface(SelectionMacroMenu, ctx)
@@ -986,10 +985,10 @@ class DevelopSelectionMenuPanel(BasePanel):
     actions: SelectionActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _selection_nonempty(ctx)
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             with hui.submenu_row("Develop", icon=hui.icon.node_source):
                 self.render_surface(SelectionDevelopMenu, ctx)

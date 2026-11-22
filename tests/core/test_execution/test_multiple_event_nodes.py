@@ -4,17 +4,18 @@ Each event node roots its own flow; one dispatch triggers every flow on the
 key. Flows whose chains share a control node land in one execution group.
 """
 
+from __future__ import annotations
+
 import threading
 import time
 from types import SimpleNamespace
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
 from haywire.core.execution.event_source import SystemEvent, SystemEventType
 from haywire.core.execution.interpreter import Interpreter
 from haywire.core.graph.base import BaseGraph
-
 from tests.conftest import make_edge, make_node
 
 
@@ -30,7 +31,7 @@ def _payload_cls():
     return ControlPayloadProbeNode
 
 
-def _recording(wrapper: Any, seen: List[str], lock: threading.Lock) -> None:
+def _recording(wrapper: Any, seen: list[str], lock: threading.Lock) -> None:
     """Make ``wrapper``'s worker record ``<node_id>@<thread name>`` before it runs."""
     real_worker = wrapper.node.worker
 
@@ -61,7 +62,7 @@ class TestMultipleEventNodes:
         _, x1 = _event_and_target(graph, _begin_play_cls(), 0)
         _, x2 = _event_and_target(graph, _begin_play_cls(), 200)
 
-        seen: List[str] = []
+        seen: list[str] = []
         lock = threading.Lock()
         _recording(x1, seen, lock)
         _recording(x2, seen, lock)
@@ -90,7 +91,7 @@ class TestMultipleEventNodes:
         make_edge(graph, b1.node_id, "exec", x.node_id, "exec_in")
         make_edge(graph, b2.node_id, "exec", x.node_id, "exec_in")
 
-        seen: List[str] = []
+        seen: list[str] = []
         lock = threading.Lock()
         _recording(x, seen, lock)
 
@@ -112,7 +113,7 @@ class TestMultipleEventNodes:
         graph = graph_with_library_system
         _, x1 = _event_and_target(graph, ShutdownEventNode, 0)
         _, x2 = _event_and_target(graph, ShutdownEventNode, 200)
-        seen: List[str] = []
+        seen: list[str] = []
         lock = threading.Lock()
         _recording(x1, seen, lock)
         _recording(x2, seen, lock)
@@ -144,7 +145,7 @@ class TestMultipleEventNodes:
             assert edge.state.is_valid(), edge.state
             targets.append(target)
 
-        seen: List[str] = []
+        seen: list[str] = []
         lock = threading.Lock()
         for target in targets:
             _recording(target, seen, lock)
@@ -165,7 +166,7 @@ class TestMultipleEventNodes:
 @pytest.mark.unit
 def test_shutdown_grace_is_one_deadline_for_all_shutdown_flows():
     """N Shutdown flows that never finish cost one grace period, not N."""
-    waits: List[float] = []
+    waits: list[float] = []
 
     class _StuckQueue:
         def wait_for_completion(self, timeout: float) -> bool:
@@ -176,7 +177,7 @@ def test_shutdown_grace_is_one_deadline_for_all_shutdown_flows():
     interpreter = Interpreter()
     interpreter._executing = True
     key = SystemEvent(type=SystemEventType.SHUTDOWN).get_subscription_key()
-    flows: Dict[str, List[Any]] = {key: [SimpleNamespace(queue=_StuckQueue()) for _ in range(3)]}
+    flows: dict[str, list[Any]] = {key: [SimpleNamespace(queue=_StuckQueue()) for _ in range(3)]}
     interpreter.event_subscriptions = flows
     interpreter.dispatch_system_event = lambda *args, **kwargs: 0  # type: ignore[method-assign]
 

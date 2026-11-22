@@ -1,5 +1,7 @@
 """Unit tests for the Farmhand truncation-note helper."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.farmhand import truncation_note

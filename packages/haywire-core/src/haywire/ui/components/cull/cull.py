@@ -7,6 +7,8 @@ so a component that does not invoke its slot stops the page's full-tree render
 walk from descending into that subtree.
 """
 
+from __future__ import annotations
+
 from nicegui import ui
 
 

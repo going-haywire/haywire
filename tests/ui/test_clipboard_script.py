@@ -1,5 +1,7 @@
 """The clipboard script must work outside a secure context (LAN studio over http)."""
 
+from __future__ import annotations
+
 import json
 
 import pytest

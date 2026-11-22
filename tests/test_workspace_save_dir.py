@@ -1,4 +1,6 @@
 # tests/test_workspace_save_dir.py
+from __future__ import annotations
+
 import pytest
 
 

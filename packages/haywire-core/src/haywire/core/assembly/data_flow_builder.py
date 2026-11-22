@@ -9,13 +9,14 @@ For each control node, this builder:
 """
 
 from __future__ import annotations
-from typing import Dict, List, Set, TYPE_CHECKING
+
 import logging
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from haywire.core.execution.flow import ControlFlowGraph, LocalizedDataFlow
     from haywire.core.graph.base import BaseGraph
     from haywire.core.node.base import BaseNode
-    from haywire.core.execution.flow import LocalizedDataFlow, ControlFlowGraph
 
 
 logger = logging.getLogger(__name__)
@@ -31,8 +32,8 @@ class DataFlowBuilder:
 
     @staticmethod
     def build_localized(
-        control_node: "BaseNode", control_graph: "ControlFlowGraph", graph: "BaseGraph"
-    ) -> "LocalizedDataFlow":
+        control_node: BaseNode, control_graph: ControlFlowGraph, graph: BaseGraph
+    ) -> LocalizedDataFlow:
         """
         Build localized data flow for a control node.
 
@@ -59,7 +60,7 @@ class DataFlowBuilder:
             return data_flow  # No data dependencies
 
         # Backpropagate from each inlet
-        required_nodes: Set[str] = set()
+        required_nodes: set[str] = set()
 
         for inlet in data_inlets:
             # Backpropagate to find dependencies
@@ -88,8 +89,8 @@ class DataFlowBuilder:
 
     @staticmethod
     def _backpropagate(
-        start_node_id: str, inlet_id: str, graph: "BaseGraph", control_graph: "ControlFlowGraph"
-    ) -> Set[str]:
+        start_node_id: str, inlet_id: str, graph: BaseGraph, control_graph: ControlFlowGraph
+    ) -> set[str]:
         """
         Backpropagate from inlet to find all data dependencies.
 
@@ -102,11 +103,11 @@ class DataFlowBuilder:
         Returns:
             Set of node IDs that are dependencies
         """
-        dependencies: Set[str] = set()
-        visited: Set[tuple] = set()  # (node_id, port_id) pairs
+        dependencies: set[str] = set()
+        visited: set[tuple] = set()  # (node_id, port_id) pairs
 
         # BFS queue: (node_id, inlet_id)
-        queue: List[tuple] = [(start_node_id, inlet_id)]
+        queue: list[tuple] = [(start_node_id, inlet_id)]
 
         while queue:
             node_id, port_id = queue.pop(0)
@@ -147,7 +148,7 @@ class DataFlowBuilder:
         return dependencies
 
     @staticmethod
-    def _check_cycles(node_ids: Set[str], graph: "BaseGraph", control_graph: "ControlFlowGraph"):
+    def _check_cycles(node_ids: set[str], graph: BaseGraph, control_graph: ControlFlowGraph):
         """
         Check for illegal cycles in data flow.
 
@@ -162,7 +163,7 @@ class DataFlowBuilder:
             RuntimeError: If illegal cycle detected
         """
         # Build adjacency list for these nodes
-        adj: Dict[str, List[str]] = {node_id: [] for node_id in node_ids}
+        adj: dict[str, list[str]] = {node_id: [] for node_id in node_ids}
 
         for node_id in node_ids:
             node_wrapper = graph.get_node_wrapper(node_id)
@@ -186,8 +187,8 @@ class DataFlowBuilder:
                         adj[source_id].append(node_id)
 
         # DFS to detect cycles
-        visited: Set[str] = set()
-        rec_stack: Set[str] = set()
+        visited: set[str] = set()
+        rec_stack: set[str] = set()
 
         def has_cycle(node_id: str) -> bool:
             visited.add(node_id)
@@ -213,7 +214,7 @@ class DataFlowBuilder:
                     )
 
     @staticmethod
-    def _topological_sort(node_ids: Set[str], graph: "BaseGraph") -> List[str]:
+    def _topological_sort(node_ids: set[str], graph: BaseGraph) -> list[str]:
         """
         Topologically sort data nodes for execution order.
 
@@ -225,8 +226,8 @@ class DataFlowBuilder:
             List of node IDs in execution order
         """
         # Build adjacency list and in-degree
-        adj: Dict[str, List[str]] = {node_id: [] for node_id in node_ids}
-        in_degree: Dict[str, int] = {node_id: 0 for node_id in node_ids}
+        adj: dict[str, list[str]] = {node_id: [] for node_id in node_ids}
+        in_degree: dict[str, int] = {node_id: 0 for node_id in node_ids}
 
         for node_id in node_ids:
             node_wrapper = graph.get_node_wrapper(node_id)

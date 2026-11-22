@@ -1,13 +1,14 @@
 """``BaseNode.post_value``: a node-owned thread hands a port write to the validation scheduler."""
 
+from __future__ import annotations
+
 import threading
-from typing import Any, List
+from typing import Any
 
 import pytest
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import ThreadingTimerScheduler
-
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration
@@ -21,7 +22,7 @@ def _add_node(graph: BaseGraph):
     return wrapper.node
 
 
-def _recording(port: Any, writes: List[tuple], delivered: threading.Event) -> None:
+def _recording(port: Any, writes: list[tuple], delivered: threading.Event) -> None:
     real_set_value = port.set_value
 
     def set_value(value, *args, **kwargs):
@@ -37,11 +38,11 @@ def test_post_value_delivers_on_scheduler_thread(graph_with_library_system: Base
     graph = graph_with_library_system
     node = _add_node(graph)
     graph._validation.adopt_scheduler(ThreadingTimerScheduler())
-    writes: List[tuple] = []
+    writes: list[tuple] = []
     delivered = threading.Event()
     _recording(node.ports["value_a"], writes, delivered)
 
-    posted_from: List[threading.Thread] = []
+    posted_from: list[threading.Thread] = []
 
     def post():
         posted_from.append(threading.current_thread())

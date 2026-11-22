@@ -1,7 +1,8 @@
-from haywire.core.registry.identity import BaseIdentity
-
+from __future__ import annotations
 
 from dataclasses import dataclass
+
+from haywire.core.registry.identity import BaseIdentity
 
 
 @dataclass

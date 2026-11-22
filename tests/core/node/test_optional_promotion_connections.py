@@ -31,6 +31,8 @@ action that caused it.
 See ADR 0033.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.graph.base import BaseGraph

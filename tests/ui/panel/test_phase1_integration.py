@@ -1,15 +1,16 @@
 """Cross-cutting: define a Panel, register it, query the registry by surface, get the panel."""
 
+from __future__ import annotations
+
 from typing import Protocol, runtime_checkable
 from unittest.mock import MagicMock
 
 from haybale_graph_editor.states.edit_state import EditState
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.core.session.context import SessionContext
+from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.ui.panel import BasePanel, PanelRegistry, panel
 from haywire.ui.surface import Surface
-
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
     label="fake",

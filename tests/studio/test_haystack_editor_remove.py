@@ -1,10 +1,11 @@
 """Tests for HaystackEditor dirty-removal confirmation flow."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 
 from haybale_haystack.editors import haystack_editor as haystack_editor_module
 from haywire.core.signals import (
@@ -17,9 +18,9 @@ from haywire.core.signals import (
 @pytest.fixture
 def editor_and_context():
     """Return (editor, context, app, haystack) with a real HaystackEditor."""
-    from haybale_haystack.editors.haystack_editor import HaystackEditor
-
     from typing import cast
+
+    from haybale_haystack.editors.haystack_editor import HaystackEditor
     from haywire.ui.editor.wrapper import EditorWrapper
 
     editor = HaystackEditor(cast(EditorWrapper, object()))

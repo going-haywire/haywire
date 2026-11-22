@@ -1,11 +1,12 @@
 """Image Viewer widget — shows an IMAGE port's value as a live stream or a still picture."""
 
-from typing import Any
+from __future__ import annotations
 
-from haywire.api import BaseWidget, widget
+from typing import Any
 
 from haybale_image.value import ImageValue
 from haybale_image.viewer.backend import ImageViewer, StillBackend, StreamingBackend
+from haywire.api import BaseWidget, widget
 
 
 @widget(

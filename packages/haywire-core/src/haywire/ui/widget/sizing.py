@@ -22,6 +22,8 @@ whole CSS contract stays in one place (``canvas.vue``) next to the
 ``.widget-container`` collapse rules it interacts with.
 """
 
+from __future__ import annotations
+
 import logging
 
 from nicegui.element import Element

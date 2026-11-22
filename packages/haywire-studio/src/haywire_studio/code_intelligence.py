@@ -62,7 +62,7 @@ def _confined_path(raw: str | None) -> str | None:
     return None
 
 
-def _signature_and_doc(name: "BaseName") -> tuple[str, str]:
+def _signature_and_doc(name: BaseName) -> tuple[str, str]:
     """Extract a plain-text signature + docstring from a jedi name."""
     signatures = [s.to_string() for s in name.get_signatures()]
     signature = "\n".join(signatures) if signatures else (name.description or "")
@@ -70,7 +70,7 @@ def _signature_and_doc(name: "BaseName") -> tuple[str, str]:
     return signature, doc
 
 
-def _completion_payload(completions: "list[Completion]", *, explicit: bool) -> list[dict[str, str]]:
+def _completion_payload(completions: list[Completion], *, explicit: bool) -> list[dict[str, str]]:
     """Turn jedi completions into plain data; filter dunders unless explicit."""
     if not explicit:
         completions = [c for c in completions if not c.name.startswith("__")]

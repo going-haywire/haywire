@@ -25,12 +25,12 @@ class TestDeleteNodeMenuPanel(BasePanel):
     actions: TestNodeActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return ctx.data[EditState].active_node is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         node = ctx.data[EditState].active_node
@@ -55,12 +55,12 @@ class TestCopyNodeMenuPanel(BasePanel):
     actions: TestNodeActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return ctx.data[EditState].active_node is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         node = ctx.data[EditState].active_node
@@ -85,12 +85,12 @@ class TestRedrawNodeMenuPanel(BasePanel):
     actions: TestNodeActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return ctx.data[EditState].active_node is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         node = ctx.data[EditState].active_node
@@ -115,12 +115,12 @@ class TestRevalidateNodeMenuPanel(BasePanel):
     actions: TestNodeActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return ctx.data[EditState].active_node is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         node = ctx.data[EditState].active_node
@@ -145,12 +145,12 @@ class TestResetNodeMenuPanel(BasePanel):
     actions: TestNodeActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return ctx.data[EditState].active_node is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         node = ctx.data[EditState].active_node

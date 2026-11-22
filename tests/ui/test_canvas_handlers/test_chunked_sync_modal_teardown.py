@@ -12,10 +12,12 @@ canvas construction stubbed) rather than a hand-rolled copy of its task body,
 so the guarantee is tested where it actually lives.
 """
 
+from __future__ import annotations
+
 import asyncio
+from unittest.mock import MagicMock, patch
 
 import pytest
-from unittest.mock import MagicMock, patch
 
 from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
 

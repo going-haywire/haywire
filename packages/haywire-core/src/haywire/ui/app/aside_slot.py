@@ -11,7 +11,7 @@ in view.
 
 from __future__ import annotations
 
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from nicegui import ui
 
@@ -32,8 +32,8 @@ class AsideSlot(TabSlot):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self._column: Optional[ui.element] = None
-        self._toggle_container: Optional[ui.element] = None
+        self._column: ui.element | None = None
+        self._toggle_container: ui.element | None = None
 
     def render(self, parent: ui.element) -> None:
         """Build the column (tab bar over area) inside ``parent``; hidden while closed."""

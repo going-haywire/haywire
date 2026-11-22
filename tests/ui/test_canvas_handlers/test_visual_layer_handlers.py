@@ -9,20 +9,22 @@ exercised through the integration/harness tests. Here we verify:
 - on_validated dispatch for add/remove/moved/redraw cases
 """
 
-import pytest
+from __future__ import annotations
+
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
+from haywire.core.graph.types import ChangeReason, ValidationResult
+from haywire.core.node.layout import LayoutChannel
 from haywire.ui.components.graph.event_definitions import (
     ElementRedrawEvent,
     ElementResetEvent,
     ElementRevalidateEvent,
 )
-from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map
-from haywire.core.node.layout import LayoutChannel
-from haywire.core.graph.types import ChangeReason, ValidationResult
-
 from tests.conftest import edit_route
 
 pytestmark = pytest.mark.unit

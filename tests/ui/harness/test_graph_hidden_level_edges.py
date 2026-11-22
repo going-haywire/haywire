@@ -18,6 +18,8 @@ panel's render strategy is Quasar's, and the edges are DOM geometry only a
 layout engine produces.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

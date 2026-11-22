@@ -6,6 +6,8 @@ about passwords, cookies, or ASGI — that lives in ``haywire_studio.auth``.
 See ADR 0027.
 """
 
+from __future__ import annotations
+
 from haywire.core.access.level_mode import LevelMode, required_mode
 from haywire.core.access.resolver import (
     AccessResolver,

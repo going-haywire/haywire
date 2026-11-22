@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 
 import pytest
@@ -11,8 +13,8 @@ from haywire.core.volumes import (
     VolumeStore,
     VolumeUndefinedError,
     list_volumes,
-    volume_location,
     resolve_volume_path,
+    volume_location,
 )
 
 pytestmark = pytest.mark.unit

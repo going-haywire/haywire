@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import functools
+from collections.abc import Callable
 from types import SimpleNamespace
-from typing import Any, Callable
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -49,7 +50,6 @@ from haywire.ui.components.graph.event_definitions import (
     UserRemoveEvent,
     UserResizeEndEvent,
 )
-
 from tests.conftest import edit_route
 
 pytestmark = pytest.mark.unit

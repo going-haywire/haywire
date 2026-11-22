@@ -10,7 +10,6 @@ from collections.abc import Iterator
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-
 from unittest.mock import patch
 
 import pytest

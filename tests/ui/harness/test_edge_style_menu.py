@@ -1,5 +1,7 @@
 """A styled edge's Style flyout: a picker opened in it works and keeps the menu open."""
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

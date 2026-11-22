@@ -22,8 +22,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from haybale_studio.surfaces import FileActions, FileMenu
 from haybale_studio.states.file_browser_state import FileBrowserState
+from haybale_studio.surfaces import FileActions, FileMenu
 from haywire.api.workbench import AccessTier, BasePanel, PanelLayout, hui, panel
 
 if TYPE_CHECKING:
@@ -43,7 +43,7 @@ class OpenInCodeEditorMenuPanel(BasePanel):
     actions: FileActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         from haybale_studio.editors.code_editor import EDITABLE_EXTS
 
         f = ctx.data[FileBrowserState].right_clicked_file
@@ -51,7 +51,7 @@ class OpenInCodeEditorMenuPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         from haybale_studio.editors.code_editor import CodeEditor
@@ -90,13 +90,13 @@ class OpenInFileViewerMenuPanel(BasePanel):
     actions: FileActions
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         f = ctx.data[FileBrowserState].right_clicked_file
         return isinstance(f, Path) and f.is_file()
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         from haybale_studio.editors.file_viewer import FileViewerEditor

@@ -6,12 +6,13 @@ After v1.2 C5, ``clipboard`` lives only on
 the writer/reader contract over EditState.
 """
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
+from haywire.core.session.context import SessionContext
 from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.core.undo.actions.graph_actions import ClipboardData
-from haywire.core.session.context import SessionContext
-
 from tests.conftest import edit_route
 
 
@@ -37,8 +38,8 @@ def test_copy_selection_handler_writes_to_session_context(register_edit_state):
     """SelectionHandlers.process_copy_selection writes the clipboard to EditState."""
     from unittest.mock import patch
 
-    from haywire.ui.components.graph.event_definitions import UserCopySelectedEvent
     from haybale_graph_editor.editors.graph_canvas.handlers.selection import SelectionHandlers
+    from haywire.ui.components.graph.event_definitions import UserCopySelectedEvent
 
     ctx, EditStateCls = _make_ctx_with_edit_state(register_edit_state)
     session = ctx.session
@@ -81,8 +82,8 @@ def test_paste_clipboard_handler_reads_from_session_context(register_edit_state)
     """SelectionHandlers.process_paste_clipboard reads the clipboard from EditState."""
     from unittest.mock import patch
 
-    from haywire.ui.components.graph.event_definitions import UserPasteClipboardEvent
     from haybale_graph_editor.editors.graph_canvas.handlers.selection import SelectionHandlers
+    from haywire.ui.components.graph.event_definitions import UserPasteClipboardEvent
 
     ctx, EditStateCls = _make_ctx_with_edit_state(register_edit_state)
     session = ctx.session

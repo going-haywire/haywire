@@ -1,8 +1,10 @@
 """DEPTH_BUFFER: a metric depth buffer."""
 
-from haywire.api import CARRIER, type as type_decorator
+from __future__ import annotations
 
 from haybale_image.value import DepthValue
+from haywire.api import CARRIER
+from haywire.api import type as type_decorator
 
 
 @type_decorator(

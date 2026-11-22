@@ -1,5 +1,7 @@
 """``TypeRegistry.get_type_for_python_type`` resolves value types only."""
 
+from __future__ import annotations
+
 from dataclasses import replace
 
 import pytest

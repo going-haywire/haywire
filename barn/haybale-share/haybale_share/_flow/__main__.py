@@ -16,23 +16,20 @@ from __future__ import annotations
 
 import os
 import sys
+from collections.abc import Callable
 from pathlib import Path
-
-from typing import Callable
 
 from nicegui import app, ui
 
+from haybale_share._flow._harness import Panel
+from haybale_share._flow._state import ShareFlow
 from haywire.api.workbench import hui
-
 from haywire.core.di.config import (
     create_library_system_service,
     set_global_injector,
     set_library_system,
 )
 from haywire.core.di.context import set_workspace_root
-
-from haybale_share._flow._harness import Panel
-from haybale_share._flow._state import ShareFlow
 
 _HERE = Path(__file__).resolve()
 # _flow/ → haybale_share/ → haybale-share/ → barn/ → repo root
@@ -47,9 +44,8 @@ def _render_scenario(container: ui.element, label: str, build, panel) -> None:
     ``haywire.ui.components.stepper``, exactly as ``show_step_flow`` composes
     them — a panel judged without its chrome is judged in the wrong context.
     """
-    from haywire.ui.components.stepper import render_error, render_progress, render_warnings
-
     from haybale_share._flow.panels import suppress_duplicate_error
+    from haywire.ui.components.stepper import render_error, render_progress, render_warnings
 
     container.clear()
     flow = build()

@@ -5,6 +5,8 @@ offered like any other component. Placing one — ``get_node`` returning a
 ``MacroNode`` — is not here: that needs the placement class.
 """
 
+from __future__ import annotations
+
 import json
 
 import pytest

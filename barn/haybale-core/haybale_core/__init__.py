@@ -5,6 +5,8 @@ Contains fundamental nodes, widgets, adapters, and data definitions
 that form the foundation of the Haywire system.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from haywire.api import (
@@ -18,7 +20,6 @@ from haywire.api import (
     WidgetRegistry,
     library,
 )
-
 from haywire.api.workbench import EditorRegistry, PanelRegistry
 
 

@@ -11,10 +11,10 @@ boundary when exactly one is.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Sequence, Set, Tuple
 import re
-
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from ..edge.edge_wrapper import EdgeWrapper
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from .base import BaseGraph
 
 #: A port endpoint: ``(node_id, port_id)``.
-Endpoint = Tuple[str, str]
+Endpoint = tuple[str, str]
 
 
 # ---------------------------------------------------------------------------
@@ -30,7 +30,7 @@ Endpoint = Tuple[str, str]
 # ---------------------------------------------------------------------------
 
 
-def check_convex(graph: "BaseGraph", node_ids: Iterable[str]) -> Tuple[bool, List[str]]:
+def check_convex(graph: BaseGraph, node_ids: Iterable[str]) -> tuple[bool, list[str]]:
     """Return whether ``node_ids`` can be collapsed, and what would have to join them.
 
     A selection is **convex** when no path leaves it and re-enters. ``A -> B ->
@@ -64,10 +64,10 @@ def check_convex(graph: "BaseGraph", node_ids: Iterable[str]) -> Tuple[bool, Lis
     return (not intervening, intervening)
 
 
-def _adjacency(graph: "BaseGraph") -> Tuple[Dict[str, Set[str]], Dict[str, Set[str]]]:
+def _adjacency(graph: BaseGraph) -> tuple[dict[str, set[str]], dict[str, set[str]]]:
     """Forward and backward node adjacency over every edge that carries values."""
-    successors: Dict[str, Set[str]] = {}
-    predecessors: Dict[str, Set[str]] = {}
+    successors: dict[str, set[str]] = {}
+    predecessors: dict[str, set[str]] = {}
     for edge in graph.edge_wrappers.values():
         if not edge.carries_values:
             continue
@@ -76,9 +76,9 @@ def _adjacency(graph: "BaseGraph") -> Tuple[Dict[str, Set[str]], Dict[str, Set[s
     return successors, predecessors
 
 
-def _walk(start: Set[str], adjacency: Dict[str, Set[str]], skip: Set[str]) -> Set[str]:
+def _walk(start: set[str], adjacency: dict[str, set[str]], skip: set[str]) -> set[str]:
     """Every node reachable from ``start``, excluding ``skip`` from the result and the walk."""
-    reached: Set[str] = set()
+    reached: set[str] = set()
     queue = [node_id for seed in start for node_id in adjacency.get(seed, ())]
     while queue:
         node_id = queue.pop()
@@ -108,17 +108,17 @@ class BoundaryPort:
 
     port_id: str
     label: str
-    itype: "type[IType]"
+    itype: type[IType]
     description: str = ""
-    widget_key: "str | None" = None
-    widget_config: Dict[str, Any] = field(default_factory=dict)
-    default: "dict | None" = None
+    widget_key: str | None = None
+    widget_config: dict[str, Any] = field(default_factory=dict)
+    default: dict | None = None
     """The interior port's default, so the card's pin starts where it does."""
     operable: bool = True
     """The interior port's ``operable``, so its widget needs level mode ``edit`` on the card too."""
-    outer: List[Endpoint] = field(default_factory=list)
+    outer: list[Endpoint] = field(default_factory=list)
     """The endpoints outside the selection: sources for an inlet, sinks for an outlet."""
-    inner: List[Endpoint] = field(default_factory=list)
+    inner: list[Endpoint] = field(default_factory=list)
     """The endpoints inside the selection: sinks for an inlet, the source for an outlet."""
 
 
@@ -130,15 +130,15 @@ class InterfacePlan:
     ``outlets`` become the Subgraph Output's inlets and the card's outlets.
     """
 
-    inlets: List[BoundaryPort] = field(default_factory=list)
-    outlets: List[BoundaryPort] = field(default_factory=list)
-    internal_edge_ids: List[str] = field(default_factory=list)
+    inlets: list[BoundaryPort] = field(default_factory=list)
+    outlets: list[BoundaryPort] = field(default_factory=list)
+    internal_edge_ids: list[str] = field(default_factory=list)
     """Edges with both endpoints selected — these move into the Subgraph."""
-    crossing_edge_ids: List[str] = field(default_factory=list)
+    crossing_edge_ids: list[str] = field(default_factory=list)
     """Edges with exactly one endpoint selected — these are rewired to the card."""
 
 
-def derive_interface(graph: "BaseGraph", node_ids: Sequence[str]) -> InterfacePlan:
+def derive_interface(graph: BaseGraph, node_ids: Sequence[str]) -> InterfacePlan:
     """Return the interface the selection's crossing edges imply.
 
     Dedup follows the endpoint that makes the user's wiring survive:
@@ -158,10 +158,10 @@ def derive_interface(graph: "BaseGraph", node_ids: Sequence[str]) -> InterfacePl
     """
     selected = set(node_ids)
 
-    internal: List[str] = []
-    crossing: List[str] = []
-    inlet_groups: Dict[Endpoint, List["EdgeWrapper"]] = {}
-    outlet_groups: Dict[Endpoint, List["EdgeWrapper"]] = {}
+    internal: list[str] = []
+    crossing: list[str] = []
+    inlet_groups: dict[Endpoint, list[EdgeWrapper]] = {}
+    outlet_groups: dict[Endpoint, list[EdgeWrapper]] = {}
 
     for edge in graph.edge_wrappers.values():
         source_in = edge.source_node_id in selected
@@ -190,11 +190,11 @@ def derive_interface(graph: "BaseGraph", node_ids: Sequence[str]) -> InterfacePl
 
 
 def _build_ports(
-    graph: "BaseGraph",
-    groups: Dict[Endpoint, List["EdgeWrapper"]],
+    graph: BaseGraph,
+    groups: dict[Endpoint, list[EdgeWrapper]],
     *,
     is_inlet: bool,
-) -> List[BoundaryPort]:
+) -> list[BoundaryPort]:
     """Turn one side's edge groups into boundary ports, with unique ids and labels.
 
     Each port takes its name, docs, widget and default from the one interior
@@ -204,9 +204,9 @@ def _build_ports(
     because no combination of them reads better than one. Groups are sorted, so
     which one wins is stable across collapses of the same selection.
     """
-    ports: List[BoundaryPort] = []
-    taken_ids: Set[str] = set()
-    label_counts: Dict[str, int] = {}
+    ports: list[BoundaryPort] = []
+    taken_ids: set[str] = set()
+    label_counts: dict[str, int] = {}
 
     # Sorted so a collapse of the same selection always mints the same interface.
     for endpoint in sorted(groups):
@@ -249,16 +249,16 @@ def _build_ports(
 
 
 def _disambiguate(
-    graph: "BaseGraph",
-    ports: List[BoundaryPort],
-    label_counts: Dict[str, int],
+    graph: BaseGraph,
+    ports: list[BoundaryPort],
+    label_counts: dict[str, int],
     *,
     is_inlet: bool,
-) -> List[BoundaryPort]:
+) -> list[BoundaryPort]:
     """Prepend the inner node's label to any label two ports share."""
     from dataclasses import replace as _replace
 
-    resolved: List[BoundaryPort] = []
+    resolved: list[BoundaryPort] = []
     for port in ports:
         if label_counts.get(port.label, 0) < 2:
             resolved.append(port)
@@ -270,7 +270,7 @@ def _disambiguate(
     return resolved
 
 
-def _port_of(graph: "BaseGraph", node_id: str, port_id: str):
+def _port_of(graph: BaseGraph, node_id: str, port_id: str):
     """The live ``DataPort``, or ``None`` if either the node or the port is gone."""
     wrapper = graph.get_node_wrapper(node_id)
     if wrapper is None:
@@ -278,7 +278,7 @@ def _port_of(graph: "BaseGraph", node_id: str, port_id: str):
     return wrapper.node.ports.get(port_id)
 
 
-def _mint_port_id(seed: str, taken: Set[str]) -> str:
+def _mint_port_id(seed: str, taken: set[str]) -> str:
     """A port id derived from ``seed``, unique among ``taken``.
 
     ``.`` is reserved for promoted settings, so it is stripped rather than

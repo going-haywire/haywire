@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, Mapping
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, ClassVar
+
 from haywire.core.library.identity import LibraryIdentity
 from haywire.ui.widget.identity import WidgetIdentity
 
@@ -26,7 +30,7 @@ class IWidget(ABC):
     class_library: ClassVar[LibraryIdentity]
 
     @abstractmethod
-    def __init__(self, element: "WidgetModel"):
+    def __init__(self, element: WidgetModel):
         """
         Initialize widget with a WidgetModel.
 
@@ -98,7 +102,7 @@ class IWidget(ABC):
         return self._resolve_size_field("max_height")
 
     @classmethod
-    def config(cls, **kwargs) -> Dict[str, Any]:
+    def config(cls, **kwargs) -> dict[str, Any]:
         """
         Generate widget configuration dictionary for use in port creation.
 

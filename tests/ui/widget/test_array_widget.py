@@ -6,6 +6,8 @@ widget once per item. ``STRING``, ``INT`` and ``FLOAT`` are the tested item
 types. The browser half is in ``tests/ui/harness/test_list_widget.py``.
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest

@@ -1,5 +1,7 @@
 """A subscription crosses a Group's boundary at wiring time, and unlinking either side unsubscribes."""
 
+from __future__ import annotations
+
 import pytest
 
 from tests.conftest import make_node

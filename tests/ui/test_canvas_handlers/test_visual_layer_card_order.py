@@ -17,7 +17,6 @@ from haybale_graph_editor.editors.graph_canvas.handlers import visual_layer as v
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
 from haywire.core.node.layout import STAGE
 from haywire.ui.components.graph.canvas import GraphCanvasVue
-
 from tests.conftest import edit_route
 
 pytestmark = pytest.mark.unit

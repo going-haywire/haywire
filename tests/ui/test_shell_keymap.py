@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Any, Callable, ClassVar, cast
+from typing import Any, ClassVar, cast
 from unittest.mock import MagicMock, patch
 
 import pytest

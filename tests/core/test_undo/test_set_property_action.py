@@ -1,5 +1,7 @@
 """SetPropertyAction: undoable set of a port value or settings-bag field by (node_id, name)."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.errors import Refusal

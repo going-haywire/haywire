@@ -6,6 +6,8 @@ zoom-pan container to reveal it. That scroll is invisible to the pan/zoom
 model, so the zoom anchor drifts from the pointer until the scroll is reset.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

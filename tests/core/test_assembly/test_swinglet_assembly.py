@@ -8,13 +8,12 @@ graph as an illegal cycle.
 from __future__ import annotations
 
 import pytest
+
 from haybale_testing.nodes.testbed.swinglet_probe import (
     SwingletControlProbeNode,
     SwingletStopProbeNode,
 )
-
 from haywire.core.graph.base import BaseGraph
-
 from tests.conftest import make_edge, make_node, run_frame
 
 pytestmark = [pytest.mark.integration]
@@ -25,8 +24,8 @@ _CONTROL = SwingletControlProbeNode.class_identity.registry_key
 
 def _testbed_keys() -> tuple[str, str, str]:
     """The registry keys of the Begin, Print and Add testbed nodes."""
-    from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
     from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
+    from haybale_testing.nodes.testbed.begin_play_probe import BeginPlayProbeNode
     from haybale_testing.nodes.testbed.print_probe import PrintProbeNode
 
     return (

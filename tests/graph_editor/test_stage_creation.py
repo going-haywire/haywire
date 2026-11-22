@@ -20,7 +20,6 @@ from haywire.ui.components.graph.event_definitions import (
     SplitEdgeWithRerouteEvent,
     UserPasteClipboardEvent,
 )
-
 from tests.conftest import edit_route, make_node
 
 pytestmark = pytest.mark.unit

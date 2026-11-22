@@ -1,5 +1,7 @@
 """Viewer backends: the MJPEG stream's encode and drop-1 queue, the lazily encoded still route."""
 
+from __future__ import annotations
+
 import asyncio
 import importlib
 from typing import Any

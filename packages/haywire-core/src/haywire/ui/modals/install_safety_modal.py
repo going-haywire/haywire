@@ -7,14 +7,13 @@ Cancel / Block / Install. Includes safety copy and a source-URL link button.
 from __future__ import annotations
 
 import inspect
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from nicegui import ui
 
 from haywire.ui import elements as hui
-
 from haywire.ui.components.popup import Popup
-
 
 _SAFETY_COPY = (
     "You are about to install third-party code. You are responsible for "

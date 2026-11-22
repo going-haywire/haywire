@@ -9,17 +9,17 @@ A Flow is the assembled, executable form of a graph. It contains:
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, TYPE_CHECKING
-from datetime import datetime
-import logging
 
+import logging
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from haywire.core.graph.base import BaseGraph
-    from haywire.core.node import BaseNode
     from haywire.core.execution.event_source import EventSource
     from haywire.core.execution.flow_queue import FlowQueue
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.node import BaseNode
 
 logger = logging.getLogger(__name__)
 
@@ -36,12 +36,12 @@ class ControlNodeInfo:
     - Localized data flow for this node
     """
 
-    node: "BaseNode"
-    outlet_map: Dict[str, tuple[str, str]] = field(default_factory=dict)
+    node: BaseNode
+    outlet_map: dict[str, tuple[str, str]] = field(default_factory=dict)
     """Maps outlet port IDs to (next_node_id, inlet_port_id) tuples"""
     is_loopback: bool = False
     """If True, this node expects branches to return to it"""
-    localized_data_flow: Optional["LocalizedDataFlow"] = None
+    localized_data_flow: LocalizedDataFlow | None = None
     """Data flow specific to this control node"""
 
 
@@ -56,7 +56,7 @@ class LocalizedDataFlow:
 
     control_node_id: str
     """ID of the control node this data flow belongs to"""
-    execution_sequence: List["BaseNode"] = field(default_factory=list)
+    execution_sequence: list[BaseNode] = field(default_factory=list)
     """Ordered list of data nodes to evaluate"""
 
     def __str__(self) -> str:
@@ -73,14 +73,14 @@ class ControlFlowGraph:
     on runtime decisions (branch outcomes, loop conditions, etc).
     """
 
-    entry_node: "BaseNode"
+    entry_node: BaseNode
     """The event node that starts this flow"""
-    control_nodes: Dict[str, ControlNodeInfo] = field(default_factory=dict)
+    control_nodes: dict[str, ControlNodeInfo] = field(default_factory=dict)
     """All control nodes in this flow: node_id → ControlNodeInfo"""
-    topology_order: List[str] = field(default_factory=list)
+    topology_order: list[str] = field(default_factory=list)
     """Topological order for dependency analysis"""
 
-    def get_node_info(self, node_id: str) -> Optional[ControlNodeInfo]:
+    def get_node_info(self, node_id: str) -> ControlNodeInfo | None:
         """Get control node info by ID"""
         return self.control_nodes.get(node_id)
 
@@ -88,7 +88,7 @@ class ControlFlowGraph:
         return f"ControlFlowGraph(entry={self.entry_node.node_id}, nodes={len(self.control_nodes)})"
 
 
-def overrides(node: "BaseNode", method_name: str) -> bool:
+def overrides(node: BaseNode, method_name: str) -> bool:
     """Return ``True`` if ``node``'s class overrides the ``BaseNode`` hook ``method_name``."""
     from haywire.core.node.base import BaseNode
 
@@ -107,9 +107,9 @@ class Flow:
     def __init__(
         self,
         flow_id: str,
-        entry_event_node: "BaseNode",
-        event_subscription: "EventSource",
-        graph_ref: "BaseGraph",
+        entry_event_node: BaseNode,
+        event_subscription: EventSource,
+        graph_ref: BaseGraph,
     ):
         """
         Initialize a flow.
@@ -126,19 +126,19 @@ class Flow:
         self.graph_ref = graph_ref
 
         # Control flow structure (set during assembly)
-        self.control_graph: Optional[ControlFlowGraph] = None
+        self.control_graph: ControlFlowGraph | None = None
 
         # Execution management
-        self.queue: Optional["FlowQueue"] = None
+        self.queue: FlowQueue | None = None
         self.shared_node_ids: frozenset[str] = frozenset()
         """Ids of this flow's shared data nodes: executed under their wrapper's ``exec_lock``."""
 
         # Cache for nodes (populated on first access after assembly)
-        self._all_nodes_cache: Optional[List["BaseNode"]] = None
-        self.nodes_with_worker_error: List["BaseNode"] = []
+        self._all_nodes_cache: list[BaseNode] | None = None
+        self.nodes_with_worker_error: list[BaseNode] = []
         """Nodes whose worker raised in this flow's last frame; their errors clear as the next starts."""
-        self._nodes_with_on_frame_start_cache: Optional[List["BaseNode"]] = None
-        self._nodes_with_on_frame_end_cache: Optional[List["BaseNode"]] = None
+        self._nodes_with_on_frame_start_cache: list[BaseNode] | None = None
+        self._nodes_with_on_frame_end_cache: list[BaseNode] | None = None
 
         # Metadata
         self.assembly_timestamp = datetime.now()
@@ -153,7 +153,7 @@ class Flow:
         """Get ID of entry event node"""
         return self.entry_event_node.node_id
 
-    def get_control_node_ids(self) -> List[str]:
+    def get_control_node_ids(self) -> list[str]:
         """Get list of all control node IDs in this flow"""
         if not self.control_graph:
             return []
@@ -163,7 +163,7 @@ class Flow:
         """Get subscription key for event registration"""
         return self.event_subscription.get_subscription_key()
 
-    def get_all_nodes(self) -> List["BaseNode"]:
+    def get_all_nodes(self) -> list[BaseNode]:
         """
         Get all nodes (control + data) in this flow.
 
@@ -188,7 +188,7 @@ class Flow:
 
         # Build the list
         nodes = []
-        seen_nodes: Set[str] = set()
+        seen_nodes: set[str] = set()
 
         # Add entry event node
         nodes.append(self.entry_event_node)
@@ -212,7 +212,7 @@ class Flow:
         self._all_nodes_cache = nodes
         return nodes
 
-    def get_nodes_with_on_frame_start(self) -> List["BaseNode"]:
+    def get_nodes_with_on_frame_start(self) -> list[BaseNode]:
         """
         Get nodes that have overridden on_frame_start from BaseNode.
 
@@ -234,7 +234,7 @@ class Flow:
         self._nodes_with_on_frame_start_cache = filtered
         return filtered
 
-    def get_nodes_with_on_frame_end(self) -> List["BaseNode"]:
+    def get_nodes_with_on_frame_end(self) -> list[BaseNode]:
         """
         Get nodes that have overridden on_frame_end from BaseNode.
 

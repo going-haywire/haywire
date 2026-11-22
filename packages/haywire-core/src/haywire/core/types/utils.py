@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 import inspect
-from typing import TYPE_CHECKING, Any, Callable, Dict, TypeVar
-from typing_extensions import NotRequired, TypedDict
+from collections.abc import Callable
 from dataclasses import asdict
+from typing import TYPE_CHECKING, Any, NotRequired, TypeVar
+
 from cattrs.preconf.json import make_converter
+from typing_extensions import TypedDict
 
 from haywire.core.types.enums import PortType
-
 
 from .interface import IType
 
@@ -25,7 +28,7 @@ class ElementTypeSpec(TypedDict):
     """Recursive element type specification for compound types."""
 
     registry_key: str
-    element_type: NotRequired["ElementTypeSpec"]
+    element_type: NotRequired[ElementTypeSpec]
 
 
 class PortSpec(TypedDict):
@@ -37,13 +40,13 @@ class PortSpec(TypedDict):
     """
 
     # Port constructor kwargs (id, port_type, default, label, widget, etc.)
-    kwargs: Dict[str, Any]
+    kwargs: dict[str, Any]
 
     # Type lineage (recursive for compound types)
     recipe: ElementTypeSpec
 
 
-def create_port_spec(type_cls: type["IType"], port_type: PortType, id: str, **kwargs) -> PortSpec:
+def create_port_spec(type_cls: type[IType], port_type: PortType, id: str, **kwargs) -> PortSpec:
     """
     Create a port specification dict.
 
@@ -116,7 +119,7 @@ def create_port_spec(type_cls: type["IType"], port_type: PortType, id: str, **kw
 _NOT_TYPE_OWNED = frozenset({"wire_type", "hidden"})
 
 
-def type_owned_kwargs(type_cls: type["IType"]) -> Dict[str, Any]:
+def type_owned_kwargs(type_cls: type[IType]) -> dict[str, Any]:
     """Return the port constructor kwargs *type_cls* supplies from its identity.
 
     A port spec starts from these and a saved port leaves out each one it still
@@ -129,13 +132,13 @@ def type_owned_kwargs(type_cls: type["IType"]) -> Dict[str, Any]:
     return {k: v for k, v in asdict(identity).items() if k not in _NOT_TYPE_OWNED}
 
 
-def is_type_owned(type_cls: type["IType"], name: str) -> bool:
+def is_type_owned(type_cls: type[IType], name: str) -> bool:
     """Whether a port of *type_cls* takes the field *name* from the type's identity."""
     identity = getattr(type_cls, "class_identity", None)
     return identity is not None and name not in _NOT_TYPE_OWNED and hasattr(identity, name)
 
 
-def serialize_element_type(type_cls: type["IType"]) -> ElementTypeSpec:
+def serialize_element_type(type_cls: type[IType]) -> ElementTypeSpec:
     """
     Recursively serialize element type for compound types.
 
@@ -231,7 +234,7 @@ def is_cattrs_serializable(value: Any) -> tuple[bool, str | None]:
 # ============================================================================
 
 
-def _check_primitive_default(value: Any, cls: "type[PrimitiveType[Any]]", context: str) -> None:
+def _check_primitive_default(value: Any, cls: type[PrimitiveType[Any]], context: str) -> None:
     """Raise ``TypeError`` if the primitive type's own ``to_dict()`` rejects *value* (``None`` passes)."""
     if value is None:
         return
@@ -245,7 +248,7 @@ def _check_primitive_default(value: Any, cls: "type[PrimitiveType[Any]]", contex
 
 def normalize_and_validate_default(
     default_value: Any, cls: type[IType], context: str = "type decorator"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Normalize and validate default value for type registration or port creation.
 

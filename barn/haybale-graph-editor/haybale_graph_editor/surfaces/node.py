@@ -23,7 +23,7 @@ class NodeInspector(Surface):
     presentation = Presentation(label="Node", icon=hui.icon.node)
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         from haybale_graph_editor.states.edit_state import EditState
 
         return ctx.data[EditState].active_node is not None
@@ -37,7 +37,7 @@ class SettingsInspector(Surface):
     presentation = Presentation(label="Settings", icon=hui.icon.node_settings)
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         from haybale_graph_editor.states.edit_state import EditState
 
         return ctx.data[EditState].active_node is not None

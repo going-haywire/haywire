@@ -1,5 +1,8 @@
 # Custom data type for testing
+from __future__ import annotations
+
 from enum import Enum
+
 from haywire.api import STRING, type
 
 

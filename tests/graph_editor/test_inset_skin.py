@@ -16,7 +16,6 @@ from haywire.core.graph.subgraph import SubgraphDefinition
 from haywire.core.graph.types import ChangeReason
 from haywire.core.node.layout import PATCH, STAGE, LayoutChannel
 from haywire.ui.skin.factory import SkinFactory
-
 from tests.conftest import edit_route, make_node
 
 if TYPE_CHECKING:
@@ -42,7 +41,6 @@ def _inset_key() -> str:
 def group(library_system) -> Iterator[tuple[BaseGraph, Any, SubgraphDefinition, Any]]:
     """A Group card with a one-inlet, one-outlet interface and one staged interior adder."""
     from haybale_testing.types.test_types import TEST_FLOAT
-
     from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
     from haywire.barn.builtin.nodes.subgraph_io import SubgraphInputNode, SubgraphOutputNode
 
@@ -179,7 +177,6 @@ def test_a_node_without_an_interior_says_so(library_system, group) -> None:
 
 def test_a_graph_node_whose_interior_is_missing_says_so(library_system, group) -> None:
     from haybale_graph_editor.skins.inset_skin import NO_INTERIOR
-
     from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
 
     graph, _card, _definition, _staged = group

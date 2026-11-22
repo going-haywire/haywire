@@ -18,12 +18,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.api.workbench import BasePanel, CanvasSettingsSurface, PanelLayout, hui, panel, render_schema
 from haywire.core.edge.settings import EdgeDefaultSettings
 from haywire.core.graph.arrange_settings import ArrangeSettings
-from haywire.api.workbench import BasePanel, CanvasSettingsSurface, PanelLayout, hui, panel, render_schema
-from haywire.ui.components.zoom.settings import EditorPanZoomSettings
-from haywire.ui.components.minimap.settings import MinimapSettings
 from haywire.ui.components.graph.settings import CanvasSettings
+from haywire.ui.components.minimap.settings import MinimapSettings
+from haywire.ui.components.zoom.settings import EditorPanZoomSettings
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -42,7 +42,7 @@ class CanvasSettingsPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
@@ -62,7 +62,7 @@ class EditorZoomPanSettingsPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
@@ -82,7 +82,7 @@ class MinimapSettingsPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
@@ -102,7 +102,7 @@ class EdgeDefaultSettingsPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
@@ -122,7 +122,7 @@ class ArrangeSettingsPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()

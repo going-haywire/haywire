@@ -1,6 +1,8 @@
-from haywire.core.settings import NodeSettings, setting
+from __future__ import annotations
+
 from haywire.barn.builtin.types import CHOICES, FLOAT, INT
 from haywire.barn.builtin.widgets.basic_widgets import LabelWidget
+from haywire.core.settings import NodeSettings, setting
 
 
 def test_choices_type_stamps_menu_widget():

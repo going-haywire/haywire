@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import threading
 import time
-from typing import List, Optional
 
 from haywire.api import CALLBACK, EXEC, FLOAT, BaseNode, ExecutionContext, NodeType, NumberWidget, node
 
@@ -56,7 +57,7 @@ class TickEmitNode(BaseNode):
         self.add(EXEC.as_outlet("stopped", label="Stopped"))
 
     def post_init(self):
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._is_running = False
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
@@ -72,14 +73,14 @@ class TickEmitNode(BaseNode):
         """Final cleanup when node is destroyed."""
         self._stop_thread()
 
-    def worker(self, context: ExecutionContext) -> Optional[str]:
+    def worker(self, context: ExecutionContext) -> str | None:
         if context.control_pin == "start":
             return self._handle_start(context)
         elif context.control_pin == "stop":
             return self._handle_stop()
         return None
 
-    def _handle_start(self, context: ExecutionContext) -> Optional[str]:
+    def _handle_start(self, context: ExecutionContext) -> str | None:
         with self._lock:
             if self._is_running:
                 return "started"
@@ -102,7 +103,7 @@ class TickEmitNode(BaseNode):
             self._thread.start()
         return "started"
 
-    def _handle_stop(self) -> Optional[str]:
+    def _handle_stop(self) -> str | None:
         with self._lock:
             if not self._is_running:
                 return None
@@ -114,7 +115,7 @@ class TickEmitNode(BaseNode):
         context: ExecutionContext,
         stop_event: threading.Event,
         target_fps: float,
-        callback_names: List[str],
+        callback_names: list[str],
     ):
         """Main tick loop running in a separate thread."""
         interval = 1.0 / max(0.1, target_fps)

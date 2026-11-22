@@ -12,15 +12,6 @@ from typing import Any, cast
 
 import pytest
 
-from haywire.core.access import AccessTier
-from haywire.core.farmhand import FarmhandError
-from haywire.core.graph.base import BaseGraph
-from haywire.core.graph.scheduler import SyncScheduler
-from haywire.core.library.identity import LibraryIdentity
-from haywire.core.catalog import CatalogRegistry
-from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
-from haywire.core.volumes import VolumeStore, volume_location
-
 from haybale_graph_editor.states.graph_app_state import GraphAppState
 from haybale_models.download import DownloadJob
 from haybale_models.farmhands.model_tools import ModelsFetchTool, ModelsListTool, ModelsNeedsTool
@@ -29,7 +20,14 @@ from haybale_models.sources import builtin_sources
 from haybale_models.states.models_state import ModelsState
 from haybale_models.store.index import ModelIndex
 from haybale_models.value.model_ref import ModelRef
-
+from haywire.core.access import AccessTier
+from haywire.core.catalog import CatalogRegistry
+from haywire.core.farmhand import FarmhandError
+from haywire.core.graph.base import BaseGraph
+from haywire.core.graph.scheduler import SyncScheduler
+from haywire.core.library.identity import LibraryIdentity
+from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
+from haywire.core.volumes import VolumeStore, volume_location
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration

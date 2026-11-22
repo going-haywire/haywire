@@ -14,28 +14,24 @@ from collections.abc import AsyncGenerator
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from haybale_graph_editor.panels.graph.menu.selection.rebuild import (
-    RebuildSelectionMenuPanel,
-    RedrawSelectionMenuPanel,
-    RevalidateSelectionMenuPanel,
-)
 import pytest
 from nicegui import ui
 from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
+from haybale_graph_editor.panels.graph.menu.selection.rebuild import (
+    RebuildSelectionMenuPanel,
+    RedrawSelectionMenuPanel,
+    ResetSelectionMenuPanel,
+    RevalidateSelectionMenuPanel,
+)
+from haybale_graph_editor.surfaces import SelectionActions
 from haywire.core.library.identity import LibraryIdentity
 from haywire.ui import elements as hui
 from haywire.ui.panel import PanelRegistry
 from haywire.ui.panel.host_rendering import render_panel
 from haywire.ui.panel.layout import PanelLayout
-
 from tests.protocol_stubs import stub_for
-
-from haybale_graph_editor.surfaces import SelectionActions
-from haybale_graph_editor.panels.graph.menu.selection.rebuild import (
-    ResetSelectionMenuPanel,
-)
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
     label="graph editor test",

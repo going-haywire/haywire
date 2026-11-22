@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 #: How a step reached the history: a session's canvas and panels, a Farmhand tool call, or the framework.
 StepVia = Literal["canvas", "farmhand", "system"]
@@ -31,12 +31,12 @@ class StepOrigin:
         StepOrigin(principal=None, session=None, via="farmhand").label  # "Farmhand"
     """
 
-    principal: Optional[str]
-    session: Optional[str]
+    principal: str | None
+    session: str | None
     via: StepVia
 
     @classmethod
-    def of_session(cls, principal: Optional[str], session_id: str) -> "StepOrigin":
+    def of_session(cls, principal: str | None, session_id: str) -> StepOrigin:
         """Return the origin of a browser session's canvas and panel edits.
 
         Args:
@@ -76,14 +76,14 @@ class HistoryEntry:
 
     kind: Literal["step", "group", "fence"]
     description: str
-    origin: Optional[StepOrigin]
+    origin: StepOrigin | None
     timestamp: float
     graph: Any = None
     undone: bool = False
     pending: bool = False
     action_type: str = ""
     merge_key: Any = None
-    children: tuple["HistoryEntry", ...] = ()
+    children: tuple[HistoryEntry, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -91,5 +91,5 @@ class HistoryMove:
     """The latest undo or redo on a history: which, by whom, and when (``time.time()``)."""
 
     direction: Literal["undo", "redo"]
-    origin: Optional[StepOrigin]
+    origin: StepOrigin | None
     timestamp: float

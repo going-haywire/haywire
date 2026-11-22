@@ -4,6 +4,8 @@ Nothing writes the `@library(...)` decorator — metadata saves go through this
 file-write path instead of a source edit.
 """
 
+from __future__ import annotations
+
 
 def test_update_library_identity_writes_haybale_toml(tmp_path):
     """End-to-end: the manager's write path lands on haybale.toml, and the

@@ -23,7 +23,7 @@ class RollbackError(ShareError):
     """The revert itself failed. Nothing further is attempted automatically."""
 
 
-def revert_working_tree(pipeline: "SharePipeline") -> None:
+def revert_working_tree(pipeline: SharePipeline) -> None:
     """``git checkout -- .`` + ``git clean -fd``, whole repo.
 
     Purely local — never touches a remote — so uses the unhardened ``git``

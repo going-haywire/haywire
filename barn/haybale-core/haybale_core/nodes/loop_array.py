@@ -1,6 +1,8 @@
 """Loop Array — run the loop body once for each item of an array."""
 
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any
 
 from haybale_core.array_ports import array_element_type, array_of
 from haybale_core.loop_settings import LoopErrors
@@ -93,7 +95,7 @@ class LoopArrayNode(BaseNode):
         self._index = 0
         self._failed: list[Any] = []
         self._failures_seen = 0
-        self._span: Optional[ProgressSpan] = None
+        self._span: ProgressSpan | None = None
 
     def hb_adopt_array(self, port: Any, edge_wrapper: Any) -> None:
         """Type `Array`, `Item` and `Failed` after the array wired in."""
@@ -103,7 +105,7 @@ class LoopArrayNode(BaseNode):
         with self.rejig(include=["array", "item", "failed"]):
             self._add_array_ports(element)
 
-    def _add_array_ports(self, element: Optional[Any]) -> None:
+    def _add_array_ports(self, element: Any | None) -> None:
         """Add `Array`, `Item` and `Failed`: open slots until an array is wired in."""
 
         self._element = element
@@ -129,7 +131,7 @@ class LoopArrayNode(BaseNode):
             array_of(element).as_outlet("failed", label="Failed", description="Items whose iteration failed")
         )
 
-    def worker(self, context: ExecutionContext) -> Optional[str]:
+    def worker(self, context: ExecutionContext) -> str | None:
         if context.control_pin == "execute":
             self._close()
             self._begin()

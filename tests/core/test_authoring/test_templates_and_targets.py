@@ -1,5 +1,7 @@
 """Node templates and authoring targets, over the fully loaded library system."""
 
+from __future__ import annotations
+
 import ast
 import inspect
 import time

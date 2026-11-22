@@ -23,34 +23,35 @@ ADR-0029, Redraw, for why subscribing it would buy nothing and cost a hazard
 
 from __future__ import annotations
 
-from typing import Callable, List, Optional, Tuple, TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
-from haywire.api.workbench import LevelMode, PanelLayout, hui
-from haywire.ui.panel.host_rendering import (
-    poll_surface,
-    counting_leaves,
-    partition_panels,
-    render_panels,
-    render_path_extended,
-)
-from haywire.ui.components.graph.event_definitions import (
-    SelectionBoundsEvent,
-    SelectionBoundsHideEvent,
-)
 from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_event
 from haybale_graph_editor.editors.graph_canvas.handlers.selection import (
     copy_selection_event,
     remove_selection_event,
 )
 from haybale_graph_editor.states.edit_state import EditState
+from haywire.api.workbench import LevelMode, PanelLayout, hui
+from haywire.ui.components.graph.event_definitions import (
+    SelectionBoundsEvent,
+    SelectionBoundsHideEvent,
+)
+from haywire.ui.panel.host_rendering import (
+    counting_leaves,
+    partition_panels,
+    poll_surface,
+    render_panels,
+    render_path_extended,
+)
 
 if TYPE_CHECKING:
+    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import SessionContextMenuProvider
+    from haywire.api.workbench import BasePanel, PanelRegistry, SessionContext
     from haywire.core.graph.arrange import ArrangeScope
     from haywire.core.graph.stacking import Restack
-    from haywire.api.workbench import BasePanel, PanelRegistry, SessionContext
     from haywire.core.session.session import Session
     from haywire.ui.components.popup import Popup
-    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import SessionContextMenuProvider
 
 
 class SelectionToolbarProvider:
@@ -86,13 +87,13 @@ class SelectionToolbarProvider:
 
     def __init__(
         self,
-        context: "SessionContext",
-        session: "Session",
-        panel_registry: "PanelRegistry",
-        menu_provider: "SessionContextMenuProvider",
+        context: SessionContext,
+        session: Session,
+        panel_registry: PanelRegistry,
+        menu_provider: SessionContextMenuProvider,
         allows: Callable[[LevelMode], bool],
-        on_emit_event: Optional[Callable] = None,
-        on_emit_sync_event: Optional[Callable] = None,
+        on_emit_event: Callable | None = None,
+        on_emit_sync_event: Callable | None = None,
     ):
         self._allows = allows
         self._context = context
@@ -100,15 +101,15 @@ class SelectionToolbarProvider:
         self._panel_registry = panel_registry
         self._on_emit_event = on_emit_event
         self._on_emit_sync_event = on_emit_sync_event
-        self._menu_provider: "SessionContextMenuProvider" = menu_provider
-        self._toolbar_popup: Optional["Popup"] = None
-        self._last_bounds: Optional[Tuple[float, float, float, float]] = None
+        self._menu_provider: SessionContextMenuProvider = menu_provider
+        self._toolbar_popup: Popup | None = None
+        self._last_bounds: tuple[float, float, float, float] | None = None
 
     # ------------------------------------------------------------------
     # Public interface
     # ------------------------------------------------------------------
 
-    def show_at(self, bounds: Tuple[float, float, float, float]) -> None:
+    def show_at(self, bounds: tuple[float, float, float, float]) -> None:
         """Position (or reposition) the toolbar above the selection bounding box.
 
         bounds = (left, top, right, bottom) in viewport CSS px. Hides the
@@ -195,7 +196,7 @@ class SelectionToolbarProvider:
     # Popup construction
     # ------------------------------------------------------------------
 
-    def _build_popup(self, x: float, y: float) -> "Popup":
+    def _build_popup(self, x: float, y: float) -> Popup:
         """Create a persistent, non-modal toolbar popup at (x, y)."""
         from haywire.ui.components.popup import Popup
 
@@ -213,8 +214,8 @@ class SelectionToolbarProvider:
 
     def _render_into_popup(
         self,
-        applies: List[type["BasePanel"]],
-        disabled: List[type["BasePanel"]],
+        applies: list[type[BasePanel]],
+        disabled: list[type[BasePanel]],
     ) -> bool:
         """Clear popup content, render panels into a horizontal ui.row.
 
@@ -223,6 +224,7 @@ class SelectionToolbarProvider:
         whose flyout body came up empty) is not a toolbar worth showing.
         """
         from nicegui import ui
+
         from haybale_graph_editor.surfaces.toolbar import SelectionToolbar
 
         popup = self._toolbar_popup
@@ -292,13 +294,13 @@ class SelectionToolbarProvider:
     def remove_from_stage(self) -> None:
         self._menu_provider.remove_from_stage()
 
-    def restack_selection(self, how: "Restack") -> None:
+    def restack_selection(self, how: Restack) -> None:
         self._menu_provider.restack_selection(how)
 
-    def arrange_from(self, node_ids: list[str], scope: "ArrangeScope") -> None:
+    def arrange_from(self, node_ids: list[str], scope: ArrangeScope) -> None:
         self._menu_provider.arrange_from(node_ids, scope)
 
-    def select_from(self, node_id: str, scope: "ArrangeScope") -> None:
+    def select_from(self, node_id: str, scope: ArrangeScope) -> None:
         self._menu_provider.select_from(node_id, scope)
 
     def rotate_selection(self, clockwise: bool) -> None:

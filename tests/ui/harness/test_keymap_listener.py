@@ -8,6 +8,8 @@ expects *no* command ends with a sentinel command and asserts the log holds
 only that.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page, expect
 

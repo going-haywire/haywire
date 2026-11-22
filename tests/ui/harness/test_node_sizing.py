@@ -16,11 +16,14 @@ props, so no extra props endpoint is needed — the applied slot geometry is the
 observable outcome of the whole write-back path.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 
 from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled, wait_until
-from tests.ui.harness.probe import attr, box as probe_box
+from tests.ui.harness.probe import attr
+from tests.ui.harness.probe import box as probe_box
 
 _PATH = "/graph-size"
 

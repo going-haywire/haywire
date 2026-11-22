@@ -1,5 +1,7 @@
 """Listing the files of a folder by name patterns, for nodes that iterate over files."""
 
+from __future__ import annotations
+
 import fnmatch
 import logging
 import os
@@ -10,11 +12,11 @@ from haywire.api import (
     BOOL,
     INT,
     STRING,
+    LabelWidget,
     NodeSettings,
     NumberWidget,
     PortType,
     Promotable,
-    LabelWidget,
     StoreStrategy,
     resolve_volume_path,
     setting,
@@ -77,7 +79,7 @@ class FileListing(NodeSettings):
     )
 
 
-def folder_root(folder: "VolumePath") -> Path:
+def folder_root(folder: VolumePath) -> Path:
     """Return the location of *folder* on this machine, checked to be a folder.
 
     Raises:

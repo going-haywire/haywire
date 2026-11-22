@@ -4,6 +4,9 @@
 re-exported here so callers have a single import site.
 """
 
+from __future__ import annotations
+
+from haywire.core.publishing.drift.model import DepDrift
 from haywire.core.publishing.git import (
     GitResult,
     git,
@@ -12,7 +15,6 @@ from haywire.core.publishing.git import (
     run,
     run_streaming,
 )
-from haywire.core.publishing.drift.model import DepDrift
 from haywire.core.publishing.pipeline.errors import (
     CommitError,
     DocsGenerationError,
@@ -38,8 +40,8 @@ from haywire.core.publishing.pipeline.results import (
     LibraryVersion,
     PreconditionFailure,
     PreconditionsReport,
-    ShareDecisions,
     PushResult,
+    ShareDecisions,
     VersionPlan,
 )
 

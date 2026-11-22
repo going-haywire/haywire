@@ -1,5 +1,7 @@
 """setting(store=...): a field the graph does not save."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import INT

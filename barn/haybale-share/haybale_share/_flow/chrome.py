@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
-
-from haywire.core.publishing.pipeline import SharePipeline
-from haywire.ui.components.stepper import Panel, show_step_flow
 
 from haybale_share._flow._state import ShareFlow
 from haybale_share._flow.panels import (
@@ -16,6 +13,8 @@ from haybale_share._flow.panels import (
     panel_review,
     suppress_duplicate_error,
 )
+from haywire.core.publishing.pipeline import SharePipeline
+from haywire.ui.components.stepper import Panel, show_step_flow
 
 
 def show_share_flow(

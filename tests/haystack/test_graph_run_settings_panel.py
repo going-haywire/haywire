@@ -1,6 +1,8 @@
 # tests/haystack/test_graph_run_settings_panel.py
 """GraphRunSettingsPanel — poll + resolution logic (no live NiceGUI render)."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 
@@ -35,8 +37,8 @@ def test_poll_false_when_active_graph_has_no_entry():
 
 
 def test_poll_true_when_entry_resolves():
-    from haybale_haystack.panels.properties.introspect.graph_run_settings_panel import GraphRunSettingsPanel
     from haybale_haystack.graph_entry import GraphEntry
+    from haybale_haystack.panels.properties.introspect.graph_run_settings_panel import GraphRunSettingsPanel
 
     g = MagicMock()
     entry = GraphEntry(graph=g, editor=MagicMock())

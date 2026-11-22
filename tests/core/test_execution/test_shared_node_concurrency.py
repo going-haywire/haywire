@@ -11,14 +11,15 @@ Triggers go through production paths only: ``Interpreter.start_execution()``
 (BEGIN_PLAY) and ``HaywireVM.emit_callback``. See ADR 0064.
 """
 
+from __future__ import annotations
+
 import threading
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import pytest
 
 from haywire.core.execution.interpreter import Interpreter
 from haywire.core.graph.base import BaseGraph
-
 from tests.conftest import make_edge, make_node
 
 BARRIER_TIMEOUT_S = 0.5
@@ -35,8 +36,8 @@ class _OverlapProbe:
         self.lock = threading.Lock()
         self.active = 0
         self.max_active = 0
-        self.entries: List[Tuple[str, str, int]] = []  # (trigger source_key, thread name, thread id)
-        self.entry_payload: Dict[str, Any] = {}  # exec_in as each frame found it on entry
+        self.entries: list[tuple[str, str, int]] = []  # (trigger source_key, thread name, thread id)
+        self.entry_payload: dict[str, Any] = {}  # exec_in as each frame found it on entry
         self.broken = False
         self.first_inside = threading.Event()
 
@@ -70,7 +71,7 @@ def _payload_node_cls():
     return ControlPayloadProbeNode
 
 
-def _flows_containing(interpreter: Interpreter, node_id: str) -> List[Any]:
+def _flows_containing(interpreter: Interpreter, node_id: str) -> list[Any]:
     return [
         flow
         for flows in interpreter.event_subscriptions.values()
@@ -168,7 +169,7 @@ class TestSharedNodeConcurrentExecution:
         x.node.on_validate = probe.on_validate  # type: ignore[method-assign]
 
         real_worker = x.node.worker  # ControlPayloadProbeNode.worker: self.received = self.value("exec_in")
-        worker_saw: Dict[str, Optional[Any]] = {}
+        worker_saw: dict[str, Any | None] = {}
 
         def recording_worker(context):
             result = real_worker(context)
@@ -228,7 +229,7 @@ class TestSharedNodeConcurrentExecution:
                         pass
                 return truth
 
-        runs: List[str] = []
+        runs: list[str] = []
         real_worker = x.node.worker
 
         def counting_worker(context):
@@ -280,7 +281,7 @@ class TestSharedNodeConcurrentExecution:
         probe = _OverlapProbe(x.node)
         x.node.on_validate = probe.on_validate
 
-        hook_threads: Dict[str, List[str]] = {"on_startup": [], "on_shutdown": []}
+        hook_threads: dict[str, list[str]] = {"on_startup": [], "on_shutdown": []}
         hook_lock = threading.Lock()
 
         def _hook(name):
@@ -322,8 +323,8 @@ class TestSharedNodeConcurrentExecution:
         A -> EA ; B -> EB ; D.result -> EA.payload and EB.payload. The flows stay
         in separate groups; D is a shared data node, so they take turns on it.
         """
-        from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
         from haybale_testing.nodes.testbed.add_float_probe import AddFloatProbeNode
+        from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
 
         RecordEvent = _record_node_cls()
         graph = graph_with_library_system

@@ -7,12 +7,14 @@ the converged behaviour that an empty ``menu=""`` routes a *visible* node to the
 top-level ``misc`` category rather than hiding it.
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 
 import pytest
 
 from haywire.core.macro.registry import MacroRegistry
-from haywire.core.node import node, BaseNode, NodeFactory, NodeRegistry
+from haywire.core.node import BaseNode, NodeFactory, NodeRegistry, node
 
 
 @pytest.mark.unit

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum, IntFlag, StrEnum
 from typing import TYPE_CHECKING
 
@@ -20,7 +22,7 @@ class Propagation(Enum):
     LAZY = "lazy"
     EAGER = "eager"
 
-    def toggled(self) -> "Propagation":
+    def toggled(self) -> Propagation:
         """Return the other mode: ``LAZY`` for ``EAGER``, and back."""
         return Propagation.LAZY if self is Propagation.EAGER else Propagation.EAGER
 
@@ -134,16 +136,16 @@ class LayoutDirection(Enum):
         """``(dir_x, dir_y)`` an outlet's edge leaves the card along."""
         return _LAYOUT_DIRECTION_VECTORS[self][1]
 
-    def side_for(self, port: "DataPort") -> str:
+    def side_for(self, port: DataPort) -> str:
         """Card edge *port*'s pin sits on. A swinglet counts as an inlet; other non-inlets as outlets."""
         return self.inlet_side if port.is_inlet() else self.outlet_side
 
-    def vector_for(self, port: "DataPort") -> tuple[int, int]:
+    def vector_for(self, port: DataPort) -> tuple[int, int]:
         """Direction vector for *port*'s pin. A swinglet counts as an inlet; other non-inlets as outlets."""
         return self.inlet_vector if port.is_inlet() else self.outlet_vector
 
     @classmethod
-    def coerce(cls, value: object) -> "LayoutDirection":
+    def coerce(cls, value: object) -> LayoutDirection:
         """Resolve a stored value, falling back to L2R rather than raising.
 
         Settings store the enum's ``str`` value (CHOICES is a STRING subtype),
@@ -236,12 +238,12 @@ class NodeDetail(StrEnum):
         """Position in the cumulative order — higher draws more."""
         return _NODE_DETAIL_RANKS[self]
 
-    def includes(self, other: "NodeDetail") -> bool:
+    def includes(self, other: NodeDetail) -> bool:
         """True when drawing at this rank also draws everything *other* does."""
         return self.rank >= other.rank
 
     @classmethod
-    def coerce(cls, value: object) -> "NodeDetail":
+    def coerce(cls, value: object) -> NodeDetail:
         """Resolve a stored value to a rank, returning ``FULL`` for anything unrecognised.
 
         Never raises: this runs on the render path, where a stale or
@@ -344,7 +346,7 @@ class ShowWidgetStrategy(Enum):
     ALWAYS = "always"
 
 
-def default_show_widget(port_type: "PortType") -> ShowWidgetStrategy:
+def default_show_widget(port_type: PortType) -> ShowWidgetStrategy:
     """The per-direction default ``show_widget`` for *port_type* (ADR 0003).
 
     The single source of truth for the direction defaults that ``as_inlet`` /

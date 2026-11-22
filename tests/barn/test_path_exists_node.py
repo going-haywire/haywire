@@ -1,5 +1,7 @@
 """Path Exists?: branch on whether a volume path is there; an unresolvable path is an error."""
 
+from __future__ import annotations
+
 import importlib
 from typing import Any
 

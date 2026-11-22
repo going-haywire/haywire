@@ -1,5 +1,7 @@
 """Image Event: publishes its listener name on IMAGE_CALLBACK and unpacks the emitter's payload."""
 
+from __future__ import annotations
+
 import importlib
 from typing import Any
 from unittest.mock import MagicMock

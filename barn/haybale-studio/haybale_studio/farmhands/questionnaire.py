@@ -5,6 +5,9 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from haybale_studio.questionnaire.definition import FORMAT_URI, validate
+from haybale_studio.questionnaire.signals import RevealQuestionnaire
+from haybale_studio.states.questionnaire_state import READ, SUBMITTED, QuestionnaireState
 from haywire.api.workbench import (
     AccessTier,
     Farmhand,
@@ -13,10 +16,6 @@ from haywire.api.workbench import (
     ToolAnnotations,
     farmhand,
 )
-
-from haybale_studio.questionnaire.definition import FORMAT_URI, validate
-from haybale_studio.questionnaire.signals import RevealQuestionnaire
-from haybale_studio.states.questionnaire_state import READ, SUBMITTED, QuestionnaireState
 
 _MAX_ISSUES = 20
 

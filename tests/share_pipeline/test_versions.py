@@ -1,5 +1,7 @@
 """Lockstep version reading, arithmetic, and writing."""
 
+from __future__ import annotations
+
 import subprocess
 from pathlib import Path
 

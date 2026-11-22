@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 import nicegui.ui as ui
 
@@ -9,10 +10,10 @@ from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
 from haywire.core.types import DataPort, WidgetModel
 from haywire.ui.access_stamp import stamp_requires
-from haywire.ui.widget.interface import IWidget
-from haywire.ui.widget.registry import WidgetRegistry
 from haywire.ui.errors.error_info import error_render_detail
 from haywire.ui.widget.factory_interface import IWidgetFactory
+from haywire.ui.widget.interface import IWidget
+from haywire.ui.widget.registry import WidgetRegistry
 
 if TYPE_CHECKING:
     from haywire.core.graph.edit_route import EditRoute

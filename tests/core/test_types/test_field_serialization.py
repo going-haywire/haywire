@@ -1,5 +1,7 @@
 """Field serialization: absence saves as null, a present value through the field's hook (Q14, Q25)."""
 
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass
 
@@ -71,28 +73,24 @@ class TestOptional:
 class TestContainers:
     def test_an_array_value_survives_save_and_load(self, library_system):
         from haybale_core.types import ARRAY
-
         from haywire.barn.builtin.types import FLOAT
 
         assert _round_trip(ARRAY[FLOAT], [5.0, 6.0])[1] == [5.0, 6.0]
 
     def test_an_array_of_callbacks_keeps_an_absent_item(self, library_system):
         from haybale_core.types import ARRAY
-
         from haywire.barn.builtin.types import CALLBACK
 
         assert _round_trip(ARRAY[CALLBACK], ["a", None])[1] == ["a", None]
 
     def test_a_map_value_survives_save_and_load(self, library_system):
         from haybale_example.types.string_map import STRING_MAP
-
         from haywire.barn.builtin.types import FLOAT
 
         assert _round_trip(STRING_MAP[FLOAT], {"a": 1.0, "b": 2.0})[1] == {"a": 1.0, "b": 2.0}
 
     def test_an_array_port_value_survives_the_port_block(self, library_system):
         from haybale_core.types import ARRAY
-
         from haywire.barn.builtin.types import FLOAT
         from haywire.core.types import DataPort, PortType
         from haywire.core.types.enums import StoreStrategy

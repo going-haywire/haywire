@@ -4,6 +4,8 @@ Three sibling folds: a config fold, an inlet fold (so the lane a fold renders
 in is exercised, not just the config band), and one that starts closed.
 """
 
+from __future__ import annotations
+
 from haywire.api import FLOAT, STRING, BaseNode, ExecutionContext, NodeType, node
 
 

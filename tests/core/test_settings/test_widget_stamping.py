@@ -1,5 +1,7 @@
-from haywire.barn.builtin.types import CHOICES, FLOAT
+from __future__ import annotations
+
 from haywire.barn.builtin import widget_keys
+from haywire.barn.builtin.types import CHOICES, FLOAT
 from haywire.core.settings import Settings, setting
 
 

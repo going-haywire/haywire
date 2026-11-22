@@ -1,10 +1,11 @@
 """An edge's visual state: where its computed head sits, and no hard-coded state colour."""
 
+from __future__ import annotations
+
 import pytest
 
-from haywire.core.edge.arrow_heads import DEFAULT_HEAD_SIZE
-
 from haybale_graph_editor.editors.graph_canvas.ui_edge import edge_visual_state
+from haywire.core.edge.arrow_heads import DEFAULT_HEAD_SIZE
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration
@@ -23,8 +24,8 @@ def test_a_data_edge_draws_its_head_at_the_inlet(graph_with_library_system):
 
 
 def test_a_callback_edge_draws_its_head_at_the_outlet(graph_with_library_system):
-    from haybale_testing.nodes.testbed.callback_event_probe import CallbackEventProbeNode
     from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
+    from haybale_testing.nodes.testbed.callback_event_probe import CallbackEventProbeNode
 
     graph = graph_with_library_system
     listener = make_node(graph, CallbackEventProbeNode.class_identity.registry_key)

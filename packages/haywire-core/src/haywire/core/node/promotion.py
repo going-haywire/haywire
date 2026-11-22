@@ -12,8 +12,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from haywire.core.types.base import WrapperType
 from haywire.core.errors import Refusal
+from haywire.core.types.base import WrapperType
 from haywire.core.types.enums import PortType, ShowWidgetStrategy
 
 if TYPE_CHECKING:
@@ -25,14 +25,14 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def is_field_promoted(bag: "Settings", field: str) -> bool:
+def is_field_promoted(bag: Settings, field: str) -> bool:
     """True if ``<bag>.<field>`` is currently promoted to a port.
 
     False for a field that is not promoted, and for one that does not exist."""
     return bag._is_promoted(field)
 
 
-def _resolve_promoted(node: "NodeData", port_id: str) -> tuple["Settings", "setting"]:
+def _resolve_promoted(node: NodeData, port_id: str) -> tuple[Settings, setting]:
     """Resolve the (settings-bag, descriptor) pair a promoted ``port_id`` binds, by
     matching the id against each descriptor's storage_key.
 
@@ -45,7 +45,7 @@ def _resolve_promoted(node: "NodeData", port_id: str) -> tuple["Settings", "sett
     raise KeyError(port_id)
 
 
-def bag_accessor(node: "NodeData", bag: "Settings") -> str | None:
+def bag_accessor(node: NodeData, bag: Settings) -> str | None:
     """The accessor name under which *bag* is bound on *node*, or ``None``.
 
     Matched by identity, so a bag of the same class on another node never
@@ -57,14 +57,14 @@ def bag_accessor(node: "NodeData", bag: "Settings") -> str | None:
     return None
 
 
-def _descriptor(node: "NodeData", accessor: str, field: str) -> "setting":
+def _descriptor(node: NodeData, accessor: str, field: str) -> setting:
     """The setting descriptor for ``<accessor>.<field>`` on *node*, including a field
     inherited from a settings-bag base class. Raises ``KeyError`` for an unknown field."""
     bag: NodeSettings = getattr(node, accessor)
     return type(bag)._settings_descriptors()[field]
 
 
-def eligible_promotion_directions(descriptor: "setting") -> tuple[PortType, ...]:
+def eligible_promotion_directions(descriptor: setting) -> tuple[PortType, ...]:
     """The port directions ``descriptor`` may be promoted to.
 
     Read from the field's declared ``setting(promotable=...)``, default
@@ -84,7 +84,7 @@ def eligible_promotion_directions(descriptor: "setting") -> tuple[PortType, ...]
     return tuple(directions)
 
 
-def _metadata_to_port_kwargs(descriptor: "setting") -> dict:
+def _metadata_to_port_kwargs(descriptor: setting) -> dict:
     """Build ``IType.as_inlet``/``as_outlet`` kwargs from a setting descriptor.
 
     Wrapper types are replaced by their element type (``OPTIONAL[INT]`` gives
@@ -117,7 +117,7 @@ def _metadata_to_port_kwargs(descriptor: "setting") -> dict:
     return kwargs
 
 
-def _bind_port(port, bag: "Settings", desc: "setting") -> None:
+def _bind_port(port, bag: Settings, desc: setting) -> None:
     """Share the setting's cell into *port*.
 
     The setting keeps its opinion: an unset mirror field keeps tracking its
@@ -126,7 +126,7 @@ def _bind_port(port, bag: "Settings", desc: "setting") -> None:
     port.bind_field(bag._cell_for(desc))
 
 
-def regenerate_promoted_ports(node: "NodeData") -> None:
+def regenerate_promoted_ports(node: NodeData) -> None:
     """Regenerate every promoted port on *node* from its bags' recorded promotions.
 
     Call once the settings bags are restored and before edges wire, so a
@@ -157,11 +157,11 @@ def regenerate_promoted_ports(node: "NodeData") -> None:
 
 
 def promote_setting(
-    node: "NodeData",
+    node: NodeData,
     accessor: str,
     field: str,
     direction: PortType = PortType.INLET,
-    show_widget: "ShowWidgetStrategy | None" = None,
+    show_widget: ShowWidgetStrategy | None = None,
     order: int | None = None,
 ) -> None:
     """Promote a setting field to a DATA port in *direction*. No-op if already promoted.
@@ -230,7 +230,7 @@ def promote_setting(
     bag._set_promoted(field, direction, show_widget, order)
 
 
-def demote_setting(node: "NodeData", port_id: str) -> None:
+def demote_setting(node: NodeData, port_id: str) -> None:
     """Remove the promoted port ``port_id``, release its cell binding, and clear the
     settings-side promotion record. The setting shows its own value again.
 
@@ -251,7 +251,7 @@ def demote_setting(node: "NodeData", port_id: str) -> None:
         pass
 
 
-def remove_port(node: "NodeData", port_id: str) -> bool:
+def remove_port(node: NodeData, port_id: str) -> bool:
     """Remove a user-created port, releasing whatever its origin holds.
 
     The one verb behind the pin menu's removal row, for a port the user brought
@@ -281,7 +281,7 @@ def remove_port(node: "NodeData", port_id: str) -> bool:
 
 
 def set_promoted_show_widget(
-    node: "NodeData",
+    node: NodeData,
     port_id: str,
     strategy: ShowWidgetStrategy,
 ) -> None:
@@ -305,7 +305,7 @@ def set_promoted_show_widget(
     bag._set_promoted_show_widget(desc._attr_name, strategy)
 
 
-def set_promoted_order(node: "NodeData", port_id: str, order: int) -> None:
+def set_promoted_order(node: NodeData, port_id: str, order: int) -> None:
     """Record a promoted port's display position on its settings bag.
 
     A promoted port is regenerated rather than serialized (ADR 0019), so its

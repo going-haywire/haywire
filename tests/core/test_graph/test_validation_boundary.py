@@ -1,10 +1,11 @@
 """A node or edge failing inside a validation batch reaches the error ledger; the batch goes on."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.errors.ledger import ErrorLedger, get_error_ledger, set_error_ledger
 from haywire.core.graph.types import ChangeReason
-
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration

@@ -1,5 +1,7 @@
 """The edge menu's propagation row applies only to an edge that has propagation."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 
 import pytest
@@ -9,7 +11,6 @@ from haybale_graph_editor.states.edit_state import EditState
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.types import Propagation
-
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration

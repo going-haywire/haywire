@@ -8,47 +8,49 @@ Public surface:
 - Concrete signals (SelectionMoved, GraphDataMutated, ...) — the vocabulary
 """
 
-from .signal import Signal, CommandSignal, EditorCommand
+from __future__ import annotations
+
 from .bus import SignalBus, SignalHandler
-from .host import SignalSource
-from .dispatcher import SignalDispatcher
-from .peer import SignalPeer
 from .descriptor import signal_field
+from .dispatcher import SignalDispatcher
+from .host import SignalSource
+from .peer import SignalPeer
+from .signal import CommandSignal, EditorCommand, Signal
 from .vocabulary import (
     ActiveGraphMoved,
-    SelectionMoved,
-    SubgraphNavigation,
-    RevealGraphInstance,
-    GraphDataMutated,
-    GraphSaved,
-    GraphHistoryChanged,
-    GraphUnsavedChanged,
-    LibraryCatalogChanged,
-    ErrorLogged,
-    ErrorLedgerChanged,
-    PresenceChanged,
-    FarmhandActivity,
-    RosterChanged,
     AgentConnected,
     AgentDisconnected,
-    RevealSignal,
-    Reveal,
-    RevealComponentSource,
-    RevealComponentDocs,
-    RevealSource,
-    Close,
     BroadcastClose,
+    Close,
     Copy,
     Cut,
-    Paste,
-    Duplicate,
     Delete,
-    Undo,
+    Duplicate,
+    ErrorLedgerChanged,
+    ErrorLogged,
+    FarmhandActivity,
+    GraphDataMutated,
+    GraphHistoryChanged,
+    GraphSaved,
+    GraphUnsavedChanged,
+    LibraryCatalogChanged,
+    Paste,
+    PresenceChanged,
     Redo,
+    Reveal,
+    RevealComponentDocs,
+    RevealComponentSource,
+    RevealGraphInstance,
+    RevealSignal,
+    RevealSource,
+    RosterChanged,
     Save,
+    SelectAll,
+    SelectionMoved,
+    SubgraphNavigation,
     ToggleLock,
     ToggleStageView,
-    SelectAll,
+    Undo,
 )
 
 __all__ = [

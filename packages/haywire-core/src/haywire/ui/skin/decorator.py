@@ -1,4 +1,7 @@
-from typing import Any, Callable, Type, TypeVar
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from haywire.core.library.utils import SKIN, derive_library_identity, reg_key
 from haywire.core.skin.tags import SKIN_TAG_GENERAL
@@ -12,7 +15,7 @@ from .base import BaseSkin, SkinIdentity
 T = TypeVar("T")
 
 
-def skin(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
+def skin(**kwargs: Any) -> Callable[[type[T]], type[T]]:
     """
     Decorator to register a class as a node skin.
 
@@ -65,7 +68,7 @@ def skin(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         class ErrorSkin(BaseSkin): ...
     """
 
-    def decorator(inner_cls: Type[T]) -> Type[T]:
+    def decorator(inner_cls: type[T]) -> type[T]:
         if not issubclass(inner_cls, BaseSkin):
             raise TypeError(f"@skin can only be applied to BaseSkin subclasses, got {inner_cls}")
 

@@ -7,7 +7,6 @@ import argparse
 import pytest
 
 from haywire.core.access import AccessTier
-
 from haywire_studio.cli import farmhandcmd
 from haywire_studio.security.document import SecurityDocument, load_document, save_document
 from haywire_studio.security.roster import KIND_USER, Principal, Roster

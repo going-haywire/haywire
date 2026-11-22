@@ -14,6 +14,8 @@ on ``SessionContext``. The descriptor-mechanism tests below use
 representative example.
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 from unittest.mock import MagicMock
 

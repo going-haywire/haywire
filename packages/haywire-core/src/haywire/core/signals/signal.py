@@ -11,7 +11,7 @@ special routing.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from haywire.core.access.tier import AccessTier
 
@@ -88,8 +88,8 @@ class EditorCommand(CommandSignal):
     label: ClassVar[str]
     default_keys: ClassVar[tuple[str, ...]] = ()
     requires: ClassVar[AccessTier] = AccessTier.EDIT
-    native_event: ClassVar[Optional[str]] = None
+    native_event: ClassVar[str | None] = None
     in_text_fields: ClassVar[bool] = False
 
     binding_id: str
-    position: Optional[tuple[float, float]] = None
+    position: tuple[float, float] | None = None

@@ -1,5 +1,7 @@
 """The browser-test harness port: one block of ports per checkout, one port per xdist worker."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from tests.ui.harness.ports import PORTS_PER_CHECKOUT, base_port, harness_port

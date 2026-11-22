@@ -51,7 +51,7 @@ class PROGRESS(BaseType):
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "PROGRESS":
+    def from_dict(cls, data: dict) -> PROGRESS:
         """Rebuild from stored JSON; anything malformed becomes idle."""
         if not isinstance(data, dict):
             return cls()

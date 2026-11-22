@@ -12,7 +12,6 @@ from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
 from haybale_studio.editors.log_editor import LogEditor
-
 from tests.ui.user_wait import eventually
 
 

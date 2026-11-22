@@ -1,5 +1,7 @@
 """Playing AudioBlocks on a sound device."""
 
+from __future__ import annotations
+
 import threading
 from typing import Any, Protocol
 

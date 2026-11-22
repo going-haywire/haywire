@@ -4,6 +4,8 @@ Covers both forms: bare ``ADD`` slots, which adopt the connected type, and an
 ``ADD[TEST_STRING]`` slot, which stays TEST_STRING and lets the adapters convert.
 """
 
+from __future__ import annotations
+
 from haywire.api import ADD, BaseNode, ExecutionContext, NodeType, PortOrigin, node
 
 

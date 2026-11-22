@@ -1,16 +1,18 @@
 """AUDIO_EXEC: an EXEC that audio flows drive standard control nodes with, and the reverse refused."""
 
+from __future__ import annotations
+
 import importlib
 from typing import Any
 
 import pytest
+
+from haybale_audio.types.audio_exec import AUDIO_EXEC
 from haywire.barn.builtin.types import EXEC
 from haywire.barn.builtin.wires import ControlWire
 from haywire.core.adapter.factory import AdapterFactory
 from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.types.wire import WireRole, wire_type_of
-
-from haybale_audio.types.audio_exec import AUDIO_EXEC
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.unit
@@ -115,12 +117,11 @@ def test_a_node_after_the_exit_cannot_re_enter_the_audio_flow(graph_with_library
 
 @pytest.mark.integration
 def test_a_group_boundary_slot_dragged_onto_an_audio_pin_becomes_an_audio_pin(graph_with_library_system):
+    from haybale_audio.nodes.recorder import RecorderNode
     from haywire.barn.builtin.nodes.subgraph_io import SubgraphInputNode
     from haywire.barn.builtin.types import ADD
     from haywire.core.graph.scheduler import SyncScheduler
     from haywire.core.graph.subgraph import SubgraphDefinition
-
-    from haybale_audio.nodes.recorder import RecorderNode
 
     definition = graph_with_library_system.add_subgraph(
         SubgraphDefinition(key="sg_audio", label="Group", validation_scheduler=SyncScheduler())

@@ -4,28 +4,30 @@ Root pytest configuration with DI fixtures.
 Provides fixtures for different test scopes and scenarios.
 """
 
+from __future__ import annotations
+
 import importlib
 import inspect
 import sys
+from collections.abc import Callable, Generator
 from pathlib import Path
-from typing import Any, Callable, Generator, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from injector import Injector
 
 from haywire.core.access import LevelMode
+from haywire.core.adapter.factory import AdapterFactory
+from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.di.test_config import create_test_injector, create_test_library_system
 from haywire.core.graph.edit_route import EditRoute
-
-from haywire.core.node.registry import NodeRegistry
 from haywire.core.node.factory import NodeFactory
-from haywire.core.adapter.registry import AdapterRegistry
-from haywire.core.adapter.factory import AdapterFactory
-from haywire.core.types.registry import TypeRegistry
+from haywire.core.node.registry import NodeRegistry
 from haywire.core.state import LibraryStateContainer
-from haywire.core.undo.interfaces import IHistoryManager
-from haywire.core.undo.history_manager import HistoryManager
+from haywire.core.types.registry import TypeRegistry
 from haywire.core.undo.config import UndoConfig
+from haywire.core.undo.history_manager import HistoryManager
+from haywire.core.undo.interfaces import IHistoryManager
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapper
@@ -420,7 +422,7 @@ def library_system(project_root: Path, test_library_path: Path):
     Mark tests using this with @pytest.mark.integration
     """
     # Import here to avoid circular imports at module level
-    from haywire.core.di.config import set_library_system, set_global_injector
+    from haywire.core.di.config import set_global_injector, set_library_system
 
     service = create_test_library_system(
         workspace_root=str(project_root),
@@ -447,7 +449,7 @@ def library_system(project_root: Path, test_library_path: Path):
 
 
 @pytest.fixture
-def graph_with_library_system(library_system) -> "BaseGraph":
+def graph_with_library_system(library_system) -> BaseGraph:
     """
     Provide a graph with full library system loaded.
 
@@ -658,7 +660,7 @@ def declare_differently(wrapper) -> None:
     wrapper.node._declaration_saved = saved
 
 
-def make_node(graph: "BaseGraph", registry_key: str, **kwargs: Any) -> "NodeWrapper":
+def make_node(graph: BaseGraph, registry_key: str, **kwargs: Any) -> NodeWrapper:
     """``graph.create_node_wrapper`` narrowed to a non-Optional NodeWrapper.
 
     The factory is Optional-returning, but tests overwhelmingly treat a failed
@@ -677,13 +679,13 @@ def edit_route(editor: Any, mode: LevelMode = LevelMode.EDIT) -> EditRoute:
 
 
 def make_edge(
-    graph: "BaseGraph",
+    graph: BaseGraph,
     source_node_id: str,
     outlet_port_id: str,
     sink_node_id: str,
     inlet_port_id: str,
     **kwargs: Any,
-) -> "EdgeWrapper":
+) -> EdgeWrapper:
     """``graph.create_edge_wrapper`` narrowed to a non-Optional EdgeWrapper.
 
     A None here means the graph refused to build an edge at all — distinct from
@@ -694,7 +696,7 @@ def make_edge(
     return edge
 
 
-def run_frame(graph: "BaseGraph") -> None:
+def run_frame(graph: BaseGraph) -> None:
     """Assemble ``graph`` into its one flow and execute a single control frame synchronously."""
     from typing import cast
 

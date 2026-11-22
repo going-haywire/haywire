@@ -1,8 +1,9 @@
 """Tests for StdoutTee (formerly ConsoleBridge)."""
 
-from typing import Any, cast
+from __future__ import annotations
 
 import sys
+from typing import Any, cast
 
 from haywire.ui.console_bridge import StdoutTee, console_print
 

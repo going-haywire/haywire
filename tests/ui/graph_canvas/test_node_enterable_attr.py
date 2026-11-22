@@ -1,6 +1,6 @@
 """``data-node-enterable`` marks the cards canvas.vue lets a double-click enter."""
 
-import haywire.core.graph.editor  # noqa: F401  (circular-import guard)
+from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any, cast
@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+import haywire.core.graph.editor  # noqa: F401  (circular-import guard)
 from haybale_graph_editor.editors.graph_canvas.ui_node import UINode
 
 pytestmark = pytest.mark.unit

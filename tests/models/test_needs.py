@@ -3,21 +3,16 @@
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
 import importlib
 import sys
 import time
 import types
 from dataclasses import dataclass, field
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
-from haywire.core.access import AccessTier
-from haywire.core.graph.scheduler import SyncScheduler
-from haywire.core.graph.subgraph import SubgraphDefinition
-from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
-from haywire.core.volumes import VolumeStore, volume_location
 
 from haybale_graph_editor.states.graph_app_state import GraphAppState
 from haybale_models.consumer import MISSING_WARNING
@@ -28,7 +23,11 @@ from haybale_models.sources import builtin_sources
 from haybale_models.store.index import ModelIndex
 from haybale_models.store.records import FetchRecord, FetchRecords
 from haybale_models.value.model_ref import ModelRef
-
+from haywire.core.access import AccessTier
+from haywire.core.graph.scheduler import SyncScheduler
+from haywire.core.graph.subgraph import SubgraphDefinition
+from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
+from haywire.core.volumes import VolumeStore, volume_location
 from tests.conftest import make_edge, make_node
 from tests.models.conftest import make_hf_snapshot
 from tests.wait import wait_until
@@ -507,9 +506,9 @@ def test_a_records_change_rewalks_the_graphs_and_stop_unsubscribes(env: Any, gra
 
 
 def test_job_matches_requires_the_same_include():
-    from haywire.core.catalog import ModelFile, Resource
     from haybale_models.needs import job_matches
     from haybale_models.resolver import FetchSpec
+    from haywire.core.catalog import ModelFile, Resource
 
     address = "hf://org/repo@" + "a" * 40
 

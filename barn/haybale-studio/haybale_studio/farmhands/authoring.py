@@ -14,6 +14,14 @@ import inspect
 from pathlib import Path
 from typing import Any
 
+from haybale_studio.farmhands._helpers import (
+    KIND_FOLDERS,
+    kind_registry_map,
+    library_folder,
+    project_writable_libraries,
+    resolve_component_class,
+    resolve_target_library,
+)
 from haywire.api.workbench import (
     AccessTier,
     Farmhand,
@@ -39,15 +47,6 @@ from haywire.core.docs.canons import canon_uri
 from haywire.core.errors.ledger import get_error_ledger
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.library.utils import get_kind_from_key
-
-from haybale_studio.farmhands._helpers import (
-    KIND_FOLDERS,
-    kind_registry_map,
-    library_folder,
-    project_writable_libraries,
-    resolve_component_class,
-    resolve_target_library,
-)
 
 _GENERIC_TEMPLATE = '''"""{name} — scaffolded by Farmhand.
 
@@ -125,8 +124,8 @@ async def _write_and_watch(
 
 async def _scaffold_node(ctx: FarmhandContext, lib_id: str, name: str, label: str | None) -> dict:
     """Clone the builtin Data template into ``lib_id`` and report what registered."""
-    from haywire.barn.builtin.nodes.templates.data_node import DataNodeTemplate
     from haywire.api import NodeRegistry
+    from haywire.barn.builtin.nodes.templates.data_node import DataNodeTemplate
 
     library_registry = ctx.registry(LibraryRegistry)
     node_registry = ctx.registry(NodeRegistry)

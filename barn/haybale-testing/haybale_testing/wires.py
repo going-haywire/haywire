@@ -1,5 +1,7 @@
 """Test-only wire types."""
 
+from __future__ import annotations
+
 from haywire.api import (
     ARROW_HEAD_WIDGET,
     CHOICES,

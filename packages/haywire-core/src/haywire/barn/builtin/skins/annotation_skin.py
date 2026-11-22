@@ -22,9 +22,9 @@ from typing import TYPE_CHECKING, Any
 
 from nicegui import ui
 
-from haywire.core.skin.fonts import FONT_STACKS
 from haywire.barn.builtin.widget_keys import ANNOTATION_TEXT_WIDGET
 from haywire.core.node.node_wrapper import NodeWrapper
+from haywire.core.skin.fonts import FONT_STACKS
 from haywire.core.types.enums import LayoutDirection
 from haywire.ui.skin.base import BaseSkin
 from haywire.ui.skin.decorator import skin

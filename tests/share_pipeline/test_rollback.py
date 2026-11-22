@@ -1,5 +1,7 @@
 """Tests for reverting the working tree after a mid-pipeline failure."""
 
+from __future__ import annotations
+
 import subprocess
 from pathlib import Path
 

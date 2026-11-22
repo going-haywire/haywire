@@ -29,9 +29,9 @@ Notes
 from __future__ import annotations
 
 import logging
-import toml
 from pathlib import Path
-from typing import Optional
+
+import toml
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ def dump_haystack(
     state,
     workspace_root: Path,
     name: str,
-    active_path: Optional[Path] = None,
+    active_path: Path | None = None,
 ) -> Path:
     """Serialize the current set of open graphs to a haystack TOML file.
 
@@ -102,7 +102,7 @@ def dump_haystack(
     target.parent.mkdir(parents=True, exist_ok=True)
 
     # Build the active_graph value as a relative (or absolute fallback) string
-    active_rel: Optional[str] = None
+    active_rel: str | None = None
     if active_path is not None:
         try:
             active_rel = str(active_path.relative_to(workspace_root))
@@ -151,7 +151,7 @@ def load_haystack(
     state,
     workspace_root: Path,
     name: str,
-) -> Optional[Path]:
+) -> Path | None:
     """Load a named haystack TOML file and open each listed graph.
 
     Graphs listed in the TOML that no longer exist on disk are skipped with a
@@ -179,7 +179,7 @@ def load_haystack(
 
     data = toml.loads(source.read_text())
     haystack_meta = data.get("haystack", {})
-    active_graph_rel: Optional[str] = haystack_meta.get("active_graph")
+    active_graph_rel: str | None = haystack_meta.get("active_graph")
     graphs_data = data.get("graphs", [])
 
     for gd in graphs_data:

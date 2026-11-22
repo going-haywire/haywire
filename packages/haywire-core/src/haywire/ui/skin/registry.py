@@ -1,11 +1,12 @@
+from __future__ import annotations
+
 import inspect
 import logging
-from typing import Optional
 
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
-from haywire.core.registry.lifecycle_event import LifeCycleEvent
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.base import BaseRegistry
+from haywire.core.registry.lifecycle_event import LifeCycleEvent
 
 from .base import BaseSkin
 
@@ -36,7 +37,7 @@ class SkinRegistry(BaseRegistry[BaseSkin]):
             return False
 
     def _register_class(
-        self, cls: type[BaseSkin], library_identity: Optional[LibraryIdentity] = None
+        self, cls: type[BaseSkin], library_identity: LibraryIdentity | None = None
     ) -> str | None:
         """
         Register a skin class.

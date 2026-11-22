@@ -5,6 +5,8 @@ lists with the code. A list only shrinks: a name leaves it when the library
 stops using it or when the name enters the Author API.
 """
 
+from __future__ import annotations
+
 INTERNAL_IMPORTS: dict[str, list[str]] = {
     "haybale-audio": [],
     "haybale-core": [],

@@ -1,5 +1,7 @@
 """Settings._settings_descriptors(): built once per class, read-only, never shared with a subclass."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import INT

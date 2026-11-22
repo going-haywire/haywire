@@ -14,7 +14,7 @@ onto the event loop first with ``loop.call_soon_threadsafe(...)``.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 from haywire.core.errors import report_failure
 
@@ -37,13 +37,13 @@ class SignalDispatcher:
     def __init__(self) -> None:
         # Strong references: the peer's owner always calls cleanup(). A WeakSet
         # would silently drop a peer nobody else happened to hold.
-        self._peers: Dict[str, "SignalPeer"] = {}
+        self._peers: dict[str, SignalPeer] = {}
 
     # ------------------------------------------------------------------
     # Registration — called by SignalPeer, not by application code
     # ------------------------------------------------------------------
 
-    def register(self, peer: "SignalPeer") -> None:
+    def register(self, peer: SignalPeer) -> None:
         """Add ``peer`` to the fan-out. Idempotent per ``peer_id``.
 
         Called from :meth:`SignalPeer.__init__`, so ``peer`` may be half-built.
@@ -52,7 +52,7 @@ class SignalDispatcher:
         """
         self._peers[peer.peer_id] = peer
 
-    def unregister(self, peer: "SignalPeer") -> None:
+    def unregister(self, peer: SignalPeer) -> None:
         """Remove ``peer`` from the fan-out. No-op if it was never registered."""
         self._peers.pop(peer.peer_id, None)
 
@@ -66,7 +66,7 @@ class SignalDispatcher:
         return len(self._peers)
 
     @property
-    def peers(self) -> Dict[str, "SignalPeer"]:
+    def peers(self) -> dict[str, SignalPeer]:
         """Snapshot of registered peers, keyed by ``peer_id``. A copy."""
         return dict(self._peers)
 

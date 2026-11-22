@@ -2,6 +2,8 @@
 Validation tests: verify that invalid values surface a data-error DOM element.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page, expect
 

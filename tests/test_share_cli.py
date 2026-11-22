@@ -1,5 +1,7 @@
 """`haywire share` — the single non-interactive mode over SharePipeline."""
 
+from __future__ import annotations
+
 import subprocess
 from pathlib import Path
 from unittest.mock import AsyncMock, patch

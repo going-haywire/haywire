@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from haybale_marketplace.editors.library_overview_editor import collect_overview_links
 from haywire.core.library.haybale import Haybale
 

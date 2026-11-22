@@ -1,9 +1,10 @@
 # haywire/core/graph/types.py
 """Change reasons and batch results shared by the graph validation pipeline."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, Tuple
 
 
 class ChangeReason(Enum):
@@ -189,7 +190,7 @@ class ChangeReason(Enum):
 
         return 40
 
-    def has_higher_priority_than(self, other: "ChangeReason") -> bool:
+    def has_higher_priority_than(self, other: ChangeReason) -> bool:
         """Check if this reason has higher priority than another."""
         return self.get_priority() > other.get_priority()
 
@@ -201,13 +202,13 @@ class ValidationResult:
     graph: ChangeReason | None = None
     """Reason for whole graph change, if applicable"""
 
-    nodes: Dict[str, ChangeReason] = field(default_factory=dict)
+    nodes: dict[str, ChangeReason] = field(default_factory=dict)
     """Map of node_id -> reason for change"""
 
-    edges: Dict[str, ChangeReason] = field(default_factory=dict)
+    edges: dict[str, ChangeReason] = field(default_factory=dict)
     """Map of connection_uuid -> reason for change"""
 
-    canvas_sizes: Dict[str, Tuple[int, int]] = field(default_factory=dict)
+    canvas_sizes: dict[str, tuple[int, int]] = field(default_factory=dict)
     """Map of layout channel name -> new (width, height), for each channel resized in this batch."""
 
     validation_time_ms: float = 0.0

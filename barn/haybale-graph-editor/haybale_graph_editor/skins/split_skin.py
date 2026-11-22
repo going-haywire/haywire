@@ -5,12 +5,12 @@ The counterpart to :class:`StackedNodeSkin`: same ports, two bands instead of
 one column.
 """
 
+from __future__ import annotations
+
 from nicegui import ui
 
-from haywire.api import BaseNode, LayoutDirection, NodeWrapper, skin
-
-
 from haybale_graph_editor.skins.node_skin import NodeSkin
+from haywire.api import BaseNode, LayoutDirection, NodeWrapper, skin
 
 
 @skin(

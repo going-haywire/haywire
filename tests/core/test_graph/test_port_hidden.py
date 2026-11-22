@@ -11,7 +11,6 @@ from haywire.core.graph.editor import Editor
 from haywire.core.graph.scheduler import ThreadingTimerScheduler
 from haywire.core.graph.types import ChangeReason
 from haywire.core.undo.config import UndoConfig
-
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration

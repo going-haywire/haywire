@@ -1,5 +1,7 @@
 """scrypt password hashing + the ADR 0027 password policy."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire_studio.auth.passwords import (

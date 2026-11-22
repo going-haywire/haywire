@@ -10,12 +10,14 @@ clears the block before restoring, so a saved graph always wins — including
 when what it saved is the *absence* of a promotion.
 """
 
+from __future__ import annotations
+
 import pytest
 
+from haywire.barn.builtin.types import BOOL, INT
 from haywire.core.di.test_config import create_test_settings_registry
 from haywire.core.settings import NodeSettings, Promotable, setting
 from haywire.core.types.enums import PortType
-from haywire.barn.builtin.types import BOOL, INT
 
 pytestmark = [pytest.mark.unit, pytest.mark.core]
 

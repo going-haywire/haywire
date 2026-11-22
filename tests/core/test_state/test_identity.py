@@ -1,5 +1,7 @@
 """Unit tests for LibraryStateClassIdentity."""
 
+from __future__ import annotations
+
 from haywire.core.state.identity import LibraryStateClassIdentity
 
 

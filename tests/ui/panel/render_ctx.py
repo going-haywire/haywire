@@ -15,6 +15,8 @@ test in the file. ``conftest.render_ctx`` wraps this for tests that render
 inline.
 """
 
+from __future__ import annotations
+
 from typing import Any, cast
 from unittest.mock import MagicMock
 

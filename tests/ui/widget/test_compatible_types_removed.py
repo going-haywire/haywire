@@ -1,5 +1,7 @@
-from haywire.ui.widget.decorator import widget
+from __future__ import annotations
+
 from haywire.ui.widget.base import BaseWidget
+from haywire.ui.widget.decorator import widget
 
 
 def test_widget_decorator_no_longer_requires_compatible_types():
@@ -25,8 +27,9 @@ def test_widget_decorator_rejects_compatible_types():
 
 
 def test_widget_identity_has_no_compatible_types_field():
-    from haywire.ui.widget.identity import WidgetIdentity
     import dataclasses
+
+    from haywire.ui.widget.identity import WidgetIdentity
 
     field_names = {f.name for f in dataclasses.fields(WidgetIdentity)}
     assert "compatible_types" not in field_names

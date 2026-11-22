@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from haywire.core.session.session import Session
     from haywire.core.signals import Signal
-    from haywire.ui.surface import Surface
     from haywire.ui.panel.registry import PanelRegistry
+    from haywire.ui.surface import Surface
 
 logger = logging.getLogger(__name__)
 
@@ -44,10 +45,10 @@ class PanelRedrawCoordinator:
 
     def __init__(
         self,
-        registry: "PanelRegistry",
-        session: "Session",
+        registry: PanelRegistry,
+        session: Session,
         on_redraw: Callable[[], None],
-        surface_provider: Callable[[], list[type["Surface"]]],
+        surface_provider: Callable[[], list[type[Surface]]],
     ) -> None:
         """Construct (inert — no subscriptions until ``start``).
 
@@ -103,7 +104,7 @@ class PanelRedrawCoordinator:
         ``redraw_on`` signals across the host's current surfaces (each
         walked transitively through ``hosts=``)."""
         self._unsubscribe_all()
-        signal_types: set[type["Signal"]] = set()
+        signal_types: set[type[Signal]] = set()
         try:
             for surface in self._surface_provider():
                 signal_types |= self._registry.get_redraw_signals(surface)
@@ -116,12 +117,12 @@ class PanelRedrawCoordinator:
         for signal_type in signal_types:
             self._unsubscribes.append(self._session.subscribe(signal_type, handler))
 
-    def _make_redraw_handler(self) -> Callable[["Signal"], None]:
+    def _make_redraw_handler(self) -> Callable[[Signal], None]:
         """Closure subscribed to every redraw signal. The panel author
         already declared the intent via ``redraw_on=``; the handler just
         asks the host to redraw."""
 
-        def _on_signal(signal: "Signal") -> None:
+        def _on_signal(signal: Signal) -> None:
             del signal  # forwarded, not inspected
             self._on_redraw()
 

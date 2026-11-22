@@ -8,7 +8,7 @@ resolve — ``surface_by_id`` returns ``None`` and the caller logs.
 
 from __future__ import annotations
 
-from haywire.ui.surface.surface import Surface, _SURFACE_BY_ID
+from haywire.ui.surface.surface import _SURFACE_BY_ID, Surface
 
 
 def surface_by_id(id: str) -> type[Surface] | None:

@@ -7,12 +7,14 @@ its edges resolve real conversion chains and anything that cannot reach ``T`` is
 refused before the pin ever grows.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.barn.builtin.types import ADD, BOOL, FLOAT, INT, STRING
+from haywire.core.adapter.base import ReturnAdapter
 from haywire.core.adapter.factory import AdapterFactory
 from haywire.core.adapter.registry import AdapterRegistry
-from haywire.core.adapter.base import ReturnAdapter
 from haywire.core.graph.base import BaseGraph
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types import DataPort

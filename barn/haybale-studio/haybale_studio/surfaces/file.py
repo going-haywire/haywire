@@ -8,7 +8,7 @@ own ``poll(ctx)`` and rendered into the menu popup.
 
 from __future__ import annotations
 
-from typing import Any, ClassVar, Protocol, TYPE_CHECKING, runtime_checkable
+from typing import TYPE_CHECKING, Any, ClassVar, Protocol, runtime_checkable
 
 from haywire.api.workbench import Surface
 
@@ -29,7 +29,7 @@ class FileActions(Protocol):
 
     def reveal(
         self,
-        editor_cls: "type[BaseEditor]",
+        editor_cls: type[BaseEditor],
         binding_id: Any,
         label: str,
     ) -> None:

@@ -11,7 +11,6 @@ from nicegui import ui
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
 from haywire.core.macro import source
 from haywire.ui.components.graph.event_definitions import RevertToMacroEvent
-
 from tests.conftest import edit_route
 
 pytestmark = pytest.mark.unit

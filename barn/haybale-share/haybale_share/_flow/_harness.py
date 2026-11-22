@@ -24,9 +24,11 @@ reads as calm rather than alarming.
 from __future__ import annotations
 
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
+from haybale_share._flow._state import ShareFlow
+from haybale_share._flow.panels import panel_done, panel_preflight, panel_publish, panel_review
 from haywire.core.publishing.pipeline import (
     CommitResult,
     DepDrift,
@@ -40,9 +42,6 @@ from haywire.core.publishing.pipeline import (
     SharePipeline,
     VersionPlan,
 )
-
-from haybale_share._flow._state import ShareFlow
-from haybale_share._flow.panels import panel_done, panel_preflight, panel_publish, panel_review
 
 _SCRATCH = Path(tempfile.gettempdir()) / "haybale-share-harness"
 

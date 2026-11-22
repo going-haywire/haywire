@@ -1,5 +1,7 @@
 """A callback port with no subscription is absent: `None`, saved as null, dropped by pools (Q14, Q22)."""
 
+from __future__ import annotations
+
 import importlib
 from typing import Any, cast
 
@@ -49,7 +51,6 @@ class TestTypes:
 class TestPools:
     def test_absence_from_a_source_removes_its_entry(self, library_system):
         from haybale_core.types import POOLED
-
         from haywire.barn.builtin.types import CALLBACK
 
         pool = POOLED[CALLBACK].create_field()
@@ -63,7 +64,6 @@ class TestPools:
 
     def test_an_empty_name_is_a_subscription(self, library_system):
         from haybale_core.types import POOLED
-
         from haywire.barn.builtin.types import CALLBACK
 
         pool = POOLED[CALLBACK].create_field()
@@ -84,7 +84,6 @@ class TestPools:
 
     def test_absence_without_a_source_changes_nothing(self, library_system):
         from haybale_core.types import POOLED
-
         from haywire.barn.builtin.types import CALLBACK
 
         pool = POOLED[CALLBACK].create_field()
@@ -96,7 +95,6 @@ class TestPools:
 
     def test_a_pool_of_data_keeps_a_none_entry(self, library_system):
         from haybale_core.types import POOLED
-
         from haywire.barn.builtin.types import FLOAT
 
         pool = POOLED[FLOAT].create_field()

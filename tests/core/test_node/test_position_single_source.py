@@ -8,7 +8,6 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.graph.types import ChangeReason
-
 from tests.conftest import declare_differently
 
 pytestmark = pytest.mark.integration

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from haywire.api import (
     BOOL,
     CALLBACK,
@@ -7,8 +9,8 @@ from haywire.api import (
     BaseNode,
     ExecutionContext,
     NodeType,
-    ToggleWidget,
     TextWidget,
+    ToggleWidget,
     node,
 )
 

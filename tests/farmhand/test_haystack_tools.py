@@ -7,6 +7,8 @@ the ordering a direct-call test can't reproduce because library_system enables
 its AppStates once at session scope.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from tests.farmhand.conftest import call_tool_json

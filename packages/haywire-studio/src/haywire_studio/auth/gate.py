@@ -32,7 +32,6 @@ import logging
 from pathlib import Path
 
 from haywire.core.access.presence import record_agent_seen
-
 from haywire_studio.auth.cookies import COOKIE_NAME, verify_session
 from haywire_studio.auth.live import RosterCache
 

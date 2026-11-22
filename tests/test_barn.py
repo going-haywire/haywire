@@ -1,5 +1,7 @@
 """Tests for the barn repo-shape queries (leaf module, no haywire_studio deps)."""
 
+from __future__ import annotations
+
 import subprocess
 from pathlib import Path
 

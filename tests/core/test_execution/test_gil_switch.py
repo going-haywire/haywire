@@ -1,13 +1,15 @@
 """The thread switch interval is short while graphs run."""
 
+from __future__ import annotations
+
 import sys
 
 import pytest
+
 from haywire.core.di.config import LibrarySystemService
 from haywire.core.execution import gil_switch
 from haywire.core.execution.interpreter import Interpreter
 from haywire.core.graph.base import BaseGraph
-
 from tests.conftest import make_node
 
 

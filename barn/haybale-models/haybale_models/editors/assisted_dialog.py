@@ -7,13 +7,13 @@ from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
-from haywire.api.workbench import confirm_modal, hui
 from nicegui import ui
 
 from haybale_models.download import DownloadJob, DownloadQueue
 from haybale_models.needs import format_size
 from haybale_models.status import resource_status
 from haybale_models.upload_route import NAME_HEADER, UploadRoute, mount_upload_route
+from haywire.api.workbench import confirm_modal, hui
 
 if TYPE_CHECKING:
     from haybale_models.states.models_state import ModelsState

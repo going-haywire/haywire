@@ -7,13 +7,12 @@ from typing import Any, cast
 
 import pytest
 
+from haybale_graph_editor.states.graph_app_state import GraphAppState
 from haywire.core.graph.editor import Editor
 from haywire.core.signals import GraphHistoryChanged
 from haywire.core.undo.config import UndoConfig
 from haywire.core.undo.history_manager import HistoryManager
 from haywire.core.undo.origin import StepOrigin
-
-from haybale_graph_editor.states.graph_app_state import GraphAppState
 
 pytestmark = pytest.mark.unit
 
@@ -41,7 +40,8 @@ def test_a_session_origin_shortens_the_session_id():
 
 
 def test_a_level_route_credits_the_session():
-    from tests.graph_editor.test_graph_editor_levels import DOCUMENT_LEVEL, _editor as level_editor
+    from tests.graph_editor.test_graph_editor_levels import DOCUMENT_LEVEL
+    from tests.graph_editor.test_graph_editor_levels import _editor as level_editor
 
     editor, context, _ = level_editor()
 

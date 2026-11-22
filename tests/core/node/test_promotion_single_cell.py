@@ -9,6 +9,8 @@ outlet direction extends a green base.
 Later tasks (2, 3, 4, 5) append their own assertions here.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.errors import Refusal

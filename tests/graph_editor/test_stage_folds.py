@@ -54,7 +54,6 @@ def test_toggling_a_fold_on_a_stage_card_changes_the_node_and_the_patch_follows(
     library_system, nicegui_slot_context
 ) -> None:
     from haybale_testing.nodes.testbed.display_probe import DisplayProbeNode
-
     from haywire.barn.builtin.types import FLOAT
 
     factory = library_system.injector.get(SkinFactory)

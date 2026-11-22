@@ -9,9 +9,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from haybale_graph_editor.access import level_mode
+from haybale_graph_editor.editors import graph_editor as graph_editor_module
+from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor, _Level
 from haywire.core.access import LevelMode
 from haywire.core.graph.edit_route import EditRoute
-from haywire.core.undo.origin import StepOrigin
 from haywire.core.signals import (
     Copy,
     Cut,
@@ -25,9 +27,7 @@ from haywire.core.signals import (
     ToggleStageView,
     Undo,
 )
-from haybale_graph_editor.access import level_mode
-from haybale_graph_editor.editors import graph_editor as graph_editor_module
-from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor, _Level
+from haywire.core.undo.origin import StepOrigin
 
 pytestmark = pytest.mark.unit
 
@@ -119,9 +119,8 @@ def test_commands_no_op_before_the_first_draw():
 
 
 def _real_context(tier: Any) -> Any:
-    from haywire.core.session.context import SessionContext
-
     from haywire.core.access import set_access_resolver
+    from haywire.core.session.context import SessionContext
 
     set_access_resolver(lambda name: tier)
     ctx = SessionContext(session_id="s1", app=MagicMock())

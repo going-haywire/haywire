@@ -7,10 +7,12 @@ Component folders (registered in ``register_components``):
 Never imports ``torch``: variant choice comes from the consuming node's settings.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
-from haywire.api.workbench import EditorRegistry, FarmhandRegistry, StateRegistry, PanelRegistry
 from haywire.api import BaseLibrary, NodeRegistry, SettingsRegistry, TypeRegistry, WidgetRegistry, library
+from haywire.api.workbench import EditorRegistry, FarmhandRegistry, PanelRegistry, StateRegistry
 
 
 @library(

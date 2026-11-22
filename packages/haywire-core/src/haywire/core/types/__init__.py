@@ -6,25 +6,27 @@ This module provides infrastructure for defining and managing data types
 nodes through inlet/outlet connections.
 """
 
-from .interface import IType
-from .base import PrimitiveType, BaseType, CompoundType, WrapperType
+from __future__ import annotations
+
+from .base import BaseType, CompoundType, PrimitiveType, WrapperType
 from .decorator import type
-from .identity import DataTypeIdentity
 from .enums import LayoutDirection, NodeDetail, PortOrigin, PortType, Propagation, StoreStrategy
 from .event import Event
-from .fields import DataField, Drained, PrimitiveField, BaseField
-from .port import DataPort
-from .widget_model import WidgetModel
+from .fields import BaseField, DataField, Drained, PrimitiveField
+from .identity import DataTypeIdentity
+from .interface import IType
 from .pipe import Pipes
+from .port import DataPort
 from .registry import TypeRegistry
 from .utils import (
-    PortSpec,
     ElementTypeSpec,
+    PortSpec,
     create_port_spec,
-    serialize_element_type,
-    normalize_and_validate_default,
     is_cattrs_serializable,
+    normalize_and_validate_default,
+    serialize_element_type,
 )
+from .widget_model import WidgetModel
 from .wire import (
     WILDCARD,
     ArrowAt,

@@ -1,5 +1,7 @@
 """Image file IO: formats by extension and the codecs that read and write them."""
 
+from __future__ import annotations
+
 from haybale_image.io.codecs import EncodeOptions, encode_image, read_image
 from haybale_image.io.formats import (
     DEPTHS,

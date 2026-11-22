@@ -5,12 +5,14 @@ inspector one stays on ``NodeInspector``. With the display/action fork gone,
 the surface id is the only thing keeping them apart — which is precisely the
 double duty the Edge and Canvas splits had to resolve."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
-from haybale_graph_editor.panels.properties.introspect.node import NodeErrorsPanel
 from haybale_graph_editor.panels.graph.menu.selection.selection import (
     NodeErrorsSelectionMenuPanel as ContextMenuNodeErrorsPanel,
 )
+from haybale_graph_editor.panels.properties.introspect.node import NodeErrorsPanel
 from haybale_graph_editor.surfaces import NodeInspector, SelectionMenu
 
 

@@ -1,7 +1,9 @@
 """Navigation helper for harness Playwright tests."""
 
+from __future__ import annotations
+
 import time
-from typing import Callable
+from collections.abc import Callable
 
 from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Page

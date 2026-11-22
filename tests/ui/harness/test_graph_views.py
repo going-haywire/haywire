@@ -7,6 +7,8 @@ pins. Asserted in a browser because the edge geometry and the keep-alive behavio
 layout engine's and Quasar's.
 """
 
+from __future__ import annotations
+
 import time
 
 import pytest

@@ -12,6 +12,8 @@ EdgeLinkProbeNode and exposes drop-port / restore-port buttons that change
 ``port_count`` (0 removes the dynamic outlets, 2 restores them).
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

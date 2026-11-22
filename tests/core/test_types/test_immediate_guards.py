@@ -1,5 +1,7 @@
 """The immediate path's guards: an unchanged value tells the node nothing, and a loop ends after one pass."""
 
+from __future__ import annotations
+
 import logging
 from typing import Any, cast
 

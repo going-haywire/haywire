@@ -1,5 +1,7 @@
 """Merge Channels and Split Channels: their ADD slots grow audio ports when connected."""
 
+from __future__ import annotations
+
 import importlib
 from typing import Any
 

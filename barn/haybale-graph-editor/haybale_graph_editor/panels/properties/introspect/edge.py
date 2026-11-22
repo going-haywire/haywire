@@ -9,6 +9,9 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import route_for
+from haybale_graph_editor.surfaces import EdgeInspector
 from haywire.api.workbench import (
     AccessTier,
     BasePanel,
@@ -20,29 +23,25 @@ from haywire.api.workbench import (
 )
 from haywire.core.types.enums import Propagation
 
-from haybale_graph_editor.surfaces import EdgeInspector
-from haybale_graph_editor.states.edit_state import EditState
-from haybale_graph_editor.states.graph_app_state import route_for
-
 if TYPE_CHECKING:
-    from haywire.core.edge.edge_wrapper import EdgeWrapperState
     from haywire.api.workbench import SessionContext
+    from haywire.core.edge.edge_wrapper import EdgeWrapperState
 
 
-def _state_from_context(ctx: "SessionContext") -> "EdgeWrapperState | None":
+def _state_from_context(ctx: SessionContext) -> EdgeWrapperState | None:
     wrapper = ctx.data[EditState].active_edge
     return wrapper.get_state() if wrapper is not None else None
 
 
-def _has_edge_errors(state: "EdgeWrapperState | None") -> bool:
+def _has_edge_errors(state: EdgeWrapperState | None) -> bool:
     return state is not None and state.get_error() is not None
 
 
-def _has_edge_warnings(state: "EdgeWrapperState | None") -> bool:
+def _has_edge_warnings(state: EdgeWrapperState | None) -> bool:
     return state is not None and state.has_warning()
 
 
-def _render_edge_errors(state: "EdgeWrapperState") -> None:
+def _render_edge_errors(state: EdgeWrapperState) -> None:
     from haywire.core.errors.haywire_exception import HaywireException
     from haywire.ui.errors.error_info import error_render_detail
 
@@ -54,7 +53,7 @@ def _render_edge_errors(state: "EdgeWrapperState") -> None:
             hui.error_label(str(error)).classes("whitespace-pre-wrap break-words")
 
 
-def _render_edge_warnings(state: "EdgeWrapperState") -> None:
+def _render_edge_warnings(state: EdgeWrapperState) -> None:
     with ui.column().classes("w-full gap-1 py-2"):
         hui.section_label("Warnings")
         with hui.indented():
@@ -74,12 +73,12 @@ class EdgeErrorsPanel(BasePanel):
     """Edge errors panel for PropertiesEditor."""
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _has_edge_errors(_state_from_context(ctx))
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         state = _state_from_context(ctx)
@@ -101,12 +100,12 @@ class EdgeWarningsPanel(BasePanel):
     """Edge warnings panel for PropertiesEditor."""
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _has_edge_warnings(_state_from_context(ctx))
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         state = _state_from_context(ctx)
@@ -129,11 +128,11 @@ class EdgeStylePanel(BasePanel):
     """The connection's colour, line and arrow heads, for a connection type that lets you set them."""
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         edge = ctx.data[EditState].active_edge
         return edge is not None and edge.style is not None and route_for(ctx) is not None
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         edge = ctx.data[EditState].active_edge
         if edge is None or edge.style is None:
             return
@@ -164,13 +163,13 @@ class EdgePropagationPanel(BasePanel):
     """
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         edge = ctx.data[EditState].active_edge
         return edge is not None and edge.propagation is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         edge_wrapper = ctx.data[EditState].active_edge
@@ -227,12 +226,12 @@ class EdgeAdapterChainPanel(BasePanel):
     """
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return ctx.data[EditState].active_edge is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         edge_wrapper = ctx.data[EditState].active_edge
@@ -264,12 +263,12 @@ class EdgeAdapterChainPanel(BasePanel):
 )
 class EdgeStatsPanel(BasePanel):
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return ctx.data[EditState].active_edge is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         edge_wrapper = ctx.data[EditState].active_edge
@@ -296,12 +295,12 @@ class EdgeStatsPanel(BasePanel):
 )
 class EdgePathPanel(BasePanel):
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return ctx.data[EditState].active_edge is not None
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         edge_wrapper = ctx.data[EditState].active_edge

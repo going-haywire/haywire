@@ -1,7 +1,10 @@
 # tests/core/test_session/test_workspace_state.py
 """Tests for the simplified WorkspaceManager (dumb file I/O)."""
 
+from __future__ import annotations
+
 import json
+
 from haywire.core.session.workspace.manager import WorkspaceManager
 
 

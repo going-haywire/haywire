@@ -1,4 +1,7 @@
-from typing import Callable, Dict, Optional
+from __future__ import annotations
+
+from collections.abc import Callable
+
 from nicegui import ui
 
 from haywire.core.errors.haywire_exception import HaywireException
@@ -31,11 +34,11 @@ class UINodeCard:
         """Get the main NiceGUI card element."""
         return self.ui_card
 
-    def set_widget_instances(self, widget_instances: Dict[str, IWidget]):
+    def set_widget_instances(self, widget_instances: dict[str, IWidget]):
         """Set the widget instances mapping."""
         self.widget_instances = widget_instances
 
-    def get_widget_instance(self, element_id: str) -> Optional["IWidget"]:
+    def get_widget_instance(self, element_id: str) -> IWidget | None:
         """Get a widget instance by element ID."""
         return self.widget_instances.get(element_id)
 

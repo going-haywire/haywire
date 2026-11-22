@@ -28,15 +28,14 @@ from __future__ import annotations
 import logging
 import time
 from pathlib import Path
-from typing import Optional, Protocol
+from typing import Protocol
 
+from haybale_marketplace.editors._install_flow.copy import STEP_TITLES, STEPS
 from haywire.core.library.haybale import Haybale
 from haywire.core.library.install_type import InstallType
 from haywire.core.marketstall import check_require
 from haywire.ui.components.popup import Popup
 from haywire.ui.components.stepper import StepFlow
-
-from haybale_marketplace.editors._install_flow.copy import STEP_TITLES, STEPS
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +49,8 @@ class InstallSource(Protocol):
         self,
         install_spec: str,
         on_output,
-        source_pkg: Optional[Haybale] = None,
-        known_removals: Optional[list[str]] = None,
+        source_pkg: Haybale | None = None,
+        known_removals: list[str] | None = None,
     ) -> tuple[bool, str, object]: ...
 
     def get_installed_version(self, dist_name: str) -> str: ...
@@ -73,9 +72,9 @@ class InstallFlow(StepFlow):
         source: InstallSource,
         install_spec: str,
         name: str,
-        package: Optional[Haybale] = None,
+        package: Haybale | None = None,
         current_version: str = "",
-        popup: Optional[Popup] = None,
+        popup: Popup | None = None,
     ) -> None:
         super().__init__()
         self.source = source
@@ -250,7 +249,7 @@ class InstallFlow(StepFlow):
         await self.advance_from_installing()
 
 
-def resolve_current_version(source: InstallSource, package: Optional[Haybale]) -> str:
+def resolve_current_version(source: InstallSource, package: Haybale | None) -> str:
     """Installed version of *package*, or "" when it is not installed yet.
 
     Distinguishes an install from an update without the caller having to know

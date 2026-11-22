@@ -46,9 +46,9 @@ def test_current_os_maps_unknown_to_other() -> None:
 @pytest.mark.unit
 def test_haybale_supports_current_when_os_empty() -> None:
     """Empty os list = all platforms per §2.1."""
+    from haywire.core.library.haybale import Haybale
     from haywire.core.marketstall import platform as marketstall_platform
     from haywire.core.marketstall.platform import haybale_supports_current_os
-    from haywire.core.library.haybale import Haybale
 
     h = Haybale(name="x", version="0.0.1", os=[])
     with patch.object(marketstall_platform.platform, "system", return_value="Linux"):
@@ -57,9 +57,9 @@ def test_haybale_supports_current_when_os_empty() -> None:
 
 @pytest.mark.unit
 def test_haybale_supports_current_when_listed() -> None:
+    from haywire.core.library.haybale import Haybale
     from haywire.core.marketstall import platform as marketstall_platform
     from haywire.core.marketstall.platform import haybale_supports_current_os
-    from haywire.core.library.haybale import Haybale
 
     h = Haybale(name="x", version="0.0.1", os=["macos", "linux"])
     with patch.object(marketstall_platform.platform, "system", return_value="Linux"):
@@ -68,9 +68,9 @@ def test_haybale_supports_current_when_listed() -> None:
 
 @pytest.mark.unit
 def test_haybale_does_not_support_current_when_not_listed() -> None:
+    from haywire.core.library.haybale import Haybale
     from haywire.core.marketstall import platform as marketstall_platform
     from haywire.core.marketstall.platform import haybale_supports_current_os
-    from haywire.core.library.haybale import Haybale
 
     h = Haybale(name="x", version="0.0.1", os=["macos"])
     with patch.object(marketstall_platform.platform, "system", return_value="Linux"):
@@ -80,9 +80,9 @@ def test_haybale_does_not_support_current_when_not_listed() -> None:
 @pytest.mark.unit
 def test_haybale_on_other_os_blocked_from_all_declared() -> None:
     """`other` is the runtime sentinel; a declared list never includes 'other' so 'other' never matches."""
+    from haywire.core.library.haybale import Haybale
     from haywire.core.marketstall import platform as marketstall_platform
     from haywire.core.marketstall.platform import haybale_supports_current_os
-    from haywire.core.library.haybale import Haybale
 
     h = Haybale(name="x", version="0.0.1", os=["macos", "linux", "windows"])
     with patch.object(marketstall_platform.platform, "system", return_value="OpenBSD"):
@@ -92,9 +92,9 @@ def test_haybale_on_other_os_blocked_from_all_declared() -> None:
 @pytest.mark.unit
 def test_haybale_on_other_os_supported_when_empty() -> None:
     """Pure-Python library with no os declared still installs on unknown OSes."""
+    from haywire.core.library.haybale import Haybale
     from haywire.core.marketstall import platform as marketstall_platform
     from haywire.core.marketstall.platform import haybale_supports_current_os
-    from haywire.core.library.haybale import Haybale
 
     h = Haybale(name="x", version="0.0.1", os=[])
     with patch.object(marketstall_platform.platform, "system", return_value="Haiku"):

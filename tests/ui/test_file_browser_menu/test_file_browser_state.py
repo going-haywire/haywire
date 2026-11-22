@@ -1,7 +1,8 @@
 """FileBrowserState — per-session, holds transient right-clicked file."""
 
-from pathlib import Path
+from __future__ import annotations
 
+from pathlib import Path
 
 from tests.conftest import attach_stub_session
 

@@ -1,10 +1,12 @@
 """An ARRAY port takes its element's wire type and colour, and an array outlet on a data wire
 allows several links like any data outlet."""
 
+from __future__ import annotations
+
 import pytest
 
-from haywire.core.graph.base import BaseGraph
 from haywire.barn.builtin.wires import DataWire
+from haywire.core.graph.base import BaseGraph
 
 pytestmark = pytest.mark.integration
 

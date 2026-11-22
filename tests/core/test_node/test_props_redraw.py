@@ -5,8 +5,9 @@ build and requests a debounced redraw on change. Layout fields stay on the
 NODE_MOVED path; graph-load restores never fire redraws.
 """
 
+from __future__ import annotations
+
 import importlib
-from typing import List
 
 import pytest
 
@@ -21,7 +22,7 @@ def _add_node(graph_obj: BaseGraph):
     return graph_obj.create_node_wrapper(PrintProbeNode.class_identity.registry_key, position=(100, 100))
 
 
-def _redraw_results(results: List[ValidationResult], node_id: str) -> List[ValidationResult]:
+def _redraw_results(results: list[ValidationResult], node_id: str) -> list[ValidationResult]:
     """Results in which *node_id* was marked with NODE_REDRAW_REQUESTED."""
     return [r for r in results if r.nodes.get(node_id) == ChangeReason.NODE_REDRAW_REQUESTED]
 
@@ -71,7 +72,7 @@ class TestPropsChangeTriggersRedraw:
         graph_obj = graph_with_library_system
         wrapper = _add_node(graph_obj)
 
-        results: List[ValidationResult] = []
+        results: list[ValidationResult] = []
         graph_obj.subscribe_to_validation(results.append)
 
         wrapper.node.props.collapsed = True
@@ -95,7 +96,7 @@ class TestPropsChangeTriggersRedraw:
         assert set(values) == set(NodeProperties.REDRAW_FIELDS)
 
         for field_name, value in values.items():
-            results: List[ValidationResult] = []
+            results: list[ValidationResult] = []
             graph_obj.subscribe_to_validation(results.append)
             setattr(wrapper.node.props, field_name, value)
             graph_obj.unsubscribe_from_validation(results.append)
@@ -108,7 +109,7 @@ class TestPropsChangeTriggersRedraw:
         graph_obj = graph_with_library_system
         wrapper = _add_node(graph_obj)
 
-        results: List[ValidationResult] = []
+        results: list[ValidationResult] = []
         graph_obj.subscribe_to_validation(results.append)
 
         # Must differ from the resolved value or __set__ short-circuits on
@@ -126,7 +127,7 @@ class TestPropsChangeTriggersRedraw:
         graph_obj = graph_with_library_system
         wrapper = _add_node(graph_obj)
 
-        results: List[ValidationResult] = []
+        results: list[ValidationResult] = []
         graph_obj.subscribe_to_validation(results.append)
 
         wrapper.node.props.color_override = "#ff0000ff"
@@ -139,7 +140,7 @@ class TestPropsChangeTriggersRedraw:
         graph_obj = graph_with_library_system
         wrapper = _add_node(graph_obj)
 
-        results: List[ValidationResult] = []
+        results: list[ValidationResult] = []
         graph_obj.subscribe_to_validation(results.append)
 
         wrapper.node.props.posX = 500.0
@@ -159,7 +160,7 @@ class TestPropsChangeTriggersRedraw:
         from haywire.core.graph.scheduler import SyncScheduler
 
         g2 = BaseGraph(filestem="G2", validation_scheduler=SyncScheduler())
-        results: List[ValidationResult] = []
+        results: list[ValidationResult] = []
         g2.subscribe_to_validation(results.append)
         assert g2.load_from_dict(data) is True
 
@@ -174,7 +175,7 @@ class TestPropsChangeTriggersRedraw:
         # Simulate a hot-reload style rebuild: fresh instance, fresh bags.
         wrapper.build(wrapper.node._to_dict())
 
-        results: List[ValidationResult] = []
+        results: list[ValidationResult] = []
         graph_obj.subscribe_to_validation(results.append)
         wrapper.node.props.locked = True
 
@@ -191,7 +192,7 @@ class TestPropsChangeTriggersRedraw:
 
         wrapper._subscribe_props_redraw()  # second attach on the SAME instance
 
-        results: List[ValidationResult] = []
+        results: list[ValidationResult] = []
         graph_obj.subscribe_to_validation(results.append)
         wrapper.node.props.locked = True
 
@@ -209,7 +210,7 @@ class TestPropsChangeTriggersRedraw:
         wrapper = _add_node(graph_obj)
         assert wrapper.state.has_test_passed is False
 
-        results: List[ValidationResult] = []
+        results: list[ValidationResult] = []
         graph_obj.subscribe_to_validation(results.append)
         # A REDRAW_FIELDS prop, deliberately: color_override rides the
         # style-write path and would prove nothing about the subscription.

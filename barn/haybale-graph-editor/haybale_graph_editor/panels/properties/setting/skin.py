@@ -5,9 +5,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.api.workbench import BasePanel, CanvasSettingsSurface, PanelLayout, hui, panel, render_schema
-
 from haybale_graph_editor.settings.node_skin_settings import NodeSkinSettings
+from haywire.api.workbench import BasePanel, CanvasSettingsSurface, PanelLayout, hui, panel, render_schema
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -26,7 +25,7 @@ class NodeSkinSettingsPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()

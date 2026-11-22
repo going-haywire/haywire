@@ -17,6 +17,8 @@ before asserting anything about the edge — a pin that did not move would make
 the edge check vacuous.
 """
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 

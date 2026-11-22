@@ -10,10 +10,7 @@ turn, to follow a change of the graph's layout direction. Both need EDIT. See
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
-
-from haywire.core.graph.arrange import ArrangeScope
-from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
+from typing import TYPE_CHECKING
 
 from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.surfaces import (
@@ -22,12 +19,14 @@ from haybale_graph_editor.surfaces import (
     SelectionMenu,
     SelectionSelectMenu,
 )
+from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
+from haywire.core.graph.arrange import ArrangeScope
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
 
 
-def _start_node(ctx: "SessionContext") -> Optional[str]:
+def _start_node(ctx: SessionContext) -> str | None:
     """The id of the one selected node, if it exists in the active graph and no edge is selected."""
     edit = ctx.data[EditState]
     graph = edit.active_graph
@@ -37,7 +36,7 @@ def _start_node(ctx: "SessionContext") -> Optional[str]:
     return node_id if graph.get_node_wrapper(node_id) is not None else None
 
 
-def _start_nodes(ctx: "SessionContext") -> list[str]:
+def _start_nodes(ctx: SessionContext) -> list[str]:
     """The ids of the selected nodes that exist in the active graph, sorted."""
     edit = ctx.data[EditState]
     graph = edit.active_graph
@@ -46,7 +45,7 @@ def _start_nodes(ctx: "SessionContext") -> list[str]:
     return sorted(n for n in edit.selected_nodes if graph.get_node_wrapper(n) is not None)
 
 
-def _selection_nonempty(ctx: "SessionContext") -> bool:
+def _selection_nonempty(ctx: SessionContext) -> bool:
     edit = ctx.data[EditState]
     return bool(edit.selected_nodes or edit.selected_edges)
 
@@ -74,15 +73,15 @@ class _FlowHostPanel(BasePanel):
     row_icon: str
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _start_node(ctx) is not None
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             with hui.submenu_row(self.row_label, icon=self.row_icon):
                 self.render_surface(self.submenu, ctx)
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         """The static form, greyed — a row that does not expand."""
         if _selection_nonempty(ctx):
             with layout:
@@ -98,17 +97,17 @@ class _FlowVerbPanel(BasePanel):
     row_icon: str
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return _start_node(ctx) is not None
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         node_id = _start_node(ctx)
         if node_id is None:
             return
         with layout:
             hui.menu_row(self.row_label, icon=self.row_icon, on_click=lambda: self._apply(node_id))
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         if _start_nodes(ctx):
             with layout:
                 hui.menu_row(self.row_label, icon=self.row_icon, enabled=False)
@@ -143,7 +142,7 @@ class LayoutSelectionMenuPanel(_FlowHostPanel):
     """
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return bool(_start_nodes(ctx))
 
     submenu = SelectionLayoutMenu
@@ -165,10 +164,10 @@ class ArrangeFlowMenuPanel(_ArrangeMenuPanel):
     """
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return bool(_start_nodes(ctx))
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         node_ids = _start_nodes(ctx)
         if not node_ids:
             return
@@ -269,15 +268,15 @@ class _RotateMenuPanel(BasePanel):
     row_icon: str
 
     @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
+    def poll(cls, ctx: SessionContext) -> bool:
         return len(_start_nodes(ctx)) >= 2
 
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw(self, ctx: SessionContext, layout: PanelLayout) -> None:
         with layout:
             # The menu stays open, so the next turn is one more click.
             hui.menu_row(self.row_label, icon=self.row_icon, on_click=self._rotate, closes=False)
 
-    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+    def draw_disabled(self, ctx: SessionContext, layout: PanelLayout) -> None:
         if _start_nodes(ctx):
             with layout:
                 hui.menu_row(self.row_label, icon=self.row_icon, enabled=False)

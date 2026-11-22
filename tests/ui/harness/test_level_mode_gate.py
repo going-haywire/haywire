@@ -13,8 +13,8 @@ import pytest
 from playwright.sync_api import Locator, Page
 
 from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
-from tests.ui.harness.test_hover_tip import install_hover_tips
 from tests.ui.harness.probe import attr, box
+from tests.ui.harness.test_hover_tip import install_hover_tips
 
 _PATH = "/graph-level-mode"
 

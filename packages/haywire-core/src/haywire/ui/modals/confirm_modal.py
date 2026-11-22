@@ -5,12 +5,13 @@ Lightweight by design: stacks cleanly over other popups (transparent backdrop
 by default), no inputs, no validation.
 """
 
-from typing import Callable, Optional
+from __future__ import annotations
+
+from collections.abc import Callable
 
 from nicegui import ui
 
 from haywire.ui import elements as hui
-
 from haywire.ui.components.popup import Popup
 
 
@@ -21,7 +22,7 @@ def confirm_modal(
     confirm_label: str = "Confirm",
     danger: bool = False,
     on_confirm: Callable[[], None],
-    on_cancel: Optional[Callable[[], None]] = None,
+    on_cancel: Callable[[], None] | None = None,
 ) -> Popup:
     """Open a confirmation modal and return the opened :class:`Popup`.
 

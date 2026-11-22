@@ -15,8 +15,9 @@ Example::
 
 from __future__ import annotations
 
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
-from typing import Any, Iterator, Mapping
+from typing import Any
 
 from haybale_studio.questionnaire.expressions import Expression, ExpressionError, parse_expression
 

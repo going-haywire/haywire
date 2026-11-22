@@ -29,7 +29,7 @@ class SettingDescriptor:
     _attr_name: str = ""
     """Short attribute name on the owning class, assigned by ``__set_name__``."""
 
-    _owner_cls: "type | None" = None
+    _owner_cls: type | None = None
     """Class this descriptor was declared on, recorded by ``__set_name__``."""
 
     # Set by constructor (subclass __init__)

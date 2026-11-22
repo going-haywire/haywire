@@ -48,7 +48,6 @@ from haywire.ui.components.graph.event_definitions import (
     UserDragStartEvent,
     UserResizeEndEvent,
 )
-
 from tests.graph_editor.test_graph_editor_lock import _locked_editor
 
 from .test_graph_editor_levels import _assert_selection_dropped, _select, _two_tabs

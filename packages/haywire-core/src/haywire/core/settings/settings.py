@@ -26,11 +26,9 @@ Supports:
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from types import MappingProxyType
-from typing import Any, Callable, ClassVar, NamedTuple, TypeVar, TYPE_CHECKING
-
-from typing_extensions import dataclass_transform
+from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, dataclass_transform
 
 from haywire.core.types.base import BaseType
 from haywire.core.types.enums import PortType, ShowWidgetStrategy, default_show_widget
@@ -40,13 +38,13 @@ from haywire.core.types.interface import IType
 from .descriptor import UiState, persistent_setting, setting
 
 if TYPE_CHECKING:
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.library.identity import LibraryIdentity
+    from haywire.core.node.data import NodeData
+    from haywire.core.settings.decorator import SettingsClassIdentity
     from haywire.core.settings.registry import SettingsRegistry
     from haywire.core.settings.value import SettingValue
-    from haywire.core.settings.decorator import SettingsClassIdentity
-    from haywire.core.library.identity import LibraryIdentity
     from haywire.core.types.fields import DataField
-    from haywire.core.node.data import NodeData
-    from haywire.core.graph.base import BaseGraph
 
 logger = logging.getLogger(__name__)
 
@@ -88,15 +86,15 @@ class Settings:
     # Class-level fallback for subclasses (FrameworkSettings, LibrarySettings)
     # whose registration machinery writes cls._registry. __init__ shadows this
     # with an instance attribute when constructed.
-    _registry: "SettingsRegistry | None" = None
+    _registry: SettingsRegistry | None = None
     _namespace: ClassVar[str] = ""
     # Each class caches its own map in _settings_descriptors().
-    _settings_descriptor_map: ClassVar["Mapping[str, setting] | None"] = None
+    _settings_descriptor_map: ClassVar[Mapping[str, setting] | None] = None
     # Set by the settings decorator on registerable subclasses (Library/
     # FrameworkSettings). Declared here so SettingsRegistry can bind
     # BaseRegistry[Settings] against the RegisteredClass structural bound.
-    class_identity: ClassVar["SettingsClassIdentity"]
-    class_library: ClassVar["LibraryIdentity"]
+    class_identity: ClassVar[SettingsClassIdentity]
+    class_library: ClassVar[LibraryIdentity]
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Reject field names that would collide with the framework's own members.
@@ -129,13 +127,13 @@ class Settings:
                     f"field of that name would shadow it. Choose a different field name."
                 )
 
-    def __init__(self, registry: "SettingsRegistry | None" = None, node: "NodeData | None" = None) -> None:
+    def __init__(self, registry: SettingsRegistry | None = None, node: NodeData | None = None) -> None:
         # subscribe() bookkeeping: callback -> [(cell, adapter), ...] so
         # unsubscribe/cleanup can detach the per-field cell adapters.
-        self._subscriptions: dict[Callable, list[tuple["DataField", Callable]]] = {}
+        self._subscriptions: dict[Callable, list[tuple[DataField, Callable]]] = {}
         # One cell per declared field, built lazily by _cell_for. It holds the
         # field's value — the same cell a promoted port uses.
-        self._cells: dict[str, "DataField"] = {}
+        self._cells: dict[str, DataField] = {}
         # The set-or-unset opinion: storage_key in _set_keys iff locally set.
         # A cell always holds a value, so membership there cannot say it.
         self._set_keys: set[str] = set()
@@ -152,11 +150,11 @@ class Settings:
         # Promotion channel: callback(name, direction | None) when a field is
         # promoted, demoted, or restored from a saved graph with another direction.
         self._promotion_listeners: list[Callable[[str, PortType | None], None]] = []
-        self._registry: "SettingsRegistry | None" = registry
+        self._registry: SettingsRegistry | None = registry
         self._cleaned_up: bool = False
         # Back-reference to the owning node (None for standalone Framework/Library
         # settings). Lets promotion resolve node.ports from a bag.
-        self._node: "NodeData | None" = node
+        self._node: NodeData | None = node
         # The source of truth for which fields are promoted to a data port and
         # in which direction, keyed by storage_key. Unlike _set_keys/_ui_states
         # it serializes, into this bag's "promoted" block, and a promoted port
@@ -173,7 +171,7 @@ class Settings:
                 self._promoted_keys[_descriptor.storage_key] = Promotion(_seed)
         # Graph-mirror wiring: storage_key -> (src cell, adapter) for fields
         # synced cell-to-cell against the owning graph's bag.
-        self._graph_mirror_adapters: dict[str, tuple["DataField", Callable]] = {}
+        self._graph_mirror_adapters: dict[str, tuple[DataField, Callable]] = {}
 
     def _is_set(self, descriptor: setting) -> bool:
         """Return True if this field has a local instance override."""
@@ -317,7 +315,7 @@ class Settings:
 
         demote_setting(self._node, storage_key)
 
-    def _owning_graph(self) -> "BaseGraph | None":
+    def _owning_graph(self) -> BaseGraph | None:
         """The graph this bag can reach: its own (GraphSettings) or its
         node's (node → wrapper → graph). None for standalone bags."""
         graph_obj = getattr(self, "_graph", None)
@@ -330,7 +328,7 @@ class Settings:
             return None
         return getattr(wrapper, "graph", None)
 
-    def _graph_src_cell(self, descriptor: setting) -> "DataField | None":
+    def _graph_src_cell(self, descriptor: setting) -> DataField | None:
         """The live cell of a graph mirror's src field on the owning graph's
         bag — or None when detached (standalone bag, node not in a graph,
         graph lacks the src bag). Detached fields hold the descriptor
@@ -351,7 +349,7 @@ class Settings:
             return None
         return bag._cell_for(src)
 
-    def _cell_for(self, descriptor: setting) -> "DataField":
+    def _cell_for(self, descriptor: setting) -> DataField:
         """Return this field's DataField cell — the read surface for its value.
 
         A wired persistent field (FrameworkSettings/LibrarySettings) borrows
@@ -486,7 +484,7 @@ class Settings:
         src_cell.on_changed.append(_adapter)
         self._graph_mirror_adapters[key] = (src_cell, _adapter)
 
-    def _on_field_change(self, full_key: str, value: "SettingValue") -> None:
+    def _on_field_change(self, full_key: str, value: SettingValue) -> None:
         """
         Dispatched by the registry when a mirrored field's effective value changes.
 
@@ -519,7 +517,7 @@ class Settings:
         is logged and does not stop the others."""
         if callback in self._subscriptions:
             return
-        adapters: list[tuple["DataField", Callable]] = []
+        adapters: list[tuple[DataField, Callable]] = []
         for attr_name, descriptor in type(self)._settings_descriptors().items():
             cell = self._cell_for(descriptor)
 
@@ -911,10 +909,7 @@ class Settings:
         return cached
 
 
-_BagT = TypeVar("_BagT", bound="Settings")
-
-
-def bag(settings_cls: "type[_BagT]") -> _BagT:
+def bag[BagT: Settings](settings_cls: type[BagT]) -> BagT:
     """Declare a settings bag on a node with a correctly-typed accessor.
 
     ::
@@ -938,7 +933,7 @@ def bag(settings_cls: "type[_BagT]") -> _BagT:
     return settings_cls  # type: ignore[return-value]
 
 
-def settings_fields(bag_or_cls: "Settings | type[Settings]") -> Mapping[str, setting]:
+def settings_fields(bag_or_cls: Settings | type[Settings]) -> Mapping[str, setting]:
     """Every ``setting`` descriptor on a bag, by field name, declaration order.
 
     The supported way to iterate a bag's fields — accepts an instance or the

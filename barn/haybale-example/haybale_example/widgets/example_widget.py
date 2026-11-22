@@ -1,6 +1,8 @@
-from typing import Any
-from nicegui import ui
+from __future__ import annotations
 
+from typing import Any
+
+from nicegui import ui
 
 from haywire.api import BaseWidget, BindingConverter, Converters, widget
 

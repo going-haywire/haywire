@@ -10,7 +10,7 @@ available from that browser.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from nicegui import ui
 
@@ -33,10 +33,10 @@ class ShareEditor(BaseEditor):
 
     def __init__(self, wrapper):
         super().__init__(wrapper)
-        self._body: Optional[ui.column] = None
-        self._context: Optional["SessionContext"] = None
+        self._body: ui.column | None = None
+        self._context: SessionContext | None = None
 
-    def draw(self, context: "SessionContext", container: "Element") -> None:
+    def draw(self, context: SessionContext, container: Element) -> None:
         self._context = context
         with container:
             with ui.column().classes("w-full h-full gap-0"):

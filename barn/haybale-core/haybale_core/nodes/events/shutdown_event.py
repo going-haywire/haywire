@@ -4,6 +4,8 @@ Shutdown Event Node.
 Triggered when the interpreter is shutting down, allowing for cleanup operations.
 """
 
+from __future__ import annotations
+
 from haywire.api import EXEC, FLOAT, BaseNode, ExecutionContext, NodeType, SystemEvent, SystemEventType, node
 
 

@@ -1,5 +1,7 @@
 """HaystackEditor brings forward the document holding a revealed graph, opening its tab if needed."""
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from typing import cast
 from unittest.mock import MagicMock

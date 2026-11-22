@@ -1,5 +1,7 @@
 """Pure string/tuple helpers for parsing and comparing PEP 440-ish version specs."""
 
+from __future__ import annotations
+
 import re
 
 from packaging.version import InvalidVersion, Version

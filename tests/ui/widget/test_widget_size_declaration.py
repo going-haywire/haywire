@@ -13,8 +13,9 @@ The browser-side proof that the floor actually drops lives in
 tests (declaration -> resolution -> stamped element).
 """
 
-import dataclasses
+from __future__ import annotations
 
+import dataclasses
 from typing import Any, cast
 
 import pytest
@@ -134,7 +135,7 @@ class _StubElement:
         self._props: dict = {}
         self.styles: list[str] = []
 
-    def style(self, decls: str) -> "_StubElement":
+    def style(self, decls: str) -> _StubElement:
         self.styles.append(decls)
         return self
 

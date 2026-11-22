@@ -19,6 +19,8 @@ Resolved once at widget-build time rather than checked inside
 ``DataPort.set_value``, which every edge-driven write crosses every frame.
 """
 
+from __future__ import annotations
+
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -31,7 +33,6 @@ from haywire.core.node.promotion import promote_setting
 from haywire.core.types.enums import PortType
 from haywire.ui.panel.setting_widget_model import SettingWidgetModel
 from haywire.ui.widget.factory import _widget_model_for
-
 from tests.conftest import edit_route
 
 SETTINGS_NODE = "haybale-testing:node:SettingsProbeNode"

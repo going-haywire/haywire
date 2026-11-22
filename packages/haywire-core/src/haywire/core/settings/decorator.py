@@ -7,8 +7,10 @@ Decorators for the Haywire settings system.
 """
 
 from __future__ import annotations
+
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 from haywire.core.library.utils import SETTING, derive_library_identity, reg_key
 from haywire.core.registry.identity import BaseIdentity
@@ -61,9 +63,9 @@ def settings(
 
     def decorator(inner_cls: _TSettings) -> _TSettings:
         # Lazy import to avoid circular dependency (settings_library/settings_framework import descriptors)
-        from haywire.core.settings.settings_library import LibrarySettings  # noqa: PLC0415
-        from haywire.core.settings.settings_framework import FrameworkSettings  # noqa: PLC0415
         from haywire.core.settings.descriptor import persistent_setting  # noqa: PLC0415
+        from haywire.core.settings.settings_framework import FrameworkSettings  # noqa: PLC0415
+        from haywire.core.settings.settings_library import LibrarySettings  # noqa: PLC0415
 
         if not issubclass(inner_cls, (LibrarySettings, FrameworkSettings)):
             raise TypeError(

@@ -1,5 +1,7 @@
 """FlowMeterSettings — whether the haystack rows of running graphs show flow meters."""
 
+from __future__ import annotations
+
 from haywire.api import BOOL, LibrarySettings, setting, settings
 
 

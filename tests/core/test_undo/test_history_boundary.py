@@ -1,5 +1,7 @@
 """``HistoryManager`` records a failing edit, undo or redo in the ledger once; a refused edit not at all."""
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.errors import Refusal

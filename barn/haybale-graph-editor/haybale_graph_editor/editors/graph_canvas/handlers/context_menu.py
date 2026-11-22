@@ -20,35 +20,37 @@ framework's decision rather than the skin's. The one **declarative** path is
 framework knows nothing about; its id may not resolve, and then nothing opens.
 """
 
+from __future__ import annotations
+
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
-from haywire.api.workbench import LevelMode, PanelRegistry, SessionContext
-from haywire.core.session.session import Session
-from haywire.ui.panel.context_menu_base import BaseContextMenuProvider
-from haywire.ui.surface import surface_by_id
-
-from haywire.ui.components.graph.event_definitions import (
-    ContextMenuCanvasEvent,
-    ContextMenuEdgeEvent,
-    ContextMenuSelectedEvent,
-    ContextMenuSurfaceEvent,
-    ContextMenuPortEvent,
-    SyncEdgeConnectResumeEvent,
-)
+from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_event
 from haybale_graph_editor.editors.graph_canvas.handlers.selection import (
     copy_selection_event,
     remove_selection_event,
 )
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
 from haybale_graph_editor.states.edit_state import EditState
-from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_event
+from haywire.api.workbench import LevelMode, PanelRegistry, SessionContext
+from haywire.core.session.session import Session
+from haywire.ui.components.graph.event_definitions import (
+    ContextMenuCanvasEvent,
+    ContextMenuEdgeEvent,
+    ContextMenuPortEvent,
+    ContextMenuSelectedEvent,
+    ContextMenuSurfaceEvent,
+    SyncEdgeConnectResumeEvent,
+)
+from haywire.ui.panel.context_menu_base import BaseContextMenuProvider
+from haywire.ui.surface import surface_by_id
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapper
-    from haywire.core.graph.edit_route import EditRoute
     from haywire.core.graph.arrange import ArrangeScope
+    from haywire.core.graph.edit_route import EditRoute
     from haywire.core.graph.stacking import Restack
     from haywire.core.types.enums import Propagation
 
@@ -90,28 +92,28 @@ class IContextMenuProvider:
 
     def on_canvas_context(
         self,
-        pos: Tuple[float, float],
-        canvas_pos: Tuple[float, float],
-        pending_connection: Optional[dict] = None,
+        pos: tuple[float, float],
+        canvas_pos: tuple[float, float],
+        pending_connection: dict | None = None,
     ) -> None:
         """User right-clicked on empty canvas space."""
         ...
 
     def on_edge_context(
         self,
-        pos: Tuple[float, float],
+        pos: tuple[float, float],
         edge_id: str,
         edge: Any,
         state: Any,
         at_sink_end: bool = False,
-        canvas_pos: Optional[Tuple[float, float]] = None,
+        canvas_pos: tuple[float, float] | None = None,
     ) -> None:
         """User right-clicked on an edge."""
         ...
 
     def on_selection_context(
         self,
-        pos: Tuple[float, float],
+        pos: tuple[float, float],
         nodes: list,
         edges: list,
     ) -> None:
@@ -120,7 +122,7 @@ class IContextMenuProvider:
 
     def on_surface_context(
         self,
-        pos: Tuple[float, float],
+        pos: tuple[float, float],
         node_id: str,
         surface_id: str,
     ) -> None:
@@ -129,7 +131,7 @@ class IContextMenuProvider:
 
     def on_port_context(
         self,
-        pos: Tuple[float, float],
+        pos: tuple[float, float],
         node_id: str,
         port_id: str,
     ) -> None:
@@ -149,9 +151,9 @@ class _OpenMenuContext:
     Created when _open_menu opens a popup; cleared on popup close.
     """
 
-    click_pos: Tuple[float, float]
-    canvas_pos: Optional[Tuple[float, float]] = None
-    pending_connection: Optional[dict] = None
+    click_pos: tuple[float, float]
+    canvas_pos: tuple[float, float] | None = None
+    pending_connection: dict | None = None
     edge_state: Any = None
     edge_reconnect_end: bool = False
 
@@ -181,18 +183,18 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
     def __init__(
         self,
-        context: "SessionContext",
-        session: "Session",
-        panel_registry: "PanelRegistry",
-        on_emit_event: Optional[Callable] = None,
-        on_emit_sync_event: Optional[Callable] = None,
-        canvas_vue: Optional[Any] = None,
+        context: SessionContext,
+        session: Session,
+        panel_registry: PanelRegistry,
+        on_emit_event: Callable | None = None,
+        on_emit_sync_event: Callable | None = None,
+        canvas_vue: Any | None = None,
     ):
         super().__init__(context, session, panel_registry)
         self._on_emit_event = on_emit_event
         self._on_emit_sync_event = on_emit_sync_event
         self._canvas_vue = canvas_vue
-        self._open_ctx: Optional[_OpenMenuContext] = None  # per-popup gesture state
+        self._open_ctx: _OpenMenuContext | None = None  # per-popup gesture state
 
     def close_open_menu(self) -> None:
         """Dismiss the open menu — see ``BaseContextMenuProvider``.
@@ -208,8 +210,8 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
     def _open_menu(
         self,
         surface: type,  # type[Surface] but loose to avoid a circular import
-        pos: Tuple[float, float],
-        on_close: Optional[Callable[[], None]] = None,
+        pos: tuple[float, float],
+        on_close: Callable[[], None] | None = None,
     ) -> None:
         """Canvas-specific _open_menu: manage gesture state, then delegate to base.
 
@@ -461,7 +463,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         """True when the active edge has an end with a pin a reconnect drag can start from."""
         return self._reconnect_anchor() is not None
 
-    def _reconnect_anchor(self) -> Optional[Tuple[str, str, str]]:
+    def _reconnect_anchor(self) -> tuple[str, str, str] | None:
         """The ``(node_id, port_id, end)`` a reconnect drag starts from, or ``None``.
 
         The end away from the click anchors the drag and the clicked end follows
@@ -506,7 +508,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         x, y = self._open_ctx.canvas_pos
         self._emit(SplitEdgeWithRerouteEvent(edge_id=edge_id, position={"x": x, "y": y}))
 
-    def edge_propagation(self, edge_id: str) -> "Propagation | None":
+    def edge_propagation(self, edge_id: str) -> Propagation | None:
         """Return the propagation mode in effect on edge ``edge_id``, or ``None`` if no such edge exists."""
         wrapper = self._active_edge_wrapper(edge_id)
         return None if wrapper is None else wrapper.propagation
@@ -516,7 +518,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         wrapper = self._active_edge_wrapper(edge_id)
         return wrapper is not None and wrapper.locked_propagation is not None
 
-    def toggle_edge_propagation(self, edge_id: str) -> "Propagation | None":
+    def toggle_edge_propagation(self, edge_id: str) -> Propagation | None:
         """Switch an edge between lazy and eager, redraw it, and report the new mode.
 
         Decided here, on each click, for the same reason as
@@ -537,7 +539,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
             editor.set_edge_propagation(edge_id, wrapper.propagation.toggled())
         return wrapper.propagation
 
-    def _active_edge_wrapper(self, edge_id: str) -> "EdgeWrapper | None":
+    def _active_edge_wrapper(self, edge_id: str) -> EdgeWrapper | None:
         graph = self._context.data[EditState].active_graph
         return None if graph is None else graph.get_edge_wrapper(edge_id)
 
@@ -611,7 +613,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
                     bags.append(props)
         return bags
 
-    def _route(self) -> "EditRoute | None":
+    def _route(self) -> EditRoute | None:
         from haybale_graph_editor.states.graph_app_state import route_for
 
         return route_for(self._context)
@@ -724,20 +726,20 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         edit = self._context.data[EditState]
         self._emit(RemoveFromStageEvent(node_ids=list(edit.selected_nodes)))
 
-    def restack_selection(self, how: "Restack") -> None:
+    def restack_selection(self, how: Restack) -> None:
         """Emit RestackEvent for the whole selection; the canvas the menu opened on applies it."""
         from haywire.ui.components.graph.event_definitions import RestackEvent
 
         edit = self._context.data[EditState]
         self._emit(RestackEvent(node_ids=list(edit.selected_nodes), how=how.value))
 
-    def arrange_from(self, node_ids: list[str], scope: "ArrangeScope") -> None:
+    def arrange_from(self, node_ids: list[str], scope: ArrangeScope) -> None:
         """Emit ArrangeNodesEvent from ``node_ids``; the canvas the menu opened on applies it."""
         from haywire.ui.components.graph.event_definitions import ArrangeNodesEvent
 
         self._emit(ArrangeNodesEvent(node_ids=list(node_ids), scope=scope.value))
 
-    def select_from(self, node_id: str, scope: "ArrangeScope") -> None:
+    def select_from(self, node_id: str, scope: ArrangeScope) -> None:
         """Emit SelectConnectedEvent from ``node_id``; the canvas the menu opened on applies it."""
         from haywire.ui.components.graph.event_definitions import SelectConnectedEvent
 
@@ -869,7 +871,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
             port_id, lambda route, bag, name: route.set_setting(bag, name, None, minimum=LevelMode.EDIT)
         )
 
-    def _with_promoted_setting(self, port_id: str, write: "Callable[[EditRoute, Any, str], bool]") -> None:
+    def _with_promoted_setting(self, port_id: str, write: Callable[[EditRoute, Any, str], bool]) -> None:
         """Resolve ``port_id`` to its bag and field, apply *write* through the route, and redraw if it wrote.
 
         Ignores a port matching no setting, an absent route and a refused write.
@@ -900,8 +902,8 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         settings field, so it is written directly: not undoable, and it marks
         nothing unsaved (ADR 0055).
         """
-        from haywire.core.node.promotion import set_promoted_show_widget
         from haywire.api import ShowWidgetStrategy
+        from haywire.core.node.promotion import set_promoted_show_widget
 
         wrapper = self._context.data[EditState].active_node
         route = self._route()
@@ -939,7 +941,7 @@ class ContextMenuHandlers:
 
     def __init__(
         self,
-        visual_layer: "VisualLayerHandlers",
+        visual_layer: VisualLayerHandlers,
         provider: IContextMenuProvider,
     ):
         self.visual_layer = visual_layer

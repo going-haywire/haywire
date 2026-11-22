@@ -1,10 +1,12 @@
-from typing import Any, Callable, Type, TypeVar
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from haywire.core.library.utils import WIDGET, derive_library_identity, reg_key
 
-from .interface import IWidget
 from .identity import WidgetIdentity
-
+from .interface import IWidget
 
 # ============================================================================
 #    Decorator
@@ -13,7 +15,7 @@ from .identity import WidgetIdentity
 T = TypeVar("T")
 
 
-def widget(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
+def widget(**kwargs: Any) -> Callable[[type[T]], type[T]]:
     """
     Decorator to register a class as a UI widget.
 
@@ -52,7 +54,7 @@ def widget(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         class ErrorWidget(BaseWidget): ...
     """
 
-    def decorator(inner_cls: Type[T]) -> Type[T]:
+    def decorator(inner_cls: type[T]) -> type[T]:
         if not issubclass(inner_cls, IWidget):
             raise TypeError(f"@widget can only be applied to BaseWidget subclasses, got {inner_cls}")
 

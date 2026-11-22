@@ -16,7 +16,6 @@ from haywire.core.graph.types import ChangeReason
 from haywire.core.types import Propagation
 from haywire.core.undo.config import UndoConfig
 from haywire.core.undo.history_manager import Fence, HistoryManager
-
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration
@@ -230,8 +229,8 @@ def test_a_propagation_change_is_one_undo_step(held_graph: BaseGraph, editor: Ed
 def test_an_edge_without_propagation_refuses_a_mode_and_records_nothing(
     held_graph: BaseGraph, editor: Editor
 ):
-    from haybale_testing.nodes.testbed.callback_event_probe import CallbackEventProbeNode
     from haybale_testing.nodes.testbed.callback_emit_probe import CallbackEmitProbeNode
+    from haybale_testing.nodes.testbed.callback_event_probe import CallbackEventProbeNode
 
     event = make_node(held_graph, CallbackEventProbeNode.class_identity.registry_key, position=(0, 0))
     emit = make_node(held_graph, CallbackEmitProbeNode.class_identity.registry_key, position=(300, 0))

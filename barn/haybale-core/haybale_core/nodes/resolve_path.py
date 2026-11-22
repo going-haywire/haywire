@@ -1,5 +1,7 @@
 """Resolve Path — the location of a path on this machine."""
 
+from __future__ import annotations
+
 from haywire.api import (
     PATH,
     STRING,

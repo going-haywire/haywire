@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import threading
 from pathlib import Path
-
 from typing import Any, cast
+from unittest.mock import MagicMock, patch
 
 import pytest
-from unittest.mock import MagicMock, patch
 
 pytestmark = pytest.mark.anyio
 

@@ -1,6 +1,8 @@
 # packages/haywire-core/src/haywire/ui/components/popup/__init__.py
 """Popup component — anchored floating panel."""
 
+from __future__ import annotations
+
 from .popup import Popup
 
 __all__ = [

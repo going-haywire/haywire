@@ -15,17 +15,19 @@ Covers:
   - Known-files tracking: pre-existing files seeded on folder registration
 """
 
+from __future__ import annotations
+
 import threading
 import time
 from types import SimpleNamespace
 
 import pytest
 from watchdog.events import (
+    DirCreatedEvent,
     FileCreatedEvent,
     FileDeletedEvent,
     FileModifiedEvent,
     FileMovedEvent,
-    DirCreatedEvent,
 )
 
 from haywire.core.library import file_watcher
@@ -37,9 +39,7 @@ from haywire.core.registry.base import (
     FileEventType,
     HotReloadRegistry,
 )
-
 from tests.wait import wait_until
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -120,7 +120,7 @@ class _RejectingRegistry(BaseRegistry):
 class _ManualTimer:
     """A ``threading.Timer`` stand-in that fires only when the test says so."""
 
-    def __init__(self, timers: "_ManualTimers", interval: float, function, args=None):
+    def __init__(self, timers: _ManualTimers, interval: float, function, args=None):
         self.interval = interval
         self.function = function
         self.args = args or []

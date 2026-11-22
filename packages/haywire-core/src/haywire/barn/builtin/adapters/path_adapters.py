@@ -1,6 +1,8 @@
 """Path conversion adapters."""
 
-from typing_extensions import override
+from __future__ import annotations
+
+from typing import override
 
 from haywire.barn.builtin.types import PATH, STRING
 from haywire.core.adapter.base import BaseAdapter, adapter

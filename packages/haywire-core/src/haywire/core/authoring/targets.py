@@ -30,7 +30,7 @@ class AuthoringTarget:
 
 def authoring_targets(
     library_system: Any,
-    registry_cls: "type[ComponentRegistry]",
+    registry_cls: type[ComponentRegistry],
     workspace_root: Path | None = None,
 ) -> list[AuthoringTarget]:
     """The libraries a component of ``registry_cls``'s kind may be written into, best first.

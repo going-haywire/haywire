@@ -18,7 +18,8 @@ policy of its own.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from haywire.core.types import DataPort
@@ -39,7 +40,7 @@ class PortDefaultWidgetModel:
         widget_factory.render_widget(port.widget_key, model, node_id="dialog")
     """
 
-    def __init__(self, port: "DataPort", on_edit: Callable[[Any], None]) -> None:
+    def __init__(self, port: DataPort, on_edit: Callable[[Any], None]) -> None:
         """
         Args:
             port: The port whose default is being edited. Read for its id, its
@@ -53,11 +54,11 @@ class PortDefaultWidgetModel:
         self.widget_config = dict(port.widget_config or {})
         # A field of the port's own type, seeded from the default: the widget
         # reads and writes here, so an abandoned dialog leaves the port alone.
-        self._cell: "DataField" = port.type_cls.create_field(default_override=port.default)
+        self._cell: DataField = port.type_cls.create_field(default_override=port.default)
         self._on_edit = on_edit
 
     @property
-    def data(self) -> "DataField":
+    def data(self) -> DataField:
         return self._cell
 
     def get_value(self) -> Any:

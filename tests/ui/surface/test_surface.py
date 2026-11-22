@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import importlib
 import sys
-
 from typing import Protocol, runtime_checkable
 
 import pytest

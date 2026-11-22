@@ -24,7 +24,6 @@ from haywire.core.node.layout import PATCH
 from haywire.ui.skin.factory import SkinFactory
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.factory import WidgetFactory
-
 from tests.conftest import edit_route, make_node
 
 pytestmark = pytest.mark.integration

@@ -23,8 +23,9 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import Optional, Protocol
+from typing import Protocol
 
+from haybale_marketplace.editors._refresh_flow.copy import STEP_TITLES, STEPS
 from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall import (
     FetchedSources,
@@ -36,8 +37,6 @@ from haywire.core.marketstall import (
 )
 from haywire.ui.components.popup import Popup
 from haywire.ui.components.stepper import StepFlow
-
-from haybale_marketplace.editors._refresh_flow.copy import STEP_TITLES, STEPS
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +111,7 @@ class RefreshFlow(StepFlow):
     STEPS = STEPS
     STEP_TITLES = STEP_TITLES
 
-    def __init__(self, *, state: RefreshSource, popup: Optional[Popup] = None) -> None:
+    def __init__(self, *, state: RefreshSource, popup: Popup | None = None) -> None:
         super().__init__()
         self.state = state
         self.popup = popup

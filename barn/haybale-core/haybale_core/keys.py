@@ -5,5 +5,7 @@ without importing the NiceGUI-backed class. ``tests/barn/test_haybale_core_keys.
 checks each constant against the class it names.
 """
 
+from __future__ import annotations
+
 ARRAY_WIDGET = "haybale-core:widget:ArrayWidget"
 WIDGET_NODE_SKIN = "haybale-core:skin:WidgetNodeSkin"

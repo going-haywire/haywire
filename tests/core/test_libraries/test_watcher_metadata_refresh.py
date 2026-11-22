@@ -14,6 +14,8 @@ Only the fields that cannot be read at the point of use are refreshed: `label`
 machinery) and `on_reload` (read after eviction, when the files may be gone).
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from types import SimpleNamespace
 

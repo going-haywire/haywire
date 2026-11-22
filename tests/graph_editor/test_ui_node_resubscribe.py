@@ -14,7 +14,6 @@ from haywire.core.graph.editor import Editor
 from haywire.core.graph.scheduler import ThreadingTimerScheduler
 from haywire.core.graph.types import ChangeReason
 from haywire.ui.skin.factory import SkinFactory
-
 from tests.conftest import edit_route, make_node
 
 

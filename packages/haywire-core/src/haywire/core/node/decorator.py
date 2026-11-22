@@ -1,11 +1,14 @@
 """Node decorator for registering node classes."""
 
+from __future__ import annotations
+
 import copy
+from collections.abc import Callable
 from dataclasses import asdict
-from typing import TYPE_CHECKING, Any, Callable, Type, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from haywire.core.library.utils import NODE, derive_library_identity, reg_key
-from haywire.core.node import BaseNode, NodeIdentity, NodeBehaviorFlags, BEHAVIOR_FIELDS
+from haywire.core.node import BEHAVIOR_FIELDS, BaseNode, NodeBehaviorFlags, NodeIdentity
 
 if TYPE_CHECKING:
     from haywire.core.settings import NodeSettings
@@ -13,7 +16,7 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-def _keyed_bag(bag_cls: "type[NodeSettings]", accessor: str) -> "type[NodeSettings]":
+def _keyed_bag(bag_cls: type[NodeSettings], accessor: str) -> type[NodeSettings]:
     """Return *bag_cls* with its fields keyed ``'<accessor>.<field>'``.
 
     A field already keyed under another accessor belongs to a bag shared with
@@ -91,7 +94,7 @@ def _wire_settings_schemas(node_cls: type[BaseNode]) -> None:
     node_cls._settings_bags = bags
 
 
-def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
+def node(**kwargs: Any) -> Callable[[type[T]], type[T]]:
     """Register a class as a Haywire node.
 
     Always invoked with parentheses — ``@node(...)`` or ``@node()``; the bare
@@ -224,7 +227,7 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
                 ...
     """
 
-    def decorator(inner_cls: Type[T]) -> Type[T]:
+    def decorator(inner_cls: type[T]) -> type[T]:
         if not issubclass(inner_cls, BaseNode):
             raise TypeError(f"@node can only be applied to BaseNode subclasses, got {inner_cls}")
 

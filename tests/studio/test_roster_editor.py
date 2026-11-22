@@ -1,5 +1,7 @@
 """RosterEditor and the account menu panels."""
 
+from __future__ import annotations
+
 from haywire.core.access import AccessTier
 
 
@@ -28,8 +30,8 @@ def test_rotate_secret_panel_requires_admin():
 
 
 def test_account_panels_target_the_account_focus():
-    from haywire.barn.builtin.surfaces import AccountMenuSurface
     from haybale_studio.panels.account.account import LogoutPanel, OpenRosterPanel
+    from haywire.barn.builtin.surfaces import AccountMenuSurface
 
     assert LogoutPanel.class_identity.surface is AccountMenuSurface
     assert OpenRosterPanel.class_identity.surface is AccountMenuSurface
@@ -68,8 +70,8 @@ def test_set_tier_refuses_to_change_the_acting_principals_own_tier():
 def test_set_tier_allows_changing_another_principals_tier():
     from unittest.mock import MagicMock, patch
 
-    from haywire.core.access import AccessTier
     from haybale_studio.editors.roster_editor import RosterEditor
+    from haywire.core.access import AccessTier
 
     editor = RosterEditor(MagicMock())
     with (

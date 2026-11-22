@@ -15,6 +15,8 @@ The unit-level half (no port, unpromoted port) lives in
 graph fixture, which is scoped to ``tests/core``.
 """
 
+from __future__ import annotations
+
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
@@ -32,7 +34,6 @@ from haywire.core.node.promotion import promote_setting
 from haywire.core.session.context import SessionContext
 from haywire.core.types.enums import PortType
 from haywire.ui.widget.factory import _widget_model_for
-
 from tests.conftest import edit_route
 
 SETTINGS_NODE = "haybale-testing:node:SettingsProbeNode"

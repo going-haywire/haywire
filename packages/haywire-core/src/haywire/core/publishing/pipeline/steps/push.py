@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from haywire.core.publishing.barn import current_ref
 from haywire.core.publishing.git import git_remote, git_remote_streaming
@@ -14,7 +15,7 @@ if TYPE_CHECKING:
     from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 
-def current_branch(pipeline: "SharePipeline") -> str | None:
+def current_branch(pipeline: SharePipeline) -> str | None:
     """The current branch name, or ``None`` when HEAD is detached.
 
     Delegates to :func:`haywire.core.publishing.barn.current_ref`. Unlike the
@@ -29,7 +30,7 @@ def current_branch(pipeline: "SharePipeline") -> str | None:
     return current_ref(pipeline.repo_root)
 
 
-def command(pipeline: "SharePipeline") -> list[str]:
+def command(pipeline: SharePipeline) -> list[str]:
     """The push argv, also shown verbatim in error panels for manual retry."""
     branch = current_branch(pipeline)
     if branch is None:
@@ -46,7 +47,7 @@ def command(pipeline: "SharePipeline") -> list[str]:
     return args
 
 
-def verify_allowed(pipeline: "SharePipeline") -> None:
+def verify_allowed(pipeline: SharePipeline) -> None:
     """``git push --dry-run`` — verify the remote will accept this push.
 
     Run immediately BEFORE the commit, closing the race window opened at
@@ -80,7 +81,7 @@ def verify_allowed(pipeline: "SharePipeline") -> None:
         )
 
 
-async def apply(pipeline: "SharePipeline", on_output: Callable[[str], None] | None = None) -> PushResult:
+async def apply(pipeline: SharePipeline, on_output: Callable[[str], None] | None = None) -> PushResult:
     """Push the commit and tag to ``origin``, for all callers.
 
     Env-hardened via :func:`git_remote_streaming`, so a missing credential
@@ -124,7 +125,7 @@ async def apply(pipeline: "SharePipeline", on_output: Callable[[str], None] | No
     )
 
 
-async def resume(pipeline: "SharePipeline", on_output: Callable[[str], None] | None = None) -> PushResult:
+async def resume(pipeline: SharePipeline, on_output: Callable[[str], None] | None = None) -> PushResult:
     """Finish an interrupted release: create the missing tag if needed, then push.
 
     The only continuation of a half-done release that is safe to automate --
@@ -150,7 +151,7 @@ async def resume(pipeline: "SharePipeline", on_output: Callable[[str], None] | N
 
 
 async def _tag_merged_release(
-    pipeline: "SharePipeline", tag: str, on_output: Callable[[str], None] | None
+    pipeline: SharePipeline, tag: str, on_output: Callable[[str], None] | None
 ) -> PushResult:
     """Tag ``HEAD`` with *tag* and push the tag alone, once ``HEAD`` is on ``origin``'s branch.
 

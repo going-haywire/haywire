@@ -1,10 +1,12 @@
 """MODEL_REF: a reference to a model, by catalog entry or by file."""
 
+from __future__ import annotations
+
 from typing import Any
 
-from haywire.api import DataPort, DataWire, PrimitiveField, PrimitiveType, type as type_decorator
-
 from haybale_models.value import ModelRef
+from haywire.api import DataPort, DataWire, PrimitiveField, PrimitiveType
+from haywire.api import type as type_decorator
 
 
 @type_decorator(

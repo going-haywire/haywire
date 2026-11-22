@@ -1,8 +1,10 @@
-from haywire.core.types import type
-from haywire.barn.builtin import widget_keys
+from __future__ import annotations
 
-from .specs import STRING
+from haywire.barn.builtin import widget_keys
+from haywire.core.types import type
+
 from ..wires import DataWire
+from .specs import STRING
 
 
 @type(

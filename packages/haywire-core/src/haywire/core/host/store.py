@@ -90,7 +90,7 @@ class HostStore:
     # ------------------------------------------------------------------
 
     @classmethod
-    def in_memory(cls) -> "HostStore":
+    def in_memory(cls) -> HostStore:
         """Create a detached store with no file backing. Writes never hit disk."""
         return cls(path=None)
 

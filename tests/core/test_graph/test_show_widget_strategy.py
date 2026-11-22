@@ -8,11 +8,12 @@ Covers:
 - Serialization round-trip (to_dict → from_spec) preserves the enum.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.types.enums import ShowWidgetStrategy
-
 from tests.conftest import make_edge, make_node
 
 

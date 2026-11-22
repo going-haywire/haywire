@@ -5,20 +5,44 @@ Public API is unchanged; all event-handling and visual-management logic has
 been moved into focused handler classes under handlers/.
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import traceback
-from typing import Callable, Dict, Optional, Set
+from collections.abc import Callable
+
 from nicegui import background_tasks, ui
 
+from haybale_graph_editor.editors.graph_canvas.event_handlers import (
+    build_event_handler_map,
+    handler_requires,
+)
+from haybale_graph_editor.editors.graph_canvas.graph_load_modal import graph_load_modal
+from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import (
+    ContextMenuHandlers,
+    SessionContextMenuProvider,
+)
+from haybale_graph_editor.editors.graph_canvas.handlers.interaction import InteractionHandlers
+from haybale_graph_editor.editors.graph_canvas.handlers.selection import (
+    SelectionHandlers,
+    copy_selection_event,
+    remove_selection_event,
+)
+from haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar import (
+    SelectionToolbarHandlers,
+    SelectionToolbarProvider,
+)
+from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
+from haybale_graph_editor.states.edit_state import EditState
 from haywire.api.workbench import LevelMode, SelectionMoved
 from haywire.core.graph.edit_route import EditRoute
 from haywire.core.graph.types import ValidationResult
 from haywire.core.node.layout import PATCH, LayoutChannel
-
-from haywire.ui.components.zoom.pan import ZoomPanContainer
+from haywire.core.session.session import Session
 from haywire.ui.components.graph.canvas import GraphCanvasVue
 from haywire.ui.components.graph.event_definitions import (
+    GRAPH_EVENT_REGISTRY,
     BaseGraphEvent,
     ContextMenuCanvasEvent,
     ContextMenuEdgeEvent,
@@ -29,36 +53,13 @@ from haywire.ui.components.graph.event_definitions import (
     EdgeCreatedEvent,
     EdgeReconnectStartedEvent,
     EnterGroupEvent,
-    GRAPH_EVENT_REGISTRY,
     SelectionChangedEvent,
     UserDragEndEvent,
     UserDragStartEvent,
     UserPasteClipboardEvent,
     UserResizeEndEvent,
 )
-from haywire.core.session.session import Session
-
-from haybale_graph_editor.states.edit_state import EditState
-from haybale_graph_editor.editors.graph_canvas.event_handlers import (
-    build_event_handler_map,
-    handler_requires,
-)
-from haybale_graph_editor.editors.graph_canvas.graph_load_modal import graph_load_modal
-from haybale_graph_editor.editors.graph_canvas.handlers.interaction import InteractionHandlers
-from haybale_graph_editor.editors.graph_canvas.handlers.selection import (
-    SelectionHandlers,
-    copy_selection_event,
-    remove_selection_event,
-)
-from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
-from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import (
-    ContextMenuHandlers,
-    SessionContextMenuProvider,
-)
-from haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar import (
-    SelectionToolbarProvider,
-    SelectionToolbarHandlers,
-)
+from haywire.ui.components.zoom.pan import ZoomPanContainer
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +116,7 @@ class GraphCanvasManager:
             self._toolbar_provider.hide()
             self.context_menu_handlers.provider.close_open_menu()
 
-    def viewport_centre(self) -> Optional[tuple[float, float]]:
+    def viewport_centre(self) -> tuple[float, float] | None:
         """The canvas position at the middle of the last-known viewport, or ``None``.
 
         The viewport is the last one the client reported, so a canvas that never mounted in a
@@ -124,7 +125,7 @@ class GraphCanvasManager:
         return self.zoom_container.get_viewport_centre()
 
     # Class default too, so an instance built without __init__ dispatches without reporting.
-    _on_user_event: Optional[Callable[[], None]] = None
+    _on_user_event: Callable[[], None] | None = None
     # Likewise: an instance built without __init__ is a patch canvas.
     channel: LayoutChannel = PATCH
 
@@ -134,10 +135,10 @@ class GraphCanvasManager:
         skin_factory,
         node_factory,
         panel_registry,
-        session: "Session",
-        on_user_event: Optional[Callable[[], None]] = None,
+        session: Session,
+        on_user_event: Callable[[], None] | None = None,
         channel: LayoutChannel = PATCH,
-        patch_viewport_centre: Optional[Callable[[], Optional[tuple[float, float]]]] = None,
+        patch_viewport_centre: Callable[[], tuple[float, float] | None] | None = None,
     ):
         """Build the canvas for ``route``'s graph into the current slot, in ``route``'s level mode.
 
@@ -165,7 +166,7 @@ class GraphCanvasManager:
 
         # In-flight chunked load, if any — cancelled by cleanup(). See
         # start_chunked_sync.
-        self._sync_task: Optional[asyncio.Task] = None
+        self._sync_task: asyncio.Task | None = None
 
         # Vue component references built in _setup_canvas
         self.zoom_container, self.canvas_vue = self._setup_canvas()
@@ -225,7 +226,7 @@ class GraphCanvasManager:
         self.toolbar_handlers = SelectionToolbarHandlers(provider=self._toolbar_provider)
 
         # Build dispatch map from all handler sources
-        self._event_handlers: Dict[str, Callable] = build_event_handler_map(
+        self._event_handlers: dict[str, Callable] = build_event_handler_map(
             [
                 self.visual_layer,
                 self.selection,
@@ -438,7 +439,7 @@ class GraphCanvasManager:
     def start_chunked_sync(
         self,
         *,
-        on_nodes_mounted: Optional[Callable[[], None]] = None,
+        on_nodes_mounted: Callable[[], None] | None = None,
         graph_name: str = "graph",
     ) -> None:
         """Mount the graph in the background behind a blocking load overlay.
@@ -618,19 +619,19 @@ class GraphCanvasManager:
 
     # Kept for callers that still reference these directly
     @property
-    def node_panels(self) -> Dict:
+    def node_panels(self) -> dict:
         return self.visual_layer.node_panels
 
     @property
-    def edge_states(self) -> Dict:
+    def edge_states(self) -> dict:
         return self.visual_layer.edge_states
 
     @property
-    def selected_nodes(self) -> Set[str]:
+    def selected_nodes(self) -> set[str]:
         return self.selection.selected_nodes
 
     @property
-    def selected_edges(self) -> Set[str]:
+    def selected_edges(self) -> set[str]:
         return self.selection.selected_edges
 
     def _has_clipboard_content(self) -> bool:

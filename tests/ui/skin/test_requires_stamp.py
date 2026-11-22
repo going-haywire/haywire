@@ -20,7 +20,6 @@ from haywire.ui.access_stamp import stamp_requires
 from haywire.ui.panel.render_utils import render_settings
 from haywire.ui.skin.factory import SkinFactory
 from haywire.ui.skin.pin_render import add_pin_tooltip
-
 from tests.conftest import make_node
 from tests.ui.panel.render_ctx import make_render_ctx
 

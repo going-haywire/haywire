@@ -1,5 +1,7 @@
 """GET/POST /login — plain FastAPI, no NiceGUI, so the socket stays gated."""
 
+from __future__ import annotations
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient

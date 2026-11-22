@@ -9,7 +9,6 @@ import stat
 import pytest
 
 from haywire.core.access import AccessTier
-
 from haywire_studio.security.document import (
     SECURITY_VERSION,
     FarmhandPolicy,

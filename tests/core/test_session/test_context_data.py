@@ -1,12 +1,14 @@
 """Tests for SessionContext.app_data (AppState) and SessionContext.data (SessionState)."""
 
+from __future__ import annotations
+
+from haywire.core.session.context import SessionContext
 from haywire.core.state import (
     AppState,
     LibraryStateContainer,
     StateRegistry,
 )
 from haywire.core.state.data_namespace import AppDataNamespace, SessionDataNamespace
-from haywire.core.session.context import SessionContext
 
 
 class FakeApp:

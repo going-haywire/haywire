@@ -1,5 +1,7 @@
 """Round-trip tests for the floating-toolbar graph events."""
 
+from __future__ import annotations
+
 from haywire.ui.components.graph.event_definitions import (
     GRAPH_EVENT_REGISTRY,
     SelectionBoundsEvent,

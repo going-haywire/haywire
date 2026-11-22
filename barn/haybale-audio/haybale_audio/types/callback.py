@@ -1,5 +1,7 @@
 """AUDIO_CALLBACK — the subscription between an audio emitter and an Audio Event node."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from haywire.api import BaseType, CallbackWire, type

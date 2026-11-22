@@ -1,5 +1,7 @@
 """IMAGE_CALLBACK — the subscription between an image emitter and an Image Event node."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from haywire.api import BaseType, CallbackWire, type

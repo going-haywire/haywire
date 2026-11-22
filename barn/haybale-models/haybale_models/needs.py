@@ -20,9 +20,6 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol
 
-from haywire.api.workbench import AccessTier, Reveal, hui
-from haywire.api import CatalogRegistry
-
 from haybale_graph_editor.notices import GraphNotice
 from haybale_models.consumer import KIND, MISSING_WARNING, preference_for
 from haybale_models.download import DownloadJob, DownloadQueue
@@ -33,12 +30,13 @@ from haybale_models.sources import SourceSet
 from haybale_models.store.index import ModelIndex
 from haybale_models.store.records import FetchRecords
 from haybale_models.value.model_ref import ModelRef
+from haywire.api import CatalogRegistry
+from haywire.api.workbench import AccessTier, Reveal, hui
 
 if TYPE_CHECKING:
-    from haywire.api.workbench import BaseGraph, SessionContext
-    from haywire.api import NodeWrapper
-
     from haybale_graph_editor.states.graph_app_state import GraphAppState
+    from haywire.api import NodeWrapper
+    from haywire.api.workbench import BaseGraph, SessionContext
 
 logger = logging.getLogger(__name__)
 

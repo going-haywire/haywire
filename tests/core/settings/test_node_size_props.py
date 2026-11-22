@@ -1,5 +1,6 @@
-import haywire.core.graph.editor  # noqa: F401  (circular-import guard)
+from __future__ import annotations
 
+import haywire.core.graph.editor  # noqa: F401  (circular-import guard)
 from haywire.core.node.properties import NodeProperties
 
 

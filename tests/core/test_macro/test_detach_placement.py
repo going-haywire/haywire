@@ -5,6 +5,8 @@ Subgraph; detaching acts on one placement of possibly many, and leaves both the
 macro file and every other placement alone.
 """
 
+from __future__ import annotations
+
 import json
 
 import pytest

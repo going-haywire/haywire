@@ -15,11 +15,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haywire.api.workbench import BasePanel, DebugSurface, PanelLayout, hui, panel, render_schema
-from haywire.ui.panel.render_utils import render_keys
-from haywire.core.namespaces import NAMESPACE_LIBRARY_LOG
 from haywire.core.debug.debug_settings import DebugSettings
+from haywire.core.namespaces import NAMESPACE_LIBRARY_LOG
 from haywire.ui.components.debug_overlay.settings import DebugOverlaySettings
-
+from haywire.ui.panel.render_utils import render_keys
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -38,7 +37,7 @@ class DebugSettingsPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
@@ -59,7 +58,7 @@ class DebugOverlaySettingsPanel(BasePanel):
 
     def draw(
         self,
-        ctx: "SessionContext",
+        ctx: SessionContext,
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()

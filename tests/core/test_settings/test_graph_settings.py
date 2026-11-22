@@ -5,6 +5,8 @@ prove it works on a graph-owned bag (unset tracks, set wins, reset resumes)
 and that the graph() declaration API validates eagerly.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.di.test_config import create_test_settings_registry

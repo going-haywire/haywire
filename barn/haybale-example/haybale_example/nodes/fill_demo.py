@@ -8,9 +8,10 @@ Read this alongside ``types/fill.py`` (the type) and ``widgets/fill_widget.py``
 (its editor) when building a structured type of your own.
 """
 
-from haywire.api import STRING, BaseNode, ExecutionContext, NodeType, node
+from __future__ import annotations
 
 from haybale_example.types.fill import FILL
+from haywire.api import STRING, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(

@@ -1,5 +1,7 @@
-from haywire.core.types import WidgetModel
+from __future__ import annotations
+
 from haywire.barn.builtin.types import FLOAT
+from haywire.core.types import WidgetModel
 from haywire.ui.panel.setting_widget_model import SettingWidgetModel
 
 

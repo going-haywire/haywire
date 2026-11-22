@@ -7,15 +7,13 @@ directly so tests/benchmarks measure the sync path with nothing else in the loop
 
 from __future__ import annotations
 
-
 from typing import Any
 
-from haywire.core.types.port import DataPort
+from haywire.barn.builtin.types import FLOAT
 from haywire.core.types.enums import PortType
+from haywire.core.types.port import DataPort
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.converters import Converters
-
-from haywire.barn.builtin.types import FLOAT
 
 
 def make_float_port(port_id: str = "v") -> DataPort:
@@ -43,7 +41,7 @@ class _StandInElement:
         self.value: Any = 0.0
         self.text: Any = ""
 
-    def on(self, _event: str, _handler: Any) -> "_StandInElement":
+    def on(self, _event: str, _handler: Any) -> _StandInElement:
         return self
 
     def off(self, _event: str, _handler: Any) -> None:
@@ -58,7 +56,7 @@ class _RecordingElement(_StandInElement):
         super().__init__()
         self.handlers: dict[str, Any] = {}
 
-    def on(self, event: str, handler: Any) -> "_RecordingElement":
+    def on(self, event: str, handler: Any) -> _RecordingElement:
         self.handlers[event] = handler
         return self
 

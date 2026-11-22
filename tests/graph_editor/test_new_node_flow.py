@@ -18,7 +18,6 @@ from haywire.core.errors.ledger import ErrorLedger
 from haywire.core.node.info import NodeInfo
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.registry.base import FileChangeEvent, FileEventType
-
 from tests.core.test_authoring import conftest as authoring
 from tests.wait import wait_until
 

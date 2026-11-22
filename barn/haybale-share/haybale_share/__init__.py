@@ -7,6 +7,8 @@ workspace root with one marketstall feed and one git remote, and every
 The engine lives in :mod:`haywire.core.publishing`; everything here is UI.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from haywire.api import BaseLibrary, library

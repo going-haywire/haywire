@@ -8,6 +8,8 @@ Covers:
     (both bare and Optional/Union forms).
 """
 
+from __future__ import annotations
+
 import pytest
 
 from haywire.core.settings.settings_library import LibrarySettings

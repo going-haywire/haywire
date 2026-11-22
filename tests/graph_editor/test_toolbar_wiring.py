@@ -27,12 +27,13 @@ def test_toolbar_handler_keys_present():
     when wired via build_event_handler_map.
     """
 
+    from unittest.mock import MagicMock
+
+    from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map
     from haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar import (
         SelectionToolbarHandlers,
         SelectionToolbarProvider,
     )
-    from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map
-    from unittest.mock import MagicMock
 
     # Minimal stub for SelectionToolbarProvider — we only need a valid instance
     provider = MagicMock(spec=SelectionToolbarProvider)
@@ -53,15 +54,15 @@ def test_get_redraw_signals_on_selection_toolbar_is_empty(tmp_path):
     panels plus whatever sits on SelectionMenu) so the union is computed over
     the actual production tree, not a synthetic stand-in.
     """
-    from haywire.ui.panel.registry import PanelRegistry
-    from haywire.core.library.identity import LibraryIdentity
+    from haybale_graph_editor.panels.graph.menu.selection import selection as selection_menu_module
     from haybale_graph_editor.panels.graph.toolbar.selection import (
         CollapseToolbarPanel,
         LockToolbarPanel,
         SelectionOverflowPanel,
     )
-    from haybale_graph_editor.panels.graph.menu.selection import selection as selection_menu_module
     from haybale_graph_editor.surfaces import SelectionToolbar
+    from haywire.core.library.identity import LibraryIdentity
+    from haywire.ui.panel.registry import PanelRegistry
 
     identity = LibraryIdentity(
         label="Graph Editor Test",

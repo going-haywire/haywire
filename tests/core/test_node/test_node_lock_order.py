@@ -7,9 +7,12 @@ holds the validation lock on this thread, runs one node operation on a worker,
 and checks that the node's lock is still free while the worker waits.
 """
 
+from __future__ import annotations
+
 import threading
 import time
-from typing import Any, Callable, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import pytest
 

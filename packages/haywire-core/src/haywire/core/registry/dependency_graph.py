@@ -1,12 +1,13 @@
+from __future__ import annotations
+
 import ast
-import sys
 import logging
-from pathlib import Path
-from typing import Set, List, Dict, Optional
+import sys
+from collections import deque
 from dataclasses import dataclass
+from pathlib import Path
 
 from ..errors import report_failure
-from collections import deque
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +16,8 @@ logger = logging.getLogger(__name__)
 class ReloadPlan:
     """Modules to reload, each list ordered so dependencies come first."""
 
-    non_managed_modules: List[str]  # Helper modules; reload before the managed ones
-    managed_modules: List[str]
+    non_managed_modules: list[str]  # Helper modules; reload before the managed ones
+    managed_modules: list[str]
 
 
 class DependencyGraph:
@@ -49,18 +50,18 @@ class DependencyGraph:
     """
 
     def __init__(self):
-        self._managed_modules: Set[str] = set()
+        self._managed_modules: set[str] = set()
 
         # Kept for helpers too, so a changed helper can be re-scanned with the
         # scopes of the managed module that pulled it in.
-        self._module_scope_prefixes: Dict[str, List[str]] = {}
+        self._module_scope_prefixes: dict[str, list[str]] = {}
 
-        self._direct_dependencies_cache: Dict[str, Set[str]] = {}
+        self._direct_dependencies_cache: dict[str, set[str]] = {}
 
         # module -> modules importing it. Reloads only ever walk this direction.
-        self._reverse_dependencies: Dict[str, Set[str]] = {}
+        self._reverse_dependencies: dict[str, set[str]] = {}
 
-    def add_managed_module(self, module_name: str, scope_prefixes: List[str]):
+    def add_managed_module(self, module_name: str, scope_prefixes: list[str]):
         """Register a module holding a managed class and walk its imports.
 
         Args:
@@ -112,7 +113,7 @@ class DependencyGraph:
 
             logger.debug(f"Module '{module_name}' removed from managed modules")
 
-    def _refresh_module_dependencies(self, module_name: str, scope_prefixes: List[str]) -> None:
+    def _refresh_module_dependencies(self, module_name: str, scope_prefixes: list[str]) -> None:
         """Re-read one module's imports and update only the edges that changed.
 
         Args:
@@ -146,7 +147,7 @@ class DependencyGraph:
             f"+{len(added)} -{len(removed)} (total: {len(new_deps)})"
         )
 
-    def get_reload_plan(self, changed_module: str, exclude_modules: Optional[Set[str]] = None) -> ReloadPlan:
+    def get_reload_plan(self, changed_module: str, exclude_modules: set[str] | None = None) -> ReloadPlan:
         """Return the modules to reload after ``changed_module`` was edited.
 
         Re-reads the changed module's imports first, so an import added since
@@ -226,7 +227,7 @@ class DependencyGraph:
 
         return ReloadPlan(non_managed_modules=helpers, managed_modules=managed)
 
-    def _find_managed_dependents(self, module_name: str) -> Set[str]:
+    def _find_managed_dependents(self, module_name: str) -> set[str]:
         """Return the managed modules transitively depending on *module_name*, excluding it."""
         managed_deps = set()
         queue = deque([module_name])
@@ -248,7 +249,7 @@ class DependencyGraph:
 
         return managed_deps
 
-    def _build_reverse_dependencies(self, module_name: str, scope_prefixes: List[str]) -> int:
+    def _build_reverse_dependencies(self, module_name: str, scope_prefixes: list[str]) -> int:
         """Walk every import reachable from *module_name*, recording edges both ways.
 
         Args:
@@ -289,7 +290,7 @@ class DependencyGraph:
 
         return dep_count
 
-    def _extract_direct_dependencies(self, module_name: str, scope_prefixes: List[str]) -> Set[str]:
+    def _extract_direct_dependencies(self, module_name: str, scope_prefixes: list[str]) -> set[str]:
         """Return the in-scope modules *module_name* imports directly, relative imports resolved.
 
         Reads the file named by the already-imported module, so an unimported
@@ -309,7 +310,7 @@ class DependencyGraph:
             if not file_path.exists():
                 return set()
 
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 tree = ast.parse(f.read(), filename=str(file_path))
 
             dependencies = set()
@@ -348,7 +349,7 @@ class DependencyGraph:
             )
             return set()
 
-    def _topological_sort(self, modules: List[str]) -> List[str]:
+    def _topological_sort(self, modules: list[str]) -> list[str]:
         """Order *modules* so each comes after the ones it imports.
 
         Only edges among the given modules count. Ties break alphabetically, so
@@ -393,13 +394,13 @@ class DependencyGraph:
 
         return result
 
-    def _is_in_scopes(self, module_name: str, scope_prefixes: List[str]) -> bool:
+    def _is_in_scopes(self, module_name: str, scope_prefixes: list[str]) -> bool:
         """True when *module_name* starts with any of *scope_prefixes*."""
         return any(module_name.startswith(prefix) for prefix in scope_prefixes)
 
     def _resolve_relative_import(
         self, importing_module: str, relative_module: str, level: int
-    ) -> Optional[str]:
+    ) -> str | None:
         """Return the absolute name of a relative import, or ``None``.
 
         Args:

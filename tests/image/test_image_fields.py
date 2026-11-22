@@ -1,15 +1,16 @@
 """Images carry fields: what keeps them, what drops them, and what the file sees."""
 
+from __future__ import annotations
+
 import numpy as np
 import pytest
 
-from haywire.barn.builtin.carrier import CarrierValue
-from haywire.barn.builtin.types import CARRIER, FLOAT
-
 from haybale_image.io.codecs import EncodeOptions, encode_image
 from haybale_image.io.formats import Format
-from haybale_image.types.image import IMAGE, GRAY_IMAGE, RGB_IMAGE, RGBA_IMAGE
+from haybale_image.types.image import GRAY_IMAGE, IMAGE, RGB_IMAGE, RGBA_IMAGE
 from haybale_image.value import ImageMetadata, ImageValue, Layout, convert_layout
+from haywire.barn.builtin.carrier import CarrierValue
+from haywire.barn.builtin.types import CARRIER, FLOAT
 
 pytestmark = pytest.mark.unit
 

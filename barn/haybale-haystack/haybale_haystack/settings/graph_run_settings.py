@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from haywire.api import BOOL, CHOICES, Settings, setting
 
 

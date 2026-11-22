@@ -4,10 +4,13 @@ Use it where one flow collects values written by another flow at its own pace, s
 none is lost or read twice. The node takes the queue with ``NodeData.drain``.
 """
 
+from __future__ import annotations
+
+import builtins
 import threading
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, List, Optional, Type, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 from haywire.api import (
     CompoundType,
@@ -67,7 +70,7 @@ class DRAIN(CompoundType[T]):
     `self.value(id)` shows the queued values without taking them.
     """
 
-    field_class: "Optional[Type[DataField]]" = None  # set to DrainField once it is defined
+    field_class: builtins.type[DataField] | None = None  # set to DrainField once it is defined
 
     @classmethod
     def _validate_port_type(cls, port_type: PortType) -> None:
@@ -139,13 +142,13 @@ class DrainField(DataField):
         """A drain field holds only what its edge delivered."""
         return False
 
-    def get_stored_type(self) -> Type[IType]:
+    def get_stored_type(self) -> builtins.type[IType]:
         """Return the element type, which is what travels along the edge."""
         element_type = self.type_cls.element_type_cls
         assert element_type is not None
-        return cast(Type[IType], element_type)
+        return cast(builtins.type[IType], element_type)
 
-    def get_value(self) -> List[Any]:
+    def get_value(self) -> list[Any]:
         """Return a copy of the queued values, oldest first, leaving them queued."""
         with self._lock:
             return list(self._queue)
@@ -196,7 +199,7 @@ class DrainField(DataField):
         """True while a value is queued."""
         return len(self._queue) > 0
 
-    def _get_own(self) -> List[Any]:
+    def _get_own(self) -> list[Any]:
         """Return a copy of the queued values; a drain field has no value besides them."""
         return self.get_value()
 

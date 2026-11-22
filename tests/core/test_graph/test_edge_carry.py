@@ -1,5 +1,7 @@
 """Paste, Subgraph instantiation, collapse and expand keep an edge's propagation and style (Q27, Q73)."""
 
+from __future__ import annotations
+
 from typing import Any
 
 import pytest
@@ -7,7 +9,6 @@ import pytest
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.types import Propagation
-
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration

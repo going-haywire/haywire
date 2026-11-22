@@ -1,5 +1,7 @@
 """FileMenu — the surface the file-browser right-click menu opens."""
 
+from __future__ import annotations
+
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -11,8 +13,8 @@ def test_file_menu_id():
 
 
 def test_file_menu_does_not_apply_when_no_right_click():
-    from haybale_studio.surfaces import FileMenu
     from haybale_studio.states.file_browser_state import FileBrowserState
+    from haybale_studio.surfaces import FileMenu
 
     ctx = MagicMock()
     state_inst = FileBrowserState()
@@ -22,9 +24,8 @@ def test_file_menu_does_not_apply_when_no_right_click():
 
 
 def test_file_menu_applies_when_right_clicked():
-    from haybale_studio.surfaces import FileMenu
     from haybale_studio.states.file_browser_state import FileBrowserState
-
+    from haybale_studio.surfaces import FileMenu
     from tests.conftest import attach_stub_session
 
     ctx = MagicMock()
@@ -36,8 +37,8 @@ def test_file_menu_applies_when_right_clicked():
 
 def test_file_menu_registered_in_surface_map():
     """Surface.__init_subclass__ should have registered FileMenu by id."""
-    from haywire.ui.surface import surface_by_id
     from haybale_studio.surfaces import FileMenu  # noqa: F401 — triggers registration
+    from haywire.ui.surface import surface_by_id
 
     assert surface_by_id("file") is FileMenu
 

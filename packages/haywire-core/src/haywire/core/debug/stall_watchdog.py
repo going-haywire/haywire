@@ -8,6 +8,8 @@ thread as it is at that moment. The report keeps the threads that were running c
 ones parked in a wait.
 """
 
+from __future__ import annotations
+
 import faulthandler
 import logging
 import os

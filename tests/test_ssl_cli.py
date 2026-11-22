@@ -180,7 +180,6 @@ def test_status_exposed_names_only_real_consequences(env, path, capsys, tmp_path
     server-side Python). The one true consequence is readable traffic — a
     finding the user can disprove, or that cannot occur, costs credibility."""
     from haywire.core.access import AccessTier
-
     from haywire_studio.auth.passwords import hash_password
     from haywire_studio.security.operations import expose
     from haywire_studio.security.roster import KIND_USER, Principal, Roster

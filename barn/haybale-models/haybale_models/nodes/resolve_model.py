@@ -8,7 +8,6 @@ from haybale_models import consumer
 from haybale_models.consumer import resolve_port
 from haybale_models.store.layout import volume_path_of
 from haybale_models.value.model_ref import ModelRef
-
 from haywire.api import FILE_PATH, INT, STRING, BaseNode, ExecutionContext, NodeType, VolumePath, node
 
 

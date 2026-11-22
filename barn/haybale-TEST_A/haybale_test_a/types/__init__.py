@@ -1,5 +1,6 @@
-from haybale_test_a.types.data import TEST_DATA
+from __future__ import annotations
 
+from haybale_test_a.types.data import TEST_DATA
 
 __all__ = [
     "TEST_DATA",

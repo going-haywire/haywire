@@ -1,5 +1,7 @@
 """ActivitySettingsPanel — Application-focus panel rendering ActivitySettings."""
 
+from __future__ import annotations
+
 import pytest
 
 pytestmark = pytest.mark.unit

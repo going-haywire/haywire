@@ -1,5 +1,7 @@
 """The selection toolbar over edges: shown for an edge selection; its Style icon follows the form rule."""
 
+from __future__ import annotations
+
 import pytest
 from playwright.sync_api import Page
 
