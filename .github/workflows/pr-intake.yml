@@ -52,12 +52,12 @@ jobs:
         run: |
           # The files API, not `gh pr diff`: the diff refuses a PR over 300 files.
           changed=$(gh api --paginate "repos/$GH_REPO/pulls/$NUMBER/files" --jq '.[].filename')
-          echo "$changed" | grep -qE '^(CLAUDE\.md|AGENTS\.md|\.mcp\.json|\.claude/|\.github/|plugins/)' || exit 0
+          echo "$changed" | grep -qE '^(CLAUDE\.md|AGENTS\.md|\.mcp\.json|t3\.json|\.claude/|\.github/|dev/)' || exit 0
           gh pr edit "$NUMBER" --add-label "agent files"
           marker="<!-- pr-intake:agent-files -->"
           if ! gh pr view "$NUMBER" --json comments --jq '.comments[].body' | grep -qF "$marker"; then
             gh pr comment "$NUMBER" --body "$marker
-          Thanks! This pull request changes files that steer AI agents or CI (\`CLAUDE.md\`, \`AGENTS.md\`, \`.claude/\`, \`.github/\`, \`plugins/\`), so the maintainer reads those lines one by one before merging; the \`agent files\` label stays until then."
+          Thanks! This pull request changes files that steer AI agents or CI (\`CLAUDE.md\`, \`AGENTS.md\`, \`.mcp.json\`, \`t3.json\`, \`.claude/\`, \`.github/\`, \`dev/\`), so the maintainer reads those lines one by one before merging; the \`agent files\` label stays until then."
           fi
 
   introduction-accepted:

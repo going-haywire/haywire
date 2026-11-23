@@ -95,7 +95,8 @@ Optional:
      phrased: [Text in tests](https://github.com/going-haywire/haywire/blob/master/tests/README.md#text-in-tests).
    - **Never change a version number** (`pyproject.toml`, `haybale.toml`, `>=` pins).
      Releases are lockstep across all packages and only the maintainer cuts them.
-   - **Files that steer agents or CI** (`CLAUDE.md`, `AGENTS.md`, `.claude/`, `.github/`, `plugins/`)
+   - **Files that steer agents or CI** (`CLAUDE.md`, `AGENTS.md`, `.mcp.json`, `t3.json`, `.claude/`,
+     `.github/`, and in core `dev/`)
      may be changed, but the maintainer reads every line of such a change before merging;
      the pull request gets the label `agent files` until then.
 
