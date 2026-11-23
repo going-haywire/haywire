@@ -60,6 +60,17 @@ def test_an_org_library_s_pyproject_carries_what_its_ci_runs() -> None:
     assert 'is_library_enabled("haybale-p")' in _generate_library_test("haybale-p")
 
 
+@pytest.mark.unit
+def test_the_pin_follows_the_highest_release_and_an_annotated_tag_s_commit() -> None:
+    from haywire_studio.agents import _latest_release
+
+    listing = (
+        "c1\trefs/tags/v1.9.0\nt2\trefs/tags/v1.10.0\nc2\trefs/tags/v1.10.0^{}\nc3\trefs/tags/v2.0.0-rc1\n"
+    )
+    assert _latest_release(listing) == ("c2", "v1.10.0")
+    assert _latest_release("c1\trefs/tags/nightly\n") is None
+
+
 # -- an org library's files ------------------------------------------------------------
 
 _CI = (
@@ -69,7 +80,7 @@ _CI = (
 
 
 def _fetch():
-    return "abc123", {source: _CI for source in CI_FILES.values()}
+    return "abc123", "v1.2.0", {source: _CI for source in CI_FILES.values()}
 
 
 def _library(tmp_path: Path) -> Path:
@@ -98,7 +109,7 @@ def test_the_ci_callers_are_pinned_and_name_the_library_s_branch(tmp_path: Path)
     write_org_files(library, fetch=_fetch)
     ci = (library / ".github" / "workflows" / "ci.yml").read_text()
     assert "branches: [master]" in ci
-    assert "library-ci.yml@abc123 # " in ci
+    assert "library-ci.yml@abc123 # v1.2.0" in ci
     assert (library / ".github" / "dependabot.yml").is_file()
 
 

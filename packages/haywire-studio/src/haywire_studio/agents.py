@@ -240,30 +240,56 @@ def _default_branch(project: Path) -> str:
     return "master"
 
 
-def fetch_ci_templates() -> tuple[str, dict[str, str]]:
-    """Return ``.github``'s current commit and the text of each CI template, read from GitHub.
+def _latest_release(listing: str) -> tuple[str, str] | None:
+    """Return ``(commit, tag)`` of the highest ``vX.Y.Z`` tag in a ``git ls-remote --tags`` listing."""
+    commits: dict[str, str] = {}
+    for line in listing.splitlines():
+        commit, _, ref = line.partition("\t")
+        if not ref.startswith("refs/tags/"):
+            continue
+        tag = ref.removeprefix("refs/tags/")
+        if tag.endswith("^{}"):
+            commits[tag[:-3]] = commit  # an annotated tag: the commit it points at
+        else:
+            commits.setdefault(tag, commit)
+    versions = {tag: match for tag in commits if (match := re.fullmatch(r"v(\d+)\.(\d+)\.(\d+)", tag))}
+    if not versions:
+        return None
+    tag = max(versions, key=lambda t: tuple(int(n) for n in versions[t].groups()))
+    return commits[tag], tag
+
+
+def fetch_ci_templates() -> tuple[str, str, dict[str, str]]:
+    """Return the ``.github`` commit to pin, its label and the text of each CI template.
+
+    The commit is ``.github``'s latest release (its highest ``vX.Y.Z`` tag), labelled with the
+    tag, so Dependabot moves the pin to each later release. Without a release yet, it is the
+    current commit, labelled with today's date.
 
     Raises:
         RuntimeError: GitHub could not be reached.
     """
-    head = subprocess.run(
-        ["git", "ls-remote", f"https://github.com/{ORG_REPO}", "HEAD"],
-        capture_output=True,
-        text=True,
-        check=False,
+    url = f"https://github.com/{ORG_REPO}"
+    listing = subprocess.run(
+        ["git", "ls-remote", url, "HEAD", "refs/tags/v*"], capture_output=True, text=True, check=False
     )
-    commit = head.stdout.split()[0] if head.returncode == 0 and head.stdout.strip() else ""
-    if not commit:
-        raise RuntimeError(f"cannot reach https://github.com/{ORG_REPO}: {head.stderr.strip()}")
+    head = [line.split("\t")[0] for line in listing.stdout.splitlines() if line.endswith("\tHEAD")]
+    if listing.returncode != 0 or not head:
+        raise RuntimeError(f"cannot reach {url}: {listing.stderr.strip()}")
+    release = _latest_release(listing.stdout)
+    if release is not None:
+        commit, label = release
+    else:
+        commit, label = head[0], f"{date.today().isoformat()}, {ORG_REPO}"
     texts = {}
     for source in CI_FILES.values():
-        url = f"https://raw.githubusercontent.com/{ORG_REPO}/{commit}/{source}"
-        with urllib.request.urlopen(url, timeout=20) as response:  # noqa: S310  # a fixed https URL
+        raw = f"https://raw.githubusercontent.com/{ORG_REPO}/{commit}/{source}"
+        with urllib.request.urlopen(raw, timeout=20) as response:  # noqa: S310  # a fixed https URL
             texts[source] = response.read().decode("utf-8")
-    return commit, texts
+    return commit, label, texts
 
 
-def _ci_files(project: Path, fetch: Callable[[], tuple[str, dict[str, str]]]) -> list[Path]:
+def _ci_files(project: Path, fetch: Callable[[], tuple[str, str, dict[str, str]]]) -> list[Path]:
     """The CI callers and ``dependabot.yml`` a library lacks, from ``.github``'s workflow templates.
 
     A file the library already has stays untouched: it is the library's own, and Dependabot
@@ -272,9 +298,9 @@ def _ci_files(project: Path, fetch: Callable[[], tuple[str, dict[str, str]]]) ->
     missing = {target: source for target, source in CI_FILES.items() if not (project / target).exists()}
     if not missing:
         return []
-    commit, texts = fetch()
+    commit, label, texts = fetch()
     branch = _default_branch(project)
-    pin = f"@{commit} # {date.today().isoformat()}, {ORG_REPO}"
+    pin = f"@{commit} # {label}"
     written = []
     for target, source in missing.items():
         text = texts[source].replace("$default-branch", branch)
@@ -287,7 +313,7 @@ def _ci_files(project: Path, fetch: Callable[[], tuple[str, dict[str, str]]]) ->
 
 
 def write_org_files(
-    project: Path, *, fetch: Callable[[], tuple[str, dict[str, str]]] = fetch_ci_templates
+    project: Path, *, fetch: Callable[[], tuple[str, str, dict[str, str]]] = fetch_ci_templates
 ) -> list[Path]:
     """Write or refresh an org library's repository files in ``project``; return the files written.
 

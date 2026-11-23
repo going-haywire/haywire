@@ -46,7 +46,8 @@ sequenceDiagram
 project's first commit). It writes the library's agent files from core (the harness configs with core's
 hooks, `t3.json`, `[tool.haywire.agents]`, the `.gitignore` lines, `CLAUDE.md`'s block) and its CI
 callers and `dependabot.yml` from `going-haywire/.github`'s workflow templates, pinned to that
-repository's current commit. With a name it also writes what that CI runs, so the first commit passes it: the `dev`
+repository's latest release (its highest `vX.Y.Z` tag, named in the pin's comment), so Dependabot
+moves the pins to each later release. With a name it also writes what that CI runs, so the first commit passes it: the `dev`
 dependency group (ruff, pytest), the pytest configuration, `tests/` with a test that the library
 loads, and `uv.lock`. What lives where:
 [agent tooling](agent-tooling.md#an-org-library-going-haywirehaybale-name).
