@@ -1,4 +1,5 @@
 ---
+serve: product
 status: draft
 doc_template: canonical-example
 scope: Authoring a haybale — package layout, haybale.toml, the @library class, registries, hot-reload, compatibility warnings, the compliance contract

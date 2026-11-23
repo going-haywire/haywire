@@ -96,6 +96,7 @@ nav:
   - Home: index.md
 
   - Using Haywire:
+      - Setting up with an agent: agents/start.md
       - Guides:
           - Subscribing to marketplaces: guides/subscribing-to-marketplaces.md
           - Security: guides/security.md
@@ -142,6 +143,8 @@ nav:
       - Collaboration:
           - collaboration/index.md
           - Basics: collaboration/basics.md
+          - Contributing: collaboration/contributing.md
+          - The workflow: collaboration/workflow.md
           - Library authors:
               - Create and first share: collaboration/create-and-share.md
               - Share an update: collaboration/share-an-update.md
@@ -160,9 +163,12 @@ nav:
               - Orchestrators:
                   - collaboration/orchestrators/index.md
                   - T3 Code: collaboration/orchestrators/t3.md
+                  - T3 Code, for agents: collaboration/orchestrators/t3-agent.md
                   - herdr: collaboration/orchestrators/herdr.md
+                  - herdr, for agents: collaboration/orchestrators/herdr-agent.md
               - A new org library: collaboration/new-org-library.md
               - A developer's workstation: collaboration/workstation.md
+              - A second machine: collaboration/second-machine.md
       - Architecture:
           - Overview: architecture/overview/overview-arch.md
           - Design: architecture/design/design-arch.md

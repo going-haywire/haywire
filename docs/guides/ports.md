@@ -1,4 +1,5 @@
 ---
+serve: product
 status: draft
 doc_template: guide
 scope: Authoring ports — as_inlet / as_outlet / as_config, primitive vs array vs pooled, worker access, port flags

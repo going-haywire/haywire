@@ -130,8 +130,9 @@ their version tags.
 conversation is a session. It reads the repository's `CLAUDE.md` (through `AGENTS.md`)
 when it starts.
 
-**22 · Skill.** A written procedure an agent loads when needed. The **workflow skill** is
-haywire's step-by-step for branches, PRs, CI, decisions, merging and cleanup.
+**22 · Skill.** A written procedure an agent loads when needed. haywire's step-by-step
+for branches, PRs, CI, decisions, merging and cleanup is one docs page, the
+[workflow](workflow.md); agents get it through the Farmhand bridge, or read the file.
 
 **23 · Hook.** A small guard program run automatically around an agent's actions; it can
 stop an action. Hooks run on one computer and bind agents only; rulesets (14) run on
@@ -139,13 +140,14 @@ GitHub and bind everyone.
 
 **24 · Plugin and marketplace.** A **plugin** bundles skills and hooks for installing in
 one go; a **marketplace** is the catalogue a plugin is installed from. Two exist: the
-`haywire` plugin for people *using* haywire, and `haywire-dev` (the workflow skill and its
-hooks) for people *developing* haywire's repositories.
+`haywire` plugin for people *using* haywire, and `haywire-dev` (a pointer to the workflow
+and its hooks) for people *developing* haywire's repositories. Both are on their way out
+(#215): a repository's own committed files will carry what they carry.
 
 ??? info "Technical detail"
-    `haywire-dev` lives once, in core's `plugins/haywire-dev/`. Core uses it in place, with
-    nothing to install; the libraries install it from the catalogue in `going-haywire/.github`.
-    Its [README](https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/README.md)
+    `haywire-dev` lives once, in core's `dev/`. Core uses it in place, with nothing to
+    install; the libraries install it from the catalogue in `going-haywire/.github`.
+    Its [README](https://github.com/going-haywire/haywire/blob/master/dev/README.md)
     has the commands.
 
 ## Working in parallel

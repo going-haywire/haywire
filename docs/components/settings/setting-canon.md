@@ -1,4 +1,5 @@
 ---
+serve: product
 status: draft
 doc_template: canonical-example
 scope: Authoring settings — NodeSettings, LibrarySettings, the setting() / shadow() / watch() descriptors, change subscriptions, panel integration

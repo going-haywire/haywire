@@ -1,1 +1,1 @@
-../plugins/haywire-dev/skills/haywire-workflow/scripts/tasks.py
+../dev/scripts/tasks.py

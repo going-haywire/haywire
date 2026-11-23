@@ -64,6 +64,8 @@ see-also:
 
 - **`see-also`** — relative paths (not bare doc_template names) to related pages. Keep it short — the pages a reader would plausibly bounce to next, not everything tangentially related.
 
+- **`serve`** (optional) — `product` puts the page in the index the Farmhand bridge hands every agent session at its start (`haywire farmhand bridge`, one line per page: path, title, `scope`). Mark the pages an agent should read before a task, not every page: the rest stays reachable through the docs manifest. A marked page's `scope` is what the agent sees, so make it say when to read the page.
+
 ## 3. Linking to live source code
 
 Two different mechanisms exist for pulling code into a doc page. Use the right one for the job — don't hand-copy a snippet that either mechanism already covers, since a hand-copy silently drifts from the code the moment it changes.

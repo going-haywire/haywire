@@ -19,10 +19,11 @@ from __future__ import annotations
 def connection_command(port: int, token: str | None, *, tls: bool = False) -> str:
     """The ``claude mcp add`` line for this studio.
 
-    *token* is a roster agent's token, or ``None`` when authentication is off
-    and no header is needed. The scheme follows actual TLS, because a client
-    told ``http://`` against an HTTPS studio fails in a way that looks like the
-    server is down.
+    *token* is what goes after ``Bearer``: a roster agent's token, or a shell
+    substitution that fills one in, such as ``$(haywire user token <name>)``;
+    ``None`` when authentication is off and no header is needed. The scheme
+    follows actual TLS, because a client told ``http://`` against an HTTPS
+    studio fails in a way that looks like the server is down.
     """
     scheme = "https" if tls else "http"
     base = f"claude mcp add --transport http farmhand {scheme}://127.0.0.1:{port}/mcp"

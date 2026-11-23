@@ -1,4 +1,5 @@
 ---
+serve: product
 status: draft
 doc_template: guide
 scope: Authoring a haybale library and publishing it for others — from new import to a hosted marketstall consumers can subscribe to

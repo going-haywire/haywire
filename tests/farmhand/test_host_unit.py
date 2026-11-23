@@ -367,7 +367,7 @@ def test_connection_hint_returns_plain_command_when_auth_disabled(tmp_path):
     assert hint == "claude mcp add --transport http farmhand http://127.0.0.1:8124/mcp"
 
 
-def test_connection_hint_names_first_agent_token_when_auth_enabled(tmp_path):
+def test_connection_hint_fills_in_the_first_agent_token_without_printing_it(tmp_path):
     from haywire.core.access import AccessTier
     from haywire_studio.security.roster import Principal
 
@@ -378,7 +378,8 @@ def test_connection_hint_names_first_agent_token_when_auth_enabled(tmp_path):
         Principal(name="bot", kind="agent", tier=AccessTier.EDIT, token="agenttoken")
     )
     hint = FarmhandHost._connection_hint(8124, document, tls=False)
-    assert "agenttoken" in hint
+    assert "agenttoken" not in hint
+    assert 'Authorization: Bearer $(haywire user token bot)"' in hint
 
 
 def test_connection_hint_explains_missing_agent_when_auth_enabled(tmp_path):

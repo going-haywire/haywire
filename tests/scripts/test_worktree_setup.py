@@ -1,8 +1,16 @@
-"""The pure parts of scripts/worktree_setup.py: picking a studio port and writing it."""
+"""The pure parts of dev/scripts/worktree_setup.py: the studio port and the core link."""
 
 from __future__ import annotations
 
-from scripts.worktree_setup import FIRST_WORKTREE_PORT, choose_studio_port, studio_port, with_studio_port
+from pathlib import Path
+
+from scripts.worktree_setup import (
+    FIRST_WORKTREE_PORT,
+    choose_studio_port,
+    core_link,
+    studio_port,
+    with_studio_port,
+)
 
 
 def test_first_free_port_above_the_main_studio():
@@ -31,3 +39,40 @@ def test_no_port_in_empty_or_partial_settings():
     assert studio_port({}) is None
     assert studio_port({"network": {}}) is None
     assert studio_port(with_studio_port({}, 8125)) == 8125
+
+
+def _repo(path: Path, *, core: bool = False) -> Path:
+    path.mkdir(parents=True)
+    if core:
+        (path / "dev" / "scripts").mkdir(parents=True)
+        (path / "dev" / "scripts" / "worktree_setup.py").write_text("")
+    return path
+
+
+def test_a_library_worktree_away_from_core_gets_core_linked_beside_it(tmp_path):
+    _repo(tmp_path / "work" / "haywire-repo", core=True)
+    main = _repo(tmp_path / "work" / "haybale-x")
+    worktree = _repo(tmp_path / "t3" / "haybale-x" / "feat")
+    assert core_link(worktree, main) == (
+        tmp_path / "t3" / "haybale-x" / "haywire-repo",
+        tmp_path / "work" / "haywire-repo",
+    )
+
+
+def test_a_library_worktree_beside_core_needs_no_link(tmp_path):
+    _repo(tmp_path / "work" / "haywire-repo", core=True)
+    main = _repo(tmp_path / "work" / "haybale-x")
+    worktree = _repo(tmp_path / "work" / "haybale-x-feat")
+    assert core_link(worktree, main) is None
+
+
+def test_a_core_worktree_needs_no_link(tmp_path):
+    main = _repo(tmp_path / "work" / "haywire-repo", core=True)
+    worktree = _repo(tmp_path / "t3" / "haywire-repo" / "feat", core=True)
+    assert core_link(worktree, main) is None
+
+
+def test_no_link_when_the_main_folder_has_no_core_beside_it(tmp_path):
+    main = _repo(tmp_path / "work" / "haybale-x")
+    worktree = _repo(tmp_path / "t3" / "haybale-x" / "feat")
+    assert core_link(worktree, main) is None

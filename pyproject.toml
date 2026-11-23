@@ -266,6 +266,11 @@ lockstep_unpublished = [
     "haybale-TEST_A",
 ]
 
+[tool.haywire.agents]
+# The docs folder whose `serve: developer` pages the Farmhand bridge serves to agent
+# sessions in this repository (docs/collaboration/workflow.md and the pages beside it).
+developer-docs = "docs"
+
 [tool.haywire.docs]
 # Library ids whose docs `haywire docs --all` still generates but whose
 # documentation gaps it does not report — test fixtures, not meant to be documented.

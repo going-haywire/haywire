@@ -13,9 +13,11 @@ glossary.
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 
 from haywire_studio.cli._guards import studio_is_running
+from haywire_studio.farmhand.bridge import DEFAULT_PRINCIPAL, find_project_root, run_bridge
 from haywire_studio.security.document import load_document
 from haywire_studio.security.errors import SecurityError
 from haywire_studio.security.operations import set_farmhand_enabled, set_farmhand_loopback
@@ -44,6 +46,28 @@ def register(subparsers: argparse._SubParsersAction) -> None:
 
     report = actions.add_parser("status", help="Show the Farmhand configuration")
     report.set_defaults(handler=_status)
+
+    bridge = actions.add_parser(
+        "bridge",
+        help="Run the stdio MCP bridge that connects an agent session to this project's studio",
+    )
+    bridge.add_argument(
+        "--project",
+        default=None,
+        help="The project folder (default: the nearest folder above the current one that holds .haywire/).",
+    )
+    bridge.add_argument(
+        "--principal",
+        default=os.environ.get("FARMHAND_PRINCIPAL", DEFAULT_PRINCIPAL),
+        help="Agent principal whose token a studio that requires one gets (default: %(default)s).",
+    )
+    bridge.add_argument(
+        "--poll-ms",
+        type=int,
+        default=int(os.environ.get("FARMHAND_POLL_MS", "2000")),
+        help="How often to look for the studio, in milliseconds (default: %(default)s).",
+    )
+    bridge.set_defaults(handler=_bridge)
 
 
 def _path(args: argparse.Namespace) -> Path | None:
@@ -149,3 +173,9 @@ def _status(args: argparse.Namespace) -> int:
 
     print("\nFull picture:  haywire security status")
     return 0
+
+
+def _bridge(args: argparse.Namespace) -> int:
+    """Run the bridge until the harness closes stdin; stdout carries only MCP."""
+    project = Path(args.project).resolve() if args.project else find_project_root(Path.cwd())
+    return run_bridge(project, principal=args.principal, document=_path(args), poll_s=args.poll_ms / 1000)

@@ -1,4 +1,5 @@
 ---
+serve: product
 status: draft
 doc_template: canonical-example
 scope: Authoring BaseTheme subclasses with @theme, registering them in a library, hot-reload behaviour

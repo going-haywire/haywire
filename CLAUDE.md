@@ -2,7 +2,7 @@
 
 This file holds what applies to agents only. The process for everyone (roles, forks,
 issues, pull requests, review, the rules every change keeps) is
-[CONTRIBUTING.md](CONTRIBUTING.md); every command is in
+[docs/collaboration/contributing.md](docs/collaboration/contributing.md); every command is in
 [docs/guides/development.md](docs/guides/development.md); tests in
 [tests/README.md](tests/README.md). Follow them; this file does not repeat them.
 
@@ -37,9 +37,9 @@ UI/UX visual rules, tokens, and anti-patterns are canonical in `docs/reference/d
 
 ## Git and pull requests
 
-Before the first branch, commit, push or `gh pr` command of any task, however small, load the `haywire-workflow` skill and follow it; releases: `/haywire-release`. The non-obvious parts: [.insights/project_pr_workflow.md](.insights/project_pr_workflow.md).
+Before the first branch, commit, push or `gh pr` command of any task, however small, read the workflow and follow it: [docs/collaboration/workflow.md](docs/collaboration/workflow.md), also served by the Farmhand bridge as `farmhand://dev/collaboration/workflow.md`; releases: `/haywire-release`. The non-obvious parts: [.insights/project_pr_workflow.md](.insights/project_pr_workflow.md).
 
-- Destructive git commands stay with the user: `plugins/haywire-dev/hooks/block-dangerous-git.sh` lists and blocks them.
+- Destructive git commands stay with the user: `dev/hooks/block-dangerous-git.sh` lists and blocks them.
 - Before a commit, run the [checks](docs/guides/development.md#checks) on what changed. The full suite is CI's job on every push; run it locally (`/verify`, about 5 minutes) only when asked.
 - Whenever the user has to decide or review something, give them what they need in one look: the URL of every PR, issue or CI run involved, markdown links to the local files and lines that matter, the options lettered with a recommendation, and the evidence. They should never have to go and find it.
 

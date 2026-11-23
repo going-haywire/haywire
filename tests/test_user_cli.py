@@ -54,13 +54,30 @@ def test_add_user_rejects_weak_password_with_exit_1(monkeypatch, path, capsys):
     assert "12" in capsys.readouterr().out
 
 
-def test_add_agent_prints_the_token(monkeypatch, path, capsys):
+def test_add_agent_keeps_the_token_out_of_its_output(monkeypatch, path, capsys):
     code = _run(["user", "add", "builder", "--agent", "--tier", "edit"], monkeypatch, path)
     assert code == 0
     agent = load_document(path).auth.find("builder")
     assert agent is not None
     assert agent.is_agent
-    assert agent.token in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert agent.token not in out
+    assert "haywire user token builder" in out
+
+
+def test_token_prints_an_agent_principal_s_token_alone(monkeypatch, path, capsys):
+    _run(["user", "add", "builder", "--agent"], monkeypatch, path)
+    capsys.readouterr()
+    assert _run(["user", "token", "builder"], monkeypatch, path) == 0
+    agent = load_document(path).auth.find("builder")
+    assert agent is not None
+    assert capsys.readouterr().out == agent.token + "\n"
+
+
+def test_token_refuses_a_user_principal(monkeypatch, path, capsys):
+    add_user("bob", STRONG, AccessTier.VIEW, path=path)
+    assert _run(["user", "token", "bob"], monkeypatch, path) == 1
+    assert "not an agent principal" in capsys.readouterr().out
 
 
 def test_remove_user(monkeypatch, path):

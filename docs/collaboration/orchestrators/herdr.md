@@ -11,8 +11,7 @@ see-also:
 
 [herdr](https://herdr.dev/guide/) runs terminal sessions in *spaces* and *tabs*, with
 worktrees under `~/.herdr/worktrees/`, and lets agents message each other with `hc`. How
-the agents use it is in the workflow skill's
-[herdr file](https://github.com/going-haywire/haywire/blob/master/plugins/haywire-dev/skills/haywire-workflow/orchestrators/herdr.md).
+the agents use it is in [its agent page](herdr-agent.md).
 
 | Role | In herdr |
 |---|---|

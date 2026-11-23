@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-HOOKS = ROOT / "plugins" / "haywire-dev" / "hooks"
+HOOKS = ROOT / "dev" / "hooks"
 
 pytestmark = pytest.mark.skipif(shutil.which("jq") is None, reason="the hooks need jq")
 
@@ -213,7 +213,7 @@ def test_in_t3_the_agent_learns_its_thread_and_how_to_message(tmp_path, env):
     context = _place(tmp_path, terminal=None, **env)
     assert context.startswith("You run in T3 Code as thread `th-1`.")
     assert "t3_thread_send" in context
-    assert "orchestrators/t3.md" in context
+    assert "orchestrators/t3-agent.md" in context
 
 
 _T3_SCRIPTS = json.loads((ROOT / "t3.json").read_text())["scripts"]
@@ -245,7 +245,7 @@ def _t3_output(
     *,
     settings: str | dict | None = None,
     venv=True,
-    port=True,
+    done=True,
     t3_json=False,
     **env: str,
 ) -> dict:
@@ -261,9 +261,8 @@ def _t3_output(
         shutil.copy(ROOT / "t3.json", work / "t3.json")
     if venv:
         (work / ".venv").mkdir()
-    if port:
-        (work / ".haywire").mkdir()
-        (work / ".haywire" / "settings.json").write_text(json.dumps({"network": {"port": {"value": 8125}}}))
+    if done:
+        _setup_done(work)
     bin_dir = _fake_bin(tmp_path, None)
     (bin_dir / "git").symlink_to(shutil.which("git") or "git")
     result = _run(
@@ -278,6 +277,17 @@ def _t3_output(
     )
     assert result.returncode == 0
     return json.loads(result.stdout)
+
+
+def _setup_done(work: Path) -> None:
+    """Mark ``work``'s setup finished, as dev/scripts/worktree_setup.py does last."""
+    git_dir = subprocess.run(
+        ["git", "-C", str(work), "rev-parse", "--path-format=absolute", "--git-dir"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    (Path(git_dir) / "haywire-setup-done").write_text("")
 
 
 def _t3_setup(tmp_path: Path, **kwargs) -> str:
@@ -335,7 +345,7 @@ def test_a_broken_t3_settings_file_points_to_the_docs(tmp_path, settings):
 
 
 def test_a_worktree_without_its_setup_is_told_to_run_it(tmp_path):
-    context = _t3_setup(tmp_path, settings=_t3_project(), t3_json=True, port=False)
+    context = _t3_setup(tmp_path, settings=_t3_project(), t3_json=True, done=False)
     assert "T3 setup is incomplete; pass this list to the user" in context
     assert "run `python3 scripts/worktree_setup.py` in this worktree now" in context
 
@@ -346,13 +356,12 @@ def test_the_slot_waits_for_a_setup_still_running(tmp_path):
         while not (work / ".venv").is_dir():
             time.sleep(0.05)
         time.sleep(1.5)
-        (work / ".haywire").mkdir()
-        (work / ".haywire" / "settings.json").write_text(json.dumps({"network": {"port": {"value": 8125}}}))
+        _setup_done(work)
 
     setup = threading.Thread(target=finish_setup)
     setup.start()
     context = _t3_setup(
-        tmp_path, settings=_t3_project(), t3_json=True, port=False, HAYWIRE_T3_SETUP_WAIT="30"
+        tmp_path, settings=_t3_project(), t3_json=True, done=False, HAYWIRE_T3_SETUP_WAIT="30"
     )
     setup.join()
     assert "T3 setup is incomplete" not in context
@@ -674,49 +683,57 @@ def test_the_existing_blocks_stay(tmp_path, command):
     assert _blocked(tmp_path, command).returncode == 2
 
 
-# ── require-workflow-skill.sh and mark-workflow-skill.sh ────────────────────────────
+# ── require-workflow-read.sh and mark-workflow-read.sh ──────────────────────────────
+
+WORKFLOW_URI = "farmhand://dev/collaboration/workflow.md"
 
 
 def _commit(tmp_path: Path, session: str) -> int:
     payload = {"session_id": session, "tool_input": {"command": "git commit -m x"}}
-    return _run("require-workflow-skill.sh", payload, _fake_bin(tmp_path, None), tmp_path).returncode
+    return _run("require-workflow-read.sh", payload, _fake_bin(tmp_path, None), tmp_path).returncode
 
 
-def test_a_commit_waits_for_the_workflow_skill(tmp_path):
+def _mark(tmp_path: Path, session: str, tool_input: dict) -> None:
+    payload = {"session_id": session, "tool_input": tool_input}
+    _run("mark-workflow-read.sh", payload, _fake_bin(tmp_path / "m", None), tmp_path)
+
+
+def test_a_commit_waits_until_the_workflow_was_read(tmp_path):
     assert _commit(tmp_path, "S1") == 2
-    mark = {"session_id": "S1", "tool_input": {"skill": "haywire-workflow"}}
-    _run("mark-workflow-skill.sh", mark, _fake_bin(tmp_path / "m", None), tmp_path)
+    _mark(tmp_path, "S1", {"uri": WORKFLOW_URI, "server": "farmhand"})
     assert _commit(tmp_path, "S1") == 0
     assert _commit(tmp_path, "S2") == 2, "the mark is per session"
 
 
 @pytest.mark.parametrize(
-    "mark",
+    "path",
     [
-        {"tool_input": {"skill": "haywire-dev:haywire-workflow"}},
-        {"prompt": "/haywire-dev:haywire-workflow"},
+        "/work/haywire-repo/docs/collaboration/workflow.md",
+        "/work/haybale-x/../haywire-repo/docs/collaboration/workflow.md",
     ],
 )
-def test_the_plugin_skill_name_counts_as_loading_it(tmp_path, mark):
-    _run("mark-workflow-skill.sh", {"session_id": "P1", **mark}, _fake_bin(tmp_path / "m", None), tmp_path)
-    assert _commit(tmp_path, "P1") == 0
+def test_reading_the_workflow_file_counts_in_core_and_from_a_library(tmp_path, path):
+    _mark(tmp_path, "F1", {"file_path": path})
+    assert _commit(tmp_path, "F1") == 0
 
 
-def test_another_skill_does_not_count(tmp_path):
-    mark = {"session_id": "P2", "tool_input": {"skill": "other:haywire-workflow-x"}}
-    _run("mark-workflow-skill.sh", mark, _fake_bin(tmp_path / "m", None), tmp_path)
+@pytest.mark.parametrize(
+    "tool_input",
+    [
+        {"skill": "workflow"},
+        {"skill": "haywire-dev:workflow"},
+        {"file_path": "/work/haywire-repo/docs/collaboration/basics.md"},
+        {"uri": "farmhand://docs/collaboration/workflow.md"},
+    ],
+)
+def test_loading_the_pointer_skill_or_reading_another_page_does_not_count(tmp_path, tool_input):
+    _mark(tmp_path, "P2", tool_input)
     assert _commit(tmp_path, "P2") == 2
 
 
-def test_typing_the_skill_command_counts_as_loading_it(tmp_path):
-    mark = {"session_id": "S3", "prompt": "/haywire-workflow"}
-    _run("mark-workflow-skill.sh", mark, _fake_bin(tmp_path / "m", None), tmp_path)
-    assert _commit(tmp_path, "S3") == 0
-
-
-def test_read_only_commands_need_no_skill(tmp_path):
+def test_read_only_commands_need_no_workflow_read(tmp_path):
     payload = {"session_id": "S4", "tool_input": {"command": "git status && gh pr view 5"}}
-    assert _run("require-workflow-skill.sh", payload, _fake_bin(tmp_path, None), tmp_path).returncode == 0
+    assert _run("require-workflow-read.sh", payload, _fake_bin(tmp_path, None), tmp_path).returncode == 0
 
 
 def test_hooks_are_executable():
@@ -747,10 +764,17 @@ def test_core_runs_the_same_plugin_hooks_as_a_library_session():
         for group in groups:
             for hook in group["hooks"]:
                 if "/hooks/" in hook["command"]:
-                    assert '"$CLAUDE_PROJECT_DIR"/plugins/haywire-dev/hooks/' in hook["command"]
+                    assert '"$CLAUDE_PROJECT_DIR"/dev/hooks/' in hook["command"]
 
 
-def test_core_reads_the_workflow_skill_from_the_plugin():
-    link = ROOT / ".claude" / "skills" / "haywire-workflow"
+def test_core_reads_the_pointer_skill_from_dev():
+    link = ROOT / ".claude" / "skills" / "workflow"
     assert link.is_symlink()
-    assert link.resolve() == (ROOT / "plugins" / "haywire-dev" / "skills" / "haywire-workflow").resolve()
+    assert link.resolve() == (ROOT / "dev" / "skills" / "workflow").resolve()
+
+
+def test_the_scripts_are_links_into_dev():
+    for name in ("finish.py", "tasks.py"):
+        link = ROOT / "scripts" / name
+        assert link.is_symlink()
+        assert link.resolve() == (ROOT / "dev" / "scripts" / name).resolve()
