@@ -37,6 +37,9 @@ sequenceDiagram
     You->>PyPI: ③ pending publisher, GitHub environment pypi
     Agent->>GH: share --first-release
     Agent->>GH: PR in the umbrella, request in the curated catalogue
+    opt with T3 Code
+        You->>Lib: ④ add it as a T3 project, import its t3.json scripts
+    end
 ```
 
 **The files** come from one command, `haywire init --org-files` (with a name: into the new
@@ -71,3 +74,4 @@ library's own, and Dependabot moves their pins.
 | The curated catalogue | agent | [Curated marketplace §9](../haybale/marketplace/curated-marketplace.md#9-submission-review-removal) |
 | Core's release view sees it | — | `release_sweep.py` lists every `haybale-*` repository by itself |
 | A developer's clone of it | each developer | [setting someone up](../agents/start.md), *Develop Haywire* |
+| ④ T3 Code, if it is your orchestrator | each developer | [T3 Code: once per repository](orchestrators/t3.md#once-per-repository) |

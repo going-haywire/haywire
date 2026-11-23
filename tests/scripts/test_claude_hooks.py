@@ -301,25 +301,9 @@ def test_a_complete_t3_setup_adds_nothing(tmp_path):
     assert "systemMessage" not in output
 
 
-def test_a_dropped_async_and_a_missing_script_are_offered_as_a_fix(tmp_path):
-    setup, finish, _ = _T3_SCRIPTS
-    without_async = {k: v for k, v in setup.items() if k != "async"}
-    output = _t3_output(tmp_path, settings=_t3_project(without_async, finish), t3_json=True)
-    context = output["hookSpecificOutput"]["additionalContext"]
-    assert "in your first reply, before other work" in context
-    assert "*Worktree setup* lacks `async: false`, which T3's import drops [fix]" in context
-    assert "lacks the t3.json script *Haywire studio* [fix]" in context
-    assert "doctor.py --fix" in context
-    assert "run it only on the user's yes" in context
-    assert "user: " not in context
-    assert output["systemMessage"].startswith("T3 setup is incomplete:")
-
-
-def test_scripts_not_imported_point_to_the_docs(tmp_path):
-    context = _t3_setup(tmp_path, settings=_t3_project({"command": "make x"}), t3_json=True)
-    assert "the t3.json scripts are not imported" in context
-    assert "orchestrators/t3.md#setup" in context
-    assert "--fix" not in context
+def test_imported_scripts_are_left_to_t3(tmp_path):
+    context = _t3_setup(tmp_path, settings={**_T3_SETTINGS}, t3_json=True)
+    assert "T3 setup is incomplete" not in context
 
 
 @pytest.mark.parametrize(
@@ -334,7 +318,7 @@ def test_each_wrong_t3_setting_is_named(tmp_path, change, named):
     context = _t3_setup(tmp_path, settings=_t3_project(**change), t3_json=True)
     assert "T3 setup is incomplete" in context
     assert named in context
-    assert "[fix]" not in context
+    assert "orchestrators/t3.md#setup" in context
 
 
 @pytest.mark.parametrize("settings", ["{not json", "[]"])
@@ -368,11 +352,11 @@ def test_the_slot_waits_for_a_setup_still_running(tmp_path):
 
 
 def test_the_lead_thread_is_checked_too(tmp_path):
-    home = _t3_home(tmp_path, _t3_project(_T3_SCRIPTS[0]))
+    home = _t3_home(tmp_path, _t3_project(branchNamingMode="static"))
     context = _place(
         tmp_path, main=True, terminal=None, t3_json=True, T3CODE_THREAD_ID="th-1", T3CODE_HOME=str(home)
     )
-    assert "lacks the t3.json script *Finish merged task* [fix]" in context
+    assert "Branch naming" in context
     assert "worktree setup did not finish" not in context
 
 
