@@ -6,7 +6,7 @@ Every supported harness gets its harness config, whoever created the project, so
 the same for everyone who opens it. :data:`HARNESSES` is the one list; supporting another
 harness means adding its writer there.
 
-An org library gets more (:func:`write_org_files`): core's workflow hooks in its harness configter, T3's
+An org library gets more (:func:`write_org_files`): core's workflow hooks in its harness configs, T3's
 ``t3.json``, the declaration of core's developer docs, and its CI callers from ``.github``'s
 workflow templates.
 

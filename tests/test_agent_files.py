@@ -45,6 +45,21 @@ def test_init_writes_the_harness_configs(tmp_path: Path, monkeypatch: pytest.Mon
     assert "uv run haywire studio start" in (project / "CLAUDE.md").read_text()
 
 
+@pytest.mark.unit
+def test_an_org_library_s_pyproject_carries_what_its_ci_runs() -> None:
+    import tomllib
+
+    from haywire_studio.init import _generate_library_test, _generate_project_pyproject
+
+    plain = tomllib.loads(_generate_project_pyproject("p", "haybale-p"))
+    org = tomllib.loads(_generate_project_pyproject("p", "haybale-p", org_library=True))
+    assert "dependency-groups" not in plain
+    assert "ruff==0.12.12" in org["dependency-groups"]["dev"]
+    assert org["tool"]["pytest"]["ini_options"]["testpaths"] == ["tests"]
+    assert org["tool"]["ruff"]["line-length"] == plain["tool"]["ruff"]["line-length"] == 109
+    assert 'is_library_enabled("haybale-p")' in _generate_library_test("haybale-p")
+
+
 # -- an org library's files ------------------------------------------------------------
 
 _CI = (
