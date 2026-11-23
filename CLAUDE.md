@@ -2,7 +2,7 @@
 
 This file holds what applies to agents only. The process for everyone (roles, forks,
 issues, pull requests, review, the rules every change keeps) is
-[CONTRIBUTING.md](CONTRIBUTING.md); every command is in
+[docs/collaboration/contributing.md](docs/collaboration/contributing.md); every command is in
 [docs/guides/development.md](docs/guides/development.md); tests in
 [tests/README.md](tests/README.md). Follow them; this file does not repeat them.
 

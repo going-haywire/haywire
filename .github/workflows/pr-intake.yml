@@ -1,4 +1,4 @@
-# Labels and welcomes pull requests (CONTRIBUTING.md):
+# Labels and welcomes pull requests (docs/collaboration/contributing.md):
 # - `needs introduction`: the author is not the maintainer or a collaborator and has no
 #   issue labelled `introduction accepted`. Removed again when the introduction is accepted.
 # - `agent files`: the pull request changes files that steer agents or CI; the maintainer

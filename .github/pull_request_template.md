@@ -1,11 +1,11 @@
 ## What and why
 
 <!-- A few sentences. Then "Fixes #<issue>", or "Small fix:" and why it needs no issue
-     (see CONTRIBUTING.md, "Before you start a change"). -->
+     (see docs/collaboration/contributing.md, "Before you start a change"). -->
 
 ## Checklist
 
-- [ ] My introduction is accepted, or I am the maintainer ([CONTRIBUTING.md](https://github.com/going-haywire/haywire/blob/master/CONTRIBUTING.md#your-first-contribution-introduce-yourself))
+- [ ] My introduction is accepted, or I am the maintainer ([CONTRIBUTING.md](https://github.com/going-haywire/haywire/blob/master/docs/collaboration/contributing.md#your-first-contribution-introduce-yourself))
 - [ ] The [checks](https://github.com/going-haywire/haywire/blob/master/docs/guides/development.md#checks) pass on what I changed
 - [ ] Docs are updated where behaviour changed
 - [ ] No version numbers changed

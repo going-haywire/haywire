@@ -1,6 +1,6 @@
 # Branches, pull requests and CI: the non-obvious parts
 
-The rules are in `CONTRIBUTING.md` (the agent-only ones in CLAUDE.md, *Git and pull
+The rules are in `docs/collaboration/contributing.md` (the agent-only ones in CLAUDE.md, *Git and pull
 requests*); the procedures in the
 workflow page, `docs/collaboration/workflow.md`. CI's own settings are commented in `.github/workflows/ci.yml`.
 

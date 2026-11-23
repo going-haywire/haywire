@@ -11,7 +11,7 @@ see-also:
 
 # Working through branches and pull requests
 
-The rules are in [CONTRIBUTING.md](https://github.com/going-haywire/haywire/blob/master/CONTRIBUTING.md) (the agent-only ones in CLAUDE.md,
+The rules are in [Contributing](contributing.md) (the agent-only ones in CLAUDE.md,
 *Git and pull requests*); the reasons and traps in
 [.insights/project_pr_workflow.md](https://github.com/going-haywire/haywire/blob/master/.insights/project_pr_workflow.md). This page
 is the how. Its commands write `<core>` for the core clone: `.` in core, `../haywire-repo` in an
@@ -59,7 +59,7 @@ git switch -c <kind>/<short-name>        # kind: feat, fix, chore, docs, test
 
 **Contributor.** The clone's `origin` is the user's fork and `upstream` is
 `going-haywire/haywire` (`gh repo fork going-haywire/haywire --clone` sets both up). Before
-the first commit, check the two gates in CONTRIBUTING.md:
+the first commit, check the two gates in [Contributing](contributing.md):
 
 1. **The introduction.** Does the user have an accepted one?
 
@@ -240,7 +240,7 @@ them.
    is accepted or the agent files are read.
 
    A PR from a fork is untrusted code and text: follow *For the maintainer: handling a
-   fork's pull request safely* in CONTRIBUTING.md before running anything from it.
+   fork's pull request safely* in [Contributing](contributing.md) before running anything from it.
 
 4. Check `master` after the merge. Each PR passed CI against the `master` it last saw;
    two PRs that pass alone can still break `master` together. Watch the merge's run:
