@@ -3228,7 +3228,7 @@
     
   
   
-    <span class="md-status md-status--draft"></span>
+    <span class="md-status md-status--current"></span>
   
 
   
@@ -3253,7 +3253,7 @@
     
   
   
-    <span class="md-status md-status--draft"></span>
+    <span class="md-status md-status--current"></span>
   
 
   
@@ -3288,6 +3288,39 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#once-in-t3s-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Once, in T3's settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#once-per-repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Once per repository
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-scripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The scripts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#the-agent-checks-the-setup" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3304,6 +3337,18 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#what-this-now-allows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this now allows
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What this now allows">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#starting-the-studio" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3311,6 +3356,11 @@
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -5389,6 +5439,39 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#once-in-t3s-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Once, in T3's settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#once-per-repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Once per repository
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-scripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The scripts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#the-agent-checks-the-setup" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5405,6 +5488,18 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#what-this-now-allows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this now allows
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What this now allows">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#starting-the-studio" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5412,6 +5507,11 @@
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -5457,7 +5557,7 @@ use it is in <a href="../t3-agent/">its agent page</a>.</p>
 <tbody>
 <tr>
 <td>The lead</td>
-<td>A thread on the project root, the main folder</td>
+<td>A thread on the repository's main folder</td>
 </tr>
 <tr>
 <td>A task</td>
@@ -5474,50 +5574,122 @@ use it is in <a href="../t3-agent/">its agent page</a>.</p>
 </tbody>
 </table>
 <h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h2>
+<p>Before you start with T3 you need: </p>
+<ul>
+<li>on the machine: <code>uv</code>, <code>git</code>, <code>python3</code>, <code>jq</code> (the hooks use it) and <code>gh</code>, logged in
+  (<code>gh auth login</code>, then <code>gh auth setup-git</code>);</li>
+<li>the clones of the organisation's repositories (a contributor's forks), as in
+  <a href="../../workstation/">A developer's workstation</a>,<ul>
+<li>with core as <code>haywire-repo</code> and</li>
+<li>each library beside it, so that <code>../haywire-repo</code> reaches core from it. The parent
+  folder's name does not matter.</li>
+</ul>
+</li>
+</ul>
+<p>Cloning is enough. Every repository already commits what a thread needs: its <code>t3.json</code> (the
+scripts below), <code>.claude/settings.json</code> (the hooks) and <code>.mcp.json</code> (the Farmhand bridge).
+Nothing is installed into T3 or Claude Code, and no <code>uv sync</code> is needed first: the bridge's
+<code>uv run</code> builds a main folder's environment on its first start, <em>Worktree setup</em> a
+worktree's. The <a href="https://github.com/going-haywire/umbrella#readme">umbrella</a> is needed only
+for the full studio (<em>Starting the studio</em>).</p>
+<p>The setup has two parts: T3's own settings, once, and each repository as a T3 project.</p>
+<h3 id="once-in-t3s-settings">Once, in T3's settings<a class="headerlink" href="#once-in-t3s-settings" title="Permanent link">&para;</a></h3>
 <ol>
-<li>Add the repository's main folder as a T3 project. T3 reads
-   <a href="https://github.com/going-haywire/haywire/blob/master/t3.json"><code>t3.json</code></a> at its root
-   and applies its settings, but runs no script from it until it is imported. Import all
-   three once, in <em>Project settings → Actions → Import scripts → Import from t3.json</em>; the
-   <em>Import scripts</em> button shows only while some <code>t3.json</code> script is not imported yet. The
-   scripts menu then lists them as <em>From t3.json</em>. Import them in the app, not with the
-   agent's <code>t3_project_update</code>: on most installs T3 runs the scripts kept in its
-   <code>settings.json</code>, and that tool writes elsewhere
-   (<a href="https://github.com/pingdotgg/t3code/issues/14991">pingdotgg/t3code#14991</a>).</li>
-<li><strong>Worktree setup</strong> runs the repository's setup line (core: <code>python3
-     scripts/worktree_setup.py</code>) when T3 creates a worktree. <code>t3.json</code> sets <code>async: false</code> on it so that T3 holds the agent until it
-     exits, but the import drops that field
-     (<a href="https://github.com/pingdotgg/t3code/issues/40325">pingdotgg/t3code#40325</a>); set it
-     again after importing (below). Either way the session-start hook waits until the
-     worktree's setup has finished, up to 5 minutes.</li>
-<li><strong>Finish merged task</strong> runs each time a worktree thread settles: from the main folder
-     it runs <code>finish</code> on the thread's branch, which removes the worktree and both branches
-     once the PR is merged, and refuses before.</li>
-<li><strong>Haywire studio</strong> you run from the scripts menu: it starts this worktree's studio on
-     the port <code>worktree_setup.py</code> gave it (see <em>Starting the studio</em>).</li>
-<li>Set <code>async: false</code> on <em>Worktree setup</em> again: the import drops it. The agent offers to
-   do this for you (below). Without it the agent starts while the setup is still running,
-   and the session-start hook's wait covers that.</li>
 <li><em>Settings → Worktrees → Cleanup</em>: turn on <em>Delete merged worktrees</em>, and <em>Keep worktrees
    with local changes</em> with <em>Uncommitted changes</em>.</li>
 <li>Branch naming: the model's semantic prefix, so branches read <code>feat/…</code>, <code>fix/…</code>, <code>docs/…</code>.</li>
 </ol>
+<h3 id="once-per-repository">Once per repository<a class="headerlink" href="#once-per-repository" title="Permanent link">&para;</a></h3>
+<p>Core and every library you work on is a T3 project of its own. For each, in this order:</p>
+<ol>
+<li><strong>Add the project</strong>: the repository's main folder (<code>haywire-repo</code>, <code>haybale-&lt;name&gt;</code>).</li>
+<li><strong>Import the scripts</strong>, in the app, not with the agent's <code>t3_project_update</code>:
+   <em>Project settings → &lt;project&gt; → Actions → Import scripts</em>, and import all three (<em>The
+   scripts</em> below). <em>Worktree setup</em> and <em>Finish merged task</em> are the ones the task flow
+   needs, <em>Haywire studio</em> is a convenience.</li>
+<li><strong>Check</strong>: the project's scripts menu lists <em>Worktree setup</em>, <em>Finish merged task</em> and
+   <em>Haywire studio</em>, and <em>Import scripts</em> no longer shows: it shows only while some
+   <code>t3.json</code> script is not imported yet.</li>
+</ol>
+<p>Once a <a href="../../new-org-library/">new organisation library</a> repository exists: add it as a new project, then steps 2–3.</p>
+<h3 id="the-scripts">The scripts<a class="headerlink" href="#the-scripts" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Script</th>
+<th>When it runs</th>
+<th>Core</th>
+<th>A library</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Worktree setup</strong></td>
+<td>T3 creates a worktree</td>
+<td><code>python3 scripts/worktree_setup.py</code></td>
+<td>core's <code>worktree_setup.py</code>, through the library's main folder</td>
+</tr>
+<tr>
+<td><strong>Finish merged task</strong></td>
+<td>a worktree thread settles</td>
+<td><code>finish</code> on the thread's branch</td>
+<td>the same, core's <code>finish.py</code></td>
+</tr>
+<tr>
+<td><strong>Haywire studio</strong></td>
+<td>you, from the scripts menu</td>
+<td>the full studio, see below</td>
+<td><code>haywire studio start --browser</code></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Worktree setup</strong> brings the branch up to the latest default branch, runs <code>uv sync</code>
+  (<code>--frozen</code> in a library), and gives the worktree's studio a port of its own. In a library
+  worktree it first links core beside the worktree (<code>../haywire-repo</code>), wherever T3 put it,
+  so the library's sources and its hooks find core. The session-start hook waits until the
+  setup has finished, up to 5 minutes, whether or not <code>async: false</code> is set.</li>
+<li><strong>Finish merged task</strong> runs from the main folder: once the PR is merged it removes the
+  worktree and both branches; before the merge it refuses and removes nothing.</li>
+</ul>
 <h3 id="the-agent-checks-the-setup">The agent checks the setup<a class="headerlink" href="#the-agent-checks-the-setup" title="Permanent link">&para;</a></h3>
-<p>Each T3 session, the lead's included, checks this setup at start and the agent lists what is
-missing in its first reply (T3 does not show a hook's own message). It offers to add missing
-<code>t3.json</code> scripts and <code>async: false</code>, and only on your yes runs
-<code>python3 dev/orchestrators/t3/doctor.py --fix</code>, which backs up
-<code>~/.t3/userdata/settings.json</code> first. The rest (the import, cleanup, branch naming) you do
-in T3, steps 1, 3 and 4. <code>--check</code> lists the gaps without changing anything. The check reads
-T3's internal settings file; one it does not recognise it leaves untouched.</p>
-<h2 id="starting-the-studio">Starting the studio<a class="headerlink" href="#starting-the-studio" title="Permanent link">&para;</a></h2>
-<p>The script <em>Haywire studio</em> runs in the thread's folder. It calls <code>haywire-studio</code> from the
-<a href="https://github.com/going-haywire/umbrella#readme">umbrella</a> (<code>bin/haywire-studio</code>, linked
-onto your <code>PATH</code> once, as its README says), which starts the full studio with every library,
-the worktree's own <code>packages/*</code> and <code>barn/*</code> included. Without it on the <code>PATH</code> the script
-falls back to <code>uv run haywire</code>: the studio with this checkout's environment only. Either way
-a worktree's studio uses the port <code>worktree_setup.py</code> wrote to its <code>.haywire/settings.json</code>,
+<p>With the start of each T3 thread, including the lead's and in any repository, the agent first checks T3's own settings (<em>Once, in T3's settings</em>), and lists what is wrong in its first reply (T3 does not show a hook's own message). You then change them manually in T3. <code>python3 dev/orchestrators/t3/doctor.py --check</code> in core runs the same check in a terminal. A project's scripts it does not check: T3 shows those itself (step 3).</p>
+<h2 id="what-this-now-allows">What this now allows<a class="headerlink" href="#what-this-now-allows" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Tasks run in parallel, each on its own.</strong> The lead starts a task thread per change
+  (<code>t3_thread_launch</code>), each in a worktree of its own on its own branch, in core or in a
+  library. A task reports to the lead's thread (<code>t3_thread_send</code>), and the lead links the
+  task's PR to the thread, where T3 shows its status.</li>
+<li><strong>A worktree is ready before its agent works.</strong> <em>Worktree setup</em> has brought the branch up
+  to date, built the environment and given the worktree a studio port; in a library it has
+  linked core beside the worktree. Nothing to install, in core or in a library.</li>
+<li><strong>Every thread gets the workflow by itself.</strong> The session-start hook names your role and
+  the thread's place; the hooks block destructive git commands, hold back the first
+  branch, commit, push or PR until the workflow is read, and guard merges.</li>
+<li><strong>The agent works with a studio, started even mid-session.</strong> Each thread starts the
+  Farmhand bridge (<code>.mcp.json</code>). When a studio runs for the thread's folder, started from
+  the scripts menu or by the agent with <code>uv run haywire studio start</code>, its tools appear in
+  the session; when it stops, they disappear. Each worktree's studio has its own port, so
+  the lead's and every task's studio run side by side. The bridge also serves the docs the
+  agent reads for each kind of task.</li>
+<li><strong>Merged work cleans itself up.</strong> When a task's thread settles after its PR merged,
+  <em>Finish merged task</em> removes the worktree and both branches.</li>
+</ul>
+<h3 id="starting-the-studio">Starting the studio<a class="headerlink" href="#starting-the-studio" title="Permanent link">&para;</a></h3>
+<p><em>Haywire studio</em> runs in the thread's folder, the lead's main folder or a task's worktree.
+Each worktree's studio uses the port <em>Worktree setup</em> wrote to its <code>.haywire/settings.json</code>,
 so several run side by side; the main folder's is 8124.</p>
+<ul>
+<li><strong>In core</strong> it runs <code>haywire-studio</code> from the
+  <a href="https://github.com/going-haywire/umbrella#readme">umbrella</a> (<code>bin/haywire-studio</code>, linked
+  onto your <code>PATH</code> once, as its README says): the full studio with every library, the
+  worktree's own <code>packages/*</code> and <code>barn/*</code> in place of the umbrella's copies. Without it on
+  the <code>PATH</code> it falls back to <code>uv run --frozen haywire studio start --browser</code>, the studio
+  with this checkout's environment only.</li>
+<li><strong>In a library</strong> it runs <code>uv run --frozen haywire studio start --browser</code>: the studio with
+  core and this library. The full studio with a library task's changes needs the worktree
+  beside the repositories (<a href="../../workflow/#parallel-sessions">the workflow: parallel sessions</a>).</li>
+</ul>
 <h2 id="things-to-know">Things to know<a class="headerlink" href="#things-to-know" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>After a merge the lead sends nothing to the task's thread.</strong> This overrides the
@@ -5531,9 +5703,6 @@ so several run side by side; the main folder's is 8124.</p>
   then finds the PR unmerged and leaves everything. After each merge the lead unsettles the
   task's thread and settles it again, so the cleanup runs. A thread that has not settled
   yet settles when its turn ends, and the script runs then.</li>
-<li><strong>Library tasks</strong> need their worktree beside the repositories, which T3 cannot do. The
-  lead creates it with <code>git worktree add ../&lt;repo&gt;-&lt;name&gt; …</code> and starts the thread on that
-  folder (<code>existing_worktree</code>). Not yet confirmed on a real library task.</li>
 <li><strong>Storage cleanup</strong> (off by default) has no hook: it removes only worktrees T3 created
   and keeps their branches; <code>finish --sweep</code> cleans those up.</li>
 <li>The task view (<code>tasks.py</code>) shows no session column for T3 tasks; the thread list does.</li>

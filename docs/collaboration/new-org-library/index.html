@@ -3219,7 +3219,7 @@
     
   
   
-    <span class="md-status md-status--draft"></span>
+    <span class="md-status md-status--current"></span>
   
 
   
@@ -5314,7 +5314,10 @@ that, every clone and every worktree of it works with nothing to install.</p>
     Note over GH: from here on, every change is a pull request
     You-&gt;&gt;PyPI: ③ pending publisher, GitHub environment pypi
     Agent-&gt;&gt;GH: share --first-release
-    Agent-&gt;&gt;GH: PR in the umbrella, request in the curated catalogue</code></pre>
+    Agent-&gt;&gt;GH: PR in the umbrella, request in the curated catalogue
+    opt with T3 Code
+        You-&gt;&gt;Lib: ④ add it as a T3 project, import its t3.json scripts
+    end</code></pre>
 <p><strong>The files</strong> come from one command, <code>haywire init --org-files</code> (with a name: into the new
 project's first commit). It writes the library's agent files from core (the harness configs with core's
 hooks, <code>t3.json</code>, <code>[tool.haywire.agents]</code>, the <code>.gitignore</code> lines, <code>CLAUDE.md</code>'s block) and its CI
@@ -5385,6 +5388,11 @@ library's own, and Dependabot moves their pins.</p>
 <td>A developer's clone of it</td>
 <td>each developer</td>
 <td><a href="../../agents/start/">setting someone up</a>, <em>Develop Haywire</em></td>
+</tr>
+<tr>
+<td>④ T3 Code, if it is your orchestrator</td>
+<td>each developer</td>
+<td><a href="../orchestrators/t3/#once-per-repository">T3 Code: once per repository</a></td>
 </tr>
 </tbody>
 </table>

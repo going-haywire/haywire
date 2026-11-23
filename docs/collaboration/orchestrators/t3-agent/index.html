@@ -3219,7 +3219,7 @@
     
   
   
-    <span class="md-status md-status--draft"></span>
+    <span class="md-status md-status--current"></span>
   
 
   
@@ -5515,9 +5515,8 @@ and <code>T3CODE_THREAD_ID</code>; the session-start hook then names this file. 
 <code>&lt;kind&gt;/&lt;name&gt;</code> and the brief as the first message. The setup script from <code>t3.json</code>, once
 imported into the T3 project (<em>The user's T3 settings</em>), runs
 <code>python3 scripts/worktree_setup.py</code> when T3 creates the worktree (<code>runOnWorktreeCreate</code>).
-<code>t3.json</code> sets <code>async: false</code> on it so that T3 holds the agent until it exits, but the
-import drops that field (pingdotgg/t3code#40325), so T3 starts the agent alongside it until
-<code>async: false</code> is set again (<em>The user's T3 settings</em>). Either way the session-start
+<code>t3.json</code> sets <code>async: false</code> on it so that T3 holds the agent until it exits; T3 before 0.1.11
+dropped that field on import (pingdotgg/t3code#40325). Either way the session-start
 hook waits until the worktree's setup has finished (up to 5 minutes). Do not run
 the script again while T3's run is still going.</p>
 <p><strong>A library task</strong> runs like a core task: T3 creates the worktree in its own folder, and the
@@ -5555,20 +5554,19 @@ settles when its turn ends, and the script runs then.</p>
 anyway (a crashed task, a user's message), <code>finish</code> still removes it as long as its only
 extra commits are already on <code>origin/master</code>.</p>
 <h2 id="the-users-t3-settings">The user's T3 settings<a class="headerlink" href="#the-users-t3-settings" title="Permanent link">&para;</a></h2>
-<p>In every T3 session the session-start hook runs the slot's <code>doctor.py</code> and says what the T3
-setup lacks; pass that list to the user in your first reply, before other work (T3 does not
-display the hook's <code>systemMessage</code>).</p>
+<p>In every T3 session the session-start hook runs the slot's <code>doctor.py</code> and says what T3's own
+settings lack; pass that list to the user in your first reply, before other work (T3 does not
+display the hook's <code>systemMessage</code>), with the docs link the hook gives. The user changes them in
+T3:</p>
 <ul>
-<li><strong>Items marked <code>[fix]</code></strong> (a missing <code>t3.json</code> script, <code>async: false</code> dropped by T3's
-  import, pingdotgg/t3code#40325): offer the <code>doctor.py --fix</code> the hook names and run it only
-  on the user's yes. It backs up <code>~/.t3/userdata/settings.json</code>, then edits the list T3 runs,
-  <code>projectSettingsOverrides.&lt;projectId&gt;.defaultProjectScripts</code>. Pass its output on.</li>
-<li><strong>The rest</strong> the user does in T3; give the docs link the hook gives:</li>
-<li><em>Project settings → Actions → Import scripts → Import from t3.json</em>, once. Never with
-    <code>t3_project_update</code>: T3 does not run what it writes (pingdotgg/t3code#14991).</li>
-<li><em>Settings → Worktrees → Cleanup</em>: <em>Delete merged worktrees</em> on; <em>Keep worktrees with
-    local changes</em> on, <em>Uncommitted changes</em>.</li>
+<li><em>Settings → Worktrees → Cleanup</em>: <em>Delete merged worktrees</em> on; <em>Keep worktrees with local
+  changes</em> on, <em>Uncommitted changes</em>.</li>
 <li>Branch naming: semantic (<code>feat/</code>, <code>fix/</code>, …).</li>
+</ul>
+<p>A project's <code>t3.json</code> scripts the user imports in T3 (<em>Project settings → &lt;project&gt; → Actions →
+Import scripts</em>), never with <code>t3_project_update</code>. When a worktree's setup never ran, the hook
+says so: the scripts are probably not imported.</p>
+<ul>
 <li><em>Storage cleanup</em> (off by default) keeps branches; <code>finish --sweep</code> deletes them.</li>
 </ul>
 <h2 id="a-second-machine">A second machine<a class="headerlink" href="#a-second-machine" title="Permanent link">&para;</a></h2>
