@@ -77,7 +77,6 @@ and [ADR 0088](../adr/0088-a-release-is-the-merge-of-a-release-pr-and-ci-tags-it
 | [Glossary](../reference/glossary.md) | everyone | what each haywire term means |
 | [Developing Haywire](../guides/development.md) | contributors, agents | every command: setup, checks, tests, builds |
 | [Contributing](contributing.md) | contributors, maintainers, agents | the process and its rules |
-| [Library CONTRIBUTING.md](https://github.com/going-haywire/.github/blob/main/CONTRIBUTING.md) | library contributors | what differs in a library repository |
 | [going-haywire/.github README](https://github.com/going-haywire/.github#readme) | maintainers | the shared workflows, rulesets and plugin catalogue |
 | `CLAUDE.md` (read through `AGENTS.md`) | agents | what applies to agents only |
 | [The workflow](workflow.md) | agents | the step-by-step of every git and pull request action |

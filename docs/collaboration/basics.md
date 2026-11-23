@@ -138,7 +138,7 @@ for branches, PRs, CI, decisions, merging and cleanup is one docs page, the
 stop an action. Hooks run on one computer and bind agents only; rulesets (14) run on
 GitHub and bind everyone.
 
-**24 · Adapter.** A few small committed files through which an agent harness reaches a
+**24 · Harness config.** A few small committed files through which an agent harness reaches a
 repository's own Haywire: for Claude Code, `.mcp.json` (the Farmhand bridge) and
 `.claude/settings.json` (the hooks). Every project and every org repository carries them,
 so nothing is installed per machine or per folder, and every clone and worktree has them.
@@ -146,7 +146,7 @@ so nothing is installed per machine or per folder, and every clone and worktree 
 ??? info "Technical detail"
     The hooks and the workflow's scripts live once, in core's `dev/`. Core runs them in
     place; an org library reaches them through the core clone beside it. `haywire init`
-    writes a project's adapters; `going-haywire/.github`'s `templates/library/` a library's.
+    writes a project's harness configs, `haywire init --org-files` an org library's.
     The [dev/ README](https://github.com/going-haywire/haywire/blob/master/dev/README.md)
     lists what is there.
 

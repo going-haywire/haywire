@@ -180,7 +180,8 @@ gh pr create --repo going-haywire/haywire --base master --head <fork-owner>:<bra
   --title "<type(area): summary>" --body-file <file>
 ```
 
-Either way the body follows the headings of `.github/pull_request_template.md` (what and
+Either way the body follows the headings of the PR template (`going-haywire/.github`'s
+`.github/pull_request_template.md`, which GitHub fills in for every repository: what and
 why with `Fixes #<n>`, the checklist, the live check, AI assistance, what to look at
 first), lists anything still owed, and ends with the attribution line. Give the user the
 PR's URL.
@@ -438,16 +439,16 @@ them, its session.
 ## In a library repository
 
 The org's libraries (`going-haywire/haybale-*`) follow the same steps. Their process files
-come from [going-haywire/.github](https://github.com/going-haywire/.github) (the library
-`CONTRIBUTING.md`, the reusable CI); this page, the hooks and the Farmhand bridge come from
+come from [going-haywire/.github](https://github.com/going-haywire/.github) (the reusable CI);
+their own rules are *In a library* on the [contributing](contributing.md#in-a-library) page;
+this page, the hooks and the Farmhand bridge come from
 core beside it, through the library's committed files (`.claude/settings.json`, `.mcp.json`,
 `[tool.haywire.agents]` in `pyproject.toml`, `t3.json`). What differs:
 
 - **Layout.** The library is cloned beside core (`../haywire-repo`), which its development
   project and its committed hooks reach by relative paths. A task's worktree can be anywhere:
   its setup links core beside it (*Parallel sessions*).
-- **Checks** are the library's own, in the library
-  [CONTRIBUTING.md](https://github.com/going-haywire/.github/blob/main/CONTRIBUTING.md#checks),
+- **Checks** are the library's own ([contributing: in a library](contributing.md#in-a-library)),
   each with `uv run --frozen`.
 - **CI** is `ci.yml`, calling the org's `library-ci.yml`: the library's tests against core's
   `master`, Linux on a draft, macOS added once the PR is ready; `nightly.yml` runs the same

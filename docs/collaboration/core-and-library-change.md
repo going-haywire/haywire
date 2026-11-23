@@ -39,7 +39,7 @@ sequenceDiagram
 | Step | Who | Where the rule or command lives |
 |---|---|---|
 | The core change | task | [A task with its live check](task-with-live-check.md) |
-| ② The floor in the same commit | library task | [Library CONTRIBUTING: rules](https://github.com/going-haywire/.github/blob/main/CONTRIBUTING.md#rules-that-are-specific-to-libraries), [Sharing libraries §4.4](../guides/sharing-libraries.md#44-dependency-floors-must-exist-on-pypi) |
+| ② The floor in the same commit | library task | [Contributing: in a library](contributing.md#in-a-library), [Sharing libraries §4.4](../guides/sharing-libraries.md#44-dependency-floors-must-exist-on-pypi) |
 | CI against core's `master` | CI | [The workflow: in a library repository](workflow.md#in-a-library-repository) |
 | A wait no floor can record | agent proposes a reminder | [Sharing libraries §7.1](../guides/sharing-libraries.md#71-release-reminders) |
 | ③ The core release | lead on your word | [A core release](core-release.md) |

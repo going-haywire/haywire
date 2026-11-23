@@ -44,8 +44,8 @@ sequenceDiagram
 | ① Introduction | contributor writes it, maintainer accepts | [Contributing: introduce yourself](contributing.md#your-first-contribution-introduce-yourself), [ADR 0079](../adr/0079-a-first-contribution-starts-with-an-introduction.md) |
 | ② Issue first, unless a small fix | contributor, maintainer | [Contributing: before you start](contributing.md#before-you-start-a-change) |
 | Tools | contributor | [Contributing: tools](contributing.md#tools) |
-| Fork, branch, setup | contributor | [Contributing: making the change](contributing.md#making-the-change); a library: [library CONTRIBUTING: setting up](https://github.com/going-haywire/.github/blob/main/CONTRIBUTING.md#setting-up) |
-| Checks | contributor | [Developing Haywire: checks](../guides/development.md#checks); a library: [library CONTRIBUTING: checks](https://github.com/going-haywire/.github/blob/main/CONTRIBUTING.md#checks) |
+| Fork, branch, setup | contributor | [Contributing: making the change](contributing.md#making-the-change); a library: [contributing: in a library](contributing.md#in-a-library) |
+| Checks | contributor | [Developing Haywire: checks](../guides/development.md#checks); a library: [contributing: in a library](contributing.md#in-a-library) |
 | The pull request | contributor | [Contributing: opening the pull request](contributing.md#opening-the-pull-request) |
 | ③ First runs, labels | maintainer | [A fork's pull request](fork-pull-request.md) |
 | Review, ④ merge | maintainer | [Contributing: review and merge](contributing.md#review-and-merge) |
