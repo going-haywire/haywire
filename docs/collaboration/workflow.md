@@ -288,7 +288,7 @@ into the default branch and never merges a release PR. On "publish" the agent pr
 release PR and merges it once its checks are green, without asking again. When to ask:
 
 - **Core** releases are batched: the agent asks only when the user starts a release
-  (`/haywire-release`), never after a merge.
+  (`/release`), never after a merge.
 - **A library** usually releases one change at a time: after each merged change the agent
   asks (*In a library repository*).
 - **After a core release**, the lead asks once whether to publish the libraries it

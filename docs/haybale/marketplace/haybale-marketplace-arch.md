@@ -450,7 +450,7 @@ drift would block authors at the wrong moment.
 
 - **Not a registry.** The class registries belong to the [Library System](../../architecture/library-system/library-system-arch.md). The Library Manager *triggers* a rescan; it does not own registry state.
 - **Not a publisher.** It consumes marketplace and marketstall files; producing one is `haywire share`'s job — see the [sharing-libraries guide](../../guides/sharing-libraries.md).
-- **Not a build tool.** It does not build wheels, run `uv build`, or run `uv publish`. Releases go through `/haywire-release` and CI — see [publish_releases](../../reference/publish_releases.md).
+- **Not a build tool.** It does not build wheels, run `uv build`, or run `uv publish`. Releases go through `/release` and CI — see [publish_releases](../../reference/publish_releases.md).
 - **Not a transitive dep resolver.** When a row's `linked_libraries` names other haybale packages, the Library Manager does not install them automatically. The user installs each library individually; uv handles the actual pip-level resolution.
 - **Not a curator.** No source is more authoritative than any other in the data. The official haywire feed is one feed among many.
 - **Not a trusted namespace.** Two authors may publish the same package name; the collision surfaces as a conflict for the user to settle. That is the price of letting anyone publish without permission.

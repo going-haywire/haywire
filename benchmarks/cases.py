@@ -1,4 +1,4 @@
-"""Benchmark case registry for ``haywire-benchmark``.
+"""Benchmark case registry for ``benchmarks/run.py``.
 
 Each case is a plain callable that *prepares* a benchmark (builds its graph/nodes,
 returns a zero-arg ``run`` to time). The runner (``run.py``) handles warmup,

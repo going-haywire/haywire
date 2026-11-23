@@ -29,15 +29,17 @@ sequenceDiagram
     opt several libraries in one studio
         You->>Folder: ① bin/umbrella-sync: lists the libraries cloned<br/>on this machine, then uv sync
     end
-    You->>CC: claude plugin marketplace add going-haywire/.github (once per machine)
-    You->>CC: claude plugin install haywire-dev@going-haywire --scope project (each library clone)
+    Note over Core,Lib: each clone's committed files give a session there<br/>the workflow, its hooks and the Farmhand bridge
+    You->>CC: a session in the clone you work on
 ```
+
+An agent can do all of this for you: the [start page](../agents/start.md) is written for it.
 
 | Step | Who | Where the rule or command lives |
 |---|---|---|
 | The layout and the umbrella | developer | [going-haywire/umbrella](https://github.com/going-haywire/umbrella#readme), [ADR 0081](../adr/0081-libraries-from-other-repositories-run-from-an-umbrella-environment.md) |
 | One library | developer | [Library CONTRIBUTING: setting up](https://github.com/going-haywire/.github/blob/main/CONTRIBUTING.md#setting-up) |
 | ① Only some libraries | developer | [umbrella README](https://github.com/going-haywire/umbrella#readme): `bin/umbrella-sync` writes the untracked `pyproject.toml` and `uv.lock` from the repositories cloned on this machine |
-| The dev plugin | developer | [haywire-dev README](https://github.com/going-haywire/haywire/blob/master/dev/README.md) |
+| The developer tooling | developer | [dev/README](https://github.com/going-haywire/haywire/blob/master/dev/README.md) |
 | Worktrees: core's and a library's | developer, lead | [The workflow: parallel sessions](workflow.md#parallel-sessions) |
 | A second machine | developer | [second-machine.md](second-machine.md) |

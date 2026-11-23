@@ -52,7 +52,7 @@ new owner. Its `[tool.uv.sources]` gains the paths to `../haywire-repo` by hand,
 | Publish to PyPI (path sources need it) | — | [Sharing libraries §4.3](../guides/sharing-libraries.md#43-no-path-sources-outside-the-repository) |
 | ② Settings, rulesets, labels | maintainer | [going-haywire/.github: a library repository's settings](https://github.com/going-haywire/.github#a-library-repositorys-settings) |
 | The callers and their pins | agent | [going-haywire/.github: calling a reusable workflow](https://github.com/going-haywire/.github#calling-a-reusable-workflow) |
-| The dev plugin | agent, maintainer | [haywire-dev README](https://github.com/going-haywire/haywire/blob/master/dev/README.md) |
+| The agent files | agent, maintainer | [going-haywire/.github: a library repository's agent files](https://github.com/going-haywire/.github#a-library-repositorys-agent-files) (`scripts/library-files.sh`) |
 | ④ The owner steps for PyPI, the first release | maintainer, agent | [Publishing to PyPI §2–§6](../guides/publish-to-pypi.md#2-before-you-start-claim-the-name) |
 | The umbrella | agent | [going-haywire/umbrella](https://github.com/going-haywire/umbrella#readme) |
 | The curated catalogue | agent | [Curated marketplace §9](../haybale/marketplace/curated-marketplace.md#9-submission-review-removal) |

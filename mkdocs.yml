@@ -145,6 +145,7 @@ nav:
           - Basics: collaboration/basics.md
           - Contributing: collaboration/contributing.md
           - The workflow: collaboration/workflow.md
+          - Agent tooling, what lives where: collaboration/agent-tooling.md
           - Library authors:
               - Create and first share: collaboration/create-and-share.md
               - Share an update: collaboration/share-an-update.md

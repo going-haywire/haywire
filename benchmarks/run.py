@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Haywire benchmark runner — invoked by the ``haywire-benchmark`` skill.
+"""Haywire benchmark runner: ``uv run python benchmarks/run.py [name-filter]``.
 
 Runs every frozen benchmark case (or one filtered by name), records the
 **min-of-N** per-operation time (plus median/p90 spread) as an absolute number,

@@ -98,7 +98,7 @@ jobs:
       - name: Install workspace
         run: uv sync --dev
 
-      # The bump is a release-PR step (`/haywire-release` → scripts/bump_version.py),
+      # The bump is a release-PR step (`/release` → scripts/bump_version.py),
       # so nothing downstream verifies that the version being released actually matches
       # the versions committed in the tree. A tag pushed by hand without the bump
       # would otherwise sail through: the publish job reads its version from

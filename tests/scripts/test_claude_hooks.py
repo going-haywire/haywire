@@ -1,4 +1,4 @@
-"""The Claude Code hooks of the haywire-dev plugin, run as Claude Code runs them, with a stand-in gh."""
+"""The workflow hooks in dev/hooks/, run as Claude Code runs them, with a stand-in gh."""
 
 from __future__ import annotations
 
@@ -721,7 +721,6 @@ def test_reading_the_workflow_file_counts_in_core_and_from_a_library(tmp_path, p
     "tool_input",
     [
         {"skill": "workflow"},
-        {"skill": "haywire-dev:workflow"},
         {"file_path": "/work/haywire-repo/docs/collaboration/basics.md"},
         {"uri": "farmhand://docs/collaboration/workflow.md"},
     ],
@@ -741,7 +740,7 @@ def test_hooks_are_executable():
         assert os.access(hook, os.X_OK), hook.name
 
 
-# ── the plugin's wiring and core's ──────────────────────────────────────────────────
+# ── core's wiring ───────────────────────────────────────────────────────────────────
 
 
 def _wiring(hooks: dict) -> set[tuple[str, str, str]]:
@@ -755,26 +754,19 @@ def _wiring(hooks: dict) -> set[tuple[str, str, str]]:
     }
 
 
-def test_core_runs_the_same_plugin_hooks_as_a_library_session():
-    plugin = json.loads((HOOKS / "hooks.json").read_text())["hooks"]
+def test_core_runs_every_hook_of_dev_from_its_own_folder():
     core = json.loads((ROOT / ".claude" / "settings.json").read_text())["hooks"]
-    assert _wiring(core) == _wiring(plugin)
-    assert {name for _, _, name in _wiring(plugin)} == {hook.name for hook in HOOKS.glob("*.sh")}
+    assert {name for _, _, name in _wiring(core)} == {hook.name for hook in HOOKS.glob("*.sh")}
     for groups in core.values():
         for group in groups:
             for hook in group["hooks"]:
                 if "/hooks/" in hook["command"]:
                     assert '"$CLAUDE_PROJECT_DIR"/dev/hooks/' in hook["command"]
-
-
-def test_core_reads_the_pointer_skill_from_dev():
-    link = ROOT / ".claude" / "skills" / "workflow"
-    assert link.is_symlink()
-    assert link.resolve() == (ROOT / "dev" / "skills" / "workflow").resolve()
+    assert ("PostToolUse", "Read|ReadMcpResourceTool", "mark-workflow-read.sh") in _wiring(core)
 
 
 def test_the_scripts_are_links_into_dev():
-    for name in ("finish.py", "tasks.py"):
+    for name in ("worktree_setup.py", "finish.py", "tasks.py"):
         link = ROOT / "scripts" / name
         assert link.is_symlink()
         assert link.resolve() == (ROOT / "dev" / "scripts" / name).resolve()

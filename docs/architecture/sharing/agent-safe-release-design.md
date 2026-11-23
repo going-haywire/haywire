@@ -141,7 +141,7 @@ A code-level registry `HUMAN_ONLY_STEPS` (id, title, where, fields, `check()` or
 
 ## 4. Release-PR model vs local commit+tag+push
 
-**Today** (verified): `share` commits on the default branch, tags, and pushes both. The monorepo is *not* the model it is sometimes called: `/haywire-release` bumps in a release PR, but the **tag is pushed by the user** (a local hook blocks tag pushes), and CI publishes on the tag; CI does not tag. release-please is the only CI-tags-on-merge example.
+**Today** (verified): `share` commits on the default branch, tags, and pushes both. The monorepo is *not* the model it is sometimes called: `/release` bumps in a release PR, but the **tag is pushed by the user** (a local hook blocks tag pushes), and CI publishes on the tag; CI does not tag. release-please is the only CI-tags-on-merge example.
 
 **Release-PR model.** `share --pr`: branch `release/v<ver>`, same commit (bump, docs, marketstall), push, open a PR. On merge, one workflow job tags the merge commit and publishes in the same run. (A tag pushed with the default `GITHUB_TOKEN` does not trigger other workflows, a documented GitHub behaviour, so tag + publish must live in one workflow, or use a token that can trigger.)
 
@@ -242,11 +242,11 @@ Each PR touches code, the relevant guide, and the contract tests; none changes a
 Once this design has landed, the next design doc should review the **haywire monorepo's own release flow**. Out of scope here, but it should not be forgotten, for these reasons:
 
 - **Incident (a) happened in the monorepo**, not in a generated project. This doc covers it only with the version-guard job (§7, step 7).
-- **It is a second implementation of the same job.** `scripts/bump_version.py` and `/haywire-release` bump; the release PR is merged by hand; the user pushes the tag (a local hook blocks tag pushes); `publish.yml` then publishes, skipping versions already on PyPI. This is the flow §4 compares the release-PR model against, and CI does not tag.
-- **It has the same agent risks as `share`:** `/haywire-release` is written as a walkthrough for a human; nothing reports the release state; retrying after a half-finished run relies on the agent's judgement; the `uv.lock` pollution (incident e) happened here.
+- **It is a second implementation of the same job.** `scripts/bump_version.py` and `/release` bump; the release PR is merged by hand; the user pushes the tag (a local hook blocks tag pushes); `publish.yml` then publishes, skipping versions already on PyPI. This is the flow §4 compares the release-PR model against, and CI does not tag.
+- **It has the same agent risks as `share`:** `/release` is written as a walkthrough for a human; nothing reports the release state; retrying after a half-finished run relies on the agent's judgement; the `uv.lock` pollution (incident e) happened here.
 
 Checks for that review:
-1. Make `/haywire-release` retry-safe: if `vX.Y.Z` is already merged or tagged, stop with "already released".
+1. Make `/release` retry-safe: if `vX.Y.Z` is already merged or tagged, stop with "already released".
 2. CI guard: fail any PR that changes a `version` field unless it is a `chore: release` PR.
 3. A `--status` equivalent (bumped, merged, tagged, on PyPI) so an agent need not infer the state.
 4. Share code with `share` or stay separate? Project-scoped lockstep (ADR-0023) and `[tool.haywire.release]` lockstep are close; `publish.yml` generation (§1) and the idempotent-skip step may be shareable.
