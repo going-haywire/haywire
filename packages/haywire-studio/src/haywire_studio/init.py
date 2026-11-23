@@ -20,6 +20,7 @@ from typing import Any
 
 import toml
 
+from .agents import write_adapters
 from .config import add_recent_project, ensure_global_config, ensure_project_config
 from .playbook import render_playbook, render_release_gates
 from .publish_workflow import (
@@ -593,9 +594,16 @@ A published version is permanent.
 
 {render_release_gates()}
 
+## The studio and Farmhand
+
+The project's `.mcp.json` starts the Farmhand bridge from the project's own environment, so
+the studio's tools appear in an agent session as soon as the studio runs: start it with
+`uv run haywire studio start`, stop it with `uv run haywire studio stop`. The bridge's
+`farmhand_studio_status` says why its tools are missing when they are.
+
 ## Live checks
 
-A live check asks the owner to confirm in the running studio (`uv run haywire`) that a
+A live check asks the owner to confirm in the running studio that a
 change works. It costs their time: ask only for a change only a person can judge (UI,
 interaction, a device), only once your own tests and checks leave you confident it works,
 and only with the steps that need a person. With Farmhand connected, post those steps as a
@@ -974,6 +982,8 @@ def init_project(
     # CLAUDE.md and AGENTS.md — the release rules for coding agents
     (project_dir / "CLAUDE.md").write_text(_generate_claude_md(name, label))
     (project_dir / "AGENTS.md").write_text(_generate_agents_md())
+    # Each supported harness's adapter: the Farmhand bridge from the project's environment.
+    write_adapters(project_dir)
 
     # CI: tag-triggered PyPI publishing, a green no-op unless distribute = "pypi"
     (project_dir / ".github" / "workflows").mkdir(parents=True)

@@ -96,6 +96,7 @@ nav:
   - Home: index.md
 
   - Using Haywire:
+      - Setting up with an agent: agents/start.md
       - Guides:
           - Subscribing to marketplaces: guides/subscribing-to-marketplaces.md
           - Security: guides/security.md
@@ -142,6 +143,7 @@ nav:
       - Collaboration:
           - collaboration/index.md
           - Basics: collaboration/basics.md
+          - Contributing: collaboration/contributing.md
           - The workflow: collaboration/workflow.md
           - Library authors:
               - Create and first share: collaboration/create-and-share.md

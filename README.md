@@ -14,6 +14,15 @@ Haywire is a Blueprint-inspired visual programming system that combines **execut
 
 ## For Users
 
+### With an AI agent
+
+Tell your agent (Claude Code, Codex, Cursor, …):
+
+> Set me up for Haywire: read https://raw.githubusercontent.com/going-haywire/haywire/master/docs/agents/start.md and follow it.
+
+It checks your tools, asks whether you want to use Haywire or develop it, and takes you to a
+running studio with its tools in your agent session. The steps below are the same by hand.
+
 ### Prerequisites
 
 - [uv](https://docs.astral.sh/uv/getting-started/installation/) package manager (it downloads Python 3.12+ for you if you don't have one)
@@ -37,6 +46,9 @@ Launch the editor:
 ```sh
 uv run haywire
 ```
+
+`uv run haywire studio start --browser` starts it in the background instead; an agent session
+in the project folder then gets the studio's tools through the Farmhand bridge (`.mcp.json`).
 
 The folder has the following project structure:
 
