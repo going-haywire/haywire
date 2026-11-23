@@ -349,6 +349,18 @@
          <lastmod>2026-11-23</lastmod>
     </url>
     <url>
+         <loc>https://going-haywire.github.io/haywire/docs/adr/0092-agent-tooling-comes-from-the-place-of-work/</loc>
+         <lastmod>2026-11-23</lastmod>
+    </url>
+    <url>
+         <loc>https://going-haywire.github.io/haywire/docs/adr/0093-the-farmhand-bridge-replaces-the-proxy/</loc>
+         <lastmod>2026-11-23</lastmod>
+    </url>
+    <url>
+         <loc>https://going-haywire.github.io/haywire/docs/adr/0094-an-orchestrators-text-lives-in-the-docs/</loc>
+         <lastmod>2026-11-23</lastmod>
+    </url>
+    <url>
          <loc>https://going-haywire.github.io/haywire/docs/agents/start/</loc>
          <lastmod>2026-11-23</lastmod>
     </url>
@@ -458,6 +470,10 @@
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/collaboration/</loc>
+         <lastmod>2026-11-23</lastmod>
+    </url>
+    <url>
+         <loc>https://going-haywire.github.io/haywire/docs/collaboration/agent-tooling/</loc>
          <lastmod>2026-11-23</lastmod>
     </url>
     <url>
