@@ -5663,7 +5663,8 @@ three scripts are links into <code>dev/scripts/</code>.</p>
      phrased: <a href="https://github.com/going-haywire/haywire/blob/master/tests/README.md#text-in-tests">Text in tests</a>.</li>
 <li><strong>Never change a version number</strong> (<code>pyproject.toml</code>, <code>haybale.toml</code>, <code>&gt;=</code> pins).
      Releases are lockstep across all packages and only the maintainer cuts them.</li>
-<li><strong>Files that steer agents or CI</strong> (<code>CLAUDE.md</code>, <code>AGENTS.md</code>, <code>.claude/</code>, <code>.github/</code>, <code>plugins/</code>)
+<li><strong>Files that steer agents or CI</strong> (<code>CLAUDE.md</code>, <code>AGENTS.md</code>, <code>.mcp.json</code>, <code>t3.json</code>, <code>.claude/</code>,
+     <code>.github/</code>, and in core <code>dev/</code>)
      may be changed, but the maintainer reads every line of such a change before merging;
      the pull request gets the label <code>agent files</code> until then.</li>
 </ol>
