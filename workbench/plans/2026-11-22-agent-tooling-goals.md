@@ -206,6 +206,26 @@ Written into `docs/reference/glossary.md` in the change that builds them
 3. Org repositories also point at core's `dev/` (guardrails and developer instructions); an
    orchestrator only plugs into four events there.
 
+## Status
+
+| Slice | State | Pull requests |
+|---|---|---|
+| S1 Bridge | done 2026-11-22, live-checked (auth on, token never in a transcript) | #216, fix #220 |
+| S2 `haywire studio` | done 2026-11-22, live-checked | #217, fix #220 |
+| S3 Core `dev/` | done 2026-11-22, live-checked (gate blocks, bridge serves the page) | #218, going-haywire/.github#5 |
+| S4 Libraries | done 2026-11-23, live-checked on a T3-style spandrel worktree | #219, going-haywire/.github#6, haybale-comfyui#10, haybale-protokol#22, haybale-spandrel#7, haybale-stream#18, haybale-visiongraph#9 |
+| S5 Start page | done 2026-11-23, live-checked (the user journey) | #222 |
+| S6 Cleanup | done when #223, going-haywire/.github#7 and going-haywire/claude-plugin#2 merge, claude-plugin is archived and the npm package deprecated | #223, going-haywire/.github#7, going-haywire/claude-plugin#2 |
+
+Deviations from the plan: the developer-docs declaration is `[tool.haywire.agents]` in
+`pyproject.toml` (`.haywire/` is gitignored); the worktree setup keeps the per-worktree port
+(the umbrella's studio and `t3.json` read it) and marks "done" in the worktree's git folder;
+`haywire init --refresh-adapters` was dropped (no projects predate it); core's `CLAUDE.md` keeps
+core's own always-in-context rules as the one exception to D2. Found on the way and fixed: the
+studio's `started_at` made every running studio look recycled (#216); the studio's startup line
+and `user add` printed agent tokens (#216); a stale local docs bake hid the bridge's index and
+`free_port` took bound ports (#220).
+
 ## Build plan
 
 Each slice ships on its own; the next builds on it. Slice 1 first: it fixes the connection that
