@@ -16,7 +16,7 @@
     },
     {
       "name": "Haywire studio",
-      "command": "if command -v haywire-studio >/dev/null; then haywire-studio; else uv run haywire; fi",
+      "command": "if command -v haywire-studio >/dev/null; then haywire-studio; else uv run --frozen haywire studio start --browser; fi",
       "icon": "play",
       "runOnWorktreeCreate": false
     }

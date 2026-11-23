@@ -29,9 +29,8 @@ The lead calls `t3_thread_launch` with a new worktree from `origin/master`, the 
 `<kind>/<name>` and the brief as the first message. The setup script from `t3.json`, once
 imported into the T3 project (*The user's T3 settings*), runs
 `python3 scripts/worktree_setup.py` when T3 creates the worktree (`runOnWorktreeCreate`).
-`t3.json` sets `async: false` on it so that T3 holds the agent until it exits, but the
-import drops that field (pingdotgg/t3code#40325), so T3 starts the agent alongside it until
-`async: false` is set again (*The user's T3 settings*). Either way the session-start
+`t3.json` sets `async: false` on it so that T3 holds the agent until it exits; T3 before 0.1.11
+dropped that field on import (pingdotgg/t3code#40325). Either way the session-start
 hook waits until the worktree's setup has finished (up to 5 minutes). Do not run
 the script again while T3's run is still going.
 
@@ -81,20 +80,19 @@ extra commits are already on `origin/master`.
 
 ## The user's T3 settings
 
-In every T3 session the session-start hook runs the slot's `doctor.py` and says what the T3
-setup lacks; pass that list to the user in your first reply, before other work (T3 does not
-display the hook's `systemMessage`).
+In every T3 session the session-start hook runs the slot's `doctor.py` and says what T3's own
+settings lack; pass that list to the user in your first reply, before other work (T3 does not
+display the hook's `systemMessage`), with the docs link the hook gives. The user changes them in
+T3:
 
-- **Items marked `[fix]`** (a missing `t3.json` script, `async: false` dropped by T3's
-  import, pingdotgg/t3code#40325): offer the `doctor.py --fix` the hook names and run it only
-  on the user's yes. It backs up `~/.t3/userdata/settings.json`, then edits the list T3 runs,
-  `projectSettingsOverrides.<projectId>.defaultProjectScripts`. Pass its output on.
-- **The rest** the user does in T3; give the docs link the hook gives:
-  - *Project settings → Actions → Import scripts → Import from t3.json*, once. Never with
-    `t3_project_update`: T3 does not run what it writes (pingdotgg/t3code#14991).
-  - *Settings → Worktrees → Cleanup*: *Delete merged worktrees* on; *Keep worktrees with
-    local changes* on, *Uncommitted changes*.
-  - Branch naming: semantic (`feat/`, `fix/`, …).
+- *Settings → Worktrees → Cleanup*: *Delete merged worktrees* on; *Keep worktrees with local
+  changes* on, *Uncommitted changes*.
+- Branch naming: semantic (`feat/`, `fix/`, …).
+
+A project's `t3.json` scripts the user imports in T3 (*Project settings → <project\> → Actions →
+Import scripts*), never with `t3_project_update`. When a worktree's setup never ran, the hook
+says so: the scripts are probably not imported.
+
 - *Storage cleanup* (off by default) keeps branches; `finish --sweep` deletes them.
 
 ## A second machine
