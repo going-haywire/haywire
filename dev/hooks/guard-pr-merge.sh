@@ -47,9 +47,10 @@ CD=$(printf '%s' "$COMMAND" | perl -0pe 's/gh\s+pr\s+merge.*//s' \
 if [ -n "$CD" ]; then
   cd "${CD/#\~/$HOME}" || block "cannot enter $CD to read the PR; name it with --repo"
 fi
+# Only stdout is the answer: gh also writes hints to stderr (since 2.105), which would break jq.
 # shellcheck disable=SC2086
-VIEW=$(gh pr view $PR "${REPO_ARG[@]}" --json isDraft,statusCheckRollup,url,labels 2>&1) \
-  || block "cannot read the PR ($VIEW)"
+VIEW=$(gh pr view $PR "${REPO_ARG[@]}" --json isDraft,statusCheckRollup,url,labels 2>/dev/null) \
+  || block "cannot read the PR (run gh pr view $PR ${REPO_ARG[*]} to see why)"
 
 [ "$(echo "$VIEW" | jq -r '.isDraft')" = "false" ] || block "the PR is still a draft"
 
@@ -65,8 +66,8 @@ OPEN_THREADS=$(gh api graphql -F owner="$OWNER" -F repo="$REPO" -F number="$NUMB
     repository(owner: $owner, name: $repo) {
       pullRequest(number: $number) { reviewThreads(first: 100) { nodes { isResolved } } }
     }
-  }' --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)] | length' 2>&1) \
-  || block "cannot read the PR's review threads ($OPEN_THREADS)"
+  }' --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)] | length' 2>/dev/null) \
+  || block "cannot read the PR's review threads (gh api graphql failed)"
 [ "$OPEN_THREADS" = "0" ] || block "$OPEN_THREADS review thread(s) unresolved; read them, address them, resolve them"
 
 # One entry per check and run: keep the newest run of each check.

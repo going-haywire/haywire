@@ -456,7 +456,9 @@ _GREEN = [
         "startedAt": "1",
     }
 ]
+# Like gh since 2.105, every call also writes a hint to stderr.
 _GH_FOR_GUARD = (
+    'echo "hint: use gh event listen" >&2; '
     'if [ "$1" = "api" ]; then echo "$FAKE_THREADS"; '
     'else echo "$*" > "$TMPDIR/gh-view-args"; pwd -P > "$TMPDIR/gh-view-dir"; echo "$FAKE_VIEW"; fi'
 )
