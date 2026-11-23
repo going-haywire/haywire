@@ -44,6 +44,7 @@ def _run(hook: str, payload: dict, bin_dir: Path, tmp_path: Path, **env: str) ->
             "TMPDIR": str(tmp_path),
             "CLAUDE_PROJECT_DIR": str(tmp_path),
             "HAYWIRE_T3_SETUP_WAIT": "0",
+            "HAYWIRE_T3_SETUP_START_WAIT": "0",
             **env,
         },
         check=False,
@@ -279,15 +280,20 @@ def _t3_output(
     return json.loads(result.stdout)
 
 
-def _setup_done(work: Path) -> None:
-    """Mark ``work``'s setup finished, as dev/scripts/worktree_setup.py does last."""
+def _setup_mark(work: Path, marker: str) -> None:
+    """Write one of dev/scripts/worktree_setup.py's markers into ``work``'s git folder."""
     git_dir = subprocess.run(
         ["git", "-C", str(work), "rev-parse", "--path-format=absolute", "--git-dir"],
         capture_output=True,
         text=True,
         check=True,
     ).stdout.strip()
-    (Path(git_dir) / "haywire-setup-done").write_text("")
+    (Path(git_dir) / marker).write_text("")
+
+
+def _setup_done(work: Path) -> None:
+    """Mark ``work``'s setup finished, as dev/scripts/worktree_setup.py does last."""
+    _setup_mark(work, "haywire-setup-done")
 
 
 def _t3_setup(tmp_path: Path, **kwargs) -> str:
@@ -331,7 +337,22 @@ def test_a_broken_t3_settings_file_points_to_the_docs(tmp_path, settings):
 def test_a_worktree_without_its_setup_is_told_to_run_it(tmp_path):
     context = _t3_setup(tmp_path, settings=_t3_project(), t3_json=True, done=False)
     assert "T3 setup is incomplete; pass this list to the user" in context
+    assert "never ran" in context
     assert "run `python3 scripts/worktree_setup.py` in this worktree now" in context
+
+
+def test_a_setup_that_never_started_ends_the_wait_early(tmp_path):
+    began = time.monotonic()
+    context = _t3_setup(
+        tmp_path,
+        settings=_t3_project(),
+        t3_json=True,
+        done=False,
+        HAYWIRE_T3_SETUP_WAIT="30",
+        HAYWIRE_T3_SETUP_START_WAIT="1",
+    )
+    assert time.monotonic() - began < 15
+    assert "never ran" in context
 
 
 def test_the_slot_waits_for_a_setup_still_running(tmp_path):
@@ -339,13 +360,19 @@ def test_the_slot_waits_for_a_setup_still_running(tmp_path):
         work = tmp_path / "work"
         while not (work / ".venv").is_dir():
             time.sleep(0.05)
+        _setup_mark(work, "haywire-setup-started")
         time.sleep(1.5)
         _setup_done(work)
 
     setup = threading.Thread(target=finish_setup)
     setup.start()
     context = _t3_setup(
-        tmp_path, settings=_t3_project(), t3_json=True, done=False, HAYWIRE_T3_SETUP_WAIT="30"
+        tmp_path,
+        settings=_t3_project(),
+        t3_json=True,
+        done=False,
+        HAYWIRE_T3_SETUP_WAIT="30",
+        HAYWIRE_T3_SETUP_START_WAIT="30",
     )
     setup.join()
     assert "T3 setup is incomplete" not in context

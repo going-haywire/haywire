@@ -12,19 +12,28 @@ unfinished=""
 
 # In a worktree, the imported setup script has built the environment. T3 before 0.1.11 dropped
 # t3.json's `async: false` on import, so T3 may start the agent alongside that script; wait here
-# until it is done: its last step writes haywire-setup-done into the worktree's git folder.
-# HAYWIRE_T3_SETUP_WAIT is seconds.
+# while it runs: it writes haywire-setup-started into the worktree's git folder first and
+# haywire-setup-done last. A setup that has not started within HAYWIRE_T3_SETUP_START_WAIT
+# never runs (T3 runs no script for a worktree it re-creates), so the wait ends there; a
+# started one gets HAYWIRE_T3_SETUP_WAIT. Both are seconds.
 dirs=$(git -C "$dir" rev-parse --path-format=absolute --git-dir --git-common-dir 2>/dev/null)
+git_dir=$(sed -n 1p <<<"$dirs")
 set_up() {
-  [ -d "$dir/.venv" ] && [ -f "$(sed -n 1p <<<"$dirs")/haywire-setup-done" ]
+  [ -d "$dir/.venv" ] && [ -f "$git_dir/haywire-setup-done" ]
 }
-if [ -n "$dirs" ] && [ "$(sed -n 1p <<<"$dirs")" != "$(sed -n 2p <<<"$dirs")" ]; then
+started() {
+  [ -f "$git_dir/haywire-setup-started" ] || [ -f "$git_dir/haywire-setup-done" ]
+}
+if [ -n "$dirs" ] && [ "$git_dir" != "$(sed -n 2p <<<"$dirs")" ]; then
   waited=0
-  until set_up || [ "$waited" -ge "${HAYWIRE_T3_SETUP_WAIT:-300}" ]; do
+  until set_up || [ "$waited" -ge "${HAYWIRE_T3_SETUP_WAIT:-300}" ] \
+    || { ! started && [ "$waited" -ge "${HAYWIRE_T3_SETUP_START_WAIT:-10}" ]; }; do
     sleep 1
     waited=$((waited + 1))
   done
-  set_up || unfinished="${HAYWIRE_T3_SETUP_WAIT:-300}"
+  if ! set_up; then
+    started && unfinished="$waited" || unfinished=0
+  fi
 fi
 
 # What T3's own settings lack (worktree cleanup, branch naming): doctor.py says it.

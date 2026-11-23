@@ -31,8 +31,9 @@ imported into the T3 project (*The user's T3 settings*), runs
 `python3 scripts/worktree_setup.py` when T3 creates the worktree (`runOnWorktreeCreate`).
 `t3.json` sets `async: false` on it so that T3 holds the agent until it exits; T3 before 0.1.11
 dropped that field on import (pingdotgg/t3code#40325). Either way the session-start
-hook waits until the worktree's setup has finished (up to 5 minutes). Do not run
-the script again while T3's run is still going.
+hook waits while the worktree's setup runs (up to 5 minutes). Do not run
+the script again while T3's run is still going. A setup that has not started within 10 s never
+runs (T3 runs no script in a worktree it re-creates); the hook then tells you to run it.
 
 **A library task** runs like a core task: T3 creates the worktree in its own folder, and the
 library's `t3.json` runs the setup through the library's main folder, which links core beside
