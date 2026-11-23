@@ -5,17 +5,11 @@ A drift-tracking performance suite for node execution. Two flavours of case —
 operation) — measured the same way and logged to a commit-stamped file so you can
 watch numbers move across the codebase's development.
 
-Run it via the skill:
+Run it:
 
 ```
-haywire-benchmark               # all cases
-haywire-benchmark graph_loop    # only cases whose name contains "graph_loop"
-```
-
-or directly:
-
-```
-uv run python benchmarks/run.py [name-filter]
+uv run python benchmarks/run.py               # all cases
+uv run python benchmarks/run.py graph_loop    # only cases whose name contains "graph_loop"
 ```
 
 Each run appends rows to `results/results.jsonl` and prints a table comparing each

@@ -56,7 +56,7 @@ accepted. Why it works this way: [ADR 0079](../adr/0079-a-first-contribution-sta
 Required: [uv](https://docs.astral.sh/uv/), git, the [GitHub CLI](https://cli.github.com/)
 (`gh auth login`), and `jq` (the agent hooks use it). On Windows, let git create symbolic
 links before you clone (Developer Mode on, `git config --global core.symlinks true`): the
-agents' workflow skill and two scripts are links into `dev/`.
+three scripts are links into `dev/scripts/`.
 
 Optional:
 

@@ -7,7 +7,7 @@ prerequisites, configuration locations, release procedure, and recovery procedur
 ## TL;DR
 
 ```sh
-/haywire-release           # shows what would ship, bumps, opens the release PR;
+/release           # shows what would ship, bumps, opens the release PR;
                            # "yes" merges it → the merge run tags and publishes
 ```
 
@@ -121,7 +121,7 @@ docs_branch = "master"
 
 ### Local phase (author-driven)
 
-1. Run `/haywire-release`. It starts with *What this release would ship* (the commits since
+1. Run `/release`. It starts with *What this release would ship* (the commits since
    the last tag by type, the libraries whose dependency floor waits for a release, the open
    reminders, a proposed version) and then asks for the new version (e.g. `0.0.2`).
 2. The skill checks that CI passed on `master` for the commit being released; it does not run the gate tests locally. A failed or missing run stops here.
@@ -275,7 +275,7 @@ A library outside the monorepo may record, with the owner's agreement, a depende
 raise once a core release contains a change: an `after-core-release` issue with a
 `Waits for: going-haywire/haywire@<sha>` line
 ([sharing-libraries §7.1](../guides/sharing-libraries.md#71-release-reminders)).
-After a publish, `/haywire-release` (Step 10) lists those reminders across the
+After a publish, `/release` (Step 10) lists those reminders across the
 organisation and which of them the new tag contains, plus the libraries whose dependency
 floor the new tag now satisfies (`floors --ref`); before the bump (Step 0) it shows the
 libraries still waiting for a core release (`floors`) and the Author API names the release

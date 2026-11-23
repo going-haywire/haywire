@@ -413,7 +413,7 @@ the publish has nothing left to report.
 
 > `haywire share` ([§2](#2-publishing)) is the tool for a project you scaffolded with `haywire init` — a uv workspace root with a `barn/` of libraries that publish in lockstep. The haywire **monorepo itself** uses a related but separate lockstep flow described below.
 
-Versions are managed at the monorepo level by `scripts/bump_version.py`, invoked through `/haywire-release`. See [publish_releases](../reference/publish_releases.md) for the operational flow. The short version:
+Versions are managed at the monorepo level by `scripts/bump_version.py`, invoked through `/release`. See [publish_releases](../reference/publish_releases.md) for the operational flow. The short version:
 
 - The repo declares which packages release in lockstep (`[tool.haywire.release]` in the repo root `pyproject.toml`).
 - A release bumps every member's `[project] version` to the same value.
@@ -591,5 +591,5 @@ Your project links packages by a path that exists only on your machine — typic
 - The **consumer side** of this flow: [subscribing-to-marketplaces](./subscribing-to-marketplaces.md).
 - Why the model is shaped this way: [haybale-marketplace-arch §8](../haybale/marketplace/haybale-marketplace-arch.md#8-why-the-model-is-shaped-this-way).
 - The **library manager architecture** these tools plug into: [haybale-marketplace-arch](../haybale/marketplace/haybale-marketplace-arch.md).
-- The **operational release flow** for the monorepo (`/haywire-release`, CI, PyPI Trusted Publisher): [publish_releases](../reference/publish_releases.md).
+- The **operational release flow** for the monorepo (`/release`, CI, PyPI Trusted Publisher): [publish_releases](../reference/publish_releases.md).
 - The **per-author canon** for the package itself (folder layout, pyproject shape, build/test/publish): [haybale-canon](../haybale/haybale-canon.md).

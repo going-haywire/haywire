@@ -45,8 +45,8 @@ Every file of a slot is optional:
 | A file the tool reads at the repository root | Only calls the neutral scripts; [`t3.json`](https://github.com/going-haywire/haywire/blob/master/t3.json) is one |
 
 The hook `session-place.sh` runs every slot's `session.sh`, and `tasks.py` every slot's
-`agents.py`. The `haywire-dev` plugin carries the slots, so the organisation's libraries get
-them too.
+`agents.py`. The slots live in core's `dev/orchestrators/`, which the organisation's libraries
+reach through the core clone beside them.
 
 ## Adding a tool
 

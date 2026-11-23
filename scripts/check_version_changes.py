@@ -1,6 +1,6 @@
 """Fail a pull request that changes a package version unless it is a release PR.
 
-A version is bumped only by a release (``/haywire-release``, whose PR is titled
+A version is bumped only by a release (``/release``, whose PR is titled
 ``chore: release vX.Y.Z``). A feature PR that changes one has misread an
 instruction, and the mismatch surfaces later as a half-released package.
 
@@ -64,7 +64,7 @@ def main() -> int:
     for path in changed:
         print(f"  {path}")
     print(
-        f"Versions change only in a release PR titled '{RELEASE_TITLE} vX.Y.Z' (/haywire-release). "
+        f"Versions change only in a release PR titled '{RELEASE_TITLE} vX.Y.Z' (/release). "
         "Revert the version lines in this PR."
     )
     return 1

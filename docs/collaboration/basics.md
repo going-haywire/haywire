@@ -138,17 +138,17 @@ for branches, PRs, CI, decisions, merging and cleanup is one docs page, the
 stop an action. Hooks run on one computer and bind agents only; rulesets (14) run on
 GitHub and bind everyone.
 
-**24 · Plugin and marketplace.** A **plugin** bundles skills and hooks for installing in
-one go; a **marketplace** is the catalogue a plugin is installed from. Two exist: the
-`haywire` plugin for people *using* haywire, and `haywire-dev` (a pointer to the workflow
-and its hooks) for people *developing* haywire's repositories. Both are on their way out
-(#215): a repository's own committed files will carry what they carry.
+**24 · Adapter.** A few small committed files through which an agent harness reaches a
+repository's own Haywire: for Claude Code, `.mcp.json` (the Farmhand bridge) and
+`.claude/settings.json` (the hooks). Every project and every org repository carries them,
+so nothing is installed per machine or per folder, and every clone and worktree has them.
 
 ??? info "Technical detail"
-    `haywire-dev` lives once, in core's `dev/`. Core uses it in place, with nothing to
-    install; the libraries install it from the catalogue in `going-haywire/.github`.
-    Its [README](https://github.com/going-haywire/haywire/blob/master/dev/README.md)
-    has the commands.
+    The hooks and the workflow's scripts live once, in core's `dev/`. Core runs them in
+    place; an org library reaches them through the core clone beside it. `haywire init`
+    writes a project's adapters; `going-haywire/.github`'s `templates/library/` a library's.
+    The [dev/ README](https://github.com/going-haywire/haywire/blob/master/dev/README.md)
+    lists what is there.
 
 ## Working in parallel
 
