@@ -20,7 +20,7 @@ from typing import Any
 
 import toml
 
-from .agents import write_adapters
+from .agents import write_harness_configs, write_org_files
 from .config import add_recent_project, ensure_global_config, ensure_project_config
 from .playbook import render_playbook, render_release_gates
 from .publish_workflow import (
@@ -876,6 +876,7 @@ def init_project(
     auto_sync: bool = True,
     dev_repo: str | None = None,
     distname: str | None = None,
+    org_files: bool = False,
 ):
     """Scaffold a new haywire project.
 
@@ -894,6 +895,8 @@ def init_project(
             caller (``cli/init.py``) validates before showing the confirm
             preview, but ``init_project`` itself re-validates so it stays
             safe to call directly (as the test suite does).
+        org_files: If True, also write an org library's files
+            (:func:`haywire_studio.agents.write_org_files`) into the first commit.
     """
     _validate_project_name(name)
     if distname is not None:
@@ -982,8 +985,8 @@ def init_project(
     # CLAUDE.md and AGENTS.md — the release rules for coding agents
     (project_dir / "CLAUDE.md").write_text(_generate_claude_md(name, label))
     (project_dir / "AGENTS.md").write_text(_generate_agents_md())
-    # Each supported harness's adapter: the Farmhand bridge from the project's environment.
-    write_adapters(project_dir)
+    # Each supported harness's config: the Farmhand bridge from the project's environment.
+    write_harness_configs(project_dir)
 
     # CI: tag-triggered PyPI publishing, a green no-op unless distribute = "pypi"
     (project_dir / ".github" / "workflows").mkdir(parents=True)
@@ -1017,6 +1020,9 @@ def init_project(
     # Initialize git repository and create initial commit
     print("\nInitializing git repository...")
     subprocess.run(["git", "init"], cwd=str(project_dir), check=True, capture_output=True)
+    if org_files:
+        # After git init, so the CI callers name the repository's own default branch.
+        write_org_files(project_dir)
     subprocess.run(["git", "add", "."], cwd=str(project_dir), check=True, capture_output=True)
     subprocess.run(
         [

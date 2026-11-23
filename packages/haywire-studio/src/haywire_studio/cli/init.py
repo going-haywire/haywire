@@ -7,7 +7,9 @@ import argparse
 
 def register(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser("init", help="Create a new haywire project")
-    parser.add_argument("name", help="Project name")
+    parser.add_argument(
+        "name", nargs="?", help="Project name (leave out with --org-files to refresh the current one)"
+    )
     parser.add_argument(
         "--distname",
         help=(
@@ -30,6 +32,15 @@ def register(subparsers: argparse._SubParsersAction) -> None:
         help="Use editable local sources from this dev repo instead of PyPI",
     )
     parser.add_argument(
+        "--org-files",
+        action="store_true",
+        help=(
+            "Write a going-haywire library's repository files: the agent files from core, and the "
+            "CI callers from going-haywire/.github when missing. With a name, into the new project's "
+            "first commit; without one, refreshed in the project of the current folder"
+        ),
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Print the project structure that would be generated and create nothing",
@@ -38,6 +49,11 @@ def register(subparsers: argparse._SubParsersAction) -> None:
 
 
 def _run(args: argparse.Namespace) -> int:
+    if args.name is None:
+        if args.org_files:
+            return _refresh_org_files()
+        print("Error: name the project to create, or pass --org-files to refresh the current one.")
+        return 1
     # Imported lazily: init pulls in the scaffolding templates, which no other
     # subcommand needs.
     from haywire_studio.init import (
@@ -74,5 +90,27 @@ def _run(args: argparse.Namespace) -> int:
         auto_sync=not args.no_sync,
         dev_repo=dev_repo,
         distname=args.distname,
+        org_files=args.org_files,
     )
+    return 0
+
+
+def _refresh_org_files() -> int:
+    from pathlib import Path
+
+    from haywire_studio.agents import write_org_files
+    from haywire_studio.farmhand.bridge import find_project_root
+
+    project = find_project_root(Path.cwd())
+    if not (project / "pyproject.toml").is_file():
+        print(f"Error: {project} is not a haywire project (no pyproject.toml).")
+        return 1
+    try:
+        written = write_org_files(project)
+    except RuntimeError as exc:
+        print(f"Error: {exc}")
+        return 1
+    for path in written:
+        print(f"  {path.relative_to(project)}")
+    print("Org files written: review the diff and commit it on a branch.")
     return 0

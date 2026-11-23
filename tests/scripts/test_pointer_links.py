@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-POINTERS = ["CLAUDE.md", "AGENTS.md", "CONTRIBUTING.md", "README.md", "dev/README.md", "scripts/README.md"]
+POINTERS = ["CLAUDE.md", "AGENTS.md", "README.md", "dev/README.md", "scripts/README.md"]
 LINK = re.compile(r"\]\(([^)\s]+)\)")
 
 

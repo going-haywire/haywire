@@ -1,6 +1,6 @@
 ---
 name: agent-tooling-comes-from-the-place-of-work
-description: a session's agent tooling comes from the folder it works in (its committed adapters and its own Haywire environment), not from plugins installed per machine; all text lives in docs/, every other markdown file outside it points there
+description: a session's agent tooling comes from the folder it works in (its committed harness configs and its own Haywire environment), not from plugins installed per machine; all text lives in docs/, every other markdown file outside it points there
 status: accepted
 see-also: ADR-0086, ADR-0090, ADR-0093, ADR-0094
 level: architectural
@@ -16,7 +16,7 @@ level: architectural
 
 **Decision.**
 
-- **A place of work gets its tooling from itself:** thin committed adapters per supported harness (`.mcp.json`, `.claude/settings.json`) pointing at its own Haywire environment. `haywire init` writes a project's; `going-haywire/.github`'s `templates/library/` an org library's. No plugin, no marketplace, no install per machine or folder.
+- **A place of work gets its tooling from itself:** thin committed harness configs, one per supported harness, (`.mcp.json`, `.claude/settings.json`) pointing at its own Haywire environment. `haywire init` writes a project's; `going-haywire/.github`'s `templates/library/` an org library's. No plugin, no marketplace, no install per machine or folder.
 - **Developer tooling is code in core's `dev/`** (hooks, scripts, orchestrator slots). Core runs it in place; an org library reaches it through `../haywire-repo/dev/`, and a worktree's setup links core beside it wherever the orchestrator put it.
 - **All text lives in `docs/`.** A front-matter marker (`serve: product | developer`) says which pages the Farmhand bridge serves; a repository declares its developer docs in `[tool.haywire.agents]`. Every other markdown file outside `docs/` is a pointer, except core's `CLAUDE.md`, which keeps core's own always-in-context rules and nothing the docs say.
 - **One starting point:** a sentence pointing any agent at `docs/agents/start.md`.
