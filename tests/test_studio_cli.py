@@ -123,6 +123,14 @@ def test_status_reports_a_free_port(project, capsys):
     assert "(.haywire/settings.json)" in out
 
 
+def test_a_port_bound_but_not_yet_listening_is_not_free():
+    with socket.socket() as holder:
+        holder.bind(("127.0.0.1", 0))
+        port = holder.getsockname()[1]
+        assert not studiocmd.listening(port)
+        assert studiocmd.free_port(port) != port
+
+
 def test_the_default_port_is_used_without_settings(tmp_path):
     assert studiocmd.folder_port(tmp_path) == (8124, "the default")
 

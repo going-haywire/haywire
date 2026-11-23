@@ -155,10 +155,22 @@ def _listener_pid(port: int) -> int | None:
     return pids[0] if pids else None
 
 
+def bindable(port: int) -> bool:
+    """Return whether this process could bind ``port`` at 127.0.0.1 now."""
+    with socket.socket() as sock:
+        # The studio binds with SO_REUSEADDR (uvicorn), so a port in TIME_WAIT is free for it too.
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            sock.bind((HOST, port))
+        except OSError:
+            return False
+    return True
+
+
 def free_port(start: int = DEFAULT_PORT) -> int:
-    """Return the lowest port from ``start`` up that nothing listens on."""
+    """Return the lowest port from ``start`` up that can be bound: nothing listens on it or holds it."""
     port = start
-    while listening(port):
+    while listening(port) or not bindable(port):
         port += 1
     return port
 
