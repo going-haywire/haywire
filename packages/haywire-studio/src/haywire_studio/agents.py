@@ -113,7 +113,12 @@ def _claude_hooks(project: Path) -> list[Path]:
     """Claude Code in an org library: core's workflow hooks, run from the core clone beside it."""
     path = project / ".claude" / "settings.json"
     settings = _read_json(path)
+    # The retired haywire-dev plugin and its marketplace, from a library set up before.
     settings.pop("extraKnownMarketplaces", None)
+    plugins = settings.get("enabledPlugins", {})
+    plugins.pop("haywire-dev@going-haywire", None)
+    if not plugins:
+        settings.pop("enabledPlugins", None)
     settings["hooks"] = {
         "SessionStart": [
             {

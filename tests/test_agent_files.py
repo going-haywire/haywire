@@ -124,3 +124,14 @@ def test_a_refresh_replaces_only_the_claude_md_block_and_changes_nothing_twice(t
     assert claude.startswith("# Lib\n\nIntro.\n")
     assert claude.count("## Working in this repository") == 1
     assert "## Releases\n\nKeep.\n" in claude
+
+
+def test_a_refresh_drops_the_retired_plugin(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / ".claude").mkdir()
+    old = {"enabledPlugins": {"haywire-dev@going-haywire": False}, "extraKnownMarketplaces": {"x": {}}}
+    (library / ".claude" / "settings.json").write_text(json.dumps(old))
+    write_org_files(library, fetch=_fetch)
+    settings = json.loads((library / ".claude" / "settings.json").read_text())
+    assert "enabledPlugins" not in settings
+    assert "extraKnownMarketplaces" not in settings
