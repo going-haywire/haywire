@@ -23,7 +23,8 @@ It does what a new checkout lacks:
    a copy of the main checkout's settings (``haywire studio start`` moves it again if another
    folder's studio holds it).
 5. Writes ``haywire-setup-done`` into the worktree's git folder last, which an orchestrator's
-   session-start slot waits for (outside the checkout, so no repository sees it).
+   session-start slot waits for (outside the checkout, so no repository sees it). It writes
+   ``haywire-setup-started`` there first, so the slot waits only while a setup runs.
 
 Standard library only: it runs before ``uv sync``.
 """
@@ -39,6 +40,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 CORE = "haywire-repo"
+STARTED = "haywire-setup-started"
 DONE = "haywire-setup-done"
 MAIN_STUDIO_PORT = 8124
 FIRST_WORKTREE_PORT = MAIN_STUDIO_PORT + 1
@@ -166,6 +168,8 @@ def main() -> int:
     if shutil.which("uv") is None:
         print("uv is not installed: https://docs.astral.sh/uv/")
         return 1
+    git_dir = Path(_git("rev-parse", "--path-format=absolute", "--git-dir", cwd=checkout))
+    (git_dir / STARTED).write_text("")
     print(update_branch(checkout))
     if (link := core_link(checkout, main_checkout)) is not None:
         link[0].symlink_to(link[1], target_is_directory=True)
@@ -174,7 +178,7 @@ def main() -> int:
     build_environment(checkout, library=library)
     print("environment: synced")
     print(assign_studio_port(checkout, main_checkout))
-    (Path(_git("rev-parse", "--path-format=absolute", "--git-dir", cwd=checkout)) / DONE).write_text("")
+    (git_dir / DONE).write_text("")
     return 0
 
 

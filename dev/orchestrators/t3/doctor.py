@@ -56,11 +56,18 @@ def setup_command(repo: Path) -> str:
 def hook(repo: Path, unfinished: int | None) -> None:
     """Print the agent's line and the developer's ``user: `` lines, nothing when the setup is complete."""
     gaps = check()
-    if unfinished is not None:
+    if unfinished == 0:
         gaps.insert(
             0,
-            f"the worktree setup did not finish within {unfinished} s (if T3 never ran it, the t3.json"
-            f" scripts are not imported): run `{setup_command(repo)}` in this worktree now",
+            "the worktree setup never ran here (T3 runs it only in a worktree it creates, not in one"
+            " it re-creates after a merge, and only once the t3.json scripts are imported): run"
+            f" `{setup_command(repo)}` in this worktree now",
+        )
+    elif unfinished is not None:
+        gaps.insert(
+            0,
+            f"the worktree setup did not finish within {unfinished} s: run `{setup_command(repo)}`"
+            " in this worktree now",
         )
     if not gaps:
         return
