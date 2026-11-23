@@ -414,6 +414,9 @@ orchestrator's way.
 
 The brief holds the issue (URL), the branch, the acceptance points, the report rule below
 and where to report (the lead's name or address). Tell the task to read this page first.
+A task is one pull request: its worktree and branch end with the merge. Work that comes after
+the merge (the next slice, a step that needs the merged state) is a new task with a brief of
+its own.
 
 **A task reports to the lead** through the orchestrator's messages, one line each, with
 the PR's URL:
