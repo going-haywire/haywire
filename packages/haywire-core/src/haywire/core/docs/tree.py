@@ -36,22 +36,43 @@ def docs_root() -> Path:
        local ``scripts/bake_docs.py`` run in an editable install. Also baked, so
        a from-source studio serves the agent the same expanded/rewritten content
        an installed release would, not raw ``--8<--`` directives and dead links.
-    3. The monorepo ``docs/`` — the raw source tree. Last resort for a fresh
-       checkout that hasn't been baked yet.
+       Skipped once a page of the monorepo ``docs/`` is newer than the bake.
+    3. The monorepo ``docs/`` — the raw source tree, for a checkout that has not
+       been baked or whose bake is stale.
     """
-    pkg_dir = Path(haywire.__file__).resolve().parent
-    for baked in (pkg_dir / "docs", pkg_dir / "_baked_docs"):
-        if (baked / _MARKER).is_file():
-            return baked
-    for parent in Path(__file__).resolve().parents:
-        candidate = parent / "docs"
-        if (candidate / _MARKER).is_file():
-            return candidate
+    return resolve_docs_root(Path(haywire.__file__).resolve().parent, Path(__file__).resolve())
+
+
+def resolve_docs_root(pkg_dir: Path, start: Path) -> Path:
+    """Return the docs tree for a ``haywire`` package at ``pkg_dir``; see :func:`docs_root` for the order.
+
+    Args:
+        pkg_dir: The ``haywire`` package folder.
+        start: A path inside the checkout; the monorepo ``docs/`` is looked for above it.
+
+    Raises:
+        FileNotFoundError: No docs tree exists at all.
+    """
+    packaged = pkg_dir / "docs"
+    if (packaged / _MARKER).is_file():
+        return packaged
+    raw = next((p / "docs" for p in start.parents if (p / "docs" / _MARKER).is_file()), None)
+    baked = pkg_dir / "_baked_docs"
+    if (baked / _MARKER).is_file() and (raw is None or not _newer_than(raw, baked / _MARKER)):
+        return baked
+    if raw is not None:
+        return raw
     raise FileNotFoundError(
         "Docs tree not found: none of the packaged haywire/docs, the baked "
         "_baked_docs (run scripts/bake_docs.py), or a monorepo docs/ directory "
         "(with components/nodes/node-canon.md) exists."
     )
+
+
+def _newer_than(tree: Path, reference: Path) -> bool:
+    """Return whether any page of ``tree`` was modified after ``reference`` was written."""
+    written = reference.stat().st_mtime
+    return any(page.stat().st_mtime > written for page in tree.rglob("*.md"))
 
 
 def list_docs() -> list[str]:
