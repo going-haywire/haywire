@@ -5552,7 +5552,8 @@ settles when its turn ends, and the script runs then.</p>
 <p>A T3 brief therefore promises no "merged" message: the task's last report is <em>Ready</em> (or
 <em>Blocked</em>, <em>Needs a decision</em>), and the settle script finishes it. If a branch is re-created
 anyway (a crashed task, a user's message), <code>finish</code> still removes it as long as its only
-extra commits are already on <code>origin/master</code>.</p>
+extra commits are already on <code>origin/master</code>. A thread whose PR has merged does not go on:
+its worktree is gone, so unsettling it starts no session. A follow-up is a new thread.</p>
 <h2 id="the-users-t3-settings">The user's T3 settings<a class="headerlink" href="#the-users-t3-settings" title="Permanent link">&para;</a></h2>
 <p>In every T3 session the session-start hook runs the slot's <code>doctor.py</code> and says what T3's own
 settings lack; pass that list to the user in your first reply, before other work (T3 does not
