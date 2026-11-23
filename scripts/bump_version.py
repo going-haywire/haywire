@@ -17,7 +17,7 @@ Prints a unified diff of all changes, then writes them; it never prompts.
 --dry-run prints the diff and writes nothing.
 
 Runs as a workspace script, always under `uv run` with the workspace synced
-(`/haywire-release`, `scripts/README.md`, `docs/reference/publish_releases.md`),
+(`/release`, `scripts/README.md`, `docs/reference/publish_releases.md`),
 so it imports `haywire.core` freely rather than reimplementing what the
 framework already owns. It is never invoked from a bare checkout: CI only
 *reads* release config from this module (`publish.yml`, `publish-testpypi.yml`,

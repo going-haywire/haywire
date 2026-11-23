@@ -339,3 +339,7 @@ made for the roster specifically, generalized here to the whole document.
 - `packages/haywire-studio/src/haywire_studio/farmhand/identity.py` —
   `studio.json`, the `auth_required` hint
 - `docs/guides/security.md` — the operator-facing guide this ADR backs
+
+## Amendment (ADR 0093)
+
+The proxy this ADR asked to change is replaced by the Farmhand bridge (ADR 0093), which reads `auth_required` from `studio.json` and sends the Farmhand principal's token itself. No command prints an agent token unasked any more, the studio's startup line included.

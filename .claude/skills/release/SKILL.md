@@ -1,5 +1,5 @@
 ---
-name: haywire-release
+name: release
 description: >
   Walk the author through cutting a release of the haywire monorepo. Checks that
   CI passed on master, bumps every Tier 1+2 package to a new lockstep version (via
@@ -12,11 +12,11 @@ description: >
   libraries the release unblocks, offering to publish them. Supports `--dry-run` to
   preview the flow without committing. Use this skill whenever the user wants
   to cut, ship, publish, release, or version-bump the monorepo. Trigger
-  phrases: "/haywire-release", "cut a release", "ship a release", "release
+  phrases: "/release", "cut a release", "ship a release", "release
   haywire", "bump versions and tag".
 ---
 
-# `/haywire-release`
+# `/release`
 
 Operator's playbook for cutting a release of the haywire monorepo's Tier 1+2 packages.
 Composes the existing tools (`scripts/bump_version.py`, `scripts/check_deps.py`,
@@ -26,7 +26,7 @@ Composes the existing tools (`scripts/bump_version.py`, `scripts/check_deps.py`,
 ## When to use
 
 - The user says "let's cut a release", "release v0.0.2", "bump versions", or invokes
-  `/haywire-release` directly.
+  `/release` directly.
 - The user has finished merging changes for the next release and the working tree on
   `master` is clean.
 
@@ -177,7 +177,7 @@ features, patches the rest (the 10 is a threshold read off that history, not a l
 
 ### Step 1 — get the new release version
 
-If the user supplied a version on the invocation line (e.g. `/haywire-release 0.0.2`),
+If the user supplied a version on the invocation line (e.g. `/release 0.0.2`),
 use it. Otherwise ask via `AskUserQuestion`:
 
 > "New release version? Current is X.Y.Z; Step 0.7 proposes <PROPOSAL>. Use semver (patch / minor / major)."
@@ -270,7 +270,7 @@ Tell the user:
 
 > **Dry-run: stopping here.** Bump applied; working tree now has the bumped files modified.
 > Run `git diff` to inspect, then `git checkout packages barn uv.lock` to roll back.
-> To actually cut the release, re-invoke `/haywire-release <NEW_VERSION>` without
+> To actually cut the release, re-invoke `/release <NEW_VERSION>` without
 > `--dry-run`.
 
 **Otherwise (normal invocation)**: ask via `AskUserQuestion`:
@@ -289,7 +289,7 @@ Offer three options:
   with `git branch -d release/v<NEW_VERSION>`; just stop.
 - **Apply the bump but don't commit/push yet.** Runs
   `scripts/bump_version.py <NEW_VERSION>`, then stops. The user can inspect
-  the files, then re-invoke `/haywire-release <NEW_VERSION>` to finish (Step 6 is
+  the files, then re-invoke `/release <NEW_VERSION>` to finish (Step 6 is
   idempotent), or `git checkout packages barn uv.lock` to roll back.
 
 ### Step 6 — apply the bump and commit
@@ -531,7 +531,7 @@ needs a later core release.
 
 ## Dry-run mode
 
-If the user invoked `/haywire-release --dry-run <VERSION>`:
+If the user invoked `/release --dry-run <VERSION>`:
 
 - Steps 0–4 run identically (what the release would ship, get target, CI check,
   release branch, preview diff).
@@ -541,7 +541,7 @@ If the user invoked `/haywire-release --dry-run <VERSION>`:
 
   > **Dry-run: stopping here.** Bump applied; working tree now has the bumped files modified.
   > Run `git diff` to inspect, then `git checkout packages barn uv.lock` to roll back.
-  > To actually cut the release, re-invoke `/haywire-release <VERSION>` without
+  > To actually cut the release, re-invoke `/release <VERSION>` without
   > `--dry-run`.
 
 - Steps 6–10 (commit, PR, merge, merge run, report) are skipped entirely. To abandon, roll

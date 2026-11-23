@@ -72,7 +72,7 @@ Wraps `deptry`, running it once per package with a dist→module name map so
 inter-package deps aren't mis-flagged. Reports three classes: MISSING (imported but
 undeclared — can break a standalone PyPI install), UNUSED (declared but unused), and
 NOT INSTALLED (imported but absent). Always exits 0 — it's a report, not a gate. The
-`/haywire-release` skill runs it at Step 2.5. Known false positives (e.g. `attrs` as a
+`/release` skill runs it at Step 2.5. Known false positives (e.g. `attrs` as a
 transitive of `cattrs`) are suppressed via the `KNOWN_OK` map in the script.
 
 ## generate_marketstall.py
@@ -109,7 +109,7 @@ uv run python scripts/release_sweep.py reminders --ref v0.5.0
 
 Both take `--json`. Read-only: it shallow-clones the libraries into a temporary folder
 and writes nothing on GitHub. Needs `git` and a logged-in `gh`; exit code 2 means a
-command failed and the report could not be made. `/haywire-release` runs it in Steps 2.2
+command failed and the report could not be made. `/release` runs it in Steps 2.2
 and 10; the convention it reads is in
 [sharing-libraries §7.1](../docs/guides/sharing-libraries.md#71-release-reminders).
 

@@ -1,9 +1,0 @@
-{
-  "name": "haywire-dev",
-  "description": "The going-haywire development workflow for org repositories: a pointer to the workflow page and the hooks that guard it (no destructive git, the workflow read before a commit, a merge only when the PR is ready and green). Transitional: S4 of #215 replaces it with each repository's own adapters.",
-  "author": {
-    "name": "going-haywire"
-  },
-  "homepage": "https://github.com/going-haywire/haywire/tree/master/dev",
-  "license": "MIT"
-}

@@ -34,3 +34,7 @@ level: architectural
 - `share` stays host-agnostic: it does not call a host API, and an opt-in PR mode must work with plain git.
 - The org's libraries get their process from templates and a plugin that can change without a product release.
 - A new library convenience is judged by whether a beginner without it is still on a working path.
+
+## Amendment (ADR 0092)
+
+The "org development plugin for Claude's hooks and skill" is gone: a place of work gets its agent tooling from its committed adapters and its own Haywire environment, developer tooling is code in core's `dev/`, and the workflow is a docs page (ADR 0092).

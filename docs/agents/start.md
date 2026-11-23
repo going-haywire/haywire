@@ -56,7 +56,9 @@ uv downloads the Python Haywire needs (3.12) by itself; nothing else is required
    uv run haywire studio start --browser
    ```
 
-3. Tell the person to open a new agent session **in the project folder**. There the Farmhand
+3. Tell the person to open a new agent session **in the project folder**. Claude Code asks once
+   whether to trust a new folder; until the person accepts, it also asks before each tool of the
+   bridge. There the Farmhand
    bridge connects the session to the studio: the studio's tools appear while it runs, and the
    bridge's instructions list the pages to read for each kind of task. `farmhand_studio_status`
    says why the tools are missing when they are.
@@ -76,10 +78,14 @@ named `farmhand`, which they create once per machine, also in their own terminal
    or `WRITE` make a maintainer, anything else a contributor, who works on a fork and needs an
    accepted introduction before a first pull request
    ([the contribution rules](../collaboration/contributing.md)).
-3. **One folder for every clone**, which the person chooses. Core is cloned into it under the name
-   `haywire-repo`: the libraries reach core there.
+3. **One folder for every clone**: the umbrella repository, cloned as `haywire` where the person
+   chooses. Core goes inside it under the name `haywire-repo`, where the libraries reach it; the
+   umbrella's `bin/umbrella-sync` later builds one environment for the full studio with every
+   library cloned on this machine ([its README](https://github.com/going-haywire/umbrella#readme)).
 
    ```sh
+   gh repo clone going-haywire/umbrella haywire
+   cd haywire
    gh repo clone going-haywire/haywire haywire-repo                 # a maintainer
    gh repo fork going-haywire/haywire --clone && mv haywire haywire-repo   # a contributor
    cd haywire-repo

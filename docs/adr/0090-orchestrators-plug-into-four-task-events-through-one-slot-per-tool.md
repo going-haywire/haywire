@@ -48,3 +48,7 @@ level: architectural
 - Two tools in one session (T3 started from a herdr terminal) both speak at session start.
 - T3 has no `agents.py`: the task view shows no session for its tasks; the lead reads its threads through T3's own tools.
 - A behaviour a tool needs beyond translation is a change to a neutral part, reviewed as such.
+
+## Amendment (ADR 0094)
+
+The slots moved from `plugins/haywire-dev/orchestrators/` to core's `dev/orchestrators/<tool>/`, and the agent's how-to from the workflow skill's folder to `docs/collaboration/orchestrators/<tool>-agent.md` (ADR 0094). The contract is unchanged.
