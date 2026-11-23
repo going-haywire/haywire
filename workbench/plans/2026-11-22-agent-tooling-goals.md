@@ -215,7 +215,7 @@ Written into `docs/reference/glossary.md` in the change that builds them
 | S3 Core `dev/` | done 2026-11-22, live-checked (gate blocks, bridge serves the page) | #218, going-haywire/.github#5 |
 | S4 Libraries | done 2026-11-23, live-checked on a T3-style spandrel worktree | #219, going-haywire/.github#6, haybale-comfyui#10, haybale-protokol#22, haybale-spandrel#7, haybale-stream#18, haybale-visiongraph#9 |
 | S5 Start page | done 2026-11-23, live-checked (the user journey) | #222 |
-| S6 Cleanup | done when #223, going-haywire/.github#7 and going-haywire/claude-plugin#2 merge, claude-plugin is archived and the npm package deprecated | #223, going-haywire/.github#7, going-haywire/claude-plugin#2 |
+| S6 Cleanup | done 2026-11-23: shim, marketplaces and unused skills removed, picture page, ADRs 0092–0094; claude-plugin archived and the npm proxy deprecated by the maintainer (claude-plugin#2, its retirement README, stayed unmerged: the archive came first) | #223, going-haywire/.github#7 |
 
 Deviations from the plan: the developer-docs declaration is `[tool.haywire.agents]` in
 `pyproject.toml` (`.haywire/` is gitignored); the worktree setup keeps the per-worktree port
