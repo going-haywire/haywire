@@ -456,7 +456,9 @@ _GREEN = [
         "startedAt": "1",
     }
 ]
+# Like gh since 2.105, every call also writes a hint to stderr.
 _GH_FOR_GUARD = (
+    'echo "hint: use gh event listen" >&2; '
     'if [ "$1" = "api" ]; then echo "$FAKE_THREADS"; '
     'else echo "$*" > "$TMPDIR/gh-view-args"; pwd -P > "$TMPDIR/gh-view-dir"; echo "$FAKE_VIEW"; fi'
 )
@@ -665,6 +667,37 @@ def test_other_gh_api_calls_pass(tmp_path, command):
 )
 def test_the_existing_blocks_stay(tmp_path, command):
     assert _blocked(tmp_path, command).returncode == 2
+
+
+@pytest.mark.parametrize(
+    ("command", "reason"),
+    [
+        ("cd lib && git push -f origin x", "force push"),
+        ("git push --force-with-lease", "force push"),
+        ("git commit -m x; git push origin --delete old", "deletes remote refs"),
+        ("git push -d origin old | cat", "deletes remote refs"),
+        ("git push --prune origin", "deletes remote refs"),
+        ("git push origin v1.2.0", "pushes a tag"),
+        ("git push --follow-tags", "pushes a tag"),
+    ],
+)
+def test_a_dangerous_push_is_blocked_anywhere_in_the_call(tmp_path, command, reason):
+    result = _blocked(tmp_path, command)
+    assert result.returncode == 2
+    assert reason in result.stderr
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git commit -F - <<EOF\nfix: rename -d flag, see v1.2 notes: x\nEOF\ngit push -u origin feat/x",
+        "python3 - <<'E'\nprint(old[:50])\nE\ngit push -q",
+        "sed -i '' -e '/x/d' f.txt -f g && git push origin feat/x",
+        'git commit -qm "release notes for v0.6.1" && git push -q -u origin docs/x',
+    ],
+)
+def test_a_plain_push_beside_other_commands_passes(tmp_path, command):
+    assert _blocked(tmp_path, command).returncode == 0
 
 
 # ── require-workflow-read.sh and mark-workflow-read.sh ──────────────────────────────

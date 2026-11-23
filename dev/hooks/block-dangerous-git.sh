@@ -26,17 +26,24 @@ for pattern in "${DANGEROUS_PATTERNS[@]}"; do
   fi
 done
 
-if echo "$COMMAND" | grep -qE "git push"; then
+# The push commands of the call, each from `git push` to the end of its command: the checks
+# below read only these, never a commit message, heredoc or other command in the same call.
+SPLIT=${COMMAND//&&/$'\n'}
+SPLIT=${SPLIT//;/$'\n'}
+SPLIT=${SPLIT//|/$'\n'}
+PUSHES=$(printf '%s\n' "$SPLIT" | grep -oE "git push.*")
+
+if [ -n "$PUSHES" ]; then
   # Force: --force, --force-with-lease, -f, or a +refspec.
-  if echo "$COMMAND" | grep -qE "(^|[[:space:]])(-f|--force[^[:space:]]*)([[:space:]]|$)|[[:space:]]\+[^[:space:]]"; then
+  if echo "$PUSHES" | grep -qE "(^|[[:space:]])(-f|--force[^[:space:]]*)([[:space:]]|$)|[[:space:]]\+[^[:space:]]"; then
     block "is a force push"
   fi
   # Deleting or pruning remote refs: --delete, -d, --prune, --mirror, or a :refspec.
-  if echo "$COMMAND" | grep -qE "(^|[[:space:]])(-d|--delete|--prune|--mirror)([[:space:]]|$)|[[:space:]]:[^[:space:]]"; then
+  if echo "$PUSHES" | grep -qE "(^|[[:space:]])(-d|--delete|--prune|--mirror)([[:space:]]|$)|[[:space:]]:[^[:space:]]"; then
     block "deletes remote refs"
   fi
   # Tags publish releases: --tags, --follow-tags, refs/tags/, or a version tag name.
-  if echo "$COMMAND" | grep -qE "(^|[[:space:]])(--tags|--follow-tags)([[:space:]]|$)|refs/tags/|[[:space:]]v[0-9]+\.[0-9]+"; then
+  if echo "$PUSHES" | grep -qE "(^|[[:space:]])(--tags|--follow-tags)([[:space:]]|$)|refs/tags/|[[:space:]]v[0-9]+\.[0-9]+"; then
     block "pushes a tag"
   fi
 fi
