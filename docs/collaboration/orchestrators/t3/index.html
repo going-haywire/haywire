@@ -5647,8 +5647,10 @@ for the full studio (<em>Starting the studio</em>).</p>
 <li><strong>Worktree setup</strong> brings the branch up to the latest default branch, runs <code>uv sync</code>
   (<code>--frozen</code> in a library), and gives the worktree's studio a port of its own. In a library
   worktree it first links core beside the worktree (<code>../haywire-repo</code>), wherever T3 put it,
-  so the library's sources and its hooks find core. The session-start hook waits until the
-  setup has finished, up to 5 minutes, whether or not <code>async: false</code> is set.</li>
+  so the library's sources and its hooks find core. The session-start hook waits while the
+  setup runs, up to 5 minutes, whether or not <code>async: false</code> is set. A worktree whose setup
+  never started (T3 runs no script in a worktree it re-creates after a merge) gets no wait:
+  the agent is told to run the setup.</li>
 <li><strong>Finish merged task</strong> runs from the main folder: once the PR is merged it removes the
   worktree and both branches; before the merge it refuses and removes nothing.</li>
 </ul>
