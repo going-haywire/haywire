@@ -3356,7 +3356,7 @@
     
   
   
-    <span class="md-status md-status--draft"></span>
+    <span class="md-status md-status--current"></span>
   
 
   
@@ -7108,13 +7108,18 @@ Macro is registered and placed.</p>
 <td>proxy (that is the npm package it replaces), gateway</td>
 </tr>
 <tr>
-<td><strong>Adapter</strong></td>
-<td>A few small committed files through which one agent harness reaches a repository's own Haywire: for Claude Code, <code>.mcp.json</code> (starting the <strong>Farmhand bridge</strong>) and <code>.claude/settings.json</code> (allowing it; in an org repository also the workflow's hooks). <code>haywire init</code> writes a project's, <code>going-haywire/.github</code>'s <code>templates/library/</code> an org library's; one per supported harness, whoever created the repository.</td>
+<td><strong>Agent files</strong></td>
+<td>The files a repository commits for its agent tooling and orchestration, of three kinds: <strong>Harness configs</strong>, the <strong>orchestrator file</strong> (<code>t3.json</code>), and declarations (<code>[tool.haywire.agents]</code> in <code>pyproject.toml</code>, the machine-local <code>.haywire</code> lines in <code>.gitignore</code>, <code>CLAUDE.md</code>). <code>haywire init</code> writes a project's; <code>haywire init --org-files</code> an org library's, together with its CI callers from <code>going-haywire/.github</code>'s workflow templates.</td>
+<td>agent config, plugin files</td>
+</tr>
+<tr>
+<td><strong>Harness config</strong></td>
+<td>The kind of <strong>Agent files</strong> through which one agent harness reaches a repository's own Haywire: JSON files the harness reads at session start; for Claude Code, <code>.mcp.json</code> (starting the <strong>Farmhand bridge</strong>) and <code>.claude/settings.json</code> (allowing it; in an org repository also the workflow's hooks). one per supported harness, whoever created the repository.</td>
 <td>plugin, integration</td>
 </tr>
 <tr>
 <td><strong>Place of work</strong></td>
-<td>Any folder an agent session works in: a project, a clone of core or an org library, or a worktree of either. It gets its tooling from its own committed <strong>Adapters</strong> and its own Haywire environment, so nothing is installed per folder or per machine.</td>
+<td>Any folder an agent session works in: a project, a clone of core or an org library, or a worktree of either. It gets its tooling from its own committed <strong>Harness configs</strong> and its own Haywire environment, so nothing is installed per folder or per machine.</td>
 <td>workspace (that is the studio's root folder), checkout</td>
 </tr>
 <tr>

@@ -3586,7 +3586,7 @@
     
   
   
-    <span class="md-status md-status--draft"></span>
+    <span class="md-status md-status--current"></span>
   
 
   
@@ -5805,7 +5805,8 @@ name:</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>gh<span class="w"> </span>pr<span class="w"> </span>create<span class="w"> </span>--repo<span class="w"> </span>going-haywire/haywire<span class="w"> </span>--base<span class="w"> </span>master<span class="w"> </span>--head<span class="w"> </span>&lt;fork-owner&gt;:&lt;branch&gt;<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span>--title<span class="w"> </span><span class="s2">&quot;&lt;type(area): summary&gt;&quot;</span><span class="w"> </span>--body-file<span class="w"> </span>&lt;file&gt;
 </span></code></pre></div>
-<p>Either way the body follows the headings of <code>.github/pull_request_template.md</code> (what and
+<p>Either way the body follows the headings of the PR template (<code>going-haywire/.github</code>'s
+<code>.github/pull_request_template.md</code>, which GitHub fills in for every repository: what and
 why with <code>Fixes #&lt;n&gt;</code>, the checklist, the live check, AI assistance, what to look at
 first), lists anything still owed, and ends with the attribution line. Give the user the
 PR's URL.</p>
@@ -6033,16 +6034,16 @@ The task runs <code>finish</code> itself; the worktree's folder then goes the or
 them, its session.</p>
 <h2 id="in-a-library-repository">In a library repository<a class="headerlink" href="#in-a-library-repository" title="Permanent link">&para;</a></h2>
 <p>The org's libraries (<code>going-haywire/haybale-*</code>) follow the same steps. Their process files
-come from <a href="https://github.com/going-haywire/.github">going-haywire/.github</a> (the library
-<code>CONTRIBUTING.md</code>, the reusable CI); this page, the hooks and the Farmhand bridge come from
+come from <a href="https://github.com/going-haywire/.github">going-haywire/.github</a> (the reusable CI);
+their own rules are <em>In a library</em> on the <a href="../contributing/#in-a-library">contributing</a> page;
+this page, the hooks and the Farmhand bridge come from
 core beside it, through the library's committed files (<code>.claude/settings.json</code>, <code>.mcp.json</code>,
 <code>[tool.haywire.agents]</code> in <code>pyproject.toml</code>, <code>t3.json</code>). What differs:</p>
 <ul>
 <li><strong>Layout.</strong> The library is cloned beside core (<code>../haywire-repo</code>), which its development
   project and its committed hooks reach by relative paths. A task's worktree can be anywhere:
   its setup links core beside it (<em>Parallel sessions</em>).</li>
-<li><strong>Checks</strong> are the library's own, in the library
-  <a href="https://github.com/going-haywire/.github/blob/main/CONTRIBUTING.md#checks">CONTRIBUTING.md</a>,
+<li><strong>Checks</strong> are the library's own (<a href="../contributing/#in-a-library">contributing: in a library</a>),
   each with <code>uv run --frozen</code>.</li>
 <li><strong>CI</strong> is <code>ci.yml</code>, calling the org's <code>library-ci.yml</code>: the library's tests against core's
   <code>master</code>, Linux on a draft, macOS added once the PR is ready; <code>nightly.yml</code> runs the same

@@ -3376,7 +3376,7 @@
     
   
   
-    <span class="md-status md-status--draft"></span>
+    <span class="md-status md-status--current"></span>
   
 
   
@@ -5292,36 +5292,46 @@
 
 
 <h1 id="a-new-organisation-library">A new organisation library<a class="headerlink" href="#a-new-organisation-library" title="Permanent link">&para;</a></h1>
-<p><strong>For:</strong> the maintainer. An organisation library follows core's process
+<p><strong>For:</strong> the maintainer, with an agent. An organisation library follows core's process
 (<a href="../../adr/0086-the-simple-path-is-the-floor/">ADR 0086</a>, principle 4): pull requests, CI
-against core's <code>master</code>, protected <code>master</code>, releases through release PRs, PyPI.</p>
+against core's <code>master</code>, a protected default branch, releases through release PRs, PyPI.
+Setting up its repository takes one command for the files and one script for GitHub; after
+that, every clone and every worktree of it works with nothing to install.</p>
 <pre class="mermaid"><code>sequenceDiagram
     autonumber
     actor You
     participant Agent
-    participant Repo as New repository
-    participant Org as going-haywire/.github
+    participant Lib as haybale-&lt;name&gt; (beside haywire-repo)
+    participant GH as GitHub
+    participant Org as a clone of going-haywire/.github
     participant PyPI
-    participant Cat as Umbrella and catalogue
 
-    Agent-&gt;&gt;Agent: haywire init &lt;name&gt; --dev --distname haybale-&lt;name&gt;&lt;br/&gt;(beside core), distribute = "pypi"
-    You-&gt;&gt;Repo: ① create going-haywire/haybale-&lt;name&gt;
-    Agent-&gt;&gt;Repo: push the first master
-    You-&gt;&gt;Org: ② library-settings.sh --apply (after the first push)
-    Agent-&gt;&gt;Repo: PR: the callers, dependabot.yml, .claude/settings.json, CLAUDE.md lines
-    You-&gt;&gt;Repo: ③ "merge"
-    You-&gt;&gt;PyPI: ④ pending publisher, GitHub environment pypi
-    Agent-&gt;&gt;Repo: share --first-release
-    Repo-&gt;&gt;PyPI: publish.yml uploads
-    Agent-&gt;&gt;Cat: PR in the umbrella, request in the curated catalogue
-    You-&gt;&gt;Agent: ⑤ install the dev plugin in the clone</code></pre>
-<p>The order of steps 3 and 4 matters: the <em>PR gate</em> ruleset refuses any direct push to
-<code>master</code>, the first one included.</p>
-<p><strong>Moving an existing project</strong> into the organisation follows the same steps after three
-of its own: rename a <code>hay-</code> library (<a href="../rename-then-share/">Rename, then share</a>); transfer
-the repository on GitHub (old links keep working); add the PyPI trusted publisher for the
-new owner. Its <code>[tool.uv.sources]</code> gains the paths to <code>../haywire-repo</code> by hand, as
-<code>haywire init --dev</code> writes them for a new project.</p>
+    Agent-&gt;&gt;Lib: haywire init &lt;name&gt; --dev --distname haybale-&lt;name&gt; --org-files
+    Note over Lib: the library, core's sources and every org file&lt;br/&gt;in the first commit
+    You-&gt;&gt;GH: ① create going-haywire/haybale-&lt;name&gt;
+    Agent-&gt;&gt;GH: push the first commit (direct: no rulesets yet)
+    You-&gt;&gt;Org: ② scripts/library-settings.sh going-haywire/haybale-&lt;name&gt; --apply
+    Note over GH: from here on, every change is a pull request
+    You-&gt;&gt;PyPI: ③ pending publisher, GitHub environment pypi
+    Agent-&gt;&gt;GH: share --first-release
+    Agent-&gt;&gt;GH: PR in the umbrella, request in the curated catalogue</code></pre>
+<p><strong>The files</strong> come from one command, <code>haywire init --org-files</code> (with a name: into the new
+project's first commit). It writes the library's agent files from core (the harness configs with core's
+hooks, <code>t3.json</code>, <code>[tool.haywire.agents]</code>, the <code>.gitignore</code> lines, <code>CLAUDE.md</code>'s block) and its CI
+callers and <code>dependabot.yml</code> from <code>going-haywire/.github</code>'s workflow templates, pinned to that
+repository's current commit. What lives where:
+<a href="../agent-tooling/#an-org-library-going-haywirehaybale-name">agent tooling</a>.</p>
+<p><strong>The order of ① and ②</strong> matters: the <em>PR gate</em> ruleset refuses any direct push to the default
+branch, so the first commit goes in before it, and the rulesets need that branch to exist.</p>
+<p><strong>Moving an existing library</strong> into the organisation: rename a <code>hay-</code> library
+(<a href="../rename-then-share/">Rename, then share</a>); transfer the repository on GitHub (old links keep
+working); add the PyPI trusted publisher for the new owner. Its <code>[tool.uv.sources]</code> gains the paths
+to <code>../haywire-repo</code> by hand, as <code>haywire init --dev</code> writes them for a new project. Then, in the
+library, <code>uv run haywire init --org-files</code> writes its files: commit them directly if the repository
+has no rulesets yet, otherwise through a pull request; then ② and ③ as above.</p>
+<p><strong>Refreshing</strong> a library's files after core changed them is the same command in the library, through
+a pull request. It rewrites the agent files and leaves the CI files alone: once there, they are the
+library's own, and Dependabot moves their pins.</p>
 <table>
 <thead>
 <tr>
@@ -5332,9 +5342,9 @@ new owner. Its <code>[tool.uv.sources]</code> gains the paths to <code>../haywir
 </thead>
 <tbody>
 <tr>
-<td>Scaffold with development paths</td>
+<td>Scaffold with development paths and the org files</td>
 <td>agent</td>
-<td><a href="../../guides/development/#scaffold-a-project-against-your-clone">Developing Haywire: scaffold a project against your clone</a>, <a href="../../adr/0081-libraries-from-other-repositories-run-from-an-umbrella-environment/">ADR 0081</a></td>
+<td><a href="../../guides/development/#scaffold-a-project-against-your-clone">Developing Haywire: scaffold a project against your clone</a>, <code>haywire init --help</code></td>
 </tr>
 <tr>
 <td>Publish to PyPI (path sources need it)</td>
@@ -5347,17 +5357,12 @@ new owner. Its <code>[tool.uv.sources]</code> gains the paths to <code>../haywir
 <td><a href="https://github.com/going-haywire/.github#a-library-repositorys-settings">going-haywire/.github: a library repository's settings</a></td>
 </tr>
 <tr>
-<td>The callers and their pins</td>
-<td>agent</td>
+<td>The CI callers and their pins</td>
+<td>—</td>
 <td><a href="https://github.com/going-haywire/.github#calling-a-reusable-workflow">going-haywire/.github: calling a reusable workflow</a></td>
 </tr>
 <tr>
-<td>The agent files</td>
-<td>agent, maintainer</td>
-<td><a href="https://github.com/going-haywire/.github#a-library-repositorys-agent-files">going-haywire/.github: a library repository's agent files</a> (<code>scripts/library-files.sh</code>)</td>
-</tr>
-<tr>
-<td>④ The owner steps for PyPI, the first release</td>
+<td>③ The owner steps for PyPI, the first release</td>
 <td>maintainer, agent</td>
 <td><a href="../../guides/publish-to-pypi/#2-before-you-start-claim-the-name">Publishing to PyPI §2–§6</a></td>
 </tr>
@@ -5375,6 +5380,11 @@ new owner. Its <code>[tool.uv.sources]</code> gains the paths to <code>../haywir
 <td>Core's release view sees it</td>
 <td>—</td>
 <td><code>release_sweep.py</code> lists every <code>haybale-*</code> repository by itself</td>
+</tr>
+<tr>
+<td>A developer's clone of it</td>
+<td>each developer</td>
+<td><a href="../../agents/start/">setting someone up</a>, <em>Develop Haywire</em></td>
 </tr>
 </tbody>
 </table>

@@ -3509,7 +3509,7 @@
     
   
   
-    <span class="md-status md-status--draft"></span>
+    <span class="md-status md-status--current"></span>
   
 
   
@@ -5621,7 +5621,7 @@ for branches, PRs, CI, decisions, merging and cleanup is one docs page, the
 <p><strong>23 · Hook.</strong> A small guard program run automatically around an agent's actions; it can
 stop an action. Hooks run on one computer and bind agents only; rulesets (14) run on
 GitHub and bind everyone.</p>
-<p><strong>24 · Adapter.</strong> A few small committed files through which an agent harness reaches a
+<p><strong>24 · Harness config.</strong> A few small committed files through which an agent harness reaches a
 repository's own Haywire: for Claude Code, <code>.mcp.json</code> (the Farmhand bridge) and
 <code>.claude/settings.json</code> (the hooks). Every project and every org repository carries them,
 so nothing is installed per machine or per folder, and every clone and worktree has them.</p>
@@ -5629,7 +5629,7 @@ so nothing is installed per machine or per folder, and every clone and worktree 
 <summary>Technical detail</summary>
 <p>The hooks and the workflow's scripts live once, in core's <code>dev/</code>. Core runs them in
 place; an org library reaches them through the core clone beside it. <code>haywire init</code>
-writes a project's adapters; <code>going-haywire/.github</code>'s <code>templates/library/</code> a library's.
+writes a project's harness configs, <code>haywire init --org-files</code> an org library's.
 The <a href="https://github.com/going-haywire/haywire/blob/master/dev/README.md">dev/ README</a>
 lists what is there.</p>
 </details>

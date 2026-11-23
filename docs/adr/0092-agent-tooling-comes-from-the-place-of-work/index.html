@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="a session's agent tooling comes from the folder it works in (its committed adapters and its own Haywire environment), not from plugins installed per machine; all text lives in docs/, every other markdown file outside it points there">
+        <meta name="description" content="a session's agent tooling comes from the folder it works in (its committed harness configs and its own Haywire environment), not from plugins installed per machine; all text lives in docs/, every other markdown file outside it points there">
       
       
       
@@ -3350,7 +3350,7 @@
     
   
   
-    <span class="md-status md-status--draft"></span>
+    <span class="md-status md-status--current"></span>
   
 
   
@@ -5270,7 +5270,7 @@
 </ul>
 <p><strong>Decision.</strong></p>
 <ul>
-<li><strong>A place of work gets its tooling from itself:</strong> thin committed adapters per supported harness (<code>.mcp.json</code>, <code>.claude/settings.json</code>) pointing at its own Haywire environment. <code>haywire init</code> writes a project's; <code>going-haywire/.github</code>'s <code>templates/library/</code> an org library's. No plugin, no marketplace, no install per machine or folder.</li>
+<li><strong>A place of work gets its tooling from itself:</strong> thin committed harness configs, one per supported harness, (<code>.mcp.json</code>, <code>.claude/settings.json</code>) pointing at its own Haywire environment. <code>haywire init</code> writes a project's; <code>going-haywire/.github</code>'s <code>templates/library/</code> an org library's. No plugin, no marketplace, no install per machine or folder.</li>
 <li><strong>Developer tooling is code in core's <code>dev/</code></strong> (hooks, scripts, orchestrator slots). Core runs it in place; an org library reaches it through <code>../haywire-repo/dev/</code>, and a worktree's setup links core beside it wherever the orchestrator put it.</li>
 <li><strong>All text lives in <code>docs/</code>.</strong> A front-matter marker (<code>serve: product | developer</code>) says which pages the Farmhand bridge serves; a repository declares its developer docs in <code>[tool.haywire.agents]</code>. Every other markdown file outside <code>docs/</code> is a pointer, except core's <code>CLAUDE.md</code>, which keeps core's own always-in-context rules and nothing the docs say.</li>
 <li><strong>One starting point:</strong> a sentence pointing any agent at <code>docs/agents/start.md</code>.</li>

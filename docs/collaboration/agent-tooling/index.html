@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#agent-tooling-what-lives-where" class="md-skip">
+        <a href="#development-tooling-what-lives-where" class="md-skip">
           Skip to content
         </a>
       
@@ -2494,6 +2494,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#three-layers-two-workflows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Three layers, two workflows
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#a-project-haywire-init" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2520,6 +2531,17 @@
     <span class="md-ellipsis">
       
         An org library: going-haywire/haybale-&lt;name&gt;
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-organisation-going-haywiregithub" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The organisation: going-haywire/.github
       
     </span>
   </a>
@@ -3465,7 +3487,7 @@
     
   
   
-    <span class="md-status md-status--draft"></span>
+    <span class="md-status md-status--current"></span>
   
 
   
@@ -5371,6 +5393,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#three-layers-two-workflows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Three layers, two workflows
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#a-project-haywire-init" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5397,6 +5430,17 @@
     <span class="md-ellipsis">
       
         An org library: going-haywire/haybale-&lt;name&gt;
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-organisation-going-haywiregithub" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The organisation: going-haywire/.github
       
     </span>
   </a>
@@ -5431,24 +5475,55 @@
 
 
 
-<h1 id="agent-tooling-what-lives-where">Agent tooling: what lives where<a class="headerlink" href="#agent-tooling-what-lives-where" title="Permanent link">&para;</a></h1>
-<p>The whole picture in three sentences:</p>
-<ol>
-<li>One sentence brings any agent to the <a href="../../agents/start/">start page</a>, which sets up a project
-   or the clones of the organisation's repositories.</li>
-<li>Every repository carries small committed <strong>adapters</strong>, one per supported agent harness, which
-   point the harness at the repository's own Haywire: the <strong>Farmhand bridge</strong> gives the session
-   its instructions and the studio's tools, in the version the repository runs.</li>
-<li>The organisation's repositories also run core's <strong><code>dev/</code></strong>: the hooks that guard the
-   workflow, the workflow's scripts, and one folder per orchestrator, which only plugs into four
-   task events.</li>
-</ol>
-<p>Text lives in <code>docs/</code> (ADR 0092); the trees below show only the folders that matter here, with
-every file in them. The word after a file says who runs or reads it; click its marker for what it
-is and does.</p>
-<p><strong>Who:</strong> <code>agent</code> the agent session · <code>Claude</code> Claude Code · <code>hook</code> Claude Code at a session or
-tool event · <code>bridge</code> the Farmhand bridge · <code>T3</code> the T3 Code orchestrator · <code>CLI</code> the <code>haywire</code>
-command · <code>git</code> git itself · <code>you</code> a person.</p>
+<h1 id="development-tooling-what-lives-where">Development tooling: what lives where<a class="headerlink" href="#development-tooling-what-lives-where" title="Permanent link">&para;</a></h1>
+<p>How the whole setup works, for when something is broken or an agent has to look into it.
+Setting things up needs none of this page: <a href="../../agents/start/">setting someone up</a> (a project or a
+developer's clones) and <a href="../new-org-library/">a new organisation library</a> (a library repository) are
+the steps.</p>
+<h2 id="three-layers-two-workflows">Three layers, two workflows<a class="headerlink" href="#three-layers-two-workflows" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>What it is</th>
+<th>Setting up</th>
+<th>Change → PR → merge → release</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>① Repo tooling</strong></td>
+<td>GitHub and CI: checks, rulesets, publishing</td>
+<td>the CI callers and <code>dependabot.yml</code> (from <code>.github</code>'s workflow templates); the rulesets and merge settings (<code>library-settings.sh</code>)</td>
+<td><code>ci.yml</code>, <code>nightly.yml</code>, <code>pr-intake.yml</code> calling <code>.github</code>'s reusable workflows; <code>publish.yml</code></td>
+</tr>
+<tr>
+<td><strong>② Agent tooling</strong></td>
+<td>on top of ①: what lets an agent session do the work</td>
+<td>the <strong>agent files</strong> a repository commits (written by <code>haywire init</code>)</td>
+<td>the <strong>Farmhand bridge</strong>, core's <code>dev/hooks/</code> and scripts, the workflow page</td>
+</tr>
+<tr>
+<td><strong>③ Orchestration</strong></td>
+<td>on top of ②: running the lead and its tasks as sessions</td>
+<td><code>t3.json</code>; an orchestrator's setup page and doctor</td>
+<td>the orchestrator's slot in <code>dev/orchestrators/&lt;tool&gt;/</code>, its agent page</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Agent files</strong> are the files a repository commits for ② and ③, of three kinds:
+<strong>harness configs</strong> (one per agent harness, JSON, read by the harness at session start: <code>.mcp.json</code>
+starts the bridge, <code>.claude/settings.json</code> allows it and wires the hooks), the <strong>orchestrator file</strong>
+(<code>t3.json</code>), and <strong>declarations</strong> (<code>[tool.haywire.agents]</code> in <code>pyproject.toml</code>, the <code>.gitignore</code>
+lines, <code>CLAUDE.md</code>). <code>haywire init</code> writes a project's; <code>haywire init --org-files</code> an org library's.
+Nobody installs anything per machine or per folder: every clone and worktree has them through git.</p>
+<p>The trees below show only the folders that matter here, with every file in them. The word after a
+file says who runs or reads it; click its marker for what it is, its layer and what it does.</p>
+<p><strong>Who:</strong> <code>agent</code> the agent session · <code>Claude</code> Claude Code · <code>hook</code> Claude Code at a session or tool
+event · <code>bridge</code> the Farmhand bridge · <code>event</code> the neutral part of a task event, run by an
+orchestrator (T3 through <code>t3.json</code>, herdr through its agent page) or by hand · <code>T3</code> the T3 Code
+orchestrator · <code>CLI</code> the <code>haywire</code> command · <code>CI</code> GitHub Actions · <code>GitHub</code> GitHub itself ·
+<code>git</code> git itself · <code>you</code> a person.</p>
 <h2 id="a-project-haywire-init">A project (<code>haywire init</code>)<a class="headerlink" href="#a-project-haywire-init" title="Permanent link">&para;</a></h2>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>my-project/
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├──<span class="w"> </span>.mcp.json<span class="w">                </span><span class="c1"># Claude (1)</span>
@@ -5459,10 +5534,10 @@ command · <code>git</code> git itself · <code>you</code> a person.</p>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>└──<span class="w"> </span>pyproject.toml<span class="w">           </span><span class="c1"># CLI (5)</span>
 </span></code></pre></div>
 <ol>
-<li><strong>Adapter</strong> · Starts the Farmhand bridge from the project's environment: <code>uv run --frozen --quiet haywire farmhand bridge</code>.</li>
-<li><strong>Adapter</strong> · Allows the bridge's tools (<code>mcp__farmhand</code>) and switches the server on. Claude Code honours it once the folder is trusted.</li>
-<li><strong>Pointer</strong> · For every other harness: read <code>CLAUDE.md</code>.</li>
-<li><strong>Instructions</strong> · How to work in the project and release it with <code>haywire share</code>; names <code>haywire studio start|stop</code>.</li>
+<li><strong>② Harness config</strong> · Starts the Farmhand bridge from the project's environment: <code>uv run --frozen --quiet haywire farmhand bridge</code>.</li>
+<li><strong>② Harness config</strong> · Allows the bridge's tools (<code>mcp__farmhand</code>) and switches the server on. Claude Code honours it once the folder is trusted.</li>
+<li><strong>② Declaration</strong> · For every other harness: read <code>CLAUDE.md</code>.</li>
+<li><strong>② Declaration</strong> · How to work in the project and release it with <code>haywire share</code>; names <code>haywire studio start|stop</code>.</li>
 <li><strong>Config</strong> · The project's environment: Haywire from PyPI, its own library in <code>barn/</code>.</li>
 </ol>
 <h2 id="core-going-haywirehaywire">Core: <code>going-haywire/haywire</code><a class="headerlink" href="#core-going-haywirehaywire" title="Permanent link">&para;</a></h2>
@@ -5476,100 +5551,146 @@ command · <code>git</code> git itself · <code>you</code> a person.</p>
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>│<span class="w">       </span>├──<span class="w"> </span>release/SKILL.md<span class="w"> </span><span class="c1"># you (4)</span>
 </span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>│<span class="w">       </span>├──<span class="w"> </span>verify/SKILL.md<span class="w">  </span><span class="c1"># agent (5)</span>
 </span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>│<span class="w">       </span>└──<span class="w"> </span>check-rename/<span class="w">    </span><span class="c1"># agent (6)</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>├──<span class="w"> </span>dev/
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>│<span class="w">   </span>├──<span class="w"> </span>README.md<span class="w">            </span><span class="c1"># you (7)</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>│<span class="w">   </span>├──<span class="w"> </span>hooks/
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>session-role.sh<span class="w">  </span><span class="c1"># hook (8)</span>
-</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>session-place.sh<span class="w"> </span><span class="c1"># hook (9)</span>
-</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>block-dangerous-git.sh<span class="w">   </span><span class="c1"># hook (10)</span>
-</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>require-workflow-read.sh<span class="w"> </span><span class="c1"># hook (11)</span>
-</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>mark-workflow-read.sh<span class="w">    </span><span class="c1"># hook (12)</span>
-</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>│<span class="w">   </span>│<span class="w">   </span>└──<span class="w"> </span>guard-pr-merge.sh<span class="w">        </span><span class="c1"># hook (13)</span>
-</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>│<span class="w">   </span>├──<span class="w"> </span>scripts/
-</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>worktree_setup.py<span class="w"> </span><span class="c1"># T3 (14)</span>
-</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>finish.py<span class="w">        </span><span class="c1"># T3 (15)</span>
-</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>│<span class="w">   </span>│<span class="w">   </span>└──<span class="w"> </span>tasks.py<span class="w">         </span><span class="c1"># agent (16)</span>
-</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>│<span class="w">   </span>└──<span class="w"> </span>orchestrators/
-</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>│<span class="w">       </span>├──<span class="w"> </span>t3/session.sh<span class="w">    </span><span class="c1"># hook (17)</span>
-</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>│<span class="w">       </span>├──<span class="w"> </span>t3/doctor.py<span class="w">     </span><span class="c1"># you (18)</span>
-</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>│<span class="w">       </span>├──<span class="w"> </span>herdr/session.sh<span class="w"> </span><span class="c1"># hook (19)</span>
-</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>│<span class="w">       </span>└──<span class="w"> </span>herdr/agents.py<span class="w">  </span><span class="c1"># agent (20)</span>
-</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>├──<span class="w"> </span>docs/
-</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>│<span class="w">   </span>├──<span class="w"> </span>agents/start.md<span class="w">      </span><span class="c1"># agent (21)</span>
-</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>│<span class="w">   </span>└──<span class="w"> </span>collaboration/
-</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a>│<span class="w">       </span>├──<span class="w"> </span>workflow.md<span class="w">      </span><span class="c1"># bridge (22)</span>
-</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a>│<span class="w">       </span>├──<span class="w"> </span>contributing.md<span class="w">  </span><span class="c1"># bridge (23)</span>
-</span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a>│<span class="w">       </span>├──<span class="w"> </span>second-machine.md<span class="w"> </span><span class="c1"># bridge (24)</span>
-</span><span id="__span-1-35"><a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a>│<span class="w">       </span>├──<span class="w"> </span>agent-tooling.md<span class="w"> </span><span class="c1"># bridge (25)</span>
-</span><span id="__span-1-36"><a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a>│<span class="w">       </span>└──<span class="w"> </span>orchestrators/
-</span><span id="__span-1-37"><a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a>│<span class="w">           </span>├──<span class="w"> </span>t3-agent.md<span class="w">  </span><span class="c1"># bridge (26)</span>
-</span><span id="__span-1-38"><a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a>│<span class="w">           </span>└──<span class="w"> </span>herdr-agent.md<span class="w"> </span><span class="c1"># bridge (27)</span>
-</span><span id="__span-1-39"><a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a>├──<span class="w"> </span>packages/haywire-studio/src/haywire_studio/
-</span><span id="__span-1-40"><a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a>│<span class="w">   </span>├──<span class="w"> </span>farmhand/bridge.py<span class="w">   </span><span class="c1"># CLI (28)</span>
-</span><span id="__span-1-41"><a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a>│<span class="w">   </span>├──<span class="w"> </span>cli/studiocmd.py<span class="w">     </span><span class="c1"># CLI (29)</span>
-</span><span id="__span-1-42"><a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a>│<span class="w">   </span>└──<span class="w"> </span>agents.py<span class="w">            </span><span class="c1"># CLI (30)</span>
-</span><span id="__span-1-43"><a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a>├──<span class="w"> </span>pyproject.toml<span class="w">           </span><span class="c1"># bridge (31)</span>
-</span><span id="__span-1-44"><a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a>├──<span class="w"> </span>t3.json<span class="w">                  </span><span class="c1"># T3 (32)</span>
-</span><span id="__span-1-45"><a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a>├──<span class="w"> </span>CLAUDE.md<span class="w">                </span><span class="c1"># agent (33)</span>
-</span><span id="__span-1-46"><a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a>├──<span class="w"> </span>AGENTS.md<span class="w">                </span><span class="c1"># agent (34)</span>
-</span><span id="__span-1-47"><a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a>└──<span class="w"> </span>CONTRIBUTING.md<span class="w">          </span><span class="c1"># you (35)</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>├──<span class="w"> </span>.github/
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>│<span class="w">   </span>├──<span class="w"> </span>workflows/<span class="w">           </span><span class="c1"># CI (7)</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>│<span class="w">   </span>└──<span class="w"> </span>ISSUE_TEMPLATE/<span class="w">      </span><span class="c1"># GitHub (8)</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>├──<span class="w"> </span>dev/
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>│<span class="w">   </span>├──<span class="w"> </span>README.md<span class="w">            </span><span class="c1"># you (9)</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>│<span class="w">   </span>├──<span class="w"> </span>hooks/
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>session-role.sh<span class="w">  </span><span class="c1"># hook (10)</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>session-place.sh<span class="w"> </span><span class="c1"># hook (11)</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>block-dangerous-git.sh<span class="w">   </span><span class="c1"># hook (12)</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>require-workflow-read.sh<span class="w"> </span><span class="c1"># hook (13)</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>mark-workflow-read.sh<span class="w">    </span><span class="c1"># hook (14)</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>│<span class="w">   </span>│<span class="w">   </span>└──<span class="w"> </span>guard-pr-merge.sh<span class="w">        </span><span class="c1"># hook (15)</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>│<span class="w">   </span>├──<span class="w"> </span>scripts/
+</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>worktree_setup.py<span class="w"> </span><span class="c1"># event (16)</span>
+</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>finish.py<span class="w">        </span><span class="c1"># event (17)</span>
+</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>│<span class="w">   </span>│<span class="w">   </span>└──<span class="w"> </span>tasks.py<span class="w">         </span><span class="c1"># agent (18)</span>
+</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>│<span class="w">   </span>└──<span class="w"> </span>orchestrators/
+</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>│<span class="w">       </span>├──<span class="w"> </span>t3/session.sh<span class="w">    </span><span class="c1"># hook (19)</span>
+</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>│<span class="w">       </span>├──<span class="w"> </span>t3/doctor.py<span class="w">     </span><span class="c1"># you (20)</span>
+</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>│<span class="w">       </span>├──<span class="w"> </span>herdr/session.sh<span class="w"> </span><span class="c1"># hook (21)</span>
+</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>│<span class="w">       </span>└──<span class="w"> </span>herdr/agents.py<span class="w">  </span><span class="c1"># agent (22)</span>
+</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a>├──<span class="w"> </span>docs/
+</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a>│<span class="w">   </span>├──<span class="w"> </span>agents/start.md<span class="w">      </span><span class="c1"># agent (23)</span>
+</span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a>│<span class="w">   </span>└──<span class="w"> </span>collaboration/
+</span><span id="__span-1-35"><a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a>│<span class="w">       </span>├──<span class="w"> </span>workflow.md<span class="w">      </span><span class="c1"># bridge (24)</span>
+</span><span id="__span-1-36"><a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a>│<span class="w">       </span>├──<span class="w"> </span>contributing.md<span class="w">  </span><span class="c1"># bridge (25)</span>
+</span><span id="__span-1-37"><a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a>│<span class="w">       </span>├──<span class="w"> </span>new-org-library.md<span class="w"> </span><span class="c1"># bridge (26)</span>
+</span><span id="__span-1-38"><a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a>│<span class="w">       </span>├──<span class="w"> </span>second-machine.md<span class="w"> </span><span class="c1"># bridge (27)</span>
+</span><span id="__span-1-39"><a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a>│<span class="w">       </span>├──<span class="w"> </span>agent-tooling.md<span class="w"> </span><span class="c1"># bridge (28)</span>
+</span><span id="__span-1-40"><a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a>│<span class="w">       </span>└──<span class="w"> </span>orchestrators/
+</span><span id="__span-1-41"><a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a>│<span class="w">           </span>├──<span class="w"> </span>t3-agent.md<span class="w">  </span><span class="c1"># bridge (29)</span>
+</span><span id="__span-1-42"><a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a>│<span class="w">           </span>└──<span class="w"> </span>herdr-agent.md<span class="w"> </span><span class="c1"># bridge (30)</span>
+</span><span id="__span-1-43"><a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a>├──<span class="w"> </span>packages/haywire-studio/src/haywire_studio/
+</span><span id="__span-1-44"><a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a>│<span class="w">   </span>├──<span class="w"> </span>farmhand/bridge.py<span class="w">   </span><span class="c1"># CLI (31)</span>
+</span><span id="__span-1-45"><a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a>│<span class="w">   </span>├──<span class="w"> </span>cli/studiocmd.py<span class="w">     </span><span class="c1"># CLI (32)</span>
+</span><span id="__span-1-46"><a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a>│<span class="w">   </span>└──<span class="w"> </span>agents.py<span class="w">            </span><span class="c1"># CLI (33)</span>
+</span><span id="__span-1-47"><a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a>├──<span class="w"> </span>pyproject.toml<span class="w">           </span><span class="c1"># bridge (34)</span>
+</span><span id="__span-1-48"><a id="__codelineno-1-48" name="__codelineno-1-48" href="#__codelineno-1-48"></a>├──<span class="w"> </span>t3.json<span class="w">                  </span><span class="c1"># T3 (35)</span>
+</span><span id="__span-1-49"><a id="__codelineno-1-49" name="__codelineno-1-49" href="#__codelineno-1-49"></a>├──<span class="w"> </span>CLAUDE.md<span class="w">                </span><span class="c1"># agent (36)</span>
+</span><span id="__span-1-50"><a id="__codelineno-1-50" name="__codelineno-1-50" href="#__codelineno-1-50"></a>└──<span class="w"> </span>AGENTS.md<span class="w">                </span><span class="c1"># agent (37)</span>
 </span></code></pre></div>
 <ol>
-<li><strong>Adapter</strong> · Starts the Farmhand bridge from core's own environment.</li>
-<li><strong>Adapter</strong> · Runs every <code>dev/hooks/*.sh</code> at its Claude Code event, allows the bridge's tools, formats edited Python with ruff.</li>
-<li><strong>Rule</strong> · Loaded for Python work: points to the coding standards.</li>
-<li><strong>Skill</strong> <code>release</code> · Cuts a lockstep release through a release pull request, on the word "publish".</li>
-<li><strong>Skill</strong> <code>verify</code> · The full local quality suite, the checks CI runs.</li>
-<li><strong>Skill</strong> <code>check-rename</code> · Finds string references an IDE rename missed, with its detector script.</li>
-<li><strong>Doc</strong> · What <code>dev/</code> holds and how the libraries reach it.</li>
-<li><strong>Hook</strong> · At session start: the agent's role, maintainer or contributor, from the GitHub login's access.</li>
-<li><strong>Hook</strong> · At session start: joins what each orchestrator slot's <code>session.sh</code> prints.</li>
-<li><strong>Hook</strong> · Before a shell command: blocks git commands that rewrite or delete remote history or push a tag.</li>
-<li><strong>Hook</strong> · Before a shell command: refuses a commit, push or PR change until the session read the workflow page.</li>
-<li><strong>Hook</strong> · After a read: records that the session read the workflow page, as a file or through the bridge.</li>
-<li><strong>Hook</strong> · Before <code>gh pr merge</code>: refuses a draft, a labelled, an unresolved or a red pull request.</li>
-<li><strong>Script</strong> · The neutral part of <em>created</em>: starts the branch, links core beside a library worktree, <code>uv sync</code>, a studio port, the done marker.</li>
-<li><strong>Script</strong> · The neutral part of <em>merged</em>: frees the worktree and deletes the branch, only once its PR merged.</li>
-<li><strong>Script</strong> · The task view: worktrees, their PRs and, where a slot can tell, their sessions.</li>
-<li><strong>Hook</strong> · T3's slot: where the agent runs, its how-to, and what the T3 setup still lacks; waits for the worktree setup.</li>
-<li><strong>Script</strong> · T3's slot: checks your T3 settings against <code>t3.json</code> and adds what is missing.</li>
-<li><strong>Hook</strong> · herdr's slot: the agent's address and how to reach the others.</li>
-<li><strong>Script</strong> · herdr's slot: lists herdr's live sessions for <code>tasks.py</code>.</li>
-<li><strong>Instructions</strong> · The one starting point: an agent sets a person up, user or developer, from a machine with only a harness.</li>
-<li><strong>Instructions</strong> · The development workflow: branches, PRs, CI, live check, merge, finish, releases, lead and tasks. The gate wants it read.</li>
-<li><strong>Instructions</strong> · The rules for everyone who contributes; <code>CONTRIBUTING.md</code> points here.</li>
-<li><strong>Instructions</strong> · Setting up another machine.</li>
+<li><strong>② Harness config</strong> · Starts the Farmhand bridge from core's own environment.</li>
+<li><strong>② Harness config</strong> · Runs every <code>dev/hooks/*.sh</code> at its Claude Code event, allows the bridge's tools, formats edited Python with ruff.</li>
+<li><strong>② Rule</strong> · Loaded for Python work: points to the coding standards.</li>
+<li><strong>② Skill</strong> <code>release</code> · Cuts a lockstep release through a release pull request, on the word "publish".</li>
+<li><strong>② Skill</strong> <code>verify</code> · The full local quality suite, the checks CI runs.</li>
+<li><strong>② Skill</strong> <code>check-rename</code> · Finds string references an IDE rename missed, with its detector script.</li>
+<li><strong>① Workflows</strong> · Core's own CI, intake, publishing and docs; core needs no callers of <code>.github</code>'s.</li>
+<li><strong>① Issue templates</strong> · Core's own, because the introduction form lives where introductions are filed; every other community file comes from <code>.github</code>.</li>
+<li><strong>② Doc</strong> · What <code>dev/</code> holds and how the libraries reach it.</li>
+<li><strong>② Hook</strong> · At session start: the agent's role, maintainer or contributor, from the GitHub login's access.</li>
+<li><strong>③ Hook</strong> · At session start: joins what each orchestrator slot's <code>session.sh</code> prints.</li>
+<li><strong>② Hook</strong> · Before a shell command: blocks git commands that rewrite or delete remote history or push a tag.</li>
+<li><strong>② Hook</strong> · Before a shell command: refuses a commit, push or PR change until the session read the workflow page.</li>
+<li><strong>② Hook</strong> · After a read: records that the session read the workflow page, as a file or through the bridge.</li>
+<li><strong>② Hook</strong> · Before <code>gh pr merge</code>: refuses a draft, a labelled, an unresolved or a red pull request.</li>
+<li><strong>② Script</strong> · The neutral part of <em>created</em>: starts the branch, links core beside a library worktree, <code>uv sync</code>, a studio port, the done marker. Run by T3 on worktree creation, by herdr's lead, or by hand.</li>
+<li><strong>② Script</strong> · The neutral part of <em>merged</em>: frees the worktree and deletes the branch, only once its PR merged. Run by T3 when a thread settles, or by the task itself.</li>
+<li><strong>② Script</strong> · The task view: worktrees, their PRs and, where a slot can tell, their sessions.</li>
+<li><strong>③ Hook</strong> · T3's slot: where the agent runs, its how-to, and what the T3 setup still lacks; waits for the worktree setup.</li>
+<li><strong>③ Script</strong> · T3's slot: checks your T3 settings against <code>t3.json</code> and adds what is missing.</li>
+<li><strong>③ Hook</strong> · herdr's slot: the agent's address and how to reach the others.</li>
+<li><strong>③ Script</strong> · herdr's slot: lists herdr's live sessions for <code>tasks.py</code>.</li>
+<li><strong>② Instructions</strong> · The one starting point: an agent sets a person up, user or developer, from a machine with only a harness.</li>
+<li><strong>② Instructions</strong> · The development workflow: branches, PRs, CI, live check, merge, finish, releases, lead and tasks. The gate wants it read.</li>
+<li><strong>② Instructions</strong> · The rules for everyone who contributes, <em>In a library</em> included; <code>.github</code>'s <code>CONTRIBUTING.md</code> points here.</li>
+<li><strong>① ② ③ Instructions</strong> · Setting up a library repository, step by step.</li>
+<li><strong>② Instructions</strong> · Setting up another machine.</li>
 <li><strong>Reference</strong> · This page.</li>
-<li><strong>Instructions</strong> · How lead and tasks run in T3 Code.</li>
-<li><strong>Instructions</strong> · How lead and tasks run in herdr.</li>
-<li><strong>Connection</strong> · <code>haywire farmhand bridge</code>: the stdio MCP server between a session and its project's studio; serves the instructions; sends the Farmhand principal's token itself.</li>
-<li><strong>CLI</strong> · <code>haywire studio start|stop|status</code>: the folder's studio in the background, on a port of its own.</li>
-<li><strong>CLI</strong> · The one list of supported harnesses and their adapters, which <code>haywire init</code> writes.</li>
-<li><strong>Config</strong> · <code>[tool.haywire.agents] developer-docs = "docs"</code>: the developer pages the bridge serves here.</li>
-<li><strong>Config</strong> · T3's scripts: worktree setup, finish on settle, the studio.</li>
-<li><strong>Instructions</strong> · Core's own always-in-context rules for agents (architecture, editing, traps); the process lives in the docs.</li>
-<li><strong>Pointer</strong> · For every other harness: read <code>CLAUDE.md</code>.</li>
-<li><strong>Pointer</strong> · GitHub shows it on a pull request; points to the contributing page and the start page.</li>
+<li><strong>③ Instructions</strong> · How lead and tasks run in T3 Code.</li>
+<li><strong>③ Instructions</strong> · How lead and tasks run in herdr.</li>
+<li><strong>② Connection</strong> · <code>haywire farmhand bridge</code>: the stdio MCP server between a session and its project's studio; serves the instructions; sends the Farmhand principal's token itself.</li>
+<li><strong>② CLI</strong> · <code>haywire studio start|stop|status</code>: the folder's studio in the background, on a port of its own.</li>
+<li><strong>② CLI</strong> · The agent files: a project's harness configs (<code>haywire init</code>), an org library's files (<code>haywire init --org-files</code>); the one list of supported harnesses.</li>
+<li><strong>② Declaration</strong> · <code>[tool.haywire.agents] developer-docs = "docs"</code>: the developer pages the bridge serves here.</li>
+<li><strong>③ Orchestrator file</strong> · T3's scripts: worktree setup, finish on settle, the studio.</li>
+<li><strong>② Declaration</strong> · Core's own always-in-context rules for agents (architecture, editing, traps); the process lives in the docs.</li>
+<li><strong>② Declaration</strong> · For every other harness: read <code>CLAUDE.md</code>.</li>
 </ol>
 <h2 id="an-org-library-going-haywirehaybale-name">An org library: <code>going-haywire/haybale-&lt;name&gt;</code><a class="headerlink" href="#an-org-library-going-haywirehaybale-name" title="Permanent link">&para;</a></h2>
-<p>Its agent files come from <code>going-haywire/.github</code>'s <code>templates/library/</code>, through
-<code>scripts/library-files.sh</code>. It has no tooling of its own: everything runs from core beside it.</p>
+<p>It has no tooling of its own: everything runs from core beside it. Its files are written by
+<code>haywire init --org-files</code>, the agent files from core and the CI files from <code>.github</code>.</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>haybale-&lt;name&gt;/
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>├──<span class="w"> </span>.mcp.json<span class="w">                </span><span class="c1"># Claude (1)</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>├──<span class="w"> </span>.claude/
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>│<span class="w">   </span>└──<span class="w"> </span>settings.json<span class="w">        </span><span class="c1"># Claude (2)</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>├──<span class="w"> </span>pyproject.toml<span class="w">           </span><span class="c1"># bridge (3)</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>├──<span class="w"> </span>t3.json<span class="w">                  </span><span class="c1"># T3 (4)</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>├──<span class="w"> </span>.gitignore<span class="w">               </span><span class="c1"># git (5)</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>└──<span class="w"> </span>CLAUDE.md<span class="w">                </span><span class="c1"># agent (6)</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>├──<span class="w"> </span>.github/
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>│<span class="w">   </span>├──<span class="w"> </span>workflows/
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>ci.yml<span class="w">           </span><span class="c1"># CI (1)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>nightly.yml<span class="w">      </span><span class="c1"># CI (2)</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>│<span class="w">   </span>│<span class="w">   </span>├──<span class="w"> </span>pr-intake.yml<span class="w">    </span><span class="c1"># CI (3)</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>│<span class="w">   </span>│<span class="w">   </span>└──<span class="w"> </span>publish.yml<span class="w">      </span><span class="c1"># CI (4)</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>│<span class="w">   </span>└──<span class="w"> </span>dependabot.yml<span class="w">       </span><span class="c1"># GitHub (5)</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>├──<span class="w"> </span>.mcp.json<span class="w">                </span><span class="c1"># Claude (6)</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>├──<span class="w"> </span>.claude/
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>│<span class="w">   </span>└──<span class="w"> </span>settings.json<span class="w">        </span><span class="c1"># Claude (7)</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>├──<span class="w"> </span>pyproject.toml<span class="w">           </span><span class="c1"># bridge (8)</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>├──<span class="w"> </span>t3.json<span class="w">                  </span><span class="c1"># T3 (9)</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>├──<span class="w"> </span>.gitignore<span class="w">               </span><span class="c1"># git (10)</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>└──<span class="w"> </span>CLAUDE.md<span class="w">                </span><span class="c1"># agent (11)</span>
 </span></code></pre></div>
 <ol>
-<li><strong>Adapter</strong> · Starts the Farmhand bridge from the library's environment.</li>
-<li><strong>Adapter</strong> · Runs core's hooks from <code>../haywire-repo/dev/hooks/</code>, checks at session start that core is there, allows the bridge.</li>
-<li><strong>Config</strong> · <code>[tool.haywire.agents] developer-docs = "../haywire-repo/docs"</code>: core's developer pages, served here.</li>
-<li><strong>Config</strong> · T3's scripts: the worktree setup through the library's main folder, finish, the studio.</li>
-<li><strong>Config</strong> · Ignores the machine-local <code>.haywire</code> files (port, studio pid and log).</li>
-<li><strong>Instructions</strong> · The library's own lines, and where the workflow comes from.</li>
+<li><strong>① CI caller</strong> · Calls <code>.github</code>'s <code>library-ci.yml</code>, pinned to a commit, on every pull request and on the default branch. Written once from <code>.github</code>'s workflow template, then the library's own.</li>
+<li><strong>① CI caller</strong> · The same checks every night against core's <code>master</code> as it is then.</li>
+<li><strong>① CI caller</strong> · Calls <code>.github</code>'s <code>pr-intake.yml</code>: labels and welcomes pull requests.</li>
+<li><strong>① Workflow</strong> · Generated by <code>haywire share</code>: publishes the library on a release tag.</li>
+<li><strong>① Config</strong> · Moves the CI callers' pins to <code>.github</code>'s next commit, weekly.</li>
+<li><strong>② Harness config</strong> · Starts the Farmhand bridge from the library's environment.</li>
+<li><strong>② Harness config</strong> · Runs core's hooks from <code>../haywire-repo/dev/hooks/</code>, checks at session start that core is there, allows the bridge.</li>
+<li><strong>② Declaration</strong> · <code>[tool.haywire.agents] developer-docs = "../haywire-repo/docs"</code>: core's developer pages, served here.</li>
+<li><strong>③ Orchestrator file</strong> · T3's scripts: the worktree setup through the library's main folder, finish, the studio.</li>
+<li><strong>② Declaration</strong> · Ignores the machine-local <code>.haywire</code> files (port, studio pid and log).</li>
+<li><strong>② Declaration</strong> · The library's own lines, and the block naming where the workflow comes from (replaced by every <code>--org-files</code> run).</li>
+</ol>
+<h2 id="the-organisation-going-haywiregithub">The organisation: <code>going-haywire/.github</code><a class="headerlink" href="#the-organisation-going-haywiregithub" title="Permanent link">&para;</a></h2>
+<p>What GitHub distributes to every repository, what the libraries call, and what acts on GitHub.
+Only the workflow templates take part in a library's files.</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>.github/
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>├──<span class="w"> </span>workflow-templates/
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>│<span class="w">   </span>├──<span class="w"> </span>ci.yml<span class="w">               </span><span class="c1"># CLI (1)</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>│<span class="w">   </span>├──<span class="w"> </span>nightly.yml<span class="w">          </span><span class="c1"># CLI (2)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>│<span class="w">   </span>├──<span class="w"> </span>pr-intake.yml<span class="w">        </span><span class="c1"># CLI (3)</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>│<span class="w">   </span>├──<span class="w"> </span>*.properties.json<span class="w">    </span><span class="c1"># GitHub (4)</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>│<span class="w">   </span>└──<span class="w"> </span>dependabot.yml<span class="w">       </span><span class="c1"># CLI (5)</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>├──<span class="w"> </span>.github/workflows/
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>│<span class="w">   </span>├──<span class="w"> </span>library-ci.yml<span class="w">       </span><span class="c1"># CI (6)</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>│<span class="w">   </span>└──<span class="w"> </span>pr-intake.yml<span class="w">        </span><span class="c1"># CI (7)</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>├──<span class="w"> </span>rulesets/library/<span class="w">        </span><span class="c1"># you (8)</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>├──<span class="w"> </span>scripts/library-settings.sh<span class="w"> </span><span class="c1"># you (9)</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>└──<span class="w"> </span>CONTRIBUTING.md,<span class="w"> </span>SECURITY.md,<span class="w"> </span>CODE_OF_CONDUCT.md,<span class="w"> </span>.github/<span class="w"> </span><span class="c1"># GitHub (10)</span>
+</span></code></pre></div>
+<ol>
+<li><strong>① Template</strong> · A library's CI caller, with <code>$default-branch</code> and <code>@main</code>; <code>haywire init --org-files</code> fills in the branch and pins the commit.</li>
+<li><strong>① Template</strong> · The nightly caller.</li>
+<li><strong>① Template</strong> · The intake caller.</li>
+<li><strong>① Template metadata</strong> · Makes GitHub offer the callers under <em>Actions → New workflow</em>.</li>
+<li><strong>① Template</strong> · A library's <code>dependabot.yml</code> (no metadata: GitHub does not offer it, the command copies it).</li>
+<li><strong>① Reusable workflow</strong> · A library's lint and tests against core's <code>master</code>.</li>
+<li><strong>① Reusable workflow</strong> · The intake: labels from a pull request's metadata, never its code.</li>
+<li><strong>① Rulesets</strong> · <em>Permanent refs</em>, <em>Release tags</em>, <em>PR gate</em>.</li>
+<li><strong>① Script</strong> · Applies the rulesets, merge settings and labels to one library repository (an admin, once).</li>
+<li><strong>① Community files</strong> · GitHub shows them in every repository that has none of its own: the contributing pointer, the security policy, the code of conduct, the PR template, the libraries' issue templates.</li>
 </ol>
 <h2 id="how-each-journey-receives-it">How each journey receives it<a class="headerlink" href="#how-each-journey-receives-it" title="Permanent link">&para;</a></h2>
 <table>
