@@ -5322,7 +5322,8 @@ that, every clone and every worktree of it works with nothing to install.</p>
 project's first commit). It writes the library's agent files from core (the harness configs with core's
 hooks, <code>t3.json</code>, <code>[tool.haywire.agents]</code>, the <code>.gitignore</code> lines, <code>CLAUDE.md</code>'s block) and its CI
 callers and <code>dependabot.yml</code> from <code>going-haywire/.github</code>'s workflow templates, pinned to that
-repository's current commit. With a name it also writes what that CI runs, so the first commit passes it: the <code>dev</code>
+repository's latest release (its highest <code>vX.Y.Z</code> tag, named in the pin's comment), so Dependabot
+moves the pins to each later release. With a name it also writes what that CI runs, so the first commit passes it: the <code>dev</code>
 dependency group (ruff, pytest), the pytest configuration, <code>tests/</code> with a test that the library
 loads, and <code>uv.lock</code>. What lives where:
 <a href="../agent-tooling/#an-org-library-going-haywirehaybale-name">agent tooling</a>.</p>
