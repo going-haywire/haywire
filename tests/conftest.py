@@ -249,6 +249,16 @@ def _isolated_volume_store(tmp_path):
     set_volume_store(None)
 
 
+# `haywire init` records each project it scaffolds in the developer's real
+# ~/.haywire/recent_projects.toml (and creates ~/.haywire/config.toml). Every test
+# gets a global config folder on tmp_path.
+@pytest.fixture(autouse=True)
+def _isolated_global_config(tmp_path, monkeypatch):
+    import haywire_studio.config as cfg
+
+    monkeypatch.setattr(cfg, "GLOBAL_CONFIG_DIR", tmp_path / "global-haywire")
+
+
 # ==============================================================================
 # Path Fixtures
 # ==============================================================================

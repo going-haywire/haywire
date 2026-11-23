@@ -76,7 +76,8 @@ settles when its turn ends, and the script runs then.
 A T3 brief therefore promises no "merged" message: the task's last report is *Ready* (or
 *Blocked*, *Needs a decision*), and the settle script finishes it. If a branch is re-created
 anyway (a crashed task, a user's message), `finish` still removes it as long as its only
-extra commits are already on `origin/master`.
+extra commits are already on `origin/master`. A thread whose PR has merged does not go on:
+its worktree is gone, so unsettling it starts no session. A follow-up is a new thread.
 
 ## The user's T3 settings
 

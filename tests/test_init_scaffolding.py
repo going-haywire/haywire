@@ -293,7 +293,7 @@ class TestLibraryInit:
             scaffold_project / "barn" / "hay-test-project" / "hay_test_project" / "__init__.py"
         ).read_text()
         for folder in [*_PACKAGE_FOLDERS, "macros"]:
-            assert f"base_path / '{folder}'" in init_content
+            assert f'base_path / "{folder}"' in init_content
 
     def test_library_decorator(self, scaffold_project):
         init_content = (

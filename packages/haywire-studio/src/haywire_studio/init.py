@@ -243,7 +243,9 @@ _INTERNAL_IMPORT_MSG = (
 )
 
 
-def _generate_project_pyproject(name: str, lib_name: str, dev_repo: str | None = None) -> str:
+def _generate_project_pyproject(
+    name: str, lib_name: str, dev_repo: str | None = None, org_library: bool = False
+) -> str:
     """Generate the project's pyproject.toml content.
 
     Args:
@@ -252,6 +254,8 @@ def _generate_project_pyproject(name: str, lib_name: str, dev_repo: str | None =
         dev_repo: If set, path to the haywire dev repo, relative to the project folder
             (absolute when no relative path exists). Adds [tool.uv.sources] pointing to
             local editable packages; uv resolves them from the project folder.
+        org_library: If True, add what the org's library CI runs: the ``dev`` dependency
+            group (ruff, pytest) and the pytest configuration for ``tests/``.
     """
     pin = _release_pin()
     sources: dict[str, dict[str, object]] = {lib_name: {"workspace": True}}
@@ -274,6 +278,8 @@ def _generate_project_pyproject(name: str, lib_name: str, dev_repo: str | None =
                 "sources": sources,
             },
             "ruff": {
+                # Core's line length: the scaffold's own files (publish_plan.py) are written to it.
+                "line-length": 109,
                 "lint": {
                     # TID252: hot reload mis-resolves a relative import in a library, silently.
                     "extend-select": ["TID251", "TID252"],
@@ -287,6 +293,22 @@ def _generate_project_pyproject(name: str, lib_name: str, dev_repo: str | None =
             },
         },
     }
+
+    if org_library:
+        data["dependency-groups"] = {"dev": ["pytest>=8", "pytest-timeout", "ruff==0.12.12"]}
+        # The tests build a library system from core's internals, which libraries may not import.
+        data["tool"]["ruff"]["lint"]["per-file-ignores"] = {"tests/**": ["TID251"]}
+        data["tool"]["pytest"] = {
+            "ini_options": {
+                "testpaths": ["tests"],
+                "markers": [
+                    "unit: Unit tests (fast, isolated)",
+                    "integration: Integration tests (slower, full system)",
+                ],
+                "addopts": "-v --strict-markers --tb=short",
+                "timeout": 120,
+            }
+        }
 
     if dev_repo:
         sources.update(
@@ -700,57 +722,57 @@ class Library(BaseLibrary):
         base_path = Path(__file__).parent
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'settings'),
+            folder_path=str(base_path / "settings"),
             registry_cls=SettingsRegistry,
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'states'),
+            folder_path=str(base_path / "states"),
             registry_cls=StateRegistry,
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'themes'),
+            folder_path=str(base_path / "themes"),
             registry_cls=ThemeRegistry,
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'types'),
+            folder_path=str(base_path / "types"),
             registry_cls=TypeRegistry,
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'adapters'),
+            folder_path=str(base_path / "adapters"),
             registry_cls=AdapterRegistry,
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'widgets'),
+            folder_path=str(base_path / "widgets"),
             registry_cls=WidgetRegistry,
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'skins'),
+            folder_path=str(base_path / "skins"),
             registry_cls=SkinRegistry,
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'nodes'),
+            folder_path=str(base_path / "nodes"),
             registry_cls=NodeRegistry,
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'macros'),
+            folder_path=str(base_path / "macros"),
             registry_cls=MacroRegistry,
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'panels'),
+            folder_path=str(base_path / "panels"),
             registry_cls=PanelRegistry,
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / 'editors'),
+            folder_path=str(base_path / "editors"),
             registry_cls=EditorRegistry,
         )
 
@@ -871,6 +893,62 @@ def _generate_project_marketplace_locals_only(name: str, lib_name: str, project_
     return header + toml.dumps({"heaps": [entry]})
 
 
+def _generate_tests_conftest() -> str:
+    """Generate an org library's ``tests/conftest.py``: a library system with the repo's library."""
+    return '''"""Fixtures for this repo's own suite."""
+
+from collections.abc import Iterator
+from pathlib import Path
+
+import pytest
+
+
+@pytest.fixture(scope="session")
+def project_root() -> Path:
+    """The repo root (the directory holding ``barn/``)."""
+    return Path(__file__).parent.parent
+
+
+@pytest.fixture(scope="session")
+def library_system(project_root: Path) -> Iterator[object]:
+    """A fully initialised library system with this repo's library loaded."""
+    from haywire.core.di.config import set_global_injector, set_library_system
+    from haywire.core.di.test_config import create_test_library_system
+
+    service = create_test_library_system(
+        workspace_root=str(project_root),
+        library_paths=[str(project_root / "barn")],
+        load_libraries=True,
+        enable_file_watching=False,
+    )
+    set_library_system(service)
+    set_global_injector(service.injector)
+
+    yield service
+
+    lib_registry = service.get_library_registry()
+    if hasattr(lib_registry, "stop_file_watching"):
+        lib_registry.stop_file_watching()
+    set_library_system(None)
+    set_global_injector(None)
+'''
+
+
+def _generate_library_test(lib_name: str) -> str:
+    """Generate an org library's first test: its library loads."""
+    return f'''"""The repo's haybale loads into a library system."""
+
+from typing import Any
+
+import pytest
+
+
+@pytest.mark.integration
+def test_the_library_loads(library_system: Any) -> None:
+    assert library_system.get_library_registry().is_library_enabled("{lib_name}")
+'''
+
+
 def init_project(
     name: str,
     auto_sync: bool = True,
@@ -967,7 +1045,10 @@ def init_project(
     # Generate files
     (project_dir / "pyproject.toml").write_text(
         _generate_project_pyproject(
-            name, lib_name, dev_repo=_path_from(project_dir, dev_repo) if dev_repo else None
+            name,
+            lib_name,
+            dev_repo=_path_from(project_dir, dev_repo) if dev_repo else None,
+            org_library=org_files,
         )
     )
 
@@ -1023,6 +1104,13 @@ def init_project(
     if org_files:
         # After git init, so the CI callers name the repository's own default branch.
         write_org_files(project_dir)
+        (project_dir / "tests").mkdir()
+        (project_dir / "tests" / "conftest.py").write_text(_generate_tests_conftest())
+        (project_dir / "tests" / "test_library.py").write_text(_generate_library_test(lib_name))
+        # CI and every worktree run from the committed lock (--frozen): it is in the first commit.
+        locked = subprocess.run(["uv", "lock", "--refresh"], cwd=str(project_dir), capture_output=True)
+        if locked.returncode != 0:
+            print("\nWarning: uv lock failed; commit uv.lock before the first push.")
     subprocess.run(["git", "add", "."], cwd=str(project_dir), check=True, capture_output=True)
     subprocess.run(
         [
