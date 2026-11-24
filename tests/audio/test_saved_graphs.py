@@ -81,3 +81,17 @@ def test_an_edge_from_a_control_node_into_an_audio_pin_loads_invalid_and_is_kept
     (edge,) = graph.list_edge_wrappers()
     assert not edge.state.is_valid()
     assert "No adapter chain found: EXEC → AUDIO_EXEC" in str(edge.state.error_build)
+
+
+def test_the_device_in_soak_graph_loads_with_every_edge_valid(graph_with_library_system):
+    """Begin Play starts a Device In whose Audio Event plays each block on a Device Out: the graph
+    of the PR's soak check."""
+    graph = graph_with_library_system
+    assert graph.load_from_file(str(FIXTURES / "device_in_soak.haywire"))
+    graph.force_validation()
+
+    kinds = sorted(type(w.node).__name__ for w in graph.list_node_wrappers())
+    assert kinds == ["AudioEventNode", "BeginPlayEventNode", "DeviceInNode", "DeviceOutNode"]
+    edges = graph.list_edge_wrappers()
+    assert len(edges) == 4
+    assert all(e.state.is_valid() for e in edges)

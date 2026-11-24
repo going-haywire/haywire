@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import time
 
-from haybale_audio.emitter import set_status
-from haybale_audio.io.device import DeviceOutput, output_device_names
+from haybale_audio.emitter import STATUS_INTERVAL, set_status
+from haybale_audio.io.device import DeviceOutput, output_device_names, refreshed_output_device_names
 from haybale_audio.value import AudioBlock
 from haywire.api import (
     CHOICES,
@@ -18,13 +18,12 @@ from haywire.api import (
     NodeSettings,
     NodeType,
     Promotable,
+    Refusal,
     bag,
     node,
     setting,
 )
 
-#: Seconds between status updates; one per block would flood the UI.
-STATUS_INTERVAL = 0.5
 _DEFAULT_DEVICE = "System default"
 
 
@@ -35,8 +34,14 @@ class DeviceOutSettings(NodeSettings):
         _DEFAULT_DEVICE,
         label="Device",
         category="Output",
-        description="Output device to play on. The list is read when the node is shown.",
-        widget_config={"options": lambda: [_DEFAULT_DEVICE, *output_device_names()]},
+        description=(
+            "Output device to play on. The refresh button reads the devices again, for one plugged in "
+            "since the studio started; it works only while no audio node of the studio is running."
+        ),
+        widget_config={
+            "options": lambda: [_DEFAULT_DEVICE, *output_device_names()],
+            "refresh": lambda: [_DEFAULT_DEVICE, *refreshed_output_device_names()],
+        },
         promotable=Promotable.CONFIG,
     )
     buffer_ms = setting[INT](
@@ -129,7 +134,12 @@ class DeviceOutNode(BaseNode):
                 int(self.output.prefill),
                 latency=int(self.output.buffer_ms) / 1000 or None,
             )
-        self.hb_output.write(audio)
+        try:
+            self.hb_output.write(audio)
+        except Refusal as exc:  # the device did not open: say why on the card, and in the error
+            self.hb_close()
+            set_status(self, f"Error: {exc.message}")
+            raise
         if self.hb_output.error is not None:
             error = self.hb_output.error
             self.hb_close()

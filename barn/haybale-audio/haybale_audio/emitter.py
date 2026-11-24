@@ -10,6 +10,8 @@ from typing import Any
 from haybale_audio.value import AudioBlock
 from haywire.api import ExecutionContext
 
+#: Seconds between status updates of a running node; one per block would flood the UI.
+STATUS_INTERVAL = 0.5
 #: Seconds behind schedule after which the pump restarts its schedule and skips the backlog.
 RESYNC_AFTER = 0.5
 
@@ -17,7 +19,9 @@ RESYNC_AFTER = 0.5
 class BlockPump:
     """Calls ``produce`` for each block and ``deliver`` at the block's time, on a daemon thread.
 
-    The first block goes out at once; each next one a block duration after the previous.
+    The first block goes out at once; each next one a block duration after the previous. With
+    ``paced=False`` each block goes out as soon as ``produce`` returns it: for a source whose
+    ``produce`` waits on a clock of its own, such as a sound device.
     """
 
     def __init__(
@@ -25,10 +29,12 @@ class BlockPump:
         produce: Callable[[], AudioBlock | None],
         deliver: Callable[[AudioBlock, int, float], None],
         on_end: Callable[[Exception | None], None] | None = None,
+        paced: bool = True,
     ) -> None:
         self._produce = produce
         self._deliver = deliver
         self._on_end = on_end
+        self._paced = paced
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self.resyncs = 0
@@ -55,13 +61,13 @@ class BlockPump:
             number = 0
             while not self._stop.is_set():
                 block = self._produce()
-                if block is None:
+                if block is None or self._stop.is_set():
                     break
-                wait = deadline - time.monotonic()
+                wait = deadline - time.monotonic() if self._paced else 0.0
                 if wait > 0:
                     if self._stop.wait(wait):  # sleeps to the deadline: busy-waiting would hold the GIL
                         break
-                elif wait < -RESYNC_AFTER:
+                elif self._paced and wait < -RESYNC_AFTER:
                     deadline = time.monotonic()
                     self.resyncs += 1
                 self._deliver(block, number, time.monotonic() - started)

@@ -303,3 +303,29 @@ def test_node_write_without_a_block_is_an_error(graph_with_library_system):
     ctx.control_pin = "write"
     with pytest.raises(ValueError, match="audio block"):
         wrapper.node.worker(ctx)
+
+
+@pytest.mark.parametrize("ppm", [100, -100, 500], ids=["input fast", "input slow", "input 500 ppm fast"])
+def test_output_absorbs_an_input_device_clock_offset(ppm):
+    """An input device's blocks played by an output device on its own clock, as spike S9: the
+    queue stays bounded, with no stall once playing, by the drift controller alone."""
+    n, rate, prefill = 256, 48000, 8
+    out = _output(FakeBackend(rate=rate), prefill_blocks=prefill)
+    input_clock, primed = 0.0, False
+    depths = []
+    for tick in range(1, int(300 * rate / n)):  # five minutes of output blocks
+        while input_clock <= tick * n / rate:
+            out.write(AudioBlock.silence(1, n, rate))
+            input_clock += n / (rate * (1 + ppm * 1e-6))
+        out.render(n)
+        primed = primed or out._buffer is not None and out._buffer.playing
+        if primed:
+            depths.append(out.depth)
+    assert primed
+    assert out.underruns == 0, "no stall once playing"
+    assert out.overruns == 0
+    tail = depths[-int(60 * rate / n) :]
+    target = n * prefill
+    # Without the controller, 100 ppm over five minutes moves the queue by 1440 frames, past these.
+    assert max(tail) < 1.5 * target, "the queue holds near its target"
+    assert min(tail) > 0.5 * target, "the queue holds near its target"
