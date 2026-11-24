@@ -14,8 +14,21 @@ import numpy as np
 
 from haybale_audio.dsp.buffer import PullBuffer
 from haybale_audio.value import AudioBlock
+from haywire.api import Refusal
 
 logger = logging.getLogger(__name__)
+
+#: What a PortAudio error code means for the person who chose the device.
+_PORTAUDIO_ADVICE = {
+    -9985: (
+        "it is unavailable: another program or the sound server holds it. On Linux an entry with "
+        "'hw:' in its name is the sound card itself, which PipeWire or PulseAudio keeps; choose the "
+        "entry without 'hw:'"
+    ),
+    -9996: "no such device: plug it in, then press refresh beside the device list",
+    -9997: "it does not support this sample rate; choose another or the device default",
+    -9998: "it does not have this many channels; choose fewer",
+}
 
 #: Held while a stream opens and while PortAudio restarts, so a refresh cannot pull the device list
 #: from under a stream being opened.
@@ -65,7 +78,10 @@ class SoundDeviceBackend:
     def device_info(self, device: str | int | None) -> tuple[int, int]:
         import sounddevice as sd
 
-        info = sd.query_devices(_index(device, "output"), "output")
+        try:
+            info = sd.query_devices(_index(device, "output"), "output")
+        except ValueError as exc:  # no device of that name
+            raise _open_refusal("output", device, exc) from exc
         return int(info["default_samplerate"]), int(info["max_output_channels"])
 
     def open(
@@ -74,13 +90,16 @@ class SoundDeviceBackend:
         import sounddevice as sd
 
         with _PORTAUDIO:
-            stream = sd.OutputStream(
-                device=_index(device, "output"),
-                samplerate=sample_rate,
-                channels=channels,
-                dtype="float32",
-                latency=latency if latency is not None else "high",
-            )
+            try:
+                stream = sd.OutputStream(
+                    device=_index(device, "output"),
+                    samplerate=sample_rate,
+                    channels=channels,
+                    dtype="float32",
+                    latency=latency if latency is not None else "high",
+                )
+            except sd.PortAudioError as exc:
+                raise _open_refusal("output", device, exc) from exc
         return _PortAudioOutput(stream, sample_rate)
 
 
@@ -110,6 +129,17 @@ class _PortAudioOutput:
 
     def write(self, data: np.ndarray) -> bool:
         return bool(self._stream.write(data))
+
+
+def _open_refusal(kind: Literal["input", "output"], device: str | int | None, exc: Exception) -> Refusal:
+    """Say in plain words why ``device`` did not open, from the sound system's error ``exc``."""
+    what = f"the default {kind} device" if device is None else f"the {kind} device '{device}'"
+    code = exc.args[1] if len(exc.args) > 1 else None  # PortAudioError carries (message, code, ...)
+    advice = _PORTAUDIO_ADVICE.get(code) if isinstance(code, int) else None
+    if advice is None and isinstance(exc, ValueError):
+        advice = _PORTAUDIO_ADVICE[-9996]
+    reason = advice or str(exc.args[0] if exc.args else exc)
+    return Refusal(f"Cannot open {what}: {reason}.")
 
 
 def output_device_names() -> list[str]:
@@ -344,7 +374,10 @@ class SoundDeviceInputBackend:
     def device_info(self, device: str | int | None) -> tuple[int, int]:
         import sounddevice as sd
 
-        info = sd.query_devices(_index(device, "input"), "input")
+        try:
+            info = sd.query_devices(_index(device, "input"), "input")
+        except ValueError as exc:  # no device of that name
+            raise _open_refusal("input", device, exc) from exc
         return int(info["default_samplerate"]), int(info["max_input_channels"])
 
     def open(
@@ -361,15 +394,18 @@ class SoundDeviceInputBackend:
             callback(indata, bool(status.input_overflow))
 
         with _PORTAUDIO:
-            stream: InputStream = sd.InputStream(
-                device=_index(device, "input"),
-                samplerate=sample_rate,
-                channels=channels,
-                dtype="float32",
-                blocksize=block_size,
-                latency="low",
-                callback=on_audio,
-            )
+            try:
+                stream: InputStream = sd.InputStream(
+                    device=_index(device, "input"),
+                    samplerate=sample_rate,
+                    channels=channels,
+                    dtype="float32",
+                    blocksize=block_size,
+                    latency="low",
+                    callback=on_audio,
+                )
+            except sd.PortAudioError as exc:
+                raise _open_refusal("input", device, exc) from exc
         return stream
 
 

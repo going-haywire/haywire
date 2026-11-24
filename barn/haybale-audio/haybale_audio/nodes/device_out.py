@@ -18,6 +18,7 @@ from haywire.api import (
     NodeSettings,
     NodeType,
     Promotable,
+    Refusal,
     bag,
     node,
     setting,
@@ -133,7 +134,12 @@ class DeviceOutNode(BaseNode):
                 int(self.output.prefill),
                 latency=int(self.output.buffer_ms) / 1000 or None,
             )
-        self.hb_output.write(audio)
+        try:
+            self.hb_output.write(audio)
+        except Refusal as exc:  # the device did not open: say why on the card, and in the error
+            self.hb_close()
+            set_status(self, f"Error: {exc.message}")
+            raise
         if self.hb_output.error is not None:
             error = self.hb_output.error
             self.hb_close()

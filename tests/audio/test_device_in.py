@@ -313,3 +313,111 @@ def test_both_device_settings_offer_a_refresh_button():
     for module, cls in (("device_in", "DeviceInSettings"), ("device_out", "DeviceOutSettings")):
         settings = getattr(importlib.import_module(f"haybale_audio.nodes.{module}"), cls)
         assert callable(settings.device.widget_config["properties"]["refresh"]), module
+
+
+# --- a device that does not open ------------------------------------------------
+
+
+class _PortAudioError(Exception):
+    """Stands in for ``sounddevice.PortAudioError``: (message, code)."""
+
+
+_UNAVAILABLE = _PortAudioError("Error opening OutputStream: Device unavailable", -9985)
+_BAD_RATE = _PortAudioError("Error opening InputStream: Invalid sample rate", -9997)
+_BAD_CHANNELS = _PortAudioError("Error opening InputStream: Invalid number of channels", -9998)
+_HOST_ERROR = _PortAudioError("Unanticipated host error", -9999)
+
+
+def _failing_sounddevice(error: Exception) -> Any:
+    sd = _fake_sounddevice()
+    sd.PortAudioError = _PortAudioError
+    sd.query_devices.return_value = []
+
+    def fail(**kwargs: Any) -> None:
+        raise error
+
+    sd.InputStream = sd.OutputStream = fail
+    return sd
+
+
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        (_UNAVAILABLE, "choose the entry without 'hw:'"),
+        (_BAD_RATE, "does not support this sample rate"),
+        (_BAD_CHANNELS, "choose fewer"),
+        (_HOST_ERROR, "Unanticipated host error"),
+    ],
+    ids=["unavailable", "sample rate", "channels", "other"],
+)
+def test_a_device_that_does_not_open_is_refused_in_plain_words(monkeypatch, error, expected):
+    from haybale_audio.io.device import SoundDeviceBackend, SoundDeviceInputBackend
+    from haywire.api import Refusal
+
+    monkeypatch.setitem(sys.modules, "sounddevice", _failing_sounddevice(error))
+    with pytest.raises(Refusal, match="Cannot open the output device 'Speakers'") as out:
+        SoundDeviceBackend().open("Speakers", 48000, 2)
+    assert expected in out.value.message
+    with pytest.raises(Refusal, match="Cannot open the default input device") as into:
+        SoundDeviceInputBackend().open(None, 48000, 2, 256, lambda data, overflowed: None)
+    assert expected in into.value.message
+
+
+def test_a_device_name_that_is_not_there_says_to_refresh(monkeypatch):
+    from haybale_audio.io.device import SoundDeviceInputBackend
+    from haywire.api import Refusal
+
+    sd = _failing_sounddevice(_PortAudioError("unused", -1))
+    sd.query_devices.side_effect = ValueError("No input device matching 'Headset'")
+    monkeypatch.setitem(sys.modules, "sounddevice", sd)
+    with pytest.raises(Refusal, match="press refresh"):
+        SoundDeviceInputBackend().device_info("Headset")
+
+
+@pytest.mark.integration
+def test_node_shows_why_the_device_did_not_open(graph_with_library_system, monkeypatch):
+    from haywire.api import Refusal
+
+    class _BusyBackend(FakeInputBackend):
+        def open(self, *args: Any, **kwargs: Any) -> FakeInputStream:
+            raise Refusal("Cannot open the default input device: it is unavailable.")
+
+    node = _node(graph_with_library_system, monkeypatch, _BusyBackend())
+    _subscribed(node)
+    with pytest.raises(Refusal):
+        node.worker(_context("start"))
+    status = node.ports["status"].get_value()
+    assert status == "Error: Cannot open the default input device: it is unavailable."
+    assert node.hb_input is None
+
+
+@pytest.mark.integration
+def test_device_out_shows_why_the_device_did_not_open(graph_with_library_system, monkeypatch):
+    from haybale_audio.io.device import DeviceOutput
+    from haywire.api import Refusal
+
+    mod = importlib.import_module("haybale_audio.nodes.device_out")
+
+    class _BusyOutput:
+        def device_info(self, device: Any) -> tuple[int, int]:
+            return 48000, 2
+
+        def open(self, *args: Any, **kwargs: Any) -> Any:
+            raise Refusal("Cannot open the default output device: it is unavailable.")
+
+    monkeypatch.setattr(
+        mod,
+        "DeviceOutput",
+        lambda device, prefill, latency=None: DeviceOutput(
+            device, prefill, _BusyOutput(), latency, threaded=False
+        ),
+    )
+    key = mod.DeviceOutNode.class_identity.registry_key
+    wrapper = make_node(graph_with_library_system, key, position=(0, 0))
+    node = wrapper.node
+    block = importlib.import_module("haybale_audio.value").AudioBlock.silence(2, 256, 48000)
+    with pytest.raises(Refusal):
+        node.worker(_context("write"), audio=block)
+    assert node.ports["status"].get_value().startswith("Error: Cannot open the default output device")
+    assert isinstance(node, mod.DeviceOutNode)
+    assert node.hb_output is None

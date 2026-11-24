@@ -18,6 +18,7 @@ from haywire.api import (
     NodeSettings,
     NodeType,
     Promotable,
+    Refusal,
     bag,
     node,
     setting,
@@ -152,7 +153,12 @@ class DeviceInNode(BaseNode):
             int(self.recording.block_size),
         )
         self.hb_input = device  # set first: a stream that opens and then fails to start is still closed
-        device.open()
+        try:
+            device.open()
+        except Refusal as exc:  # the device did not open: say why on the card, and in the error
+            self.hb_stop()
+            set_status(self, f"Error: {exc.message}")
+            raise
 
         def deliver(block: AudioBlock, number: int, seconds: float) -> None:
             deliver_to_subscribers(context, self.value("callbacks"), block, number, seconds)
