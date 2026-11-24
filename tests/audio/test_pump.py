@@ -84,7 +84,9 @@ def test_error_from_produce_is_reported():
 def test_unpaced_delivers_each_block_as_soon_as_it_is_produced():
     long_block = AudioBlock.silence(1, 480_000, 48000)  # 10 s: a paced pump would wait 10 s per block
     left = [long_block] * 5
-    log, seen, ended = [], [], threading.Event()
+    log: list[tuple[str, float | None]] = []
+    seen: list[int] = []
+    ended = threading.Event()
     pump = BlockPump(
         lambda: left.pop() if left else None,
         lambda block, number, seconds: seen.append(number),
