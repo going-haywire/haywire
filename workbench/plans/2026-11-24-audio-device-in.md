@@ -2,7 +2,7 @@
 
 Date: 2026-11-24 · Branch: `feat/audio-device-in` · Issue: [#232](https://github.com/going-haywire/haywire/issues/232), part 1 (and the PR's place for part 3's soak results).
 
-| Status | design, waiting for a decision |
+| Status | implemented: A1 and B1 chosen by the user on 2026-11-24; soak check waits for the user |
 |---|---|
 
 ## Shape
@@ -120,3 +120,15 @@ The PR body gets a *Soak check* section with the graph (no Audio Clock:
 `tests/audio/fixtures/audio_flow.haywire`) and the steps: 10 minutes with the studio and graph
 viewer open, on Python 3.12 and 3.13, recording Device In's `lost`/`overflow` and Device Out's
 `stalls`/`late`/`dropped`. Results are filled in only from the user's run.
+
+## Findings while building
+
+- On Linux with PipeWire, the ALSA `default`, `pipewire` and `sysdefault` inputs report 128 input
+  channels, so *All device channels* records 128 channels there (it works; Device Out fits them to
+  its own). The JACK device (`Built-in Audio Analog Stereo`) reports its real 4.
+- On the development machine the ALSA `default` input does not open and `sysdefault` overflows at
+  1–2 channels, the same with a bare `sounddevice` stream and an empty callback: the machine's ALSA
+  setup, not Device In. The JACK device ran clean: 564 of ~562 expected blocks in 3 s.
+- Studio run, 50 s, Device In (JACK, 4 ch 48 kHz) → Audio Event → Device Out (HDMI, 44.1 kHz):
+  lost 0, overflow 0; Device Out stalls 7, all in the first seconds, late 0, dropped 0; no ledger
+  errors; stop left no capture stream.
