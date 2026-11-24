@@ -1,14 +1,20 @@
-"""Playing AudioBlocks on a sound device."""
+"""Playing AudioBlocks on a sound device, and taking them from one."""
 
 from __future__ import annotations
 
+import logging
+import math
+import queue
 import threading
-from typing import Any, Protocol
+from collections.abc import Callable
+from typing import Any, Literal, Protocol
 
 import numpy as np
 
 from haybale_audio.dsp.buffer import PullBuffer
 from haybale_audio.value import AudioBlock
+
+logger = logging.getLogger(__name__)
 
 #: Frames written to the device at a time.
 CHUNK_FRAMES = 256
@@ -54,7 +60,7 @@ class SoundDeviceBackend:
     def device_info(self, device: str | int | None) -> tuple[int, int]:
         import sounddevice as sd
 
-        info = sd.query_devices(_index(device), "output")
+        info = sd.query_devices(_index(device, "output"), "output")
         return int(info["default_samplerate"]), int(info["max_output_channels"])
 
     def open(
@@ -63,7 +69,7 @@ class SoundDeviceBackend:
         import sounddevice as sd
 
         stream = sd.OutputStream(
-            device=_index(device),
+            device=_index(device, "output"),
             samplerate=sample_rate,
             channels=channels,
             dtype="float32",
@@ -102,23 +108,34 @@ class _PortAudioOutput:
 
 def output_device_names() -> list[str]:
     """Return the names of the output devices, without repeats; empty if no sound system is available."""
+    return _device_names("output")
+
+
+def input_device_names() -> list[str]:
+    """Return the names of the input devices, without repeats; empty if no sound system is available."""
+    return _device_names("input")
+
+
+def _device_names(kind: Literal["input", "output"]) -> list[str]:
     try:
         import sounddevice as sd
 
-        names = [str(d["name"]) for d in sd.query_devices() if d["max_output_channels"] > 0]
+        names = [str(d["name"]) for d in sd.query_devices() if d[f"max_{kind}_channels"] > 0]
     except Exception:
+        # Optional feature: without PortAudio the device list is empty and the default device is used.
+        logger.debug("no %s devices listed", kind, exc_info=True)
         return []
     return list(dict.fromkeys(names))
 
 
-def _index(device: str | int | None) -> str | int | None:
-    """Turn a device name into the index of the first output device of exactly that name."""
+def _index(device: str | int | None, kind: Literal["input", "output"]) -> str | int | None:
+    """Turn a device name into the index of the first ``kind`` device of exactly that name."""
     if not isinstance(device, str):
         return device
     import sounddevice as sd
 
     for index, info in enumerate(sd.query_devices()):
-        if info["name"] == device and info["max_output_channels"] > 0:
+        if info["name"] == device and info[f"max_{kind}_channels"] > 0:
             return index
     return device  # PortAudio matches a part of a name
 
@@ -234,3 +251,166 @@ class DeviceOutput:
                     self.late_writes += 1
         except Exception as exc:
             self.error = exc
+
+
+#: Called on the device's thread with (frames, channels) float32 and whether the device lost input.
+InputCallback = Callable[[np.ndarray, bool], None]
+#: Seconds of audio the input queue holds while the flow runs behind.
+QUEUE_SECONDS = 0.5
+#: Fewest blocks the input queue holds, however long they are.
+MIN_QUEUE_BLOCKS = 8
+#: Seconds ``DeviceInput.read`` waits before it looks again whether the input was closed.
+READ_POLL_SECONDS = 0.1
+
+
+class InputStream(Protocol):
+    def start(self) -> None: ...
+    def stop(self) -> None: ...
+    def close(self) -> None: ...
+
+    @property
+    def latency(self) -> float:
+        """Seconds from the device's input to the callback, as the device reports them."""
+        ...
+
+
+class InputBackend(Protocol):
+    def device_info(self, device: str | int | None) -> tuple[int, int]:
+        """Return the device's default sample rate and its input channel count."""
+        ...
+
+    def open(
+        self,
+        device: str | int | None,
+        sample_rate: int,
+        channels: int,
+        block_size: int,
+        callback: InputCallback,
+    ) -> InputStream:
+        """Open a stream that calls ``callback`` with each block of ``block_size`` frames it records."""
+        ...
+
+
+class SoundDeviceInputBackend:
+    """Input through PortAudio; ``sounddevice`` loads on first use."""
+
+    def device_info(self, device: str | int | None) -> tuple[int, int]:
+        import sounddevice as sd
+
+        info = sd.query_devices(_index(device, "input"), "input")
+        return int(info["default_samplerate"]), int(info["max_input_channels"])
+
+    def open(
+        self,
+        device: str | int | None,
+        sample_rate: int,
+        channels: int,
+        block_size: int,
+        callback: InputCallback,
+    ) -> InputStream:
+        import sounddevice as sd
+
+        def on_audio(indata: np.ndarray, frames: int, time: Any, status: Any) -> None:
+            callback(indata, bool(status.input_overflow))
+
+        return sd.InputStream(
+            device=_index(device, "input"),
+            samplerate=sample_rate,
+            channels=channels,
+            dtype="float32",
+            blocksize=block_size,
+            latency="low",
+            callback=on_audio,
+        )
+
+
+class DeviceInput:
+    """Records blocks from an input device; ``read`` returns them in order.
+
+    The device's clock paces the blocks. Its callback only copies each block into a queue that
+    holds about ``QUEUE_SECONDS`` of audio, so it never waits on the rest of the program. A block
+    that finds the queue full is lost and counted in ``lost``; ``overflows`` counts the times the
+    device itself lost input because the program held the interpreter too long.
+
+    ``sample_rate`` and ``channels`` are the device's own when ``None``; more channels than the
+    device has are limited to its count.
+    """
+
+    def __init__(
+        self,
+        device: str | int | None = None,
+        sample_rate: int | None = None,
+        channels: int | None = None,
+        block_size: int = 256,
+        backend: InputBackend | None = None,
+    ) -> None:
+        if block_size <= 0:
+            raise ValueError(f"block_size must be positive, got {block_size}")
+        self._device = device
+        self._requested_rate = sample_rate
+        self._requested_channels = channels
+        self.block_size = block_size
+        self._backend: InputBackend = backend or SoundDeviceInputBackend()
+        self._stream: InputStream | None = None
+        self._queue: queue.Queue[np.ndarray] = queue.Queue()
+        self._closed = threading.Event()
+        self.sample_rate = 0
+        self.channels = 0
+        self.block_frames = 0  # frames of the last block the device delivered
+        self.lost = 0
+        self.overflows = 0
+
+    @property
+    def running(self) -> bool:
+        return self._stream is not None
+
+    @property
+    def latency(self) -> float:
+        """Seconds from the device's input to the callback; 0 while closed."""
+        return float(self._stream.latency) if self._stream is not None else 0.0
+
+    def open(self) -> None:
+        """Open and start the device.
+
+        Raises:
+            Exception: Whatever the sound system raises for a missing or busy device.
+        """
+        rate, max_channels = self._backend.device_info(self._device)
+        self.sample_rate = self._requested_rate or rate
+        self.channels = max(1, min(self._requested_channels or max_channels, max_channels))
+        blocks = max(MIN_QUEUE_BLOCKS, math.ceil(QUEUE_SECONDS * self.sample_rate / self.block_size))
+        self._queue = queue.Queue(maxsize=blocks)
+        self._closed.clear()
+        self.lost = self.overflows = self.block_frames = 0
+        stream = self._backend.open(
+            self._device, self.sample_rate, self.channels, self.block_size, self._on_audio
+        )
+        self._stream = stream
+        stream.start()
+
+    def read(self) -> AudioBlock | None:
+        """Wait for the next block; ``None`` once the input is closed."""
+        while not self._closed.is_set():
+            try:
+                data = self._queue.get(timeout=READ_POLL_SECONDS)
+            except queue.Empty:
+                continue
+            return AudioBlock(data, self.sample_rate)
+        return None
+
+    def close(self) -> None:
+        self._closed.set()
+        stream, self._stream = self._stream, None
+        if stream is not None:
+            stream.stop()
+            stream.close()
+
+    def _on_audio(self, data: np.ndarray, overflowed: bool) -> None:
+        # Runs on the device's thread at every block: a copy and a put, nothing that can wait.
+        if overflowed:
+            self.overflows += 1
+        self.block_frames = data.shape[0]
+        try:
+            self._queue.put_nowait(data.T.copy())
+        except queue.Full:
+            self.lost += 1

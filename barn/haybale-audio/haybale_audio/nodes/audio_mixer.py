@@ -8,7 +8,7 @@ import time
 
 from haybale_audio.dsp.buffer import PullBuffer
 from haybale_audio.dsp.mix import mix
-from haybale_audio.emitter import set_status
+from haybale_audio.emitter import STATUS_INTERVAL, set_status
 from haybale_audio.value import AudioBlock
 from haywire.api import (
     ADD,
@@ -35,8 +35,6 @@ _PREFIX = "in_"
 _INPUT_BLOCKS = 192
 #: A wait between two ticks longer than this is logged.
 LONG_WAIT = 0.05
-#: Seconds between status updates; one per tick would flood the UI.
-STATUS_INTERVAL = 0.5
 
 
 class MixerSettings(NodeSettings):

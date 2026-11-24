@@ -79,3 +79,20 @@ def test_error_from_produce_is_reported():
     _, _, ended, result = _run(produce)
     assert ended.wait(10)
     assert str(result["error"]) == "disk gone"
+
+
+def test_unpaced_delivers_each_block_as_soon_as_it_is_produced():
+    long_block = AudioBlock.silence(1, 480_000, 48000)  # 10 s: a paced pump would wait 10 s per block
+    left = [long_block] * 5
+    log, seen, ended = [], [], threading.Event()
+    pump = BlockPump(
+        lambda: left.pop() if left else None,
+        lambda block, number, seconds: seen.append(number),
+        lambda error: ended.set(),
+        paced=False,
+    )
+    pump._stop = _RecordingStop(log)
+    pump.start()
+    assert ended.wait(10)
+    assert seen == [0, 1, 2, 3, 4]
+    assert log == [], "an unpaced pump never sleeps: the source keeps the time"

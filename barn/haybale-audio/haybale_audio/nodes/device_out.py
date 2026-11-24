@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 
-from haybale_audio.emitter import set_status
+from haybale_audio.emitter import STATUS_INTERVAL, set_status
 from haybale_audio.io.device import DeviceOutput, output_device_names
 from haybale_audio.value import AudioBlock
 from haywire.api import (
@@ -23,8 +23,6 @@ from haywire.api import (
     setting,
 )
 
-#: Seconds between status updates; one per block would flood the UI.
-STATUS_INTERVAL = 0.5
 _DEFAULT_DEVICE = "System default"
 
 
