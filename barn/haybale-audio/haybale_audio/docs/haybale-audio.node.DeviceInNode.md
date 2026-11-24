@@ -19,7 +19,7 @@ Records a sound device's input as audio blocks
 
 | name | bag | default | description |
 |---|---|---|---|
-| `device` | recording | `'System default'` | Input device to record from. The list is read when the node is shown. |
+| `device` | recording | `'System default'` | Input device to record from. The refresh button reads the devices again, for one plugged in since the studio started; it works only while no audio node of the studio is running. |
 | `channels` | recording | `'All device channels'` | Channels to record. More than the device has records all of the device's. |
 | `sample_rate` | recording | `'Device default'` | Samples per second. The device's own rate needs no conversion by the sound system. |
 | `block_size` | recording | `256` | Samples per block. 256 at 48 kHz is a block every 5.3 ms. |

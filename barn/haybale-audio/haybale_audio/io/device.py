@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gc
 import logging
 import math
 import queue
@@ -15,6 +16,10 @@ from haybale_audio.dsp.buffer import PullBuffer
 from haybale_audio.value import AudioBlock
 
 logger = logging.getLogger(__name__)
+
+#: Held while a stream opens and while PortAudio restarts, so a refresh cannot pull the device list
+#: from under a stream being opened.
+_PORTAUDIO = threading.Lock()
 
 #: Frames written to the device at a time.
 CHUNK_FRAMES = 256
@@ -68,13 +73,14 @@ class SoundDeviceBackend:
     ) -> OutputStream:
         import sounddevice as sd
 
-        stream = sd.OutputStream(
-            device=_index(device, "output"),
-            samplerate=sample_rate,
-            channels=channels,
-            dtype="float32",
-            latency=latency if latency is not None else "high",
-        )
+        with _PORTAUDIO:
+            stream = sd.OutputStream(
+                device=_index(device, "output"),
+                samplerate=sample_rate,
+                channels=channels,
+                dtype="float32",
+                latency=latency if latency is not None else "high",
+            )
         return _PortAudioOutput(stream, sample_rate)
 
 
@@ -114,6 +120,47 @@ def output_device_names() -> list[str]:
 def input_device_names() -> list[str]:
     """Return the names of the input devices, without repeats; empty if no sound system is available."""
     return _device_names("input")
+
+
+def refreshed_output_device_names() -> list[str]:
+    """Read the sound devices again (see ``refresh_devices``), then return the output device names."""
+    refresh_devices()
+    return output_device_names()
+
+
+def refreshed_input_device_names() -> list[str]:
+    """Read the sound devices again (see ``refresh_devices``), then return the input device names."""
+    refresh_devices()
+    return input_device_names()
+
+
+def refresh_devices() -> bool:
+    """Restart PortAudio so it reads the sound devices again; return whether it did.
+
+    PortAudio reads its device list once, when it starts, so a device plugged in later is missing
+    until it restarts. A restart ends every open stream of the process, so while any stream is open
+    nothing happens and ``False`` is returned.
+    """
+    try:
+        import sounddevice as sd
+    except Exception:
+        # Optional feature: without PortAudio there is no device list to refresh.
+        logger.debug("sound devices not refreshed", exc_info=True)
+        return False
+    with _PORTAUDIO:
+        if _a_stream_is_open(sd):
+            logger.warning("Sound devices not refreshed: a sound device is in use; stop it first")
+            return False
+        sd._terminate()
+        sd._initialize()
+    return True
+
+
+def _a_stream_is_open(sd: Any) -> bool:
+    # The open streams are found among the live objects, not counted: a counter in this module would
+    # start again at 0 on a hot reload while the streams it counted stay open.
+    kinds = (sd.InputStream, sd.OutputStream, sd.RawInputStream, sd.RawOutputStream)
+    return any(isinstance(obj, kinds) and not obj.closed for obj in gc.get_objects())
 
 
 def _device_names(kind: Literal["input", "output"]) -> list[str]:
@@ -313,15 +360,17 @@ class SoundDeviceInputBackend:
         def on_audio(indata: np.ndarray, frames: int, time: Any, status: Any) -> None:
             callback(indata, bool(status.input_overflow))
 
-        return sd.InputStream(
-            device=_index(device, "input"),
-            samplerate=sample_rate,
-            channels=channels,
-            dtype="float32",
-            blocksize=block_size,
-            latency="low",
-            callback=on_audio,
-        )
+        with _PORTAUDIO:
+            stream: InputStream = sd.InputStream(
+                device=_index(device, "input"),
+                samplerate=sample_rate,
+                channels=channels,
+                dtype="float32",
+                blocksize=block_size,
+                latency="low",
+                callback=on_audio,
+            )
+        return stream
 
 
 class DeviceInput:

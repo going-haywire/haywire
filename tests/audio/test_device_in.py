@@ -260,3 +260,56 @@ def test_status_shows_the_real_block_size_latency_and_losses():
     assert "blocks 512 (asked 256)" in status_text(device)
     assert "overflow 1" in status_text(device)
     device.close()
+
+
+# --- refreshing the device list -----------------------------------------------
+
+
+class _FakeStream:
+    def __init__(self) -> None:
+        self.closed = False
+
+
+def _fake_sounddevice() -> Any:
+    sd = MagicMock()
+    sd.InputStream = type("InputStream", (_FakeStream,), {})
+    sd.OutputStream = type("OutputStream", (_FakeStream,), {})
+    sd.RawInputStream = type("RawInputStream", (_FakeStream,), {})
+    sd.RawOutputStream = type("RawOutputStream", (_FakeStream,), {})
+    return sd
+
+
+def test_refresh_restarts_portaudio_when_no_stream_is_open(monkeypatch):
+    from haybale_audio.io.device import refresh_devices
+
+    sd = _fake_sounddevice()
+    monkeypatch.setitem(sys.modules, "sounddevice", sd)
+    assert refresh_devices()
+    sd._terminate.assert_called_once()
+    sd._initialize.assert_called_once()
+
+
+def test_refresh_leaves_portaudio_running_while_a_stream_is_open(monkeypatch):
+    from haybale_audio.io.device import refresh_devices
+
+    sd = _fake_sounddevice()
+    monkeypatch.setitem(sys.modules, "sounddevice", sd)
+    stream = sd.OutputStream()
+    assert not refresh_devices(), "a restart would end the open stream"
+    sd._terminate.assert_not_called()
+    stream.closed = True
+    assert refresh_devices()
+    sd._terminate.assert_called_once()
+
+
+def test_refresh_without_a_sound_system_does_nothing(monkeypatch):
+    from haybale_audio.io.device import refresh_devices
+
+    monkeypatch.setitem(sys.modules, "sounddevice", None)  # makes the import raise ImportError
+    assert not refresh_devices()
+
+
+def test_both_device_settings_offer_a_refresh_button():
+    for module, cls in (("device_in", "DeviceInSettings"), ("device_out", "DeviceOutSettings")):
+        settings = getattr(importlib.import_module(f"haybale_audio.nodes.{module}"), cls)
+        assert callable(settings.device.widget_config["properties"]["refresh"]), module

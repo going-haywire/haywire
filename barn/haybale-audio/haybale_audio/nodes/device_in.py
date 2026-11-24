@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 
 from haybale_audio.emitter import STATUS_INTERVAL, BlockPump, deliver_to_subscribers, set_status
-from haybale_audio.io.device import DeviceInput, input_device_names
+from haybale_audio.io.device import DeviceInput, input_device_names, refreshed_input_device_names
 from haybale_audio.value import AudioBlock
 from haywire.api import (
     CHOICES,
@@ -35,8 +35,14 @@ class DeviceInSettings(NodeSettings):
         _DEFAULT_DEVICE,
         label="Device",
         category="Input",
-        description="Input device to record from. The list is read when the node is shown.",
-        widget_config={"options": lambda: [_DEFAULT_DEVICE, *input_device_names()]},
+        description=(
+            "Input device to record from. The refresh button reads the devices again, for one plugged "
+            "in since the studio started; it works only while no audio node of the studio is running."
+        ),
+        widget_config={
+            "options": lambda: [_DEFAULT_DEVICE, *input_device_names()],
+            "refresh": lambda: [_DEFAULT_DEVICE, *refreshed_input_device_names()],
+        },
         promotable=Promotable.CONFIG,
     )
     channels = setting[CHOICES](

@@ -19,7 +19,7 @@ Plays audio blocks on a sound device
 
 | name | bag | default | description |
 |---|---|---|---|
-| `device` | output | `'System default'` | Output device to play on. The list is read when the node is shown. |
+| `device` | output | `'System default'` | Output device to play on. The refresh button reads the devices again, for one plugged in since the studio started; it works only while no audio node of the studio is running. |
 | `buffer_ms` | output | `300` | Audio the sound device holds ahead. It keeps playing when the program is busy for less than this, for example while a large graph loads; 0 uses the device's default. |
 | `prefill` | output | `8` | Blocks queued before playback starts and kept queued. More blocks ride out longer stalls of the flow, with more delay. |
 
