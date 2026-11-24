@@ -1,6 +1,6 @@
 ---
 name: gh writes agent hints to stderr; never parse 2>&1
-description: gh 2.105+ prints a `hint:` block on stderr when it detects an agent (AI_AGENT, CLAUDECODE), so output captured with 2>&1 is no longer JSON; parse stdout only and keep stderr apart for the error message
+description: gh 2.105+ prints a `hint:` block on stderr when it detects an agent (AI_AGENT, CLAUDECODE), so output captured with 2>&1 is no longer JSON; parse stdout only and keep stderr apart for the error message. Hooks run from the main folder's checkout, so a stale main folder runs stale hooks
 type: feedback
 ---
 
@@ -10,6 +10,12 @@ hint is absent in a plain terminal, so a script that captures `gh … --json …
 by hand and fails only under an agent: jq meets the hint first (`Invalid numeric literal
 at line 1, column 5`) and whatever the script decides on a parse failure happens
 silently. The merge guard read that as "the PR is still a draft" and refused every merge.
+
+**A stale main folder runs stale hooks.** The hooks run from `"$CLAUDE_PROJECT_DIR"/dev/hooks/`,
+the main folder's checkout, never a worktree's. A fix to a hook therefore applies only once the
+main folder has pulled it: the guard kept failing after the fix had merged, because the main
+folder was still behind `origin/master`. Run `git pull --ff-only` in the main folder before a
+merge, and after a hook fix lands.
 
 **Why:** the hint is not an error, and gh may add more of them; only stdout is the
 command's answer.
