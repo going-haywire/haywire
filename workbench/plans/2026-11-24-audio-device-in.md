@@ -2,7 +2,7 @@
 
 Date: 2026-11-24 · Branch: `feat/audio-device-in` · Issue: [#232](https://github.com/going-haywire/haywire/issues/232), part 1 (and the PR's place for part 3's soak results).
 
-| Status | implemented: A1 and B1 chosen by the user on 2026-11-24; soak check waits for the user |
+| Status | live-checked: [PR #233, *Soak check*](https://github.com/going-haywire/haywire/pull/233) — A1 and B1 chosen by the user on 2026-11-24; device refresh (option A) added |
 |---|---|
 
 ## Shape
