@@ -29,7 +29,6 @@ haybale-models = { workspace = true }
 [dependency-groups]
 dev = [
     # Floors at the version in use: the floors CI job lowers the dev group too (ADR 0095).
-    # 9.1: pytest.approx over a dict of tuples (test_arrange).
     "pytest>=9.1",
     "pytest-cov>=7.0",
     "pytest-timeout>=2.4",
