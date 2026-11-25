@@ -12,11 +12,22 @@ def test_library_identity_is_haybale_image():
 
 
 def test_codec_dependencies_are_present():
-    import cv2
     from PIL import features
 
-    assert cv2.__version__.startswith("5.")  # contrib 5.x, not opencv-python 4.x
     assert features.check("avif")
+
+
+def test_no_plain_opencv_beside_contrib():
+    from importlib.metadata import PackageNotFoundError, version
+
+    # The opencv wheels share one cv2/ package; a plain one installed beside contrib
+    # silently replaces it (.insights/project_cv2_distribution_clash.md).
+    for name in ("opencv-python", "opencv-python-headless"):
+        try:
+            found = version(name)
+        except PackageNotFoundError:
+            continue
+        pytest.fail(f"{name} {found} is installed beside opencv-contrib-python")
 
 
 def test_cv2_is_contrib():
