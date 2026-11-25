@@ -5685,7 +5685,7 @@ still depends on.</p>
 </tr>
 <tr>
 <td><code>.haywire/marketplace.toml</code></td>
-<td>The library's own <code>[[heaps]]</code> entry, and any <em>other</em> heap's <code>linked_libraries</code> that names the old module</td>
+<td>A hand-written <code>[[heaps]]</code> entry for the library, and any <em>other</em> heap's <code>linked_libraries</code> that names the old module</td>
 </tr>
 <tr>
 <td>Every saved graph, anywhere in the workspace</td>
@@ -5743,8 +5743,8 @@ collide with, any of which blocks the rename:</p>
    <em>different</em>-looking sibling can collide.</li>
 <li><strong>An installed distribution</strong> — the target name is already installed in
    this environment.</li>
-<li><strong>A <code>[[heaps]]</code> entry</strong> already using that name in
-   <code>.haywire/marketplace.toml</code> (the project's own local-library list).</li>
+<li><strong>A hand-written <code>[[heaps]]</code> entry</strong> already using that name in
+   <code>.haywire/marketplace.toml</code>.</li>
 </ol>
 <p>A sixth check only warns rather than blocks: if the target name matches a
 remote <code>[[caches]]</code> row (a marketplace catalog entry, not a local one), the
@@ -5759,10 +5759,9 @@ you like to see what it would do.</p>
 <code>--allow-dirty</code> escape hatch. This is what makes git the complete rollback:
 if the tree is proven clean before anything is written, everything dirty
 afterward is provably this run's own work, and <code>git checkout . &amp;&amp; git clean
--fd</code> restores the start state exactly. The one exception is
-<code>.haywire/settings.json</code>, the project's local settings (a worktree's studio
-port, for one): a rename never writes it, so the check ignores it and the
-rollback leaves it alone. If the rename fails partway through —
+-fd</code> restores the start state exactly. <code>.haywire/</code> is not part of it: the
+folder ignores itself, so neither the check nor the rollback sees it. If the
+rename fails partway through —
 every phase after the first can fail without corrupting what came before —
 the failure message always repeats this exact recovery command.</p>
 <p>If your tree is dirty, the report names every changed file and the fix:</p>

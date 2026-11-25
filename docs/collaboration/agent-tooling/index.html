@@ -5514,8 +5514,7 @@ the steps.</p>
 <p><strong>Agent files</strong> are the files a repository commits for ② and ③, of three kinds:
 <strong>harness configs</strong> (one per agent harness, JSON, read by the harness at session start: <code>.mcp.json</code>
 starts the bridge, <code>.claude/settings.json</code> allows it and wires the hooks), the <strong>orchestrator file</strong>
-(<code>t3.json</code>), and <strong>declarations</strong> (<code>[tool.haywire.agents]</code> in <code>pyproject.toml</code>, the <code>.gitignore</code>
-lines, <code>CLAUDE.md</code>). <code>haywire init</code> writes a project's; <code>haywire init --org-files</code> an org library's.
+(<code>t3.json</code>), and <strong>declarations</strong> (<code>[tool.haywire.agents]</code> in <code>pyproject.toml</code>, <code>CLAUDE.md</code>). <code>haywire init</code> writes a project's; <code>haywire init --org-files</code> an org library's.
 Nobody installs anything per machine or per folder: every clone and worktree has them through git.</p>
 <p>The trees below show only the folders that matter here, with every file in them. The word after a
 file says who runs or reads it; click its marker for what it is, its layer and what it does.</p>
@@ -5647,8 +5646,7 @@ orchestrator · <code>CLI</code> the <code>haywire</code> command · <code>CI</c
 </span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>│<span class="w">   </span>└──<span class="w"> </span>settings.json<span class="w">        </span><span class="c1"># Claude (7)</span>
 </span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>├──<span class="w"> </span>pyproject.toml<span class="w">           </span><span class="c1"># bridge (8)</span>
 </span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>├──<span class="w"> </span>t3.json<span class="w">                  </span><span class="c1"># T3 (9)</span>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>├──<span class="w"> </span>.gitignore<span class="w">               </span><span class="c1"># git (10)</span>
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>└──<span class="w"> </span>CLAUDE.md<span class="w">                </span><span class="c1"># agent (11)</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>└──<span class="w"> </span>CLAUDE.md<span class="w">                </span><span class="c1"># agent (10)</span>
 </span></code></pre></div>
 <ol>
 <li><strong>① CI caller</strong> · Calls <code>.github</code>'s <code>library-ci.yml</code>, pinned to the commit of a <code>.github</code> release, on every pull request and on the default branch. Written once from <code>.github</code>'s workflow template, then the library's own.</li>
@@ -5660,7 +5658,6 @@ orchestrator · <code>CLI</code> the <code>haywire</code> command · <code>CI</c
 <li><strong>② Harness config</strong> · Runs core's hooks from <code>../haywire-repo/dev/hooks/</code>, checks at session start that core is there, allows the bridge.</li>
 <li><strong>② Declaration</strong> · <code>[tool.haywire.agents] developer-docs = "../haywire-repo/docs"</code>: core's developer pages, served here.</li>
 <li><strong>③ Orchestrator file</strong> · T3's scripts: the worktree setup through the library's main folder, finish, the studio.</li>
-<li><strong>② Declaration</strong> · Ignores the machine-local <code>.haywire</code> files (port, studio pid and log).</li>
 <li><strong>② Declaration</strong> · The library's own lines, and the block naming where the workflow comes from (replaced by every <code>--org-files</code> run).</li>
 </ol>
 <h2 id="the-organisation-going-haywiregithub">The organisation: <code>going-haywire/.github</code><a class="headerlink" href="#the-organisation-going-haywiregithub" title="Permanent link">&para;</a></h2>

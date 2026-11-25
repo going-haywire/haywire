@@ -6107,7 +6107,7 @@ of what they serve decides, not where they point.</p>
 <li>On success, the Library System rescans to pick up the new entry point.</li>
 <li>The row moves from AVAILABLE to ENABLED.</li>
 </ul>
-<p>Installing a <strong>local</strong> library (one of your project's own <code>[[heaps]]</code>) runs
+<p>Installing a <strong>local</strong> library (one of your project's heaps) runs
 <code>uv pip install -e &lt;path&gt;</code> instead, so it stays editable and hot-reloads.</p>
 <p>The safety modal's three buttons write different things. <strong>Block source</strong> adds
 the library's name to the <code>blocked</code> array on the subscription that resolved it —
@@ -6124,12 +6124,14 @@ modal fires on every install, with no first-time-only suppression.</p>
 <p><code>[[markets]]</code> for remote aggregators, <code>[[stalls]]</code> for individual marketstall feeds. </p>
 <p>Pasted-TOML inputs are saved as a local stall file and referenced via a
 <code>file://</code> <code>[[stalls]]</code> entry.</p>
-<p><strong>Project marketplace</strong> — per-project, travels with the source tree.</p>
+<p><strong>Project marketplace</strong> — per checkout, never committed.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>&lt;project&gt;/.haywire/marketplace.toml
 </span></code></pre></div>
-<p>This project's path-based libraries (<code>[[heaps]]</code>, written by <code>haywire init</code>) and
-the resolved catalog cache (<code>[[caches]]</code>, written by Refresh).</p>
-<p>You generally interact with the global file (subscriptions are a user concern). The project file is managed for you — <code>haywire init</code> sets up <code>[[heaps]]</code>, and Refresh maintains <code>[[caches]]</code>.</p>
+<p>The resolved catalog cache (<code>[[caches]]</code>, written by Refresh), and any
+path-based library you add by hand (<code>[[heaps]]</code>). The project's own libraries,
+and a <code>--dev</code> project's dev-repo libraries, are heaps without an entry here:
+the studio derives them from <code>pyproject.toml</code>.</p>
+<p>You generally interact with the global file (subscriptions are a user concern). The project file is managed for you — Refresh maintains <code>[[caches]]</code>.</p>
 <p>Field by field: <a href="../../reference/files/marketplace-toml/">marketplace.toml</a>. Why the split exists: <a href="../../haybale/marketplace/haybale-marketplace-arch/#8-why-the-model-is-shaped-this-way">haybale-marketplace-arch §8</a>.</p>
 <h2 id="5-reading-on">5. Reading on<a class="headerlink" href="#5-reading-on" title="Permanent link">&para;</a></h2>
 <ul>

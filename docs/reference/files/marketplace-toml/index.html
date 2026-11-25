@@ -5220,6 +5220,18 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#heaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Heaps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Heaps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#heap-fields" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5227,6 +5239,11 @@
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -5440,6 +5457,18 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#heaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Heaps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Heaps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#heap-fields" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5447,6 +5476,11 @@
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -5508,12 +5542,12 @@
 <tr>
 <td>Owner</td>
 <td>The user, per machine</td>
-<td>The project; travels with the source tree</td>
+<td>One checkout; never committed (<a href="../../../adr/0096-a-projects-haywire-folder-is-local/">ADR 0096</a>)</td>
 </tr>
 <tr>
 <td>Holds</td>
 <td>What the user subscribes to</td>
-<td>The project's own libraries + the last refresh result</td>
+<td>Hand-written heaps + the last refresh result</td>
 </tr>
 <tr>
 <td>Sections</td>
@@ -5563,8 +5597,8 @@ dropped at parse.</p>
 <tr>
 <td><code>[[heaps]]</code></td>
 <td>project</td>
-<td><code>haywire init</code></td>
-<td>Path-based libraries this project knows about</td>
+<td>hand-written</td>
+<td>Path-based libraries beyond the ones derived from <code>pyproject.toml</code></td>
 </tr>
 <tr>
 <td><code>[[caches]]</code></td>
@@ -5624,47 +5658,44 @@ reference further stalls, a stall body contains only <code>[[haybales]]</code>.<
 </span></code></pre></div>
 <h2 id="project-marketplace">Project marketplace<a class="headerlink" href="#project-marketplace" title="Permanent link">&para;</a></h2>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># &lt;project&gt;/.haywire/marketplace.toml</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1"># Travels with the project. [[heaps]] is authored; [[caches]] is derived and</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># safe to delete — the next refresh rebuilds it.</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># ── path-based libraries this project knows about ───────────────────────────</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># Written by `haywire init` (the project&#39;s own scaffolded library) and by</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># `haywire init --dev` (additionally, every sibling library in the dev repo).</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="c1"># A heap shadows any marketplace row with the same name: local always wins.</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1"># Surfaced in the browser&#39;s AVAILABLE section as source=&quot;local&quot; so it is</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># visible before it is installed.</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="k">[[heaps]]</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-my-project&quot;</span><span class="w">                                  </span><span class="c1"># required</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/abs/path/to/my-project/barn/haybale-my-project&quot;</span><span class="w">     </span><span class="c1"># required</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="n">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My Project&quot;</span>
-</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="n">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Local library for the my-project project&quot;</span>
-</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
-</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="c1"># ── the resolved catalog from the last refresh ──────────────────────────────</span>
-</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="c1"># Rebuilt in full on every refresh. Rows use the Haybale schema (see</span>
-</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="c1"># marketstall-toml.md) plus three cache-only fields. Never hand-authored; a</span>
-</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="c1"># malformed [[caches]] section is discarded and refetched rather than raising,</span>
-</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="c1"># so a bad cache cannot block the refresh that would heal it.</span>
-</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="k">[[caches]]</span>
-</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="n">name</span><span class="w">              </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-visiongraph&quot;</span>
-</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="n">version</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.0.40&quot;</span>
-</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="n">label</span><span class="w">             </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Visiongraph&quot;</span>
-</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="n">description</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Camera and vision nodes&quot;</span>
-</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="n">install_spec</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-visiongraph @ git+https://github.com/…@v0.0.40&quot;</span>
-</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="n">source</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;git&quot;</span>
-</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="n">os</span><span class="w">                </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;macos&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;linux&quot;</span><span class="p">]</span>
-</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="n">origin</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://github.com/going-haywire/haywire&quot;</span>
-</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a><span class="n">origin_provider</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;github&quot;</span>
-</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a><span class="c1"># ── cache-only, written by refresh ──────────────────────────────────────────</span>
-</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a><span class="c1"># The subscription URL that resolved this row. Drives the provenance label</span>
-</span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a><span class="c1"># (&quot;from github.com/alice&quot; vs &quot;via going-haywire.github.io&quot;) and tells the</span>
-</span><span id="__span-1-35"><a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a><span class="c1"># Block button which subscription&#39;s `blocked` array to write.</span>
-</span><span id="__span-1-36"><a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a><span class="n">via</span><span class="w">               </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://going-haywire.github.io/haywire/marketplace.toml&quot;</span>
-</span><span id="__span-1-37"><a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a><span class="c1"># ISO timestamp, set when the row first went stale.</span>
-</span><span id="__span-1-38"><a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a><span class="n">last_seen</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;2026-08-09T14:22:05Z&quot;</span>
-</span><span id="__span-1-39"><a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a><span class="c1"># True when the most recent refresh did not re-resolve this name — the source</span>
-</span><span id="__span-1-40"><a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a><span class="c1"># dropped it, or the source itself is gone. Renders a red dot; the row can be</span>
-</span><span id="__span-1-41"><a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a><span class="c1"># removed with the trash icon when the library is not installed.</span>
-</span><span id="__span-1-42"><a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a><span class="n">stale</span><span class="w">             </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1"># Local to this checkout, never committed. [[heaps]] is hand-written and</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># optional; [[caches]] is derived and safe to delete — the next refresh</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># rebuilds it.</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># ── a library on disk that pyproject.toml does not name ─────────────────────</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Heaps are derived from pyproject.toml (see &quot;Heaps&quot; below); an entry here</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="c1"># adds one, or replaces the derived heap of the same name.</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="k">[[heaps]]</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-experiment&quot;</span><span class="w">                                  </span><span class="c1"># required</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/abs/path/to/haybale-experiment&quot;</span><span class="w">                     </span><span class="c1"># required</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Experiment&quot;</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="c1"># ── the resolved catalog from the last refresh ──────────────────────────────</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="c1"># Rebuilt in full on every refresh. Rows use the Haybale schema (see</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="c1"># marketstall-toml.md) plus three cache-only fields. Never hand-authored; a</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="c1"># malformed [[caches]] section is discarded and refetched rather than raising,</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="c1"># so a bad cache cannot block the refresh that would heal it.</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="k">[[caches]]</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="n">name</span><span class="w">              </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-visiongraph&quot;</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="n">version</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.0.40&quot;</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="n">label</span><span class="w">             </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Visiongraph&quot;</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="n">description</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Camera and vision nodes&quot;</span>
+</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="n">install_spec</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-visiongraph @ git+https://github.com/…@v0.0.40&quot;</span>
+</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="n">source</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;git&quot;</span>
+</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="n">os</span><span class="w">                </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;macos&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;linux&quot;</span><span class="p">]</span>
+</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="n">origin</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://github.com/going-haywire/haywire&quot;</span>
+</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="n">origin_provider</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;github&quot;</span>
+</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="c1"># ── cache-only, written by refresh ──────────────────────────────────────────</span>
+</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="c1"># The subscription URL that resolved this row. Drives the provenance label</span>
+</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a><span class="c1"># (&quot;from github.com/alice&quot; vs &quot;via going-haywire.github.io&quot;) and tells the</span>
+</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a><span class="c1"># Block button which subscription&#39;s `blocked` array to write.</span>
+</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a><span class="n">via</span><span class="w">               </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://going-haywire.github.io/haywire/marketplace.toml&quot;</span>
+</span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a><span class="c1"># ISO timestamp, set when the row first went stale.</span>
+</span><span id="__span-1-35"><a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a><span class="n">last_seen</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;2026-08-09T14:22:05Z&quot;</span>
+</span><span id="__span-1-36"><a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a><span class="c1"># True when the most recent refresh did not re-resolve this name — the source</span>
+</span><span id="__span-1-37"><a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a><span class="c1"># dropped it, or the source itself is gone. Renders a red dot; the row can be</span>
+</span><span id="__span-1-38"><a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a><span class="c1"># removed with the trash icon when the library is not installed.</span>
+</span><span id="__span-1-39"><a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a><span class="n">stale</span><span class="w">             </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
 </span></code></pre></div>
 <h2 id="subscription-fields">Subscription fields<a class="headerlink" href="#subscription-fields" title="Permanent link">&para;</a></h2>
 <p>Shared by <code>[[markets]]</code> and <code>[[stalls]]</code>.</p>
@@ -5704,7 +5735,25 @@ is removed from every other subscription's array, so one edit fully settles the
 choice regardless of how many sources offer it.</p>
 <p>A refresh never writes this file. It holds your intent — subscriptions,
 <code>preference</code>, <code>blocked</code> — and only an explicit action changes it.</p>
-<h2 id="heap-fields">Heap fields<a class="headerlink" href="#heap-fields" title="Permanent link">&para;</a></h2>
+<h2 id="heaps">Heaps<a class="headerlink" href="#heaps" title="Permanent link">&para;</a></h2>
+<p>A heap is a library on local disk. It shadows any marketplace row with the same
+name (local always wins) and shows in the browser's AVAILABLE section as
+<code>source="local"</code> before it is installed.</p>
+<p>Every refresh, and every render of the library browser, derives the project's
+heaps from its <code>pyproject.toml</code>
+(<a href="https://github.com/going-haywire/haywire/blob/master/packages/haywire-core/src/haywire/core/marketstall/heaps.py">heaps.py</a>):</p>
+<ul>
+<li>each <code>[tool.uv.workspace]</code> member that holds a library (a package with a
+  <code>haybale.toml</code>): the project's own <code>barn/</code> libraries;</li>
+<li>each <code>[tool.uv.sources]</code> entry with a <code>path</code> that holds a library: a
+  <code>haywire init --dev</code> project's links into the dev repo;</li>
+<li>the libraries beside such a path source: the rest of the dev repo's <code>barn/</code>.</li>
+</ul>
+<p>Each derived heap takes <code>label</code>, <code>description</code> and <code>linked_libraries</code> from the
+library's <code>haybale.toml</code>, and its <code>path</code> from this checkout, so a clone or a
+worktree has the right heaps on its first studio start. Nothing writes them to
+the file.</p>
+<h3 id="heap-fields">Heap fields<a class="headerlink" href="#heap-fields" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -5733,10 +5782,8 @@ choice regardless of how many sources offer it.</p>
 </table>
 <p>A <code>[[heaps]]</code> entry with no <code>name</code> or no <code>path</code> raises rather than being
 skipped — unlike <code>[[caches]]</code>, this section is user-authored, so a malformed
-entry is a mistake worth surfacing.</p>
-<p>Because <code>path</code> is absolute and machine-specific, committing a project
-marketplace with heaps pointing at a developer's home directory breaks it for
-everyone else.</p>
+entry is a mistake worth surfacing. A hand-written entry replaces the derived
+heap of the same name (compared case-insensitively).</p>
 <h2 id="files-on-disk">Files on disk<a class="headerlink" href="#files-on-disk" title="Permanent link">&para;</a></h2>
 <p>Everything the marketplace writes, and what is lost by deleting each.</p>
 <table>
@@ -5770,8 +5817,8 @@ everyone else.</p>
 </tr>
 <tr>
 <td><code>&lt;project&gt;/.haywire/marketplace.toml</code></td>
-<td>Heaps + caches</td>
-<td>Caches yes; heaps are authored</td>
+<td>Hand-written heaps + caches</td>
+<td>Yes, unless it holds a hand-written heap</td>
 </tr>
 </tbody>
 </table>

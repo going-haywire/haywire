@@ -6178,7 +6178,7 @@ files carry the state; each hop below names which one it writes.</p>
 </span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>          │  diff against the previous cache to mark stale
 </span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>          ▼
 </span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>  &lt;project&gt;/.haywire/marketplace.toml
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>      [[heaps]]   path-based project libraries (written by haywire init)
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>      [[heaps]]   hand-written path-based libraries (the rest derive from pyproject.toml)
 </span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>      [[caches]]  the resolved catalog — rebuilt in full every refresh
 </span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>          │
 </span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>          │ the browser&#39;s AVAILABLE section reads this; no network
@@ -6219,8 +6219,8 @@ files carry the state; each hop below names which one it writes.</p>
 <tr>
 <td><code>[[heaps]]</code></td>
 <td>project</td>
-<td><code>haywire init</code></td>
-<td>Path-based libraries this project knows about</td>
+<td>hand-written</td>
+<td>Path-based libraries beyond the ones derived from <code>pyproject.toml</code></td>
 </tr>
 <tr>
 <td><code>[[caches]]</code></td>
@@ -6322,7 +6322,7 @@ separately when the user clicks Install.</p>
 <tr>
 <td><code>&lt;project&gt;/.haywire/marketplace.toml</code></td>
 <td><code>[[heaps]]</code> + <code>[[caches]]</code></td>
-<td><code>haywire init</code>; refresh</td>
+<td>Hand-written; refresh. Local, never committed (<a href="../../../adr/0096-a-projects-haywire-folder-is-local/">ADR 0096</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -6356,7 +6356,7 @@ combined list:</p>
 </tr>
 <tr>
 <td>Heaps shadow</td>
-<td>A candidate whose <code>name</code> matches a project <code>[[heaps]]</code> entry is dropped — local always wins</td>
+<td>A candidate whose <code>name</code> matches one of the project's heaps (derived from <code>pyproject.toml</code>, or a <code>[[heaps]]</code> entry) is dropped — local always wins</td>
 </tr>
 <tr>
 <td>First-come-first-served</td>
@@ -6444,8 +6444,8 @@ state, so the worst case is a rebuild plus re-subscribing.</p>
 </tr>
 <tr>
 <td>The wrong library wins</td>
-<td>A project <code>[[heaps]]</code> entry shadows the remote one, or first-come-first-served picked one</td>
-<td>Check <code>[[heaps]]</code> first — local always wins</td>
+<td>One of the project's heaps shadows the remote one, or first-come-first-served picked one</td>
+<td>Check the heaps first (<code>pyproject.toml</code>'s workspace members and path sources, then <code>[[heaps]]</code>) — local always wins</td>
 </tr>
 <tr>
 <td>A source serves old content</td>
@@ -6454,8 +6454,8 @@ state, so the worst case is a rebuild plus re-subscribing.</p>
 </tr>
 <tr>
 <td>A heap points nowhere</td>
-<td><code>path</code> is absolute and machine-specific</td>
-<td>Fix or remove the <code>[[heaps]]</code> entry; these break when a project is cloned</td>
+<td>A hand-written <code>[[heaps]]</code> <code>path</code> is absolute and machine-specific</td>
+<td>Fix or remove the entry</td>
 </tr>
 </tbody>
 </table>
@@ -6466,8 +6466,8 @@ state, so the worst case is a rebuild plus re-subscribing.</p>
    Costs one cycle of stale bookkeeping and nothing else.</li>
 <li><strong>Delete <code>~/.haywire/cache/</code>.</strong> Forces every source to be refetched.
    Subscriptions are untouched.</li>
-<li><strong>Delete <code>&lt;project&gt;/.haywire/marketplace.toml</code>.</strong> Loses the project's
-   <code>[[heaps]]</code> too — re-run <code>haywire init --dev</code> to regenerate them.</li>
+<li><strong>Delete <code>&lt;project&gt;/.haywire/marketplace.toml</code>.</strong> Loses only hand-written
+   <code>[[heaps]]</code>; the derived heaps come back from <code>pyproject.toml</code>.</li>
 <li><strong>Delete the global <code>marketplace.toml</code>.</strong> Loses every subscription the user
    added; it is recreated with the official feed on next start.</li>
 </ol>
@@ -6578,7 +6578,7 @@ editors above. The full editor/state inventory is in
 </tr>
 <tr>
 <td><strong>AVAILABLE</strong></td>
-<td>Anything in the project marketplace's <code>[[caches]]</code> OR <code>[[heaps]]</code> that isn't already installed. Heaps are surfaced here as <code>source="local"</code> entries so they're visible before the user installs them. Blocked haybales never appear — they're filtered out at refresh time.</td>
+<td>Anything in the project marketplace's <code>[[caches]]</code> OR the project's heaps that isn't already installed. Heaps are surfaced here as <code>source="local"</code> entries so they're visible before the user installs them. Blocked haybales never appear — they're filtered out at refresh time.</td>
 </tr>
 </tbody>
 </table>
@@ -6800,7 +6800,7 @@ aggregator, versus <strong>"from github.com/alice"</strong> for a stall the user
 to directly.</p>
 <p>Nothing here touched the user's project source tree, and nothing is installed
 yet — the catalog is a list of what <em>could</em> be installed.</p>
-<p>For a <code>haywire init --dev</code> project's <code>[[heaps]]</code>, and the shape of the
+<p>For a project's heaps (derived from <code>pyproject.toml</code>), and the shape of the
 marketstall being consumed, see
 <a href="../../../reference/files/marketplace-toml/"><code>marketplace.toml</code></a> and
 <a href="../../../reference/files/marketstall-toml/"><code>marketstall.toml</code></a>.</p>

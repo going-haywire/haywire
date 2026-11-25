@@ -6985,7 +6985,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Marketplace</strong></td>
-<td>The aggregated catalog of haybales visible in the Library Manager's AVAILABLE section; built by merging the project's local <code>[[heaps]]</code> with all remote subscriptions (<code>[[markets]]</code> + <code>[[stalls]]</code>) resolved into <code>[[caches]]</code> by refresh. Multiple remote feeds are supported.</td>
+<td>The aggregated catalog of haybales visible in the Library Manager's AVAILABLE section; built by merging the project's <strong>heaps</strong> with all remote subscriptions (<code>[[markets]]</code> + <code>[[stalls]]</code>) resolved into <code>[[caches]]</code> by refresh. Multiple remote feeds are supported.</td>
 <td>package list, library catalog</td>
 </tr>
 <tr>
@@ -7109,7 +7109,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Agent files</strong></td>
-<td>The files a repository commits for its agent tooling and orchestration, of three kinds: <strong>Harness configs</strong>, the <strong>orchestrator file</strong> (<code>t3.json</code>), and declarations (<code>[tool.haywire.agents]</code> in <code>pyproject.toml</code>, the machine-local <code>.haywire</code> lines in <code>.gitignore</code>, <code>CLAUDE.md</code>). <code>haywire init</code> writes a project's; <code>haywire init --org-files</code> an org library's, together with its CI callers from <code>going-haywire/.github</code>'s workflow templates.</td>
+<td>The files a repository commits for its agent tooling and orchestration, of three kinds: <strong>Harness configs</strong>, the <strong>orchestrator file</strong> (<code>t3.json</code>), and declarations (<code>[tool.haywire.agents]</code> in <code>pyproject.toml</code>, <code>CLAUDE.md</code>). <code>haywire init</code> writes a project's; <code>haywire init --org-files</code> an org library's, together with its CI callers from <code>going-haywire/.github</code>'s workflow templates.</td>
 <td>agent config, plugin files</td>
 </tr>
 <tr>
@@ -7208,7 +7208,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Project marketplace</strong></td>
-<td>The project-scoped <code>&lt;project&gt;/.haywire/marketplace.toml</code>. Holds the project's own <code>[[heaps]]</code> (written by <code>haywire init</code>, including dev-repo libraries under <code>--dev</code>) and the <code>[[caches]]</code> populated by refresh. Never has <code>[[markets]]</code> or <code>[[stalls]]</code>.</td>
+<td>The <code>&lt;project&gt;/.haywire/marketplace.toml</code> of one checkout, never committed (ADR 0096). Holds hand-written <code>[[heaps]]</code> and the <code>[[caches]]</code> populated by refresh. Never has <code>[[markets]]</code> or <code>[[stalls]]</code>.</td>
 <td>project file</td>
 </tr>
 <tr>
@@ -7227,8 +7227,13 @@ Macro is registered and placed.</p>
 <td><code>[[packages]]</code> (legacy schema)</td>
 </tr>
 <tr>
+<td><strong>Heap</strong></td>
+<td>A library on local disk that the marketplace shows as <code>local</code> and lets win over a marketplace row of the same name; always installed editably. Derived from the project's <code>pyproject.toml</code> (workspace members, path sources and the libraries beside them), or hand-written in <code>[[heaps]]</code>.</td>
+<td>local library (also means an installed one)</td>
+</tr>
+<tr>
 <td><strong><code>[[heaps]]</code></strong></td>
-<td>TOML section in the project marketplace declaring path-based libraries (always installed editably). Written by <code>haywire init</code>; manually editable. Renamed from <code>[[locals]]</code>.</td>
+<td>TOML section in the project marketplace for hand-written <strong>heaps</strong>: one that <code>pyproject.toml</code> does not name, or one replacing a derived heap of the same name. Renamed from <code>[[locals]]</code>.</td>
 <td><code>[[locals]]</code> (legacy schema)</td>
 </tr>
 <tr>
@@ -7363,7 +7368,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Marketplace</strong></td>
-<td>The aggregated catalog of haybales visible in the Library Manager's AVAILABLE section. Built by merging the project's local <code>[[heaps]]</code> with all remote subscriptions (<code>[[markets]]</code> + <code>[[stalls]]</code>) resolved into <code>[[caches]]</code> by refresh.</td>
+<td>The aggregated catalog of haybales visible in the Library Manager's AVAILABLE section. Built by merging the project's <strong>heaps</strong> with all remote subscriptions (<code>[[markets]]</code> + <code>[[stalls]]</code>) resolved into <code>[[caches]]</code> by refresh.</td>
 <td>package list, library catalog</td>
 </tr>
 <tr>
@@ -9071,7 +9076,7 @@ Macro is registered and placed.</p>
 <li>An editor class claims the keys of every <strong>EditorCommand</strong> it subscribes to; together those claims are its <strong>Keymap</strong>. A key press becomes an <strong>EditorCommand</strong> addressed to the <strong>Target editor</strong>, and only that editor's wrapper delivers it.</li>
 <li>A <strong>Signal</strong> subclass with <code>cross_session: ClassVar[bool] = True</code> routes through <strong>SignalDispatcher</strong><code>.broadcast</code> and is received by every registered <strong>SignalPeer</strong> — every active <strong>Session</strong>, plus any non-browser peer.</li>
 <li>A library that subscribes to another library's <strong>Signal</strong> must list the <strong>signal-defining library</strong> in its own <code>LibraryIdentity.dependencies</code>.</li>
-<li>The <strong>Global marketplace</strong> holds only what the user opts into (<code>[[markets]]</code> and <code>[[stalls]]</code> subscriptions, optional inline <code>[[haybales]]</code>); the <strong>Project marketplace</strong> holds the project's own <code>[[heaps]]</code> plus the refresh <code>[[caches]]</code>. <code>haywire init</code> writes only the project marketplace. <em>(new)</em></li>
+<li>The <strong>Global marketplace</strong> holds only what the user opts into (<code>[[markets]]</code> and <code>[[stalls]]</code> subscriptions, optional inline <code>[[haybales]]</code>); the <strong>Project marketplace</strong> holds hand-written <code>[[heaps]]</code> plus the refresh <code>[[caches]]</code>. <code>haywire init</code> writes neither. <em>(new)</em></li>
 <li><strong>Refresh</strong> reads the <strong>Global marketplace</strong>, fetches every <strong>Subscription</strong> (one-level-deep), and writes the resolved candidates to the <strong>Project marketplace</strong>'s <code>[[caches]]</code>. <strong>Conflict resolution</strong> applies <code>blocked</code>, then heaps shadow, then preference-aware dedup (first-come-first-served where no preference exists). <em>(new)</em></li>
 <li>The Library Browser's <strong>REQUIRED</strong> filter and the Library Overview Editor's Disable/Uninstall gating both use <code>LibraryManager.get_installed_dependents()</code> — the <code>linked_libraries</code> graph. The two surfaces always agree. <em>(new)</em></li>
 <li>A library's published manifest survives <code>haywire share</code> only if the <strong>Three manifest layers</strong> agree. The <strong>Detect step</strong> reports divergence; the Share flow's Review screen reconciles it. The Library Overview Editor is read-only for <strong>library pyproject</strong> dependencies — one authoring path, not two. <code>linked_libraries</code> is the exception, and not a second authoring path: the Edit dialog's Refresh button applies the same union rule the CLI and wizard apply, because a <strong>Linked registration</strong> is provably true and carries no author decision a second writer could clobber.</li>
@@ -9185,7 +9190,7 @@ Macro is registered and placed.</p>
 <li><strong>"selection" vs "active"</strong> <em>(new)</em>: the <strong>Selection axis</strong> (<code>selected_nodes</code> / <code>selected_edges</code>, the set that commands act on) and the <strong>Active axis</strong> (<code>active_node</code> / <code>active_edge</code>, the single inspector subject) are orthogonal roles over the same elements. The selection is the command target; the active element is the inspector subject derived as the selection's primary. A right-click command menu reads the <strong>Selection axis</strong>; a Properties/Ports/Settings panel reads the <strong>Active axis</strong>. Do not conflate "the selected node" (could be many) with "the active node" (exactly one or none).</li>
 <li><strong>"marketplace" overloaded</strong> <em>(new)</em>: refers to three distinct things — the runtime concept (the <strong>Marketplace</strong> catalog visible in the Library Manager's AVAILABLE section), the file (<strong>Global marketplace</strong> <code>~/.haywire/db/haybale_marketplace/marketplace.toml</code> or <strong>Project marketplace</strong> <code>&lt;project&gt;/.haywire/marketplace.toml</code>), and the TOML section type (<strong><code>[[markets]]</code></strong> subscriptions to remote marketplace feeds). Always qualify which sense — file vs section vs catalog.</li>
 <li><strong>"marketplace" vs "marketstall"</strong> <em>(new)</em>: a <strong>Marketstall</strong> is a single-author publish file listing <code>[[haybales]]</code> (produced by <code>haywire share</code>). A <strong>Marketplace</strong> in the file-shape sense (<code>marketplace.toml</code>) aggregates <code>[[markets]]</code> subscriptions, <code>[[stalls]]</code> subscriptions, optional inline <code>[[haybales]]</code>, and (project-only) <code>[[heaps]]</code> + <code>[[caches]]</code>. A <code>[[markets]]</code> URL points at another <code>marketplace.toml</code>; a <code>[[stalls]]</code> URL points at a <code>marketstall.toml</code>. Different schemas, different recursion rules.</li>
-<li><strong>"heaps" location</strong> <em>(new)</em>: <code>haywire init</code> writes <code>[[heaps]]</code> to the <strong>Project marketplace</strong>, NOT the Global marketplace. The Global marketplace has no <code>[[heaps]]</code> section in the new schema (the legacy <code>[[locals]]</code> cross-project case is unsupported; users with that need declare each project's heaps in its own project marketplace).</li>
+<li><strong>"heaps" location</strong> <em>(new)</em>: <strong>Heaps</strong> belong to a project: derived from its <code>pyproject.toml</code>, or hand-written in its <strong>Project marketplace</strong>. The Global marketplace has no <code>[[heaps]]</code> section (the legacy <code>[[locals]]</code> cross-project case is unsupported).</li>
 <li><strong>"dependencies" — three meanings</strong> <em>(new)</em>: (1) project pyproject <code>dependencies</code> (what uv resolves in dev), (2) library pyproject <code>dependencies</code> (what pip ships with the published package), (3) <code>haybale.toml</code>'s <code>linked_libraries</code> (the haywire runtime DI graph). The <strong>Three manifest layers</strong> must agree at publish time; <strong>detect_deps</strong> and the <strong>Detect step</strong> keep them honest. Never use bare "dependencies" without qualifying which manifest you mean.</li>
 <li><strong>"required" vs "dependent"</strong> <em>(new)</em>: a library is <strong>required</strong> if some installed haywire library lists it in its <code>haybale.toml</code>'s <code>linked_libraries</code>. The reverse-direction term is <strong>dependent</strong> — the library that <em>has</em> that declaration. Computed via <code>LibraryManager.get_installed_dependents(lib_id)</code>. Note: this is the <strong><code>linked_libraries</code></strong> graph, NOT pip's <code>Requires-Dist</code>. The pip-walk path (<code>is_required_by_another_package</code>) was removed in commit <code>f09c8558</code>. The Library Browser's Required badge is broader than this alone: it also fires for <code>origin.is_protected</code> (see <strong>Library Origin</strong>) — a library can be Required because something depends on it, OR because it's framework/project-local, OR both. Don't conflate "required" (has dependents) with "protected" (origin says don't touch it); they're independent reasons for the same badge.</li>
 <li><strong>"mechanism" vs "origin"</strong> <em>(new)</em>: <strong>InstallType</strong> answers "how did this library reach this Python environment" (REGULAR/EDITABLE/FOLDER) — a pure filesystem fact, workspace-agnostic. <strong>Library Origin</strong> answers "where did the code come from / who owns it" (framework/project_local/pypi/git/unknown) — requires workspace context, computed at the marketplace layer only. The two are orthogonal axes on the same library; a badge or a gating check may need one, the other, or both. Never use "install type" loosely to mean provenance/origin, and never assume <code>EDITABLE</code> implies <code>project_local</code> (an editable install of someone else's repo is <code>EDITABLE</code> + <code>git</code>/<code>unknown</code>, not <code>project_local</code>).</li>
