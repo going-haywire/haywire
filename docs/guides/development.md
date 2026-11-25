@@ -83,6 +83,17 @@ uv run pytest -m "not browser and not perf" -n 4 -q   # whole non-browser tier, 
 uv run pytest -m browser -n 4 -q                      # browser tier, ~2 min
 ```
 
+The `floors` CI job runs the non-browser tier with every direct requirement at its floor
+([ADR 0095](../adr/0095-a-dependency-floor-is-the-oldest-version-known-to-work.md)). To
+run it locally (it rewrites `uv.lock` and `.venv`, so the last line puts both back):
+
+```sh
+export UV_RESOLUTION=lowest-direct   # every uv command, or a plain one relocks at highest
+uv sync --upgrade --all-extras --dev # --upgrade: otherwise uv keeps the versions the lock holds
+uv run pytest -m "not browser and not perf" -n 4 -q
+unset UV_RESOLUTION && git checkout uv.lock && uv sync --all-extras --dev
+```
+
 `-n 4`, never more. Tiers, parallelism and test traps are in [tests/README.md](https://github.com/going-haywire/haywire/blob/master/tests/README.md).
 
 ## Build packages and docs

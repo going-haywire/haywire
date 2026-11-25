@@ -72,8 +72,8 @@ Wraps `deptry`, running it once per package with a dist→module name map so
 inter-package deps aren't mis-flagged. Reports three classes: MISSING (imported but
 undeclared — can break a standalone PyPI install), UNUSED (declared but unused), and
 NOT INSTALLED (imported but absent). Always exits 0 — it's a report, not a gate. The
-`/release` skill runs it at Step 2.5. Known false positives (e.g. `attrs` as a
-transitive of `cattrs`) are suppressed via the `KNOWN_OK` map in the script.
+`/release` skill runs it at Step 2.5. Known false positives (e.g. `visiongraph`
+declared with an extra) are suppressed via the `KNOWN_OK` map in the script.
 
 ## generate_marketstall.py
 

@@ -28,10 +28,11 @@ haybale-models = { workspace = true }
 
 [dependency-groups]
 dev = [
-    "pytest",
-    "pytest-cov",
-    "pytest-timeout",
-    "mypy",
+    # Floors at the version in use: the floors CI job lowers the dev group too (ADR 0095).
+    "pytest>=9.1",
+    "pytest-cov>=7.0",
+    "pytest-timeout>=2.4",
+    "mypy>=2.1",
     # ty is pre-1.0 and ships new diagnostics frequently; pin exactly so the
     # non-blocking CI check (and local runs) stay reproducible. Bump deliberately.
     "ty==0.0.63",
@@ -39,10 +40,10 @@ dev = [
     # bumps, which would silently drift CI from local. Patch bumps are safe.
     "ruff>=0.12.8,<0.13",
     "pyinstaller>=6.14.1",
-    "playwright",
-    "pytest-playwright",
-    "pytest-xdist",
-    "requests",
+    "playwright>=1.60",
+    "pytest-playwright>=0.8",
+    "pytest-xdist>=3.8",
+    "requests>=2.32",
     "haywire-core",
     "haywire-studio",
     "haybale-core",

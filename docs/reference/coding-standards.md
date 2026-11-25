@@ -385,6 +385,20 @@ turns into a cycle or a stale reference after reload. Tests follow
 [tests/README.md](https://github.com/going-haywire/haywire/blob/master/tests/README.md).
 **Enforced by**: review. **Scope**: repo.
 
+### CS-I5 · A third-party requirement has a floor, and a cap only for a known break
+
+`"numpy>=1.26"`, not `"numpy"` (any version, so the resolver may pick one that does not
+build) and not `"numpy==2.3.5"` (refuses every other version). The floor is the oldest
+version known to work. It goes up only for a feature or fix the code needs, with the
+reason in a comment when the code doesn't make it obvious. A cap (`<2`) or an exact pin
+names the break it guards. Internal `haywire-*` and `haybale-*` floors follow ADR 0087
+instead.
+
+**Why**: a library installs next to others in one environment. A floor with no reason
+(`opencv-contrib-python>=5.0.0.93`) kept visiongraph 1.3.0 from installing (ADR 0095).
+**Enforced by**: the `floors` CI job (each floor works) and review (a reason for every
+cap, and for a floor the code doesn't explain). **Scope**: libraries too.
+
 ---
 
 ## S · State and dependency injection

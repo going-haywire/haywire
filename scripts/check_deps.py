@@ -33,10 +33,8 @@ from scripts.bump_version import locate_packages, read_release_config  # noqa: E
 
 # Distributions whose deptry "unused"/"transitive" findings are known false
 # positives or deliberate, keyed by package -> set of module names to ignore.
-# - attrs: transitive of cattrs; the pin in haywire-core is intentional.
 # - visiongraph: declared as visiongraph[all]; deptry under-detects extras.
 KNOWN_OK: dict[str, set[str]] = {
-    "haywire-core": {"attrs"},
     "haybale-visiongraph": {"visiongraph"},
 }
 
