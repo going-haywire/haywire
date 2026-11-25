@@ -43,6 +43,7 @@
 - `haybale-testing:node:SwingletStopProbeNode` — Swinglet Stop Probe — Test-only: a data node whose float swinglet records each run and passes nothing on.  _tags: test, swinglet_
 - `haybale-testing:node:SwingletVisualProbeNode` — Swinglet Visual Probe — Test-only: a data node with a swinglet on a drawn-only wire.  _tags: test, swinglet, visual_
 - `haybale-testing:node:VisualProbeNode` — Visual Probe — Test-only: a data node with pins on a drawn-only wire.  _tags: test, visual, wire_
+- `haybale-testing:node:WrappedLabelProbeNode` — Wrapped Label Probe — Hosts a long label that wraps onto more lines  _tags: label, wrap, widget, testing_
 
 ## type
 - `haybale-testing:type:TEST_RECORD_CALLBACK` — Test Record Callback — Test callback subscription carried as a dataclass

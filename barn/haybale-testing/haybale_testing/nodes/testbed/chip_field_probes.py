@@ -67,3 +67,28 @@ class LongLabelProbeNode(BaseNode):
 
     def worker(self, context: ExecutionContext) -> str | None:
         return None
+
+
+@node(
+    label="Wrapped Label Probe",
+    description="Hosts a long label that wraps onto more lines",
+    search_tags=["label", "wrap", "widget", "testing"],
+    menu="testing/testbed",
+    node_type=NodeType.DATA,
+)
+class WrappedLabelProbeNode(BaseNode):
+    """A long text shown with `LabelWidget` in its wrapping mode."""
+
+    def init(self):
+        self.add(
+            STRING.as_config(
+                "text",
+                label="Text",
+                default=LONG_STATUS,
+                widget=LabelWidget.config(properties={"wrap": True}),
+            )
+        )
+        self.add(STRING.as_outlet("passthrough", label="Passthrough"))
+
+    def worker(self, context: ExecutionContext) -> str | None:
+        return None

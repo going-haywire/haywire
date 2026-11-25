@@ -46,6 +46,7 @@ Test library for test support
 - **Swinglet Stop Probe** — Test-only: a data node whose float swinglet records each run and passes nothing on.
 - **Swinglet Visual Probe** — Test-only: a data node with a swinglet on a drawn-only wire.
 - **Visual Probe** — Test-only: a data node with pins on a drawn-only wire.
+- **Wrapped Label Probe** — Hosts a long label that wraps onto more lines
 
 ## Types
 - **Test Record Callback** — Test callback subscription carried as a dataclass
