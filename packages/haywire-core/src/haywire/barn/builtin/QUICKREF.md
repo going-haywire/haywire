@@ -34,10 +34,18 @@
 ## adapter
 - `haywire-core:adapter:BoolToIntAdapter` — BoolToIntAdapter — Convert bool to integer
 - `haywire-core:adapter:FloatToIntAdapter` — FloatToIntAdapter — Convert float to integer
-- `haywire-core:adapter:FloatToStringAdapter` — FloatToStringAdapter — Convert float to integer
+- `haywire-core:adapter:FloatToStringAdapter` — FloatToStringAdapter — Convert float to text
 - `haywire-core:adapter:IntToFloatAdapter` — IntToFloatAdapter — Convert integer to float
+- `haywire-core:adapter:Mat3ToStringAdapter` — Mat3ToStringAdapter — Convert a 3x3 matrix to text, one bracket per row
+- `haywire-core:adapter:Mat4ToStringAdapter` — Mat4ToStringAdapter — Convert a 4x4 matrix to text, one bracket per row
 - `haywire-core:adapter:PathToStringAdapter` — PathToStringAdapter — Convert a path to text: the volume's name and the path inside it
 - `haywire-core:adapter:StringToChoicesAdapter` — StringToChoicesAdapter — String into a choices slot
+- `haywire-core:adapter:Vec2fToStringAdapter` — Vec2fToStringAdapter — Convert a 2D float vector to text, (x, y)
+- `haywire-core:adapter:Vec2iToStringAdapter` — Vec2iToStringAdapter — Convert a 2D integer vector to text, (x, y)
+- `haywire-core:adapter:Vec3fToStringAdapter` — Vec3fToStringAdapter — Convert a 3D float vector to text, (x, y, z)
+- `haywire-core:adapter:Vec3iToStringAdapter` — Vec3iToStringAdapter — Convert a 3D integer vector to text, (x, y, z)
+- `haywire-core:adapter:Vec4fToStringAdapter` — Vec4fToStringAdapter — Convert a 4D float vector to text, (w, x, y, z)
+- `haywire-core:adapter:Vec4iToStringAdapter` — Vec4iToStringAdapter — Convert a 4D integer vector to text, (w, x, y, z)
 
 ## widget
 - `haywire-core:widget:AnnotationTextWidget` — AnnotationTextWidget — Annotation text

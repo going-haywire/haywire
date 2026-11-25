@@ -39,10 +39,18 @@ Framework-owned primitive types and adapters
 ## Adapters
 - **BoolToIntAdapter** — Convert bool to integer
 - **FloatToIntAdapter** — Convert float to integer
-- **FloatToStringAdapter** — Convert float to integer
+- **FloatToStringAdapter** — Convert float to text
 - **IntToFloatAdapter** — Convert integer to float
+- **Mat3ToStringAdapter** — Convert a 3x3 matrix to text, one bracket per row
+- **Mat4ToStringAdapter** — Convert a 4x4 matrix to text, one bracket per row
 - **PathToStringAdapter** — Convert a path to text: the volume's name and the path inside it
 - **StringToChoicesAdapter** — String into a choices slot
+- **Vec2fToStringAdapter** — Convert a 2D float vector to text, (x, y)
+- **Vec2iToStringAdapter** — Convert a 2D integer vector to text, (x, y)
+- **Vec3fToStringAdapter** — Convert a 3D float vector to text, (x, y, z)
+- **Vec3iToStringAdapter** — Convert a 3D integer vector to text, (x, y, z)
+- **Vec4fToStringAdapter** — Convert a 4D float vector to text, (w, x, y, z)
+- **Vec4iToStringAdapter** — Convert a 4D integer vector to text, (w, x, y, z)
 
 ## Widgets
 - **AnnotationTextWidget** — Annotation text

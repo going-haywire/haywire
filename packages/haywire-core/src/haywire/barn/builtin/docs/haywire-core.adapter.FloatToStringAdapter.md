@@ -2,7 +2,7 @@
 
 `haywire-core:adapter:FloatToStringAdapter` · kind: adapter
 
-Convert float to integer
+Convert float to text
 
 ## Details
 
@@ -12,4 +12,4 @@ Convert float to integer
 
 ## Notes
 
-Convert integer to float
+Convert a float to its shortest text that reads back as the same number, `0.5`.
