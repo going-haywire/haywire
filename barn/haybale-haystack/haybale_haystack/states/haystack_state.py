@@ -233,15 +233,25 @@ class HaystackState(AppState):
 
     @staticmethod
     def _restart_after_reassembly(entry: GraphEntry) -> None:
-        """Stop the entry's run, and start it again under autorestart."""
+        """Stop the entry's run, start it again under autorestart, and tell every session's haystack UI.
+
+        Goes through ``entry.haystack`` as ``GraphEntry._stop_after_bail`` does, so the
+        haystack's dirty mark and every row follow the run's new state.
+        """
         if not entry.is_executing:
             return
         autorestart = entry.run_settings.autorestart
-        entry.stop_execution()
-        if autorestart:
-            result_compile = entry.start_execution()
-            if not result_compile.ok:
-                logger.info(f"Autorestart skipped for '{entry.display_name}': {result_compile.error}")
+        haystack = entry.haystack
+        if haystack is None:
+            entry.stop_execution()
+            result_compile = entry.start_execution() if autorestart else None
+        else:
+            haystack.stop_execution(entry)
+            result_compile = haystack.start_execution(entry) if autorestart else None
+        if result_compile is not None and not result_compile.ok:
+            logger.info(f"Autorestart skipped for '{entry.display_name}': {result_compile.error}")
+        if haystack is not None:
+            haystack._broadcast_data_mutated()
 
     @staticmethod
     def _only_value_edits(result: ValidationResult) -> bool:

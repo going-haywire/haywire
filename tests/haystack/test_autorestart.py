@@ -6,6 +6,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from haywire.core.execution.compile_result import CompileResult
+
 
 def _record(calls: list, name: str, result=None):
     """A zero-arg stub that records the call and returns *result*.
@@ -193,3 +195,41 @@ def test_restart_runs_after_batch_releases_lock(monkeypatch):
     deferred[0]()
     assert calls == ["stop", "start"]
     assert owned == [False]
+
+
+@pytest.mark.parametrize(
+    ("autorestart", "restarted", "expected"),
+    [
+        (False, None, ["stop", "broadcast"]),
+        (True, CompileResult(ok=True), ["stop", "start", "broadcast"]),
+        (True, CompileResult(ok=False, error="bad"), ["stop", "start", "broadcast"]),
+    ],
+)
+def test_reassembly_stop_tells_the_ui(monkeypatch, autorestart, restarted, expected):
+    """The deferred reassembly stop broadcasts and marks the haystack dirty, as a bail stop does (#241)."""
+    from haybale_haystack.graph_entry import GraphEntry
+
+    deferred: list = []
+    graph = MagicMock()
+    graph._validation.call_soon.side_effect = deferred.append
+
+    state = _make_state()
+    state._haystack_dirty = False
+    entry = GraphEntry(graph=graph, editor=MagicMock(), haystack=state)
+    entry.run_settings.autorestart = autorestart
+    running = MagicMock()
+    running.is_executing = True
+    entry.interpreter = running
+
+    calls: list = []
+    monkeypatch.setattr(entry, "stop_execution", _record(calls, "stop", None))
+    monkeypatch.setattr(entry, "start_execution", _record(calls, "start", restarted))
+    state._on_entry_validation(entry, _reassembly_result())
+    # The batch's own broadcast fires while the entry still runs; only the deferred stop's counts.
+    assert len(deferred) == 1
+    state._broadcast_data_mutated = _record(calls, "broadcast")
+
+    deferred[0]()
+
+    assert calls == expected
+    assert state.is_haystack_dirty is True
