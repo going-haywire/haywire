@@ -22,7 +22,8 @@ def _fake_bin(tmp_path: Path, gh_script: str | None) -> Path:
     """A bin folder holding jq and perl, and a stand-in gh running ``gh_script`` if given."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
-    for tool in ("jq", "perl", "grep", "sed", "cat", "touch", "mkdir", "sleep", "python3"):
+    tools = "jq perl grep sed cat touch mkdir sleep python3 mktemp rm tail tr".split()
+    for tool in tools:
         found = shutil.which(tool)
         if found and not (bin_dir / tool).exists():
             (bin_dir / tool).symlink_to(found)
@@ -635,6 +636,40 @@ def test_a_library_still_needs_its_reported_checks_to_pass(tmp_path):
 
 def test_a_library_still_honours_the_holding_labels(tmp_path):
     assert _merge(tmp_path, url=_LIBRARY_URL, checks=[], labels=["agent files"]).returncode == 2
+
+
+def _merge_with_gh(tmp_path: Path, gh_script: str) -> subprocess.CompletedProcess:
+    payload = {"tool_input": {"command": "gh pr merge 5 --squash"}}
+    return _run("guard-pr-merge.sh", payload, _fake_bin(tmp_path, gh_script), tmp_path)
+
+
+def test_a_failing_gh_names_its_error_without_the_hint(tmp_path):
+    gh = 'echo "hint: use gh event listen" >&2; echo "GraphQL: Could not resolve to a PR" >&2; exit 1'
+    result = _merge_with_gh(tmp_path, gh)
+    assert result.returncode == 2
+    assert "Could not resolve to a PR" in result.stderr
+    assert "event listen" not in result.stderr
+
+
+def test_a_failing_thread_query_names_its_error(tmp_path):
+    view = json.dumps({"isDraft": False, "url": _CORE_URL, "labels": [], "statusCheckRollup": _GREEN})
+    gh = f"if [ \"$1\" = api ]; then echo 'HTTP 502' >&2; exit 1; fi; echo '{view}'"
+    result = _merge_with_gh(tmp_path, gh)
+    assert result.returncode == 2
+    assert "review threads" in result.stderr
+    assert "HTTP 502" in result.stderr
+
+
+def test_output_that_is_not_json_is_not_read_as_a_draft(tmp_path):
+    result = _merge_with_gh(tmp_path, 'echo "hint: use gh event listen"; echo "{}"')
+    assert result.returncode == 2
+    assert "did not answer with JSON" in result.stderr
+    assert "draft" not in result.stderr
+
+
+def test_the_guard_leaves_no_temporary_file(tmp_path):
+    assert _merge(tmp_path).returncode == 0
+    assert not list(tmp_path.glob("guard-pr-merge.*"))
 
 
 def test_other_commands_pass_the_guard(tmp_path):

@@ -47,10 +47,20 @@ CD=$(printf '%s' "$COMMAND" | perl -0pe 's/gh\s+pr\s+merge.*//s' \
 if [ -n "$CD" ]; then
   cd "${CD/#\~/$HOME}" || block "cannot enter $CD to read the PR; name it with --repo"
 fi
-# Only stdout is the answer: gh also writes hints to stderr (since 2.105), which would break jq.
+# Only stdout is the answer: gh also writes hints to stderr (since 2.105, when it detects an
+# agent), which would break jq. stderr goes to a file, quoted when gh fails.
+ERR=$(mktemp "${TMPDIR:-/tmp}/guard-pr-merge.XXXXXX") || block "cannot create a temporary file"
+trap 'rm -f "$ERR"' EXIT
+gh_failed() {
+  local why
+  why=$(grep -v '^[[:space:]]*$' "$ERR" | grep -iv '^hint:' | tail -n 3 | tr '\n' ' ')
+  block "$1${why:+: $why}"
+}
 # shellcheck disable=SC2086
-VIEW=$(gh pr view $PR "${REPO_ARG[@]}" --json isDraft,statusCheckRollup,url,labels 2>/dev/null) \
-  || block "cannot read the PR (run gh pr view $PR ${REPO_ARG[*]} to see why)"
+VIEW=$(gh pr view $PR "${REPO_ARG[@]}" --json isDraft,statusCheckRollup,url,labels 2>"$ERR") \
+  || gh_failed "cannot read the PR (gh pr view $PR ${REPO_ARG[*]} failed)"
+echo "$VIEW" | jq -e 'type == "object"' >/dev/null 2>&1 \
+  || block "gh pr view $PR ${REPO_ARG[*]} did not answer with JSON"
 
 [ "$(echo "$VIEW" | jq -r '.isDraft')" = "false" ] || block "the PR is still a draft"
 
@@ -66,8 +76,8 @@ OPEN_THREADS=$(gh api graphql -F owner="$OWNER" -F repo="$REPO" -F number="$NUMB
     repository(owner: $owner, name: $repo) {
       pullRequest(number: $number) { reviewThreads(first: 100) { nodes { isResolved } } }
     }
-  }' --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)] | length' 2>/dev/null) \
-  || block "cannot read the PR's review threads (gh api graphql failed)"
+  }' --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)] | length' 2>"$ERR") \
+  || gh_failed "cannot read the PR's review threads (gh api graphql failed)"
 [ "$OPEN_THREADS" = "0" ] || block "$OPEN_THREADS review thread(s) unresolved; read them, address them, resolve them"
 
 # One entry per check and run: keep the newest run of each check.
