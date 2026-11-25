@@ -5197,6 +5197,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#cs-i5-a-third-party-requirement-has-a-floor-and-a-cap-only-for-a-known-break" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-I5 · A third-party requirement has a floor, and a cap only for a known break
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -6110,6 +6121,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#cs-i5-a-third-party-requirement-has-a-floor-and-a-cap-only-for-a-known-break" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CS-I5 · A third-party requirement has a floor, and a cap only for a known break
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -6588,6 +6610,17 @@ in a short comment:</p>
 turns into a cycle or a stale reference after reload. Tests follow
 <a href="https://github.com/going-haywire/haywire/blob/master/tests/README.md">tests/README.md</a>.
 <strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
+<h3 id="cs-i5-a-third-party-requirement-has-a-floor-and-a-cap-only-for-a-known-break">CS-I5 · A third-party requirement has a floor, and a cap only for a known break<a class="headerlink" href="#cs-i5-a-third-party-requirement-has-a-floor-and-a-cap-only-for-a-known-break" title="Permanent link">&para;</a></h3>
+<p><code>"numpy&gt;=1.26"</code>, not <code>"numpy"</code> (any version, so the resolver may pick one that does not
+build) and not <code>"numpy==2.3.5"</code> (refuses every other version). The floor is the oldest
+version known to work. It goes up only for a feature or fix the code needs, with the
+reason in a comment when the code doesn't make it obvious. A cap (<code>&lt;2</code>) or an exact pin
+names the break it guards. Internal <code>haywire-*</code> and <code>haybale-*</code> floors follow ADR 0087
+instead.</p>
+<p><strong>Why</strong>: a library installs next to others in one environment. A floor with no reason
+(<code>opencv-contrib-python&gt;=5.0.0.93</code>) kept visiongraph 1.3.0 from installing (ADR 0095).
+<strong>Enforced by</strong>: the <code>floors</code> CI job (each floor works) and review (a reason for every
+cap, and for a floor the code doesn't explain). <strong>Scope</strong>: libraries too.</p>
 <hr />
 <h2 id="s-state-and-dependency-injection">S · State and dependency injection<a class="headerlink" href="#s-state-and-dependency-injection" title="Permanent link">&para;</a></h2>
 <h3 id="cs-s1-an-app-scoped-service-comes-from-the-injector">CS-S1 · An app-scoped service comes from the injector<a class="headerlink" href="#cs-s1-an-app-scoped-service-comes-from-the-injector" title="Permanent link">&para;</a></h3>
