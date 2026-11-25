@@ -145,8 +145,8 @@ are not mis-flagged) and prints `clean` or a per-package list, and always exits 
 
 If there are findings, summarise them and ask whether to fix now (edit the relevant
 `pyproject.toml`s, re-sync, re-run) or release as-is. Do not auto-edit dependencies or
-block the release: `deptry` has known false positives (deliberate version pins like
-`attrs`, a transitive of `cattrs`; extras like `visiongraph[all]`), so the operator
+block the release: `deptry` has known false positives (extras like `visiongraph[all]`),
+so the operator
 decides. The `KNOWN_OK` map in the script already suppresses the documented ones; add a
 new false positive there rather than removing a needed dependency.
 

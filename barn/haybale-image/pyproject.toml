@@ -7,22 +7,21 @@ license = {text = "MIT"}
 
 dependencies = [
     "haywire-core>=0.6.2",
-    "numpy",
+    "numpy>=1.26",
     # AVIF encoding: 4.13.0.90 is the first opencv-contrib-python wheel that encodes
     # every layout. 4.10 and 4.11 are built without libavif; 4.12.0.88 has it but
     # rejects grayscale ("subsampling must be 0 (4:4:4) with identity matrix").
     "opencv-contrib-python>=4.13.0.90",
     "pillow>=12.0",
     "nicegui>=3.18.0",
-    "fastapi",
-    "typing_extensions",
+    "fastapi>=0.109.1",
 ]
 keywords = ["image"]
 
 [project.optional-dependencies]
 # Torch residency for ImageValue. Optional so the monorepo lock stays torch-free;
 # a torch-using library (haybale-spandrel) brings torch itself.
-torch = ["torch"]
+torch = ["torch>=2.2"]
 
 [project.entry-points."haywire.libraries"]
 image = "haybale_image:Library"

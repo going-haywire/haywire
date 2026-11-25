@@ -1025,7 +1025,7 @@ dependencies = [
 requires-dist = [
     { name = "haybale-core", editable = "barn/haybale-core" },
     { name = "haywire-core", editable = "packages/haywire-core" },
-    { name = "numpy" },
+    { name = "numpy", specifier = ">=1.26" },
     { name = "samplerate", specifier = ">=0.2.4" },
     { name = "sounddevice", specifier = ">=0.5" },
     { name = "soundfile", specifier = ">=0.12" },
@@ -1038,14 +1038,12 @@ source = { editable = "barn/haybale-core" }
 dependencies = [
     { name = "haywire-core" },
     { name = "nicegui" },
-    { name = "typing-extensions" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "nicegui", specifier = ">=3.18.0" },
-    { name = "typing-extensions" },
 ]
 
 [[package]]
@@ -1056,7 +1054,6 @@ dependencies = [
     { name = "haybale-core" },
     { name = "haywire-core" },
     { name = "nicegui" },
-    { name = "typing-extensions" },
 ]
 
 [package.metadata]
@@ -1064,7 +1061,6 @@ requires-dist = [
     { name = "haybale-core", editable = "barn/haybale-core" },
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "nicegui", specifier = ">=3.18.0" },
-    { name = "typing-extensions" },
 ]
 
 [[package]]
@@ -1114,7 +1110,6 @@ dependencies = [
     { name = "numpy" },
     { name = "opencv-contrib-python" },
     { name = "pillow" },
-    { name = "typing-extensions" },
 ]
 
 [package.optional-dependencies]
@@ -1124,14 +1119,13 @@ torch = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fastapi" },
+    { name = "fastapi", specifier = ">=0.109.1" },
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "nicegui", specifier = ">=3.18.0" },
-    { name = "numpy" },
+    { name = "numpy", specifier = ">=1.26" },
     { name = "opencv-contrib-python", specifier = ">=4.13.0.90" },
     { name = "pillow", specifier = ">=12.0" },
-    { name = "torch", marker = "extra == 'torch'" },
-    { name = "typing-extensions" },
+    { name = "torch", marker = "extra == 'torch'", specifier = ">=2.2" },
 ]
 provides-extras = ["torch"]
 
@@ -1151,7 +1145,7 @@ requires-dist = [
     { name = "haybale-studio", editable = "barn/haybale-studio" },
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "nicegui", specifier = ">=3.18.0" },
-    { name = "packaging" },
+    { name = "packaging", specifier = ">=23.2" },
 ]
 
 [[package]]
@@ -1170,13 +1164,13 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fastapi" },
+    { name = "fastapi", specifier = ">=0.109.1" },
     { name = "haybale-graph-editor", editable = "barn/haybale-graph-editor" },
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "httpx", specifier = ">=0.28" },
     { name = "huggingface-hub", specifier = ">=2.4" },
     { name = "nicegui", specifier = ">=3.18.0" },
-    { name = "starlette" },
+    { name = "starlette", specifier = ">=0.27" },
 ]
 
 [[package]]
@@ -1248,7 +1242,6 @@ name = "haywire-core"
 version = "0.6.2"
 source = { editable = "packages/haywire-core" }
 dependencies = [
-    { name = "attrs" },
     { name = "cattrs" },
     { name = "fastapi" },
     { name = "injector" },
@@ -1264,18 +1257,17 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "attrs", specifier = "==25.4.0" },
-    { name = "cattrs", specifier = "==25.3.0" },
-    { name = "fastapi" },
+    { name = "cattrs", specifier = ">=23.2" },
+    { name = "fastapi", specifier = ">=0.109.1" },
     { name = "injector", specifier = ">=0.22.0" },
     { name = "markdown2", specifier = ">=2.5" },
     { name = "nicegui", specifier = ">=3.18.0" },
-    { name = "packaging" },
+    { name = "packaging", specifier = ">=23.2" },
     { name = "pygments", specifier = ">=2.18" },
     { name = "toml", specifier = ">=0.10.2" },
     { name = "tomlkit", specifier = ">=0.13" },
-    { name = "typing-extensions" },
-    { name = "watchdog", specifier = ">=6.0.0" },
+    { name = "typing-extensions", specifier = ">=4.6" },
+    { name = "watchdog", specifier = ">=4.0" },
 ]
 
 [[package]]
@@ -1283,9 +1275,12 @@ name = "haywire-studio"
 version = "0.6.2"
 source = { editable = "packages/haywire-studio" }
 dependencies = [
+    { name = "anyio", version = "4.14.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.15'" },
+    { name = "anyio", version = "4.15.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.15'" },
     { name = "cryptography" },
     { name = "fastapi" },
     { name = "haywire-core" },
+    { name = "httpx" },
     { name = "jedi" },
     { name = "mcp" },
     { name = "nicegui" },
@@ -1295,13 +1290,15 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "anyio", specifier = ">=4.5" },
     { name = "cryptography", specifier = ">=42" },
-    { name = "fastapi" },
+    { name = "fastapi", specifier = ">=0.109.1" },
     { name = "haywire-core", editable = "packages/haywire-core" },
+    { name = "httpx", specifier = ">=0.27.1" },
     { name = "jedi", specifier = ">=0.19" },
     { name = "mcp", specifier = ">=1.28,<2" },
     { name = "nicegui", specifier = ">=3.18.0" },
-    { name = "psutil" },
+    { name = "psutil", specifier = ">=5.9.6" },
     { name = "toml", specifier = ">=0.10.2" },
 ]
 
@@ -1361,15 +1358,15 @@ dev = [
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "haywire-studio", editable = "packages/haywire-studio" },
     { name = "mkdocs-material", specifier = ">=9.7.6" },
-    { name = "mypy" },
-    { name = "playwright" },
+    { name = "mypy", specifier = ">=2.1" },
+    { name = "playwright", specifier = ">=1.60" },
     { name = "pyinstaller", specifier = ">=6.14.1" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-playwright" },
-    { name = "pytest-timeout" },
-    { name = "pytest-xdist" },
-    { name = "requests" },
+    { name = "pytest", specifier = ">=9.1" },
+    { name = "pytest-cov", specifier = ">=7.0" },
+    { name = "pytest-playwright", specifier = ">=0.8" },
+    { name = "pytest-timeout", specifier = ">=2.4" },
+    { name = "pytest-xdist", specifier = ">=3.8" },
+    { name = "requests", specifier = ">=2.32" },
     { name = "ruff", specifier = ">=0.12.8,<0.13" },
     { name = "ty", specifier = "==0.0.63" },
 ]

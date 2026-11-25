@@ -1,4 +1,5 @@
-# The gate for master: lint, types and both test tiers, side by side.
+# The gate for master: lint, types, both test tiers and the tests at the dependency floors,
+# side by side.
 # Runs on every pull request and on master. CI runs every test (--maxfail=0 overrides
 # pyproject's 5) so one run shows every failure. A draft PR runs on Linux only; once it is
 # ready for review, the test tiers run on macOS too. A newer push cancels the run of
@@ -105,6 +106,31 @@ jobs:
         with:
           name: tests-${{ matrix.os }}
           path: reports/
+
+  # Every direct requirement at its floor (ADR 0095): Linux and the non-browser tier, since a
+  # resolution is the same on every platform. UV_RESOLUTION reaches every uv command (a plain
+  # one relocks at highest) and --upgrade drops the lock's versions, which uv would otherwise
+  # keep (.insights/project_uv_lowest_direct_relocks.md).
+  floors:
+    name: floors
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      UV_RESOLUTION: lowest-direct
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: true
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - run: uv sync --upgrade --all-extras --dev
+      - name: Versions under test
+        run: |
+          { echo '```'; uv pip list; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Raise the file-watch limit
+        run: sudo sysctl -w fs.inotify.max_user_instances=8192
+      - name: pytest (not browser, not perf) at the floors
+        run: uv run pytest -m "not browser and not perf" -n 4 -q --maxfail=0
 
   browser:
     name: browser (${{ matrix.os }})
