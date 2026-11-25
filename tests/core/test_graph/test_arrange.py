@@ -333,7 +333,8 @@ def test_rotation_keeps_the_centre_and_four_turns_come_back():
             graph.node_wrappers[n].node.props.posX = p["x"]
             graph.node_wrappers[n].node.props.posY = p["y"]
         positions = rotated_positions(graph, ids, clockwise=True)
-    assert {n: _centre(graph, positions, n) for n in ids} == pytest.approx(before)
+    for n in ids:  # approx refuses a mapping of tuples, so one centre at a time
+        assert _centre(graph, positions, n) == pytest.approx(before[n]), n
 
 
 def test_rotating_fewer_than_two_nodes_moves_nothing():
