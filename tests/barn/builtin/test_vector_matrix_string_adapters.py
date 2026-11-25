@@ -58,9 +58,10 @@ def test_an_integer_vector_reads_numpy_integers_as_plain_integers():
     assert ba.Vec2iToStringAdapter().convert(Vec2i([np.int64(3), np.int32(-4)])) == "(3, -4)"
 
 
-def test_a_numpy_matrix_reads_as_its_rows():
+def test_numpy_matrix_rows_read_as_float_rows():
     assert (
-        ba.Mat3ToStringAdapter().convert(np.eye(3)) == "[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]"
+        ba.Mat3ToStringAdapter().convert(Mat3(np.eye(3)))
+        == "[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]"
     )
 
 
