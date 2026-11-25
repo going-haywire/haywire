@@ -1,13 +1,13 @@
 # Chip selects and long labels as node widgets: design pass
 
-Task `design/chip-select-node-widgets`, issue #243 (and its second comment). Library
+Task `fix/chip-select-node-widgets` (started as `design/chip-select-node-widgets`), issue #243 (and its second comment). Library
 side: going-haywire/haybale-protokol#27 (cleanup, `after-core-release`), the workarounds
 added in going-haywire/haybale-protokol#26 (`haybale_protokol/chips.py`).
 
 | Status | |
 |---|---|
-| Phase | design only, no product code |
-| Decided | (waiting on the owner, see *6. Questions for the owner*) |
+| Decided | 2026-11-25: 1A, 2A, 3A (no wrap opt-in), no 3C flag, `min_width=120`, Gap 4 and the `data-hw-requires` split go to their own issues |
+| Implemented | on this branch; the widget canon, design guide §4.5 and `.insights/feedback_quasar_field_moves_attributes.md` are canonical, this page is the proposal as sent |
 
 Versions read: NiceGUI 3.18.0, Quasar 2.18.5 (`.venv/.../nicegui/static/quasar.umd.js`).
 
