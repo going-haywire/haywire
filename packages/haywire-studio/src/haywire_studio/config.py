@@ -3,9 +3,6 @@ Global and project-level configuration management for Haywire.
 
 Global config lives at ~/.haywire/ and stores user preferences,
 marketplace sources, and recently opened projects.
-
-Project config lives at <project>/.haywire/ and stores
-project-specific overrides.
 """
 
 from __future__ import annotations
@@ -23,12 +20,6 @@ DEFAULT_GLOBAL_CONFIG = {
     },
     "ui": {
         "theme": "modern",
-    },
-}
-
-DEFAULT_PROJECT_CONFIG = {
-    "haywire": {
-        "version": "0.1.0",
     },
 }
 
@@ -75,21 +66,3 @@ def add_recent_project(project_path: str):
     # Keep only last 20
     data["projects"] = projects[:20]
     recent_file.write_text(toml.dumps(data))
-
-
-def ensure_project_config(project_dir: Path):
-    """Create <project>/.haywire/ with defaults if it doesn't exist."""
-    haywire_dir = project_dir / ".haywire"
-    haywire_dir.mkdir(exist_ok=True)
-
-    config_file = haywire_dir / "config.toml"
-    if not config_file.exists():
-        config_file.write_text(toml.dumps(DEFAULT_PROJECT_CONFIG))
-
-
-def get_project_config(project_dir: Path) -> dict:
-    """Read <project>/.haywire/config.toml."""
-    config_file = project_dir / ".haywire" / "config.toml"
-    if config_file.exists():
-        return toml.loads(config_file.read_text())
-    return {}

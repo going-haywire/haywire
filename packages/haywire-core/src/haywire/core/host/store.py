@@ -46,6 +46,8 @@ from typing import Any
 
 import toml
 
+from haywire.core.storage import ensure_haywire_dir
+
 logger = logging.getLogger(__name__)
 
 
@@ -125,5 +127,5 @@ class HostStore:
         """Write the in-memory state to disk. No-op for in-memory stores."""
         if self._path is None:
             return
-        self._path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_haywire_dir(self._path.parent)
         self._path.write_text(toml.dumps(self._data))

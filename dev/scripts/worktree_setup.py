@@ -147,6 +147,10 @@ def assign_studio_port(checkout: Path, main: Path) -> str:
     base = own or _read_settings(main)
     path = checkout / SETTINGS
     path.parent.mkdir(exist_ok=True)
+    # Core's helper (ensure_haywire_dir, ADR 0096) is not importable before uv sync.
+    gitignore = path.parent / ".gitignore"
+    if not gitignore.exists():
+        gitignore.write_text("*\n")
     path.write_text(json.dumps(with_studio_port(base, port), indent=2) + "\n")
     return f"studio port: {port}"
 

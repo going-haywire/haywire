@@ -24,6 +24,7 @@ import toml
 
 from haywire.core.library.haybale import Deprecation, Haybale
 from haywire.core.marketstall.errors import MalformedMarketplaceError
+from haywire.core.marketstall.heaps import derive_heaps
 from haywire.core.marketstall.types import (
     MarketplaceFile,
     ProjectMarketplaceFile,
@@ -178,14 +179,17 @@ def parse_global_marketplace(path: Path) -> MarketplaceFile:
 
 
 def parse_project_marketplace(path: Path) -> ProjectMarketplaceFile:
-    """Parse <project>/.haywire/marketplace.toml.
+    """Parse <project>/.haywire/marketplace.toml, and derive the project's heaps.
 
-    Returns an empty ProjectMarketplaceFile if the file doesn't exist.
+    ``derived_heaps`` comes from the ``pyproject.toml`` of ``<project>``, two
+    levels above *path* (``marketstall.heaps.derive_heaps``). Returns a
+    ProjectMarketplaceFile with only ``derived_heaps`` if the file doesn't exist.
     Silently drops any [[markets]] / [[stalls]] / [[haybales]] sections that
     may accidentally appear — the project shape doesn't carry subscriptions.
     """
+    derived = derive_heaps(path.parent.parent)
     if not path.is_file():
-        return ProjectMarketplaceFile()
+        return ProjectMarketplaceFile(derived_heaps=derived)
 
     try:
         data = toml.loads(path.read_text(encoding="utf-8"))
@@ -200,7 +204,7 @@ def parse_project_marketplace(path: Path) -> ProjectMarketplaceFile:
         caches = [_parse_haybale_entry(raw) for raw in data.get("caches", [])]
     except MalformedMarketplaceError:
         caches = []
-    return ProjectMarketplaceFile(heaps=heaps, caches=caches)
+    return ProjectMarketplaceFile(heaps=heaps, caches=caches, derived_heaps=derived)
 
 
 @dataclass(frozen=True)

@@ -3,7 +3,6 @@ Project scaffolding for Haywire.
 
 Creates a new haywire project with:
 - pyproject.toml (uv workspace with haywire-studio dependency)
-- .haywire/ config directory
 - graphs/ directory
 - barn/ directory with auto-scaffolded local haybale library
 """
@@ -21,7 +20,7 @@ from typing import Any
 import toml
 
 from .agents import write_harness_configs, write_org_files
-from .config import add_recent_project, ensure_global_config, ensure_project_config
+from .config import add_recent_project, ensure_global_config
 from .playbook import render_playbook, render_release_gates
 from .publish_workflow import (
     PLAN_SCRIPT_PATH,
@@ -185,9 +184,6 @@ def render_scaffold_tree(projectname: str, lib_name: str, module_name: str) -> s
         f"{projectname}/\n"
         f'├── pyproject.toml                  (project = "{root_name}")\n'
         f"├── graphs/\n"
-        f"├── .haywire/\n"
-        f"│   ├── config.toml\n"
-        f'│   └── marketplace.toml            (heap name = "{lib_name}")\n'
         f"└── barn/\n"
         f"    └── {lib_name}/\n"
         f'        ├── pyproject.toml          (project = "{lib_name}")\n'
@@ -488,9 +484,6 @@ htmlcov/
 .idea/
 .vscode/
 
-# Haywire per-session UI state (open graph, pan/zoom) — not project state
-.haywire/workspace_state.json
-
 # ── Before you add a pattern ────────────────────────────────────────────────
 # Anything ignored inside barn/<your-library>/ will be MISSING for everyone who
 # installs your library — haywire share publishes by git URL, so consumers get
@@ -782,75 +775,6 @@ class Library(BaseLibrary):
 '''
 
 
-def _local_entry(name: str, path: Path, label: str = "", description: str = "") -> dict:
-    """Build a [[heaps]] entry.
-
-    Heaps have a different schema than [[caches]]: only `name` and `path` are
-    required; label and description are optional metadata. Heaps are always
-    installed editably from the path; they're never published.
-    """
-    entry: dict[str, object] = {
-        "name": name,
-        "path": str(path),
-    }
-    if label:
-        entry["label"] = label
-    if description:
-        entry["description"] = description
-    return entry
-
-
-def _register_dev_repo_locals_in_project(dev_repo: str, project_dir: Path) -> None:
-    """In --dev mode, register every dev-repo barn library as a [[heaps]] in the project marketplace.
-
-    Walks ``<dev_repo>/barn/*`` and calls add_heap_to_project per library. Dev
-    libraries are project-scoped because they pin the dev workspace this
-    project was scaffolded against; they should not leak into the user-global
-    marketplace where they'd surface in unrelated projects.
-
-    Idempotent: DuplicateHeapNameError per library is swallowed so re-running
-    init against an existing project marketplace doesn't fail.
-    """
-    from haywire.core.library.dep_detect import find_module_dir
-    from haywire.core.marketstall import DuplicateHeapNameError, add_heap_to_project
-    from haywire.core.publishing import _read_library_dependencies
-
-    project_mp = project_dir / ".haywire" / "marketplace.toml"
-
-    barn = Path(dev_repo) / "barn"
-    if not barn.is_dir():
-        return
-
-    for lib_dir in sorted(barn.iterdir()):
-        if not lib_dir.is_dir() or not (lib_dir / "pyproject.toml").exists():
-            continue
-        # Read the package name from pyproject — don't trust the directory name.
-        pyproject = toml.loads((lib_dir / "pyproject.toml").read_text())
-        project = pyproject.get("project", {})
-        lib_name = project.get("name", lib_dir.name)
-        label = lib_name.removeprefix("haybale-").replace("-", " ").replace("_", " ").title()
-        description = project.get("description", "")
-        # The @library(linked_libraries=[...]) decorator is the definitive
-        # source for the marketplace install gate — a version-less subset of the
-        # pyproject deps (share.py keeps the two in sync).
-        # _read_library_dependencies returns pip-package form (hyphens), which
-        # the gate normalizes.
-        module_dir = find_module_dir(lib_dir)
-        linked_libraries = _read_library_dependencies(module_dir) if module_dir else []
-
-        try:
-            add_heap_to_project(
-                project_mp,
-                name=lib_name,
-                path=lib_dir,
-                label=label,
-                description=description,
-                linked_libraries=linked_libraries,
-            )
-        except DuplicateHeapNameError:
-            continue
-
-
 def _check_git_available() -> bool:
     """Check if git is available in PATH. Return True if available, False otherwise."""
     try:
@@ -862,35 +786,6 @@ def _check_git_available() -> bool:
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False
-
-
-def _generate_project_marketplace_locals_only(name: str, lib_name: str, project_dir: Path) -> str:
-    """Generate <project>/.haywire/marketplace.toml with the project's library only.
-
-    The project marketplace owns the project's own [[heaps]] (scaffolded
-    here) plus, in ``--dev`` mode, the dev-repo barn libraries (appended by
-    _register_dev_repo_locals_in_project after this file is written).
-    [[caches]] is the refresh cache and stays empty at init time.
-
-    Args:
-        name: Project name.
-        lib_name: The scaffolded local library's resolved dist name.
-        project_dir: The project's root directory.
-    """
-    label = name.replace("-", " ").replace("_", " ").title()
-    entry = _local_entry(
-        name=lib_name,
-        path=project_dir / "barn" / lib_name,
-        label=label,
-        description=f"Local library for the {name} project",
-    )
-    header = (
-        "# Project marketplace — managed by haywire.\n"
-        "# [[heaps]] are project-scoped editable libraries, written at `haywire init` time.\n"
-        "# [[caches]] is the cache populated by the Library Manager's refresh action;\n"
-        "# leave it empty here until you've added remote sources to ~/.haywire/marketplace.toml.\n\n"
-    )
-    return header + toml.dumps({"heaps": [entry]})
 
 
 def _generate_tests_conftest() -> str:
@@ -1084,20 +979,6 @@ def init_project(
     # README.md inside the scaffolded barn library (with marker pair)
     (lib_dir / "README.md").write_text(_generate_library_readme(name, label))
 
-    # Project-level .haywire config
-    ensure_project_config(project_dir)
-
-    # Project marketplace — [[heaps]] section. Holds the project's own
-    # scaffolded library, plus (under --dev) every dev-repo barn library so
-    # they're scoped to this project rather than leaking into the user-global
-    # marketplace.
-    (project_dir / ".haywire" / "marketplace.toml").write_text(
-        _generate_project_marketplace_locals_only(name, lib_name, project_dir)
-    )
-
-    if dev_repo:
-        _register_dev_repo_locals_in_project(dev_repo, project_dir)
-
     # Initialize git repository and create initial commit
     print("\nInitializing git repository...")
     subprocess.run(["git", "init"], cwd=str(project_dir), check=True, capture_output=True)
@@ -1128,8 +1009,7 @@ def init_project(
         capture_output=True,
     )
 
-    # Global ~/.haywire config (just ensures the directory + defaults exist;
-    # init no longer writes [[heaps]] there).
+    # Global ~/.haywire config: only the directory and its defaults.
     ensure_global_config()
 
     # Track as recent project
@@ -1137,7 +1017,6 @@ def init_project(
 
     print(f"  Created {project_dir}/")
     print(f"  Created {project_dir / 'pyproject.toml'}")
-    print(f"  Created {project_dir / '.haywire/'}")
     print(f"  Created {project_dir / 'graphs/'}")
     print(f"  Created {lib_dir}/")
 

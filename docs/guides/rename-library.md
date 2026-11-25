@@ -95,7 +95,7 @@ Concretely, one run touches:
 | `haybale.toml`                                                            | Only `name` changes                                                                                                                                                                |
 | The library's `pyproject.toml`                                            | `name`, the `haywire.libraries` entry-point key, and the wheel's `packages` list — `description` and everything else untouched                                                     |
 | The project's `pyproject.toml`                                            | The dependency string and the `[tool.uv.sources]` key, if present                                                                                                                  |
-| `.haywire/marketplace.toml`                                               | The library's own `[[heaps]]` entry, and any *other* heap's `linked_libraries` that names the old module                                                                           |
+| `.haywire/marketplace.toml`                                               | A hand-written `[[heaps]]` entry for the library, and any *other* heap's `linked_libraries` that names the old module                                                              |
 | Every saved graph, anywhere in the workspace                              | Every `registry_key`, `widget_key`, and `chain_adapter_keys` entry belonging to the library; `node_data.library.name`, `.module_name`, `.folder_path`; `node_data.identity.module` |
 | Python sources — the library itself, and every sibling that depends on it | `import`/`from` statements naming the old module, and any registry-key string literal a component hardcodes as its own (a widget's `widget_key=` kwarg is the common case)         |
 | `uv sync`                                                                 | Run last, to update the lockfile against the new package name                                                                                                                      |
@@ -147,8 +147,8 @@ collide with, any of which blocks the rename:
    *different*-looking sibling can collide.
 4. **An installed distribution** — the target name is already installed in
    this environment.
-5. **A `[[heaps]]` entry** already using that name in
-   `.haywire/marketplace.toml` (the project's own local-library list).
+5. **A hand-written `[[heaps]]` entry** already using that name in
+   `.haywire/marketplace.toml`.
 
 A sixth check only warns rather than blocks: if the target name matches a
 remote `[[caches]]` row (a marketplace catalog entry, not a local one), the
@@ -166,10 +166,9 @@ you like to see what it would do.
 `--allow-dirty` escape hatch. This is what makes git the complete rollback:
 if the tree is proven clean before anything is written, everything dirty
 afterward is provably this run's own work, and `git checkout . && git clean
--fd` restores the start state exactly. The one exception is
-`.haywire/settings.json`, the project's local settings (a worktree's studio
-port, for one): a rename never writes it, so the check ignores it and the
-rollback leaves it alone. If the rename fails partway through —
+-fd` restores the start state exactly. `.haywire/` is not part of it: the
+folder ignores itself, so neither the check nor the rollback sees it. If the
+rename fails partway through —
 every phase after the first can fail without corrupting what came before —
 the failure message always repeats this exact recovery command.
 

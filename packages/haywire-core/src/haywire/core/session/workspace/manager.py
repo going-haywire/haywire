@@ -12,6 +12,8 @@ import json
 import logging
 from pathlib import Path
 
+from haywire.core.storage import HAYWIRE_DIR, ensure_haywire_dir
+
 logger = logging.getLogger(__name__)
 
 _STATE_FILENAME = "workspace_state.json"
@@ -37,7 +39,7 @@ class WorkspaceManager:
 
     def _load(self) -> dict:
         """Read the snapshot from disk. Returns ``{}`` on missing or corrupt file."""
-        state_file = self._project_path / ".haywire" / _STATE_FILENAME
+        state_file = self._project_path / HAYWIRE_DIR / _STATE_FILENAME
         if not state_file.exists():
             return {}
         try:
@@ -48,9 +50,7 @@ class WorkspaceManager:
 
     def save(self, snapshot: dict) -> None:
         """Persist ``snapshot`` to disk and update ``self.snapshot``."""
-        preset_dir = self._project_path / ".haywire"
-        preset_dir.mkdir(parents=True, exist_ok=True)
-        state_file = preset_dir / _STATE_FILENAME
+        state_file = ensure_haywire_dir(self._project_path / HAYWIRE_DIR) / _STATE_FILENAME
         state_file.write_text(json.dumps(snapshot, indent=2))
         self.snapshot = snapshot
         logger.info(f"WorkspaceManager: saved snapshot to {state_file}")

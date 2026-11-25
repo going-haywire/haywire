@@ -90,7 +90,6 @@ _CORE_CHECK = (
     "workflow hooks and the Farmhand bridge cannot run: clone going-haywire/haywire as "
     f"{CORE}, or in a worktree run its setup (t3.json's *Worktree setup*).\""
 )
-_GITIGNORE = [".haywire/settings.json", ".haywire/studio.*", ".haywire/.gitignore"]
 _CLAUDE_START = "<!-- haywire:org-library:start -->"
 _CLAUDE_END = "<!-- haywire:org-library:end -->"
 _CLAUDE_BLOCK = f"""{_CLAUDE_START}
@@ -195,19 +194,6 @@ def _declaration(project: Path) -> list[Path]:
         f'developer-docs = "{CORE}/docs"\n'
     )
     path.write_text(text.rstrip("\n") + "\n" + table, encoding="utf-8")
-    return [path]
-
-
-def _gitignore(project: Path) -> list[Path]:
-    """The machine-local ``.haywire`` files a library commits nothing of."""
-    path = project / ".gitignore"
-    lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
-    missing = [line for line in _GITIGNORE if line not in lines]
-    if not missing:
-        return []
-    note = "# Machine-local studio files (the worktree setup's port, `haywire studio start`)"
-    block = ["", note, *missing]
-    path.write_text("\n".join([*lines, *block]).lstrip("\n") + "\n", encoding="utf-8")
     return [path]
 
 
@@ -318,7 +304,7 @@ def write_org_files(
     """Write or refresh an org library's repository files in ``project``; return the files written.
 
     The agent files (every harness's config with core's hooks, ``t3.json``, the developer-docs
-    declaration, the ``.gitignore`` lines, ``CLAUDE.md``'s org block) are rewritten from core
+    declaration, ``CLAUDE.md``'s org block) are rewritten from core
     every time. The CI callers and ``dependabot.yml`` are written only when missing, from
     ``.github``'s workflow templates, pinned to its current commit.
 
@@ -326,6 +312,6 @@ def write_org_files(
         fetch: Returns ``.github``'s commit and its templates; the default reads them from GitHub.
     """
     written = write_harness_configs(project)
-    for writer in (_claude_hooks, _t3_json, _declaration, _gitignore, _claude_md):
+    for writer in (_claude_hooks, _t3_json, _declaration, _claude_md):
         written += writer(project)
     return written + _ci_files(project, fetch)

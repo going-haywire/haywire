@@ -27,6 +27,7 @@ from pathlib import Path
 
 import psutil
 
+from haywire.core.storage import ensure_haywire_dir
 from haywire_studio.farmhand.bridge import find_project_root
 from haywire_studio.farmhand.identity import identity_status, read_identity
 
@@ -103,7 +104,7 @@ def save_port(project: Path, port: int) -> None:
     path = project / SETTINGS
     settings = _read_json(path)
     settings.setdefault("network", {})["port"] = {"value": port}
-    path.parent.mkdir(parents=True, exist_ok=True)
+    ensure_haywire_dir(path.parent)
     path.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
 
 
@@ -203,7 +204,7 @@ def _start(args: argparse.Namespace) -> int:
         port = new
 
     log = project / LOG
-    log.parent.mkdir(parents=True, exist_ok=True)
+    ensure_haywire_dir(log.parent)
     (project / ".haywire" / "studio.json").unlink(missing_ok=True)
     with log.open("w", encoding="utf-8") as out:
         process = subprocess.Popen(

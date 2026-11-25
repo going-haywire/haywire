@@ -91,7 +91,7 @@ files carry the state; each hop below names which one it writes.
           │  diff against the previous cache to mark stale
           ▼
   <project>/.haywire/marketplace.toml
-      [[heaps]]   path-based project libraries (written by haywire init)
+      [[heaps]]   hand-written path-based libraries (the rest derive from pyproject.toml)
       [[caches]]  the resolved catalog — rebuilt in full every refresh
           │
           │ the browser's AVAILABLE section reads this; no network
@@ -108,7 +108,7 @@ files carry the state; each hop below names which one it writes.
 | `[[markets]]` | global | Add Source | A subscription to an aggregator that references other stalls |
 | `[[stalls]]` | global | Add Source | A subscription to one author's marketstall |
 | `[[haybales]]` | global | hand-written | Libraries declared inline, without a subscription |
-| `[[heaps]]` | project | `haywire init` | Path-based libraries this project knows about |
+| `[[heaps]]` | project | hand-written | Path-based libraries beyond the ones derived from `pyproject.toml` |
 | `[[caches]]` | project | refresh | The resolved catalog from the last refresh |
 
 Subscriptions are a user concern, not a project concern: `[[markets]]` and
@@ -172,7 +172,7 @@ separately when the user clicks Install.
 | `~/.haywire/db/haybale_marketplace/stalls/<dist>.toml` | Pasted-in blocks | Add Source |
 | `~/.haywire/cache/<url-hash>.toml` | Raw fetched bodies | Every successful fetch |
 | `~/.haywire/cache/docs/<library>/` | Fetched doc bodies | Overview doc fetches |
-| `<project>/.haywire/marketplace.toml` | `[[heaps]]` + `[[caches]]` | `haywire init`; refresh |
+| `<project>/.haywire/marketplace.toml` | `[[heaps]]` + `[[caches]]` | Hand-written; refresh. Local, never committed ([ADR 0096](../../adr/0096-a-projects-haywire-folder-is-local.md)) |
 
 **The HTTP cache has no TTL.** An entry is valid until a successful fetch
 overwrites it. When a fetch fails, the cached body is served instead and the
@@ -194,7 +194,7 @@ combined list:
 | --- | --- |
 | `blocked` | Names the user rejected in the install-safety modal. Filtered from the candidate list **and** from the previous cache's stale-rescue pool, so they disappear entirely rather than surviving as stale rows. Un-blockable only by editing the file |
 | `preference` | Names *this* source should win when several offer them. Written by the conflict prompt at Add Source time and by the refresh flow's "Use this one"; exclusive, so one write settles the choice |
-| Heaps shadow | A candidate whose `name` matches a project `[[heaps]]` entry is dropped — local always wins |
+| Heaps shadow | A candidate whose `name` matches one of the project's heaps (derived from `pyproject.toml`, or a `[[heaps]]` entry) is dropped — local always wins |
 | First-come-first-served | The fallback when no source claims a contested name in `preference`. Every collision is reported on the resolve step, so an unsettled one is visible before it changes a version |
 
 When Add Source detects a collision against already-resolved state, the user
@@ -231,9 +231,9 @@ state, so the worst case is a rebuild plus re-subscribing.
 | Yellow banner, "N sources unavailable" | Fetch failed with no cached fallback | Check the URLs in the info modal. Refresh continues; cached sources still fill in |
 | A library will not go away | Its name is in a subscription's `blocked` | Remove it from that array in the global file. `blocked` hides it everywhere |
 | Rows marked "(stale)" that should be gone | The source stopped listing them | Trash icon on the row when the library is not installed, or clear `[[caches]]` |
-| The wrong library wins | A project `[[heaps]]` entry shadows the remote one, or first-come-first-served picked one | Check `[[heaps]]` first — local always wins |
+| The wrong library wins | One of the project's heaps shadows the remote one, or first-come-first-served picked one | Check the heaps first (`pyproject.toml`'s workspace members and path sources, then `[[heaps]]`) — local always wins |
 | A source serves old content | Its cached body is being reused | Delete `~/.haywire/cache/` to force a refetch |
-| A heap points nowhere | `path` is absolute and machine-specific | Fix or remove the `[[heaps]]` entry; these break when a project is cloned |
+| A heap points nowhere | A hand-written `[[heaps]]` `path` is absolute and machine-specific | Fix or remove the entry |
 
 ### The reset ladder
 
@@ -243,8 +243,8 @@ Smallest blast radius first. Stop as soon as it works.
    Costs one cycle of stale bookkeeping and nothing else.
 2. **Delete `~/.haywire/cache/`.** Forces every source to be refetched.
    Subscriptions are untouched.
-3. **Delete `<project>/.haywire/marketplace.toml`.** Loses the project's
-   `[[heaps]]` too — re-run `haywire init --dev` to regenerate them.
+3. **Delete `<project>/.haywire/marketplace.toml`.** Loses only hand-written
+   `[[heaps]]`; the derived heaps come back from `pyproject.toml`.
 4. **Delete the global `marketplace.toml`.** Loses every subscription the user
    added; it is recreated with the official feed on next start.
 
@@ -298,7 +298,7 @@ The Browser groups libraries into four sections, computed at render time:
 | **REQUIRED** | Installed + enabled + some other installed haywire library declares it in its `haybale.toml` `linked_libraries`. The signal comes from `LibraryManager.get_installed_dependents(lib_id)` — the same source the Overview Editor's Disable / Uninstall gating uses. |
 | **ENABLED** | Installed + enabled + not in REQUIRED. |
 | **DISABLED** | Installed + not enabled. |
-| **AVAILABLE** | Anything in the project marketplace's `[[caches]]` OR `[[heaps]]` that isn't already installed. Heaps are surfaced here as `source="local"` entries so they're visible before the user installs them. Blocked haybales never appear — they're filtered out at refresh time. |
+| **AVAILABLE** | Anything in the project marketplace's `[[caches]]` OR the project's heaps that isn't already installed. Heaps are surfaced here as `source="local"` entries so they're visible before the user installs them. Blocked haybales never appear — they're filtered out at refresh time. |
 
 Stale entries in AVAILABLE render with a red dot + "(stale)" suffix + last-seen tooltip. If the package isn't installed, a trash icon allows removing it from the project cache.
 
@@ -488,7 +488,7 @@ to directly.
 Nothing here touched the user's project source tree, and nothing is installed
 yet — the catalog is a list of what *could* be installed.
 
-For a `haywire init --dev` project's `[[heaps]]`, and the shape of the
+For a project's heaps (derived from `pyproject.toml`), and the shape of the
 marketstall being consumed, see
 [`marketplace.toml`](../../reference/files/marketplace-toml.md) and
 [`marketstall.toml`](../../reference/files/marketstall-toml.md).

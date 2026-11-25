@@ -16,6 +16,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from haywire.core.storage import ensure_haywire_dir
+
 logger = logging.getLogger(__name__)
 
 
@@ -57,7 +59,7 @@ class SettingsFileStore:
         for name, value in entries.items():
             self._set_nested(data, name, value)
 
-        path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_haywire_dir(path.parent)
 
         with open(path, "w") as f:
             json.dump(data, f, indent=2, sort_keys=True)

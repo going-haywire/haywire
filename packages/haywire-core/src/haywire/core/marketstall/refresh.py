@@ -47,6 +47,7 @@ from haywire.core.marketstall.types import (
     SourceCollision,
     SourceOutcome,
 )
+from haywire.core.storage import ensure_haywire_dir
 
 
 def _count_updates_available(final: list[Haybale]) -> int:
@@ -221,7 +222,8 @@ def fetch_sources(
 ) -> FetchedSources:
     """Phase 1 — read the config files and fetch every subscription. No writes.
 
-    Parses the global marketplace and the previous project file, fetches each
+    Parses the global marketplace and the previous project file (with the
+    heaps it derives, see :func:`parse_project_marketplace`), fetches each
     [[markets]] subscription one level deep to discover stall URLs, then
     fetches every [[stalls]] URL, direct ones before discovered ones. A URL
     already fetched is not fetched twice.
@@ -354,7 +356,7 @@ def resolve(
 
     candidates = candidate_haybales(fetched)
 
-    candidates = apply_heaps_shadow(pm_prev.heaps, candidates)
+    candidates = apply_heaps_shadow(pm_prev.all_heaps, candidates)
     candidates, collisions = dedupe_reporting_collisions(
         candidates, preferred_sources(mf), same_library=same_library
     )
@@ -388,7 +390,7 @@ def apply(
     """Phase 3 — write the project file and collect the caches. The only mutation.
 
     Rewrites <project>/.haywire/marketplace.toml with the resolved catalog,
-    keeping the previous [[heaps]], then drops cache files for URLs no longer
+    keeping the hand-written [[heaps]], then drops cache files for URLs no longer
     subscribed and doc caches for libraries no longer in the catalog.
 
     The global marketplace is never written by a refresh: it holds user intent
@@ -399,7 +401,7 @@ def apply(
     final = resolved.haybales
 
     new_pm = ProjectMarketplaceFile(heaps=list(pm_prev.heaps), caches=final)
-    project_path.parent.mkdir(parents=True, exist_ok=True)
+    ensure_haywire_dir(project_path.parent)
     body = serialize_project_marketplace(new_pm)
     project_path.write_text(body if body else "")
 
