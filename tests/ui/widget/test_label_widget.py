@@ -17,7 +17,8 @@ from haywire.barn.builtin.types import STRING
 from haywire.barn.builtin.widgets.basic_widgets import WRAPPED_LABEL_MAX_HEIGHT, LabelWidget
 from haywire.core.types.enums import PortType
 from haywire.core.types.port import DataPort
-from haywire.ui.hover_tip import TIP_ATTR
+from haywire.ui.hover_tip import TIP_ATTR, TIP_DESC_ATTR, TIP_TYPE_ATTR
+from haywire.ui.skin.pin_render import add_pin_tooltip
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.decorator import widget
 from haywire.ui.widget.sizing import INLINE_BOX_CLASS, MIN_WIDTH_VAR, stamp_size_declaration
@@ -75,11 +76,17 @@ async def test_the_text_is_cut_to_one_line_and_hovering_shows_all_of_it(user: Us
     text = holder["widget"]._text
     assert "truncate" in text.classes
     assert text.text == _LONG
-    assert text.props[TIP_ATTR] == _LONG
+    assert text.props[TIP_DESC_ATTR] == _LONG
+    assert TIP_ATTR not in text.props, "the tip's title is the card's: the port's label"
 
     port.set_value("Idle")
     await user.should_see("Idle")
-    assert text.props[TIP_ATTR] == "Idle"
+    assert text.props[TIP_DESC_ATTR] == "Idle"
+
+    port.set_value("")
+    await user.should_not_see("Idle")
+    assert TIP_DESC_ATTR not in text.props
+    assert holder["widget"].ui_element is text, "the label is the root the card's port tip goes on"
 
 
 @widget(description="A select as the widget's root", min_width=160)
@@ -127,4 +134,40 @@ async def test_a_wrapping_label_breaks_its_text_instead_of_cutting_it(user: User
     text = holder["widget"]._text
     assert "truncate" not in text.classes
     assert "whitespace-normal" in text.classes
-    assert text.props[TIP_ATTR] == _LONG
+    assert text.props[TIP_DESC_ATTR] == _LONG
+
+
+@pytest.mark.anyio
+async def test_the_port_tip_keeps_the_text_a_label_wrote_as_its_second_line(user: User) -> None:
+    """``add_pin_tooltip`` writes the port's label and type, and leaves a widget's own second line."""
+    port = _port(_LONG)
+    port.description = "What the device is doing"
+    holder: dict[str, ui.element] = {}
+
+    @ui.page("/")
+    def page() -> None:
+        root = LabelWidget(port).render()
+        add_pin_tooltip(ui.element("div"), port, trigger_el=root)
+        holder["root"] = root
+
+    await user.open("/")
+    root = holder["root"]
+    assert root.props[TIP_ATTR] == "Status"
+    assert root.props[TIP_TYPE_ATTR] == "STRING"
+    assert root.props[TIP_DESC_ATTR] == _LONG
+
+
+@pytest.mark.anyio
+async def test_the_port_tip_still_shows_the_port_description_on_other_widgets(user: User) -> None:
+    port = _port("x")
+    port.description = "What the device is doing"
+    holder: dict[str, ui.element] = {}
+
+    @ui.page("/")
+    def page() -> None:
+        trigger = ui.element("div")
+        add_pin_tooltip(ui.element("div"), port, trigger_el=trigger)
+        holder["trigger"] = trigger
+
+    await user.open("/")
+    assert holder["trigger"].props[TIP_DESC_ATTR] == "What the device is doing"

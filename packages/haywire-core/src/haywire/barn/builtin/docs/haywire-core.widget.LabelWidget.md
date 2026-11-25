@@ -13,8 +13,8 @@ Label for display only
 Read-only label widget that displays the port value as text.
 
 Text and numbers show as they are; any other value, such as a path, shows in
-its text form (`scans:in/a.png`). The text never sets the node's width, and
-hovering it shows all of it.
+its text form (`scans:in/a.png`). The text never sets the node's width. On a
+node, hovering it shows the port's name and type with the whole text below.
 
 By default the text stays on one line: when it is wider than the node it is
 cut with an ellipsis. The node keeps its height however the text changes,

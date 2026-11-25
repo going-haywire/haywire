@@ -21,7 +21,7 @@ from nicegui.elements.mixins.text_element import TextElement
 from haywire.core.access import LevelMode
 from haywire.core.types import DataPort, LayoutDirection
 from haywire.ui.access_stamp import stamp_requires
-from haywire.ui.hover_tip import set_hover_tip
+from haywire.ui.hover_tip import TIP_DESC_ATTR, set_hover_tip
 
 from ..utils import generate_pin_uuid
 from .pin_icons import DEFAULT_PIN_ICONS, PinIconResolver
@@ -119,7 +119,9 @@ def add_pin_tooltip(pin_el: ui.element, pin: DataPort, trigger_el: ui.element | 
     hover makes no round trip. Pages built by ``AppShell`` install that script.
 
     ``trigger_el`` is what the user hovers to see the tip, for a pin whose widget
-    stands in for it. ``pin_el`` is then left as it is.
+    stands in for it. ``pin_el`` is then left as it is. A widget that already
+    writes the tip's second line on its root keeps it: ``LabelWidget`` shows its
+    whole text there, under the port's label and type.
 
     Without ``trigger_el`` the pin is stamped ``data-hw-requires="view"``, so its
     tooltip shows in every level mode. A separate trigger is left as it is: whether
@@ -132,7 +134,8 @@ def add_pin_tooltip(pin_el: ui.element, pin: DataPort, trigger_el: ui.element | 
     trigger = trigger_el if trigger_el is not None else pin_el
     if trigger_el is None:
         stamp_requires(pin_el, LevelMode.VIEW)
-    set_hover_tip(trigger, pin.label, type_name=port_type_name(pin), description=pin.description or "")
+    description = "" if TIP_DESC_ATTR in trigger.props else pin.description or ""
+    set_hover_tip(trigger, pin.label, type_name=port_type_name(pin), description=description)
 
 
 def render_pin(

@@ -110,14 +110,17 @@ def _label(page: Page, node_id: str) -> dict:
     return page.evaluate(
         """(nid) => {
             const container = document.querySelector(`[data-node-id="${nid}"] .widget-container`);
-            const label = container.firstElementChild;
+            const label = container;
             const slot = document.querySelector(`[data-node-id="${nid}"] .ui-node-slot`);
             return {
                 text: label.textContent,
-                tip: label.getAttribute('data-hw-tip'),
+                tip: label.getAttribute('data-hw-tip-desc'),
+                tipTitle: label.getAttribute('data-hw-tip'),
+                triggersInside: label.querySelectorAll('[data-hw-tip]').length,
                 scroll: label.scrollWidth,
                 client: label.clientWidth,
                 height: label.offsetHeight,
+                contentHeight: label.scrollHeight,
                 containerHeight: container.offsetHeight,
                 lineHeight: parseFloat(getComputedStyle(label).lineHeight),
                 nodeWidth: slot.offsetWidth,
@@ -195,6 +198,8 @@ def test_a_long_status_does_not_floor_its_node(page: Page, harness):
     assert label["scroll"] > 2 * floor, f"fixture status is not long enough: {label}, floor {floor}px"
     assert label["scroll"] > label["client"], f"status line is not cut: {label}"
     assert label["tip"] == label["text"], f"hovering does not show the whole status: {label}"
+    assert label["tipTitle"] == "Status", f"the tip lost the port's label: {label}"
+    assert label["triggersInside"] == 0, f"the label nests a second tip: {label}"
 
 
 def test_a_longer_status_does_not_resize_the_node(page: Page, harness):
@@ -206,7 +211,7 @@ def test_a_longer_status_does_not_resize_the_node(page: Page, harness):
     page.get_by_test_id("longer-status").click()
     page.wait_for_function(
         """([nid, n]) => document.querySelector(`[data-node-id="${nid}"] .widget-container`)
-                            .querySelector('.truncate').textContent.length > n""",
+                            .textContent.length > n""",
         arg=[nid, len(before["text"])],
     )
     after = _label(page, nid)
@@ -242,9 +247,11 @@ def test_a_wrapping_label_stops_growing_at_its_height_limit(page: Page, harness)
     page.get_by_test_id("longer-wrapped").click()
     page.wait_for_function(
         """([nid, n]) => document.querySelector(`[data-node-id="${nid}"] .widget-container`)
-                            .firstElementChild.textContent.length > n""",
+                            .textContent.length > n""",
         arg=[nid, len(short["text"])],
     )
     label = _label(page, nid)
-    assert label["height"] > WRAPPED_LABEL_MAX_HEIGHT, f"fixture text too short to reach the limit: {label}"
+    assert label["contentHeight"] > WRAPPED_LABEL_MAX_HEIGHT, (
+        f"fixture text too short to reach the limit: {label}"
+    )
     assert label["containerHeight"] == WRAPPED_LABEL_MAX_HEIGHT, f"label not clipped at the limit: {label}"

@@ -14,7 +14,7 @@ from haywire.barn.builtin.types import INT
 from haywire.core.types.utils import resolve_options
 from haywire.ui import elements as hui
 from haywire.ui.components.number.drag import NumberDrag
-from haywire.ui.hover_tip import set_hover_tip
+from haywire.ui.hover_tip import TIP_DESC_ATTR
 from haywire.ui.modals import text_modal
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.converters import DisplayTextConverter, PrimitiveUnwrappingConverter
@@ -410,8 +410,8 @@ class LabelWidget(BaseWidget):
     Read-only label widget that displays the port value as text.
 
     Text and numbers show as they are; any other value, such as a path, shows in
-    its text form (`scans:in/a.png`). The text never sets the node's width, and
-    hovering it shows all of it.
+    its text form (`scans:in/a.png`). The text never sets the node's width. On a
+    node, hovering it shows the port's name and type with the whole text below.
 
     By default the text stays on one line: when it is wider than the node it is
     cut with an ellipsis. The node keeps its height however the text changes,
@@ -434,19 +434,22 @@ class LabelWidget(BaseWidget):
 
     def build(self) -> Any:
         text_classes = "whitespace-normal break-words" if self._wraps() else "truncate"
-        with ui.element("div").classes("w-full min-w-0") as root:
-            self._text = self.bind(
-                ui.label("").classes(f"text-base text-xs {text_classes}"),
-                prop="text",
-                one_way=True,
-                converter=DisplayTextConverter(default_value=""),
-            )
-        return root
+        self._text = self.bind(
+            ui.label("").classes(f"w-full min-w-0 text-base text-xs {text_classes}"),
+            prop="text",
+            one_way=True,
+            converter=DisplayTextConverter(default_value=""),
+        )
+        return self._text
 
     def on_model_changed(self, value: Any) -> None:
         super().on_model_changed(value)
+        # The card's port tip on this root shows the whole text as its second line.
         text = DisplayTextConverter().to_view(value)
-        set_hover_tip(self._text, "" if text is None else str(text))
+        if text is None or text == "":
+            self._text.props.pop(TIP_DESC_ATTR, None)
+        else:
+            self._text.props[TIP_DESC_ATTR] = str(text)
 
     def _wraps(self) -> bool:
         return bool(self._config.get("properties", {}).get("wrap", False))
