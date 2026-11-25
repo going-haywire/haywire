@@ -22,6 +22,7 @@ from haywire.core.marketstall.framework_gate import (
     check_require,
     installed_core_version,
 )
+from haywire.core.marketstall.heaps import derive_heaps, layer_heaps
 from haywire.core.marketstall.helpers import (
     SubscriptionConflict,
     add_heap_to_project,
@@ -142,6 +143,8 @@ __all__ = [
     "add_market_subscription_to_global",
     "add_stall_subscription_to_global",
     "add_heap_to_project",
+    "derive_heaps",
+    "layer_heaps",
     "remove_stale_haybale_from_project",
     "record_preference",
     "record_block_on_source",

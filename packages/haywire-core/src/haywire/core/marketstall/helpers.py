@@ -20,6 +20,7 @@ from haywire.core.marketstall.parsing import (
     serialize_project_marketplace,
 )
 from haywire.core.marketstall.types import ProjectMarketplaceFile, Subscription
+from haywire.core.storage import ensure_haywire_dir
 
 
 def add_market_subscription_to_global(global_path: Path, url: str) -> None:
@@ -80,7 +81,7 @@ def add_heap_to_project(
         entry["linked_libraries"] = list(linked_libraries)
     pm.heaps.append(entry)
 
-    project_path.parent.mkdir(parents=True, exist_ok=True)
+    ensure_haywire_dir(project_path.parent)
     project_path.write_text(serialize_project_marketplace(pm))
 
 

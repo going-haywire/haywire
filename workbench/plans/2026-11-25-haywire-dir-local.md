@@ -7,7 +7,8 @@ Task `design/haywire-dir-in-git`, issues
 | Status | |
 |---|---|
 | Decided | 2026-11-25: 1A, 2A, 3D, 4A, 5A, 6A, 7B, 8A |
-| Implemented | not yet: the core slice lands ADR 0096 and the glossary edits below (`docs/reference/doc-authoring.md`: an ADR is written in the same change as its code) |
+| Implemented | core slice in PR #247: ADR 0096 and the glossary are canonical, this page is the design as decided. Added while implementing: derived heaps also take the libraries beside a library path source (a `--dev` project names five dev-repo libraries; `init --dev` used to list the whole `barn/`), and the helper rewrites a `.gitignore` that lacks `*` |
+| Next | core release, then the six library PRs (decision 8) |
 
 ## The files today
 

@@ -1,4 +1,4 @@
-"""Tests for haywire.core.storage.library_storage_dir."""
+"""Tests for haywire.core.storage: library_storage_dir and ensure_haywire_dir."""
 
 from __future__ import annotations
 
@@ -77,3 +77,64 @@ def test_no_source_names_the_distribution_storage_dir():
         if needle in p.read_text(encoding="utf-8", errors="ignore")
     ]
     assert hits == []
+
+
+@pytest.mark.unit
+def test_haywire_dir_ignores_itself(tmp_path):
+    from haywire.core.storage import ensure_haywire_dir
+
+    directory = ensure_haywire_dir(tmp_path / "project" / ".haywire")
+
+    assert directory.is_dir()
+    assert (directory / ".gitignore").read_text() == "*\n"
+
+
+@pytest.mark.unit
+def test_haywire_dir_replaces_an_ignore_file_without_the_wildcard(tmp_path):
+    from haywire.core.storage import ensure_haywire_dir
+
+    directory = tmp_path / ".haywire"
+    directory.mkdir()
+    (directory / ".gitignore").write_text("studio.json\n")
+
+    ensure_haywire_dir(directory)
+
+    assert (directory / ".gitignore").read_text() == "*\n"
+
+
+@pytest.mark.unit
+def test_haywire_dir_keeps_an_ignore_file_that_holds_the_wildcard(tmp_path):
+    from haywire.core.storage import ensure_haywire_dir
+
+    directory = tmp_path / ".haywire"
+    directory.mkdir()
+    (directory / ".gitignore").write_text("# local\n*\n")
+
+    ensure_haywire_dir(directory)
+
+    assert (directory / ".gitignore").read_text() == "# local\n*\n"
+
+
+@pytest.mark.unit
+def test_another_folder_is_only_created(tmp_path):
+    from haywire.core.storage import ensure_haywire_dir
+
+    directory = ensure_haywire_dir(tmp_path / "settings")
+
+    assert directory.is_dir()
+    assert not (directory / ".gitignore").exists()
+
+
+@pytest.mark.unit
+def test_git_sees_nothing_in_the_folder(tmp_path):
+    import subprocess
+
+    from haywire.core.storage import ensure_haywire_dir
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (ensure_haywire_dir(tmp_path / ".haywire") / "settings.json").write_text("{}")
+
+    status = subprocess.run(
+        ["git", "status", "--porcelain", "-uall"], cwd=tmp_path, check=True, capture_output=True, text=True
+    ).stdout
+    assert status == ""

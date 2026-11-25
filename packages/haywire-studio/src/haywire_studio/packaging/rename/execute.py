@@ -23,7 +23,7 @@ from .graphs import apply_graphs
 from .model import FileChange, RenamePlan
 from .pysource import apply_python
 
-RECOVERY = "git checkout -- . ':!.haywire/settings.json' && git clean -fd -e .haywire/settings.json"
+RECOVERY = "git checkout -- . && git clean -fd"
 
 
 def _retarget(changes: Iterable[FileChange], old_root: Path, new_root: Path) -> None:

@@ -9,6 +9,7 @@ import pytest
 
 from haywire.core.publishing.pipeline.pipeline import SharePipeline
 from haywire.core.publishing.pipeline.steps.rollback import revert_working_tree
+from haywire.core.storage import ensure_haywire_dir
 
 pytestmark = pytest.mark.unit
 
@@ -67,33 +68,16 @@ def test_revert_leaves_committed_history_untouched(tmp_path: Path) -> None:
     assert len(log.strip().splitlines()) == 1
 
 
-def test_revert_leaves_untracked_local_settings_alone(tmp_path: Path) -> None:
+def test_revert_leaves_the_haywire_folder_alone(tmp_path: Path) -> None:
     repo = tmp_path / "repo4"
     _init_repo(repo)
     (repo / "seed.txt").write_text("seed")
     _commit(repo)
-    settings = repo / ".haywire" / "settings.json"
-    settings.parent.mkdir()
-    settings.write_text('{"studio": {"port": 8131}}')
+    settings = ensure_haywire_dir(repo / ".haywire") / "settings.json"
+    settings.write_text('{"network": {"port": {"value": 8131}}}')
 
-    (repo / ".haywire" / "written_by_a_step.toml").write_text("x")
     (repo / "seed.txt").write_text("modified by a failed pipeline run")
     revert_working_tree(SharePipeline(repo))
 
-    assert settings.read_text() == '{"studio": {"port": 8131}}'
-    assert not (repo / ".haywire" / "written_by_a_step.toml").exists()
+    assert settings.read_text() == '{"network": {"port": {"value": 8131}}}'
     assert (repo / "seed.txt").read_text() == "seed"
-
-
-def test_revert_keeps_edits_to_tracked_local_settings(tmp_path: Path) -> None:
-    repo = tmp_path / "repo5"
-    _init_repo(repo)
-    settings = repo / ".haywire" / "settings.json"
-    settings.parent.mkdir()
-    settings.write_text("{}")
-    _commit(repo)
-
-    settings.write_text('{"studio": {"port": 8131}}')
-    revert_working_tree(SharePipeline(repo))
-
-    assert settings.read_text() == '{"studio": {"port": 8131}}'

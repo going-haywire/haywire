@@ -48,8 +48,9 @@ def test_gitignore_warns_before_adding_patterns() -> None:
     assert "clone" in content
 
 
-def test_gitignore_still_ignores_workspace_state() -> None:
-    assert ".haywire/workspace_state.json" in _generate_gitignore()
+def test_gitignore_leaves_the_haywire_folder_to_itself() -> None:
+    """.haywire/ ignores itself (ADR 0096), so the project's .gitignore names none of it."""
+    assert ".haywire" not in _generate_gitignore()
 
 
 def test_anchored_patterns_do_not_ignore_barn_content(tmp_path: Path) -> None:

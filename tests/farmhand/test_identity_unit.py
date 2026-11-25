@@ -34,10 +34,10 @@ def test_write_creates_sidecar_with_expected_fields(tmp_path):
     assert isinstance(ident["started_at"], float)
 
 
-def test_write_gitignores_the_sidecar(tmp_path):
+def test_write_makes_the_haywire_folder_ignore_itself(tmp_path):
     write_identity(tmp_path, port=8124)
     gitignore = (tmp_path / ".haywire" / ".gitignore").read_text(encoding="utf-8")
-    assert IDENTITY_FILENAME in gitignore
+    assert gitignore == "*\n"
 
 
 def test_write_accepts_str_workspace(tmp_path):

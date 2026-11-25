@@ -4,8 +4,8 @@ Written when the studio mounts the Farmhand MCP endpoint so a later process
 (the Farmhand bridge, ``haywire_studio.farmhand.bridge``) can identify WHICH project owns
 the studio on a given port — reuse it, ask the user, or clean up a stale one.
 
-Follows the same .haywire/ + .gitignore discipline as the rest of the
-workspace's machine-local state. The recycled-pid guard is best-effort:
+Like everything in a project's .haywire/, it is local and never committed
+(ADR 0096). The recycled-pid guard is best-effort:
 os.kill(pid, 0) proves liveness; a matching create_time (via psutil, when
 obtainable) proves it is the same process, but its absence never blocks.
 """
@@ -19,15 +19,9 @@ from pathlib import Path
 
 import psutil
 
+from haywire.core.storage import HAYWIRE_DIR, ensure_haywire_dir
+
 IDENTITY_FILENAME = "studio.json"
-
-
-def _ensure_gitignored(haywire_dir: Path) -> None:
-    gitignore = haywire_dir / ".gitignore"
-    existing = gitignore.read_text(encoding="utf-8") if gitignore.exists() else ""
-    if IDENTITY_FILENAME not in existing:
-        with gitignore.open("a", encoding="utf-8") as fh:
-            fh.write(f"{IDENTITY_FILENAME}\n")
 
 
 def write_identity(workspace_root: Path | str, port: int, *, auth_required: bool = False) -> dict:
@@ -38,12 +32,10 @@ def write_identity(workspace_root: Path | str, port: int, *, auth_required: bool
     Farmhand bridge) can tell whether this studio
     expects a credential without opening a connection first.
 
-    Returns the dict written. Ensures the sidecar is gitignored.
+    Returns the dict written.
     """
     root = Path(workspace_root).resolve()
-    haywire_dir = root / ".haywire"
-    haywire_dir.mkdir(parents=True, exist_ok=True)
-    _ensure_gitignored(haywire_dir)
+    haywire_dir = ensure_haywire_dir(root / HAYWIRE_DIR)
 
     ident = {
         "pid": os.getpid(),

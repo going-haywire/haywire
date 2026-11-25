@@ -99,7 +99,7 @@ def test_org_files_wire_core_s_hooks_from_the_clone_beside_it(tmp_path: Path) ->
     assert settings["permissions"]["allow"] == ["mcp__farmhand"]
     assert "farmhand" in json.loads((library / ".mcp.json").read_text())["mcpServers"]
     assert 'developer-docs = "../haywire-repo/docs"' in (library / "pyproject.toml").read_text()
-    assert ".haywire/settings.json" in (library / ".gitignore").read_text()
+    assert not (library / ".gitignore").exists()
     assert "worktree_setup.py" in (library / "t3.json").read_text()
     assert "## Working in this repository" in (library / "CLAUDE.md").read_text()
 

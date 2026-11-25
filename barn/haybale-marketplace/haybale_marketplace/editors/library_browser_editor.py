@@ -508,7 +508,7 @@ class LibraryBrowserEditor(BaseEditor):
         updates_available: set[str] = set()
         #: dist name -> the older version the catalog offers, for the tooltip.
         downgrades_available: dict[str, str] = {}
-        if marketplace_path and marketplace_path.exists():
+        if marketplace_path:
             try:
                 from packaging.version import Version
 
@@ -537,8 +537,8 @@ class LibraryBrowserEditor(BaseEditor):
                 # Available (not yet installed) — both [[caches]] and [[heaps]].
                 if self._filter_available:
                     candidates: list[Haybale] = list(pm.caches)
-                    # Surface [[heaps]] not already loaded as installed libraries.
-                    for raw in pm.heaps:
+                    # Surface heaps not already loaded as installed libraries.
+                    for raw in pm.all_heaps:
                         name = raw.get("name")
                         if not isinstance(name, str):
                             continue

@@ -11,6 +11,7 @@ import enum
 from dataclasses import dataclass, field
 
 from haywire.core.library.haybale import Haybale
+from haywire.core.marketstall.heaps import layer_heaps
 
 
 @dataclass(frozen=True)
@@ -54,14 +55,22 @@ class ProjectMarketplaceFile:
     """Parsed <project>/.haywire/marketplace.toml.
 
     Two section types:
-      - [[heaps]]: unpublished path-based libraries (written by haywire init)
+      - [[heaps]]: hand-written path-based libraries
       - [[caches]]: refresh result; Haybale entries with via/last_seen/stale set
 
     `[[markets]]` and `[[stalls]]` never appear in the project file.
+    ``derived_heaps`` holds the heaps derived from the project's
+    ``pyproject.toml`` (``marketstall.heaps.derive_heaps``); it is never written.
     """
 
     heaps: list[dict] = field(default_factory=list)
     caches: list[Haybale] = field(default_factory=list)
+    derived_heaps: list[dict] = field(default_factory=list)
+
+    @property
+    def all_heaps(self) -> list[dict]:
+        """The project's heaps: ``derived_heaps`` with the hand-written ``heaps`` layered on top."""
+        return layer_heaps(self.derived_heaps, self.heaps)
 
 
 class RefreshOutcome(enum.Enum):

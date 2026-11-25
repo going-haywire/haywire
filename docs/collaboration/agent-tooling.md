@@ -28,8 +28,7 @@ the steps.
 **Agent files** are the files a repository commits for ② and ③, of three kinds:
 **harness configs** (one per agent harness, JSON, read by the harness at session start: `.mcp.json`
 starts the bridge, `.claude/settings.json` allows it and wires the hooks), the **orchestrator file**
-(`t3.json`), and **declarations** (`[tool.haywire.agents]` in `pyproject.toml`, the `.gitignore`
-lines, `CLAUDE.md`). `haywire init` writes a project's; `haywire init --org-files` an org library's.
+(`t3.json`), and **declarations** (`[tool.haywire.agents]` in `pyproject.toml`, `CLAUDE.md`). `haywire init` writes a project's; `haywire init --org-files` an org library's.
 Nobody installs anything per machine or per folder: every clone and worktree has them through git.
 
 The trees below show only the folders that matter here, with every file in them. The word after a
@@ -171,8 +170,7 @@ haybale-<name>/
 │   └── settings.json        # Claude (7)
 ├── pyproject.toml           # bridge (8)
 ├── t3.json                  # T3 (9)
-├── .gitignore               # git (10)
-└── CLAUDE.md                # agent (11)
+└── CLAUDE.md                # agent (10)
 ```
 
 1.  **① CI caller** · Calls `.github`'s `library-ci.yml`, pinned to the commit of a `.github` release, on every pull request and on the default branch. Written once from `.github`'s workflow template, then the library's own.
@@ -184,8 +182,7 @@ haybale-<name>/
 7.  **② Harness config** · Runs core's hooks from `../haywire-repo/dev/hooks/`, checks at session start that core is there, allows the bridge.
 8.  **② Declaration** · `[tool.haywire.agents] developer-docs = "../haywire-repo/docs"`: core's developer pages, served here.
 9.  **③ Orchestrator file** · T3's scripts: the worktree setup through the library's main folder, finish, the studio.
-10. **② Declaration** · Ignores the machine-local `.haywire` files (port, studio pid and log).
-11. **② Declaration** · The library's own lines, and the block naming where the workflow comes from (replaced by every `--org-files` run).
+10. **② Declaration** · The library's own lines, and the block naming where the workflow comes from (replaced by every `--org-files` run).
 
 ## The organisation: `going-haywire/.github`
 

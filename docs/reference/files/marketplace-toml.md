@@ -16,8 +16,8 @@ Two files share this name, with deliberately separate concerns.
 | | Global | Project |
 | --- | --- | --- |
 | Path | `~/.haywire/db/haybale_marketplace/marketplace.toml` | `<project>/.haywire/marketplace.toml` |
-| Owner | The user, per machine | The project; travels with the source tree |
-| Holds | What the user subscribes to | The project's own libraries + the last refresh result |
+| Owner | The user, per machine | One checkout; never committed ([ADR 0096](../../adr/0096-a-projects-haywire-folder-is-local.md)) |
+| Holds | What the user subscribes to | Hand-written heaps + the last refresh result |
 | Sections | `[[markets]]`, `[[stalls]]`, `[[haybales]]` | `[[heaps]]`, `[[caches]]` |
 | Hand-editable | Yes — this is the recovery path | `[[heaps]]` yes; `[[caches]]` is derived |
 
@@ -33,7 +33,7 @@ dropped at parse.
 | `[[markets]]` | global | Add Source | A subscription to an aggregator's catalog, which references other stalls |
 | `[[stalls]]` | global | Add Source | A subscription to one author's marketstall |
 | `[[haybales]]` | global | hand-written | Libraries declared inline, without a subscription |
-| `[[heaps]]` | project | `haywire init` | Path-based libraries this project knows about |
+| `[[heaps]]` | project | hand-written | Path-based libraries beyond the ones derived from `pyproject.toml` |
 | `[[caches]]` | project | refresh | The resolved catalog from the last refresh |
 
 `[[markets]]` and `[[stalls]]` are structurally identical — the same three
@@ -92,20 +92,17 @@ source       = "git"
 
 ```toml
 # <project>/.haywire/marketplace.toml
-# Travels with the project. [[heaps]] is authored; [[caches]] is derived and
-# safe to delete — the next refresh rebuilds it.
+# Local to this checkout, never committed. [[heaps]] is hand-written and
+# optional; [[caches]] is derived and safe to delete — the next refresh
+# rebuilds it.
 
-# ── path-based libraries this project knows about ───────────────────────────
-# Written by `haywire init` (the project's own scaffolded library) and by
-# `haywire init --dev` (additionally, every sibling library in the dev repo).
-# A heap shadows any marketplace row with the same name: local always wins.
-# Surfaced in the browser's AVAILABLE section as source="local" so it is
-# visible before it is installed.
+# ── a library on disk that pyproject.toml does not name ─────────────────────
+# Heaps are derived from pyproject.toml (see "Heaps" below); an entry here
+# adds one, or replaces the derived heap of the same name.
 [[heaps]]
-name = "haybale-my-project"                                  # required
-path = "/abs/path/to/my-project/barn/haybale-my-project"     # required
-label = "My Project"
-description = "Local library for the my-project project"
+name = "haybale-experiment"                                  # required
+path = "/abs/path/to/haybale-experiment"                     # required
+label = "Experiment"
 
 # ── the resolved catalog from the last refresh ──────────────────────────────
 # Rebuilt in full on every refresh. Rows use the Haybale schema (see
@@ -158,7 +155,28 @@ choice regardless of how many sources offer it.
 A refresh never writes this file. It holds your intent — subscriptions,
 `preference`, `blocked` — and only an explicit action changes it.
 
-## Heap fields
+## Heaps
+
+A heap is a library on local disk. It shadows any marketplace row with the same
+name (local always wins) and shows in the browser's AVAILABLE section as
+`source="local"` before it is installed.
+
+Every refresh, and every render of the library browser, derives the project's
+heaps from its `pyproject.toml`
+([heaps.py](https://github.com/going-haywire/haywire/blob/master/packages/haywire-core/src/haywire/core/marketstall/heaps.py)):
+
+- each `[tool.uv.workspace]` member that holds a library (a package with a
+  `haybale.toml`): the project's own `barn/` libraries;
+- each `[tool.uv.sources]` entry with a `path` that holds a library: a
+  `haywire init --dev` project's links into the dev repo;
+- the libraries beside such a path source: the rest of the dev repo's `barn/`.
+
+Each derived heap takes `label`, `description` and `linked_libraries` from the
+library's `haybale.toml`, and its `path` from this checkout, so a clone or a
+worktree has the right heaps on its first studio start. Nothing writes them to
+the file.
+
+### Heap fields
 
 | Field | Required | Meaning |
 | --- | --- | --- |
@@ -168,11 +186,8 @@ A refresh never writes this file. It holds your intent — subscriptions,
 
 A `[[heaps]]` entry with no `name` or no `path` raises rather than being
 skipped — unlike `[[caches]]`, this section is user-authored, so a malformed
-entry is a mistake worth surfacing.
-
-Because `path` is absolute and machine-specific, committing a project
-marketplace with heaps pointing at a developer's home directory breaks it for
-everyone else.
+entry is a mistake worth surfacing. A hand-written entry replaces the derived
+heap of the same name (compared case-insensitively).
 
 ## Files on disk
 
@@ -184,7 +199,7 @@ Everything the marketplace writes, and what is lost by deleting each.
 | `~/.haywire/db/haybale_marketplace/stalls/<dist>.toml` | Pasted-in blocks | Yes — orphans the `file://` stall entry pointing at it |
 | `~/.haywire/cache/<url-hash>.toml` | Raw fetched bodies, no TTL | Yes — forces a refetch on next refresh |
 | `~/.haywire/cache/docs/<library>/` | Fetched doc bodies | Yes |
-| `<project>/.haywire/marketplace.toml` | Heaps + caches | Caches yes; heaps are authored |
+| `<project>/.haywire/marketplace.toml` | Hand-written heaps + caches | Yes, unless it holds a hand-written heap |
 
 No installed package is ever lost by deleting any of these: installation is pip
 state, not marketplace state. The recovery ladder is in

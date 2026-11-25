@@ -148,11 +148,9 @@ def check_clean_tree(workspace_root: Path) -> list[Blocker]:
     This is what makes ``git checkout . && git clean -fd`` a complete
     rollback: if the tree is proven clean before the rename writes anything,
     everything dirty afterwards is provably the rename's own work. Same
-    reasoning as the share pipeline (steps/preconditions.py). The one file
-    left out is ``LOCAL_STATE``, which a rename never writes and RECOVERY
-    leaves alone.
+    reasoning as the share pipeline (steps/preconditions.py).
     """
-    from haywire.core.publishing.git import WHOLE_TREE_BUT_LOCAL_STATE, git
+    from haywire.core.publishing.git import git
 
     if not git(["--version"], cwd=workspace_root, timeout=10.0).ok:
         return [
@@ -174,7 +172,7 @@ def check_clean_tree(workspace_root: Path) -> list[Blocker]:
         ]
 
     status = git(
-        ["status", "--porcelain", "-uall", "--", *WHOLE_TREE_BUT_LOCAL_STATE],
+        ["status", "--porcelain", "-uall"],
         cwd=workspace_root,
         timeout=10.0,
     )

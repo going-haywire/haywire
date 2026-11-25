@@ -7,6 +7,8 @@ from pathlib import Path
 import pytest
 import toml
 
+from haywire.core.marketstall import derive_heaps
+
 
 @pytest.fixture
 def fake_home(tmp_path, monkeypatch):
@@ -86,11 +88,9 @@ class TestProjectStructure:
     def test_graphs_dir_exists(self, scaffold_project):
         assert (scaffold_project / "graphs").is_dir()
 
-    def test_haywire_config_dir_exists(self, scaffold_project):
-        assert (scaffold_project / ".haywire").is_dir()
-
-    def test_haywire_config_file_exists(self, scaffold_project):
-        assert (scaffold_project / ".haywire" / "config.toml").is_file()
+    def test_init_writes_no_haywire_folder(self, scaffold_project):
+        """A project's .haywire/ is local (ADR 0096): the studio creates it, init commits none of it."""
+        assert not (scaffold_project / ".haywire").exists()
 
     def test_project_pyproject_exists(self, scaffold_project):
         assert (scaffold_project / "pyproject.toml").is_file()
@@ -303,28 +303,19 @@ class TestLibraryInit:
         assert "file_watcher=True" in init_content
 
 
-class TestProjectMarketplace:
-    """The project's <project>/.haywire/marketplace.toml contains [[heaps]] only."""
+class TestProjectHeaps:
+    """The project's own library is a heap, derived from pyproject.toml (ADR 0096)."""
 
-    def test_project_marketplace_exists(self, scaffold_project):
-        assert (scaffold_project / ".haywire" / "marketplace.toml").is_file()
+    def test_own_library_is_the_only_heap(self, scaffold_project):
+        assert [h["name"] for h in derive_heaps(scaffold_project)] == ["hay-test-project"]
 
-    def test_project_marketplace_has_one_local(self, scaffold_project):
-        data = toml.loads((scaffold_project / ".haywire" / "marketplace.toml").read_text())
-        heaps = data.get("heaps", [])
-        assert len(heaps) == 1
-        assert heaps[0]["name"] == "hay-test-project"
+    def test_heap_path_is_this_checkout(self, scaffold_project):
+        (heap,) = derive_heaps(scaffold_project)
+        assert Path(heap["path"]) == (scaffold_project / "barn" / "hay-test-project").resolve()
 
-    def test_project_marketplace_local_path_is_absolute(self, scaffold_project):
-        data = toml.loads((scaffold_project / ".haywire" / "marketplace.toml").read_text())
-        path = data["heaps"][0]["path"]
-        assert Path(path).is_absolute()
-        assert Path(path) == scaffold_project / "barn" / "hay-test-project"
-
-    def test_project_marketplace_has_no_caches(self, scaffold_project):
-        """No [[caches]] section — refresh (Plan E) populates that."""
-        data = toml.loads((scaffold_project / ".haywire" / "marketplace.toml").read_text())
-        assert data.get("caches", []) == []
+    def test_heap_carries_the_haybale_toml_label(self, scaffold_project):
+        (heap,) = derive_heaps(scaffold_project)
+        assert heap["label"]
 
 
 class TestDevMode:
@@ -370,17 +361,15 @@ class TestDevMode:
         )
         assert "sources" not in data.get("tool", {}).get("uv", {})
 
-    def test_dev_project_marketplace_includes_dev_repo_libs(self, scaffold_project_dev):
-        """In --dev mode the project marketplace holds the scaffolded library AND
-        every dev-repo barn library, scoped to this project (not user-global)."""
-        data = toml.loads((scaffold_project_dev / ".haywire" / "marketplace.toml").read_text())
-        names = {entry["name"] for entry in data.get("heaps", [])}
+    def test_dev_project_heaps_include_dev_repo_libs(self, scaffold_project_dev):
+        """A --dev project's heaps are the scaffolded library and the dev repo's libraries."""
+        heaps = derive_heaps(scaffold_project_dev)
+        names = {entry["name"] for entry in heaps}
         # The scaffolded project library:
         assert "hay-test-project-dev" in names
         # A representative sample of dev-repo libraries:
         for dev_lib in ["haybale-core", "haybale-studio", "haybale-haystack"]:
             assert dev_lib in names, f"missing dev-repo library: {dev_lib}"
-        assert data.get("caches", []) == []
 
 
 class TestLibBasename:
@@ -625,8 +614,8 @@ class TestDistnameOverride:
         assert data["name"] == "acme-weather"
 
     def test_project_marketplace_heap_name(self, overridden_project):
-        data = toml.loads((overridden_project / ".haywire" / "marketplace.toml").read_text())
-        assert data["heaps"][0]["name"] == "acme-weather"
+        heaps = derive_heaps(overridden_project)
+        assert heaps[0]["name"] == "acme-weather"
 
     def test_root_project_name_kept_verbatim(self, overridden_project):
         """The root project name is driven by projectname, never by --distname,
@@ -727,9 +716,7 @@ class TestUserGlobalStaysEmpty:
 
 
 class TestSameNameAcrossProjectsAllowed:
-    """Two unrelated projects may share the same library name now that
-    [[heaps]] are project-scoped — no cross-project G5 refusal at init time.
-    """
+    """Two unrelated projects may share the same library name: heaps are per project."""
 
     def test_second_init_with_same_name_succeeds(self, tmp_path, monkeypatch, fake_home):
         from haywire_studio.init import init_project
@@ -744,17 +731,14 @@ class TestSameNameAcrossProjectsAllowed:
         monkeypatch.chdir(b)
         init_project("test-project", auto_sync=False)
 
-        # Both project directories exist with their own marketplaces.
+        # Each project derives its own heap.
         for parent in (a, b):
-            project_mp = parent / "test-project" / ".haywire" / "marketplace.toml"
-            assert project_mp.is_file()
-            data = toml.loads(project_mp.read_text())
-            names = [entry["name"] for entry in data.get("heaps", [])]
+            names = [entry["name"] for entry in derive_heaps(parent / "test-project")]
             assert names == ["hay-test-project"]
 
 
 class TestDevModeProjectRegistration:
-    """`haywire init --dev` registers dev-repo libraries in the *project* marketplace."""
+    """A `haywire init --dev` project derives the dev repo's libraries as heaps."""
 
     @pytest.fixture
     def scaffold_dev_with_fake_home(self, tmp_path, monkeypatch, fake_home):
@@ -765,8 +749,8 @@ class TestDevModeProjectRegistration:
         return tmp_path / "test-dev-project"
 
     def test_project_marketplace_has_all_dev_repo_libraries(self, scaffold_dev_with_fake_home):
-        data = toml.loads((scaffold_dev_with_fake_home / ".haywire" / "marketplace.toml").read_text())
-        names = {entry["name"] for entry in data.get("heaps", [])}
+        heaps = derive_heaps(scaffold_dev_with_fake_home)
+        names = {entry["name"] for entry in heaps}
 
         # The scaffolded project library:
         assert "hay-test-dev-project" in names
@@ -786,14 +770,16 @@ class TestDevModeProjectRegistration:
     def test_dev_locals_paths_point_at_dev_repo(self, scaffold_dev_with_fake_home):
         from haywire_studio.init import _get_dev_repo_root
 
-        data = toml.loads((scaffold_dev_with_fake_home / ".haywire" / "marketplace.toml").read_text())
+        heaps = derive_heaps(scaffold_dev_with_fake_home)
         dev_root = _get_dev_repo_root()
 
-        for entry in data["heaps"]:
+        for entry in heaps:
             if entry["name"] == "hay-test-dev-project":
                 continue  # The project's own library lives in the project, not the dev repo
             path = entry["path"]
-            assert path.startswith(dev_root), f"{entry['name']}: {path} not under {dev_root}"
+            assert Path(path).is_relative_to(Path(dev_root).resolve()), (
+                f"{entry['name']}: {path} not under {dev_root}"
+            )
             assert Path(path).is_dir(), f"{entry['name']}: {path} does not exist"
 
     def test_dev_mode_does_not_write_heaps_to_user_global(self, scaffold_dev_with_fake_home, fake_home):
@@ -804,20 +790,20 @@ class TestDevModeProjectRegistration:
         assert data.get("heaps", []) == []
 
     def test_regular_init_does_not_register_dev_repo_libraries(self, scaffold_project_with_fake_home):
-        """Without --dev, only the project's own library appears in the project marketplace."""
-        data = toml.loads((scaffold_project_with_fake_home / ".haywire" / "marketplace.toml").read_text())
-        names = [entry["name"] for entry in data.get("heaps", [])]
+        """Without --dev, the project's own library is its only heap."""
+        heaps = derive_heaps(scaffold_project_with_fake_home)
+        names = [entry["name"] for entry in heaps]
         assert names == ["hay-test-project"]
 
     def test_dev_heaps_carry_decorator_dependencies(self, scaffold_dev_with_fake_home):
-        """A dev heap records its @library(linked_libraries=...) so the install gate can check.
+        """A dev heap carries the library's linked_libraries so the install gate can check.
 
         haybale-haystack's @library decorator declares haybale_studio +
         haybale_graph_editor; both must be written (pip-package form) into its
-        [[heaps]] entry's `linked_libraries` field.
+        derived heap's `linked_libraries` field.
         """
-        data = toml.loads((scaffold_dev_with_fake_home / ".haywire" / "marketplace.toml").read_text())
-        haystack = next(e for e in data["heaps"] if e["name"] == "haybale-haystack")
+        heaps = derive_heaps(scaffold_dev_with_fake_home)
+        haystack = next(e for e in heaps if e["name"] == "haybale-haystack")
         deps = set(haystack.get("linked_libraries", []))
         assert {"haybale-studio", "haybale-graph-editor"} <= deps
         # The decorator only declares haybale libraries — no framework/PyPI deps.

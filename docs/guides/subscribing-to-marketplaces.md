@@ -322,7 +322,7 @@ Browsing the catalog and installing are deliberately separate steps. Behind the 
 - On success, the Library System rescans to pick up the new entry point.
 - The row moves from AVAILABLE to ENABLED.
 
-Installing a **local** library (one of your project's own `[[heaps]]`) runs
+Installing a **local** library (one of your project's heaps) runs
 `uv pip install -e <path>` instead, so it stays editable and hot-reloads.
 
 The safety modal's three buttons write different things. **Block source** adds
@@ -349,16 +349,18 @@ Your project's library state lives in two files. Knowing what each is for helps 
 Pasted-TOML inputs are saved as a local stall file and referenced via a
 `file://` `[[stalls]]` entry.
 
-**Project marketplace** — per-project, travels with the source tree.
+**Project marketplace** — per checkout, never committed.
 
 ```text
 <project>/.haywire/marketplace.toml
 ```
 
-This project's path-based libraries (`[[heaps]]`, written by `haywire init`) and
-the resolved catalog cache (`[[caches]]`, written by Refresh).
+The resolved catalog cache (`[[caches]]`, written by Refresh), and any
+path-based library you add by hand (`[[heaps]]`). The project's own libraries,
+and a `--dev` project's dev-repo libraries, are heaps without an entry here:
+the studio derives them from `pyproject.toml`.
 
-You generally interact with the global file (subscriptions are a user concern). The project file is managed for you — `haywire init` sets up `[[heaps]]`, and Refresh maintains `[[caches]]`.
+You generally interact with the global file (subscriptions are a user concern). The project file is managed for you — Refresh maintains `[[caches]]`.
 
 Field by field: [marketplace.toml](../reference/files/marketplace-toml.md). Why the split exists: [haybale-marketplace-arch §8](../haybale/marketplace/haybale-marketplace-arch.md#8-why-the-model-is-shaped-this-way).
 
