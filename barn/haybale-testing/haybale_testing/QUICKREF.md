@@ -16,6 +16,7 @@
 - `haybale-testing:node:CallbackEmitProbeNode` — Callback Emit Probe — Test version of EmitCallback — emits a callback to trigger event nodes  _tags: test, callback, emit, trigger, event_
 - `haybale-testing:node:CallbackEventProbeNode` — Callback Event Probe — Test version of CustomCallback — listens for named callbacks  _tags: test, callback, listen, event, custom_
 - `haybale-testing:node:CallbackRelayProbeNode` — Callback Relay Probe — Test-only: copies a callback inlet's value to its outlet on write, with a suffix.  _tags: test, callback, relay, loop_
+- `haybale-testing:node:ChipFieldProbeNode` — Chip Field Probe — Hosts a chip select whose root is the select, beside a plain select  _tags: chips, select, widget, testing_
 - `haybale-testing:node:ControlPayloadProbeNode` — Control Payload Probe — Test-only control node for exercising EXEC-edge payloads. Records the payload that arrived on its exec inlet, then advances — optionally writing its own payload, optionally forwarding the entered one implicitly (transparent conduit).  _tags: test, control, exec, payload, conduit_
 - `haybale-testing:node:DisplayProbeNode` — Display Probe — Displays input values for debugging  _tags: display, debug, output, basic_
 - `haybale-testing:node:DrainConsumerProbeNode` — Drain Consumer Probe — Test-only control node taking everything queued on its drain inlet, once per run  _tags: test, drain, consumer_
@@ -24,6 +25,7 @@
 - `haybale-testing:node:EdgeLinkProbeNode` — Edge Link Probe —   _tags: testing, edge, link, inlet, outlet, connection, adapter_
 - `haybale-testing:node:EmptyFoldProbeNode` — Empty Fold Probe — Tests that a fold holding no ports raises  _tags: testing, fold_
 - `haybale-testing:node:FoldProbeNode` — Fold Probe — Tests fold minting, lanes and open state  _tags: testing, fold, render_
+- `haybale-testing:node:LongLabelProbeNode` — Long Label Probe — Hosts a status label far longer than the node is wide  _tags: label, status, widget, testing_
 - `haybale-testing:node:MixedFoldProbeNode` — Mixed Fold Probe — Tests that a fold spanning two directions raises  _tags: testing, fold_
 - `haybale-testing:node:NestedFoldProbeNode` — Nested Fold Probe — Tests that a fold declared inside another fold raises  _tags: testing, fold_
 - `haybale-testing:node:PerformanceProbeNode` — Performance Probe — Helps test performance of execution system  _tags: performance, control, flow, event_
@@ -54,6 +56,7 @@
 
 ## widget
 - `haybale-testing:widget:AspectBoxWidget` — AspectBoxWidget — Oversized content behind a declared width; height follows the content's aspect
+- `haybale-testing:widget:ChipSelectRootWidget` — ChipSelectRootWidget — A chip select as the widget's root, declaring a width
 - `haybale-testing:widget:FixedBoxWidget` — FixedBoxWidget — Oversized content behind a fully declared box
 - `haybale-testing:widget:OversizedContentWidget` — OversizedContentWidget — Oversized content that sizes from its contents (no declared box)
 

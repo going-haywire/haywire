@@ -19,6 +19,7 @@ Test library for test support
 - **Callback Emit Probe** — Test version of EmitCallback — emits a callback to trigger event nodes
 - **Callback Event Probe** — Test version of CustomCallback — listens for named callbacks
 - **Callback Relay Probe** — Test-only: copies a callback inlet's value to its outlet on write, with a suffix.
+- **Chip Field Probe** — Hosts a chip select whose root is the select, beside a plain select
 - **Control Payload Probe** — Test-only control node for exercising EXEC-edge payloads. Records the payload that arrived on its exec inlet, then advances — optionally writing its own payload, optionally forwarding the entered one implicitly (transparent conduit).
 - **Display Probe** — Displays input values for debugging
 - **Drain Consumer Probe** — Test-only control node taking everything queued on its drain inlet, once per run
@@ -27,6 +28,7 @@ Test library for test support
 - **Edge Link Probe** — 
 - **Empty Fold Probe** — Tests that a fold holding no ports raises
 - **Fold Probe** — Tests fold minting, lanes and open state
+- **Long Label Probe** — Hosts a status label far longer than the node is wide
 - **Mixed Fold Probe** — Tests that a fold spanning two directions raises
 - **Nested Fold Probe** — Tests that a fold declared inside another fold raises
 - **Performance Probe** — Helps test performance of execution system
@@ -57,6 +59,7 @@ Test library for test support
 
 ## Widgets
 - **AspectBoxWidget** — Oversized content behind a declared width; height follows the content's aspect
+- **ChipSelectRootWidget** — A chip select as the widget's root, declaring a width
 - **FixedBoxWidget** — Oversized content behind a fully declared box
 - **OversizedContentWidget** — Oversized content that sizes from its contents (no declared box)
 
