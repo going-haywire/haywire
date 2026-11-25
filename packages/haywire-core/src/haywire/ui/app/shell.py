@@ -427,6 +427,12 @@ STATIC_CSS = (
     "   min-height: var(--hw-compact-field-h) !important;"
     "   height: var(--hw-compact-field-h) !important;"
     " }"
+    # A chip select grows as its chips wrap onto more rows; one row of chips
+    # keeps the compact height, which stays the minimum.
+    " .compact-fields .q-select--with-chips .q-field__control,"
+    " .compact-fields .q-select--with-chips .q-field__native {"
+    "   height: auto !important;"
+    " }"
     " .compact-fields .q-field__bottom { display: none !important; }"
     " .compact-fields .q-toggle {"
     "   margin: 0 !important; padding: 0 !important;"

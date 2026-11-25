@@ -16,10 +16,12 @@ plus ``contain-intrinsic-size`` replaces the content's vote with the declared
 box, so the node shrinks to the box while the widget still grows into a larger
 card.
 
-The declaration reaches the DOM as CSS custom properties plus a marker
-attribute, rather than as inline ``contain``/``max-height`` declarations, so the
-whole CSS contract stays in one place (``canvas.vue``) next to the
-``.widget-container`` collapse rules it interacts with.
+The declaration reaches the DOM as CSS custom properties plus a marker class,
+so the whole CSS contract stays in one place (``canvas.vue``) next to the
+``.widget-container`` rules it interacts with. Both are ``class`` and ``style``,
+the two things a Quasar field keeps on its root (it moves every other attribute
+to an inner element), so the box reaches a widget whose root is a ``ui.select``
+or ``ui.input`` as well as a plain element.
 """
 
 from __future__ import annotations
@@ -32,11 +34,10 @@ from .interface import IWidget
 
 logger = logging.getLogger(__name__)
 
-# Marker attributes read by the canvas.vue CSS contract. Values are arbitrary —
-# the selectors are attribute-presence tests.
-BOX_ATTR = "data-hw-widget-box"  # both axes declared -> contain: size
-INLINE_BOX_ATTR = "data-hw-widget-inline-box"  # width only -> contain: inline-size
-MAX_HEIGHT_ATTR = "data-hw-widget-max-height"
+# Marker classes read by the canvas.vue CSS contract.
+BOX_CLASS = "hw-widget-box"  # both axes declared -> contain: size
+INLINE_BOX_CLASS = "hw-widget-inline-box"  # width only -> contain: inline-size
+MAX_HEIGHT_CLASS = "hw-widget-max-height"
 
 # Custom properties the marker rules read.
 MIN_WIDTH_VAR = "--hw-widget-min-width"
@@ -47,8 +48,9 @@ MAX_HEIGHT_VAR = "--hw-widget-max-height"
 def stamp_size_declaration(element: Element | None, widget: IWidget) -> None:
     """Stamp ``widget``'s declared size box onto its rendered root ``element``.
 
-    No-op for a widget that declares nothing — which is every stock widget, so
-    content-driven sizing stays the default and this costs one attribute lookup.
+    No-op for a widget that declares nothing, so content-driven sizing stays the
+    default. The marker is a class on ``element``: a widget that later calls
+    ``classes(replace=...)`` on its own root removes it.
 
     Which axes are declared picks the containment mode, and the two modes suit
     genuinely different content:
@@ -77,9 +79,9 @@ def stamp_size_declaration(element: Element | None, widget: IWidget) -> None:
         decls.append(f"{MIN_WIDTH_VAR}: {min_width}px")
         if min_height is not None:
             decls.append(f"{MIN_HEIGHT_VAR}: {min_height}px")
-            _set_attr(element, BOX_ATTR)
+            element.classes(add=BOX_CLASS)
         else:
-            _set_attr(element, INLINE_BOX_ATTR)
+            element.classes(add=INLINE_BOX_CLASS)
     elif min_height is not None:
         logger.warning(
             "Widget %s declares min_height without min_width. CSS can contain the "
@@ -90,13 +92,8 @@ def stamp_size_declaration(element: Element | None, widget: IWidget) -> None:
 
     if max_height is not None:
         decls.append(f"{MAX_HEIGHT_VAR}: {max_height}px")
-        _set_attr(element, MAX_HEIGHT_ATTR)
+        element.classes(add=MAX_HEIGHT_CLASS)
 
     if decls:
         # add (not replace) — the widget's own build() styling stays intact.
         element.style("; ".join(decls))
-
-
-def _set_attr(element: Element, name: str) -> None:
-    """Set a bare marker attribute, mirroring how ui_node.py stamps the host slot."""
-    element._props[name] = "1"

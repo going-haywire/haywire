@@ -93,8 +93,8 @@ def _widget_box(page: Page, node_id: str) -> dict:
             return {
                 width: el.offsetWidth,
                 height: el.offsetHeight,
-                boxAttr: el.getAttribute('data-hw-widget-box'),
-                inlineBoxAttr: el.getAttribute('data-hw-widget-inline-box'),
+                boxMarker: el.classList.contains('hw-widget-box'),
+                inlineBoxMarker: el.classList.contains('hw-widget-inline-box'),
                 minWidthVar: cs.getPropertyValue('--hw-widget-min-width').trim(),
                 minHeightVar: cs.getPropertyValue('--hw-widget-min-height').trim(),
                 contain: cs.contain,
@@ -104,13 +104,12 @@ def _widget_box(page: Page, node_id: str) -> dict:
     )
 
 
-def _set_attr(page: Page, node_id: str, name: str, present: bool) -> None:
-    """Toggle a containment marker in place — same DOM, containment on/off."""
+def _set_marker(page: Page, node_id: str, name: str, present: bool) -> None:
+    """Toggle a containment marker class in place — same DOM, containment on/off."""
     page.evaluate(
         """([nid, name, present]) => {
             const el = document.querySelector(`[data-node-id="${nid}"] .widget-container`);
-            if (present) el.setAttribute(name, '1');
-            else el.removeAttribute(name);
+            el.classList.toggle(name, present);
         }""",
         [node_id, name, present],
     )
@@ -164,7 +163,7 @@ def test_declared_box_reaches_the_dom(page: Page, harness):
 
     w = _widget_box(page, nid)
     assert w is not None, "boxed node rendered no widget container"
-    assert w["boxAttr"], f"containment marker missing: {w}"
+    assert w["boxMarker"], f"containment marker missing: {w}"
     assert w["minWidthVar"] == f"{BOX_WIDTH}px", f"min-width var not stamped: {w}"
     assert w["minHeightVar"] == f"{BOX_HEIGHT}px", f"min-height var not stamped: {w}"
     assert "size" in w["contain"], f"size containment not applied: {w}"
@@ -177,8 +176,8 @@ def test_width_only_declaration_contains_the_inline_axis(page: Page, harness):
     _select(page, nid)
 
     w = _widget_box(page, nid)
-    assert w["inlineBoxAttr"], f"inline containment marker missing: {w}"
-    assert not w["boxAttr"], f"width-only declaration must not contain both axes: {w}"
+    assert w["inlineBoxMarker"], f"inline containment marker missing: {w}"
+    assert not w["boxMarker"], f"width-only declaration must not contain both axes: {w}"
     assert "inline-size" in w["contain"], f"inline-size containment not applied: {w}"
 
 
@@ -217,19 +216,19 @@ def test_declared_box_frees_the_node_to_shrink(page: Page, harness, which):
 
 
 @pytest.mark.parametrize(
-    ("which", "attr"),
-    [("aspect", "data-hw-widget-inline-box"), ("fixed", "data-hw-widget-box")],
+    ("which", "marker"),
+    [("aspect", "hw-widget-inline-box"), ("fixed", "hw-widget-box")],
 )
-def test_removing_the_marker_restores_the_content_floor(page: Page, harness, which, attr):
+def test_removing_the_marker_restores_the_content_floor(page: Page, harness, which, marker):
     """Containment is what frees the node — toggling it on the same DOM proves it."""
     _open(page, harness)
     nid = _node_id(page, which)
     _select(page, nid)
 
     contained = _floor(page, nid)["width"]
-    _set_attr(page, nid, attr, False)
+    _set_marker(page, nid, marker, False)
     uncontained = _floor(page, nid)["width"]
-    _set_attr(page, nid, attr, True)
+    _set_marker(page, nid, marker, True)
     restored = _floor(page, nid)["width"]
 
     assert uncontained >= CONTENT_WIDTH, f"marker removal did not restore the content floor: {uncontained}px"

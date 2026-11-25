@@ -4888,7 +4888,9 @@ path.hw-edge-preview {
 /* ---- Declared size box (@widget(min_width=, min_height=, max_height=)) ----
    Stamped by haywire/ui/widget/sizing.py through the one render funnel every
    skin calls (BaseSkin.render_widget), so custom skins inherit this without
-   cooperating. See docs/components/widgets/widget-canon.md. */
+   cooperating. See docs/components/widgets/widget-canon.md. The markers are
+   classes: a Quasar field root (ui.select, ui.input) keeps only class and style
+   and moves every other attribute to an inner element. */
 
 /* All four rules below were scoped to `.node-selected` while widget visibility
    was a reveal. They are size declarations, not visibility ones, so they now
@@ -4900,7 +4902,7 @@ path.hw-edge-preview {
    whose CONTENT is unbounded (a long label, a growing list). Must stay a fixed
    px value, never a percentage: a percentage of an auto-height ancestor
    resolves to none, so the ceiling silently stops applying. */
-[data-node-id] .widget-container[data-hw-widget-max-height] {
+[data-node-id] .widget-container.hw-widget-max-height {
     max-height: var(--hw-widget-max-height) !important;
 }
 
@@ -4908,7 +4910,7 @@ path.hw-edge-preview {
    content (killing the floor, see below) while the height still does, so
    content with an intrinsic aspect ratio keeps growing proportionally as the
    node widens. Full containment would flatten it to a fixed-height box. */
-[data-node-id] .widget-container[data-hw-widget-inline-box] {
+[data-node-id] .widget-container.hw-widget-inline-box {
     contain: inline-size !important;
     contain-intrinsic-width: var(--hw-widget-min-width) !important;
     max-height: var(--hw-widget-max-height, none) !important;
@@ -4932,7 +4934,7 @@ path.hw-edge-preview {
    Growth needs the ceiling gone, so a boxed widget opts out of the 200px
    default. Declaring max_height too puts the ceiling back (the var resolves)
    at the cost of capping growth there. */
-[data-node-id] .widget-container[data-hw-widget-box] {
+[data-node-id] .widget-container.hw-widget-box {
     contain: size !important;
     contain-intrinsic-size: var(--hw-widget-min-width) var(--hw-widget-min-height) !important;
     max-height: var(--hw-widget-max-height, none) !important;

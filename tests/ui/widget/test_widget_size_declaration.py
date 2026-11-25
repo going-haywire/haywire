@@ -25,9 +25,9 @@ from haywire.ui.widget.decorator import widget
 from haywire.ui.widget.identity import WidgetIdentity
 from haywire.ui.widget.interface import IWidget
 from haywire.ui.widget.sizing import (
-    BOX_ATTR,
-    INLINE_BOX_ATTR,
-    MAX_HEIGHT_ATTR,
+    BOX_CLASS,
+    INLINE_BOX_CLASS,
+    MAX_HEIGHT_CLASS,
     stamp_size_declaration,
 )
 
@@ -132,11 +132,15 @@ class _StubElement:
     """Records what the stamp writes, without a NiceGUI client/slot."""
 
     def __init__(self) -> None:
-        self._props: dict = {}
+        self.marker_classes: set[str] = set()
         self.styles: list[str] = []
 
     def style(self, decls: str) -> _StubElement:
         self.styles.append(decls)
+        return self
+
+    def classes(self, add: str) -> _StubElement:
+        self.marker_classes.update(add.split())
         return self
 
 
@@ -144,7 +148,7 @@ def test_stamp_writes_custom_props_and_box_marker():
     el = _StubElement()
     stamp_size_declaration(cast(Any, el), _BoxedWidget(cast(Any, _StubPort())))
 
-    assert el._props[BOX_ATTR]
+    assert BOX_CLASS in el.marker_classes
     style = "; ".join(el.styles)
     assert "--hw-widget-min-width: 160px" in style
     assert "--hw-widget-min-height: 90px" in style
@@ -154,7 +158,7 @@ def test_stamp_is_a_noop_for_an_undeclared_widget():
     el = _StubElement()
     stamp_size_declaration(cast(Any, el), _PlainWidget(cast(Any, _StubPort())))
 
-    assert el._props == {}
+    assert el.marker_classes == set()
     assert el.styles == []
 
 
@@ -162,8 +166,8 @@ def test_max_height_stamps_independently_of_the_box():
     el = _StubElement()
     stamp_size_declaration(cast(Any, el), _PlainWidget(cast(Any, _StubPort({"max_height": 250}))))
 
-    assert MAX_HEIGHT_ATTR in el._props
-    assert BOX_ATTR not in el._props  # ceiling and intrinsic box are separate knobs
+    assert MAX_HEIGHT_CLASS in el.marker_classes
+    assert BOX_CLASS not in el.marker_classes  # ceiling and intrinsic box are separate knobs
     assert "--hw-widget-max-height: 250px" in "; ".join(el.styles)
 
 
@@ -173,8 +177,8 @@ def test_width_only_declaration_contains_the_inline_axis():
     el = _StubElement()
     stamp_size_declaration(cast(Any, el), _PlainWidget(cast(Any, _StubPort({"min_width": 160}))))
 
-    assert el._props[INLINE_BOX_ATTR]
-    assert BOX_ATTR not in el._props
+    assert INLINE_BOX_CLASS in el.marker_classes
+    assert BOX_CLASS not in el.marker_classes
     style = "; ".join(el.styles)
     assert "--hw-widget-min-width: 160px" in style
     assert "--hw-widget-min-height" not in style
@@ -186,8 +190,8 @@ def test_height_only_declaration_is_ignored_and_warned(caplog):
     with caplog.at_level("WARNING"):
         stamp_size_declaration(cast(Any, el), _PlainWidget(cast(Any, _StubPort({"min_height": 90}))))
 
-    assert BOX_ATTR not in el._props
-    assert INLINE_BOX_ATTR not in el._props
+    assert BOX_CLASS not in el.marker_classes
+    assert INLINE_BOX_CLASS not in el.marker_classes
     assert el.styles == []
     assert "min_width" in caplog.text
 
@@ -218,7 +222,7 @@ def test_a_bare_iwidget_implementation_carries_the_declaration():
     el = _StubElement()
     stamp_size_declaration(cast(Any, el), Bare(_StubPort()))
 
-    assert el._props[BOX_ATTR]
+    assert BOX_CLASS in el.marker_classes
     style = "; ".join(el.styles)
     assert "--hw-widget-min-width: 200px" in style
     assert "--hw-widget-min-height: 120px" in style

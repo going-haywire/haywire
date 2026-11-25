@@ -57,6 +57,13 @@ Fixed or internally-scrolling content → both axes.
 
 Landed as `@widget(min_width=, min_height=, max_height=)`; see
 `docs/components/widgets/widget-canon.md` and `haywire/ui/widget/sizing.py`.
+The marker that switches containment on is a **class** (`hw-widget-inline-box`,
+`hw-widget-box`), never a `data-*` attribute: on a `ui.select` root Quasar moves
+attributes to an inner element and the rule silently never matches
+([feedback_quasar_field_moves_attributes.md](feedback_quasar_field_moves_attributes.md)).
+
+Text is content too: a `LabelWidget` status line floored its node at the whole
+line until the widget declared `min_width=120` and `truncate`.
 
 ## Height does not reach widgets, and that's accepted
 

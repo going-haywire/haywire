@@ -13,6 +13,7 @@ from haywire.barn.builtin.types import INT
 from haywire.core.types.utils import resolve_options
 from haywire.ui import elements as hui
 from haywire.ui.components.number.drag import NumberDrag
+from haywire.ui.hover_tip import set_hover_tip
 from haywire.ui.modals import text_modal
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.converters import DisplayTextConverter, PrimitiveUnwrappingConverter
@@ -398,23 +399,33 @@ class MenuWidget(BaseWidget):
         element.update()
 
 
-@widget(description="Label for display only")
+@widget(description="Label for display only", min_width=120)
 class LabelWidget(BaseWidget):
     """
     Read-only label widget that displays the port value as text.
 
     Text and numbers show as they are; any other value, such as a path, shows in
-    its text form (`scans:in/a.png`). No configuration options.
+    its text form (`scans:in/a.png`). The text stays on one line: when it is wider
+    than the node it is cut with an ellipsis, and hovering it shows all of it. So a
+    long status line, or one that changes while the graph runs, never sets the
+    node's width. No configuration options.
 
-    Example::
-
-        LabelWidget.config()
+    ```python
+    LabelWidget.config()
+    ```
     """
 
     def build(self) -> Any:
-        return self.bind(
-            ui.label("").classes("text-base text-xs"),
-            prop="text",
-            one_way=True,
-            converter=DisplayTextConverter(default_value=""),
-        )
+        with ui.element("div").classes("w-full min-w-0") as root:
+            self._text = self.bind(
+                ui.label("").classes("text-base text-xs truncate"),
+                prop="text",
+                one_way=True,
+                converter=DisplayTextConverter(default_value=""),
+            )
+        return root
+
+    def on_model_changed(self, value: Any) -> None:
+        super().on_model_changed(value)
+        text = DisplayTextConverter().to_view(value)
+        set_hover_tip(self._text, "" if text is None else str(text))
