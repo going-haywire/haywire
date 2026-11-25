@@ -135,3 +135,27 @@ def test_module_name_sets_the_field_not_the_details(ledger):
     assert logged is not None
     assert logged.module_name == "pkg.mod"
     assert "module_name" not in logged.details
+
+
+def test_an_entry_names_its_cause(ledger):
+    try:
+        raise LookupError("no model chosen")
+    except LookupError as exc:
+        logged = report_failure(exc, operation="Node Execution", message="Error executing node 'X'")
+    assert logged is not None
+    data = logged.to_dict()
+    assert data["message"] == "Error executing node 'X'"
+    assert data["cause"] == "LookupError: no model chosen"
+
+
+def test_an_entry_with_nothing_wrapped_has_no_cause(ledger):
+    assert HaywireException.create("plain").log().to_dict()["cause"] is None
+
+
+def test_from_dict_takes_back_a_dict_with_a_cause(ledger):
+    try:
+        raise LookupError("gone")
+    except LookupError as exc:
+        logged = report_failure(exc, operation="Load")
+    assert logged is not None
+    assert HaywireException.from_dict(logged.to_dict()).message == logged.message

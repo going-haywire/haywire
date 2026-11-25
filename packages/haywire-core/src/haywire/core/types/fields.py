@@ -116,6 +116,19 @@ class DataField[T](ABC):
         """Return the own value, whether or not an edge's value stands in front of it."""
         return self._get_own()
 
+    def as_stored(self, value: Any) -> T | None:
+        """Return *value* as this field would store and return it, without storing it.
+
+        Compare a write's request with the value read back through this: a field that
+        coerces (a dict to a value object, say) never returns what it was given.
+
+        Raises:
+            TypeError: If the field rejects *value*.
+        """
+        probe = self._new_linked_slot()
+        probe._set_own(value)
+        return probe._get_own()
+
     def set_value(self, value: Any, source_id: str | None = None) -> None:
         """Store *value* and fire ``on_changed`` with what ``get_value()`` returns before and after.
 

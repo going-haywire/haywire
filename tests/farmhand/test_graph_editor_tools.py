@@ -1512,3 +1512,24 @@ def test_arrange_from_a_node_needs_a_known_node(farmhand_call):
         assert "[bad_scope]" in bad.content[0].text
     finally:
         _close(farmhand_call, bid)
+
+
+MODEL_NODE_KEY = "haybale-models:node:ResolveModelNode"
+MODEL_VALUE = {"catalog": "haybale-x:catalog:Whisper"}
+
+
+@pytest.mark.parametrize("tool", ["set_property", "operate"])
+def test_a_value_the_port_converts_is_no_rejection(farmhand_call, tool):
+    """A MODEL_REF port stores a dict as a ModelRef; the tool compares the converted request (#244)."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid, MODEL_NODE_KEY)
+        if tool == "set_property":
+            args = {"binding_id": bid, "node_id": node_id, "name": "model", "value": MODEL_VALUE}
+        else:
+            args = {"binding_id": bid, "node_id": node_id, "port_id": "model", "value": MODEL_VALUE}
+        result = _call(farmhand_call, f"haybale-graph-editor_{tool}", args)
+        assert result.isError is not True, result.content[0].text
+        assert "Whisper" in result.content[0].text
+    finally:
+        _close(farmhand_call, bid)

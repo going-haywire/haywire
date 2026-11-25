@@ -1302,6 +1302,17 @@ class HaywireException(Exception):
 
         return
 
+    def cause(self) -> str | None:
+        """Return the wrapped exception as ``"<type>: <text>"``, or ``None`` when nothing is wrapped.
+
+        ``message`` says where it failed ("Error executing node 'X'"); this says why.
+        """
+        if self.original_exception is None:
+            return None
+        text = str(self.original_exception)
+        name = type(self.original_exception).__name__
+        return f"{name}: {text}" if text else name
+
     def to_dict(self) -> dict:
         """
         Serialize to a JSON-friendly dict.
@@ -1310,12 +1321,15 @@ class HaywireException(Exception):
         Farmhand (MCP): the ledger holds live HaywireException objects, and each
         is serialized through here when it must cross a JSON boundary. Includes
         the ledger-afterlife fields (ledger_seq, seen), the derived library id,
-        and the full formatted report (detail) so a client needs no second call.
+        the wrapped exception's type and text (cause, ``None`` when nothing is
+        wrapped) and the full formatted report (detail) so a client needs no
+        second call.
         """
         return {
             "seq": self.ledger_seq,
             "seen": self.seen,
             "message": self.message,
+            "cause": self.cause(),
             "severity": self.severity.value if self.severity else None,
             "category": self.category,
             "timestamp": self.timestamp,
@@ -1345,7 +1359,7 @@ class HaywireException(Exception):
         """Reconstruct from serialized form.
 
         Tolerant of to_dict()'s output: derived / non-constructor keys (``seq``,
-        ``library``, ``detail``) are dropped, and ``seen`` maps to the field of
+        ``library``, ``cause``, ``detail``) are dropped, and ``seen`` maps to the field of
         the same name. Round-trips the constructor fields; the derived ones are
         recomputed or left at their defaults.
         """
@@ -1357,6 +1371,6 @@ class HaywireException(Exception):
         if "seq" in data:
             data["ledger_seq"] = data.pop("seq")
         # Drop derived, non-constructor keys.
-        for derived in ("library", "detail"):
+        for derived in ("library", "cause", "detail"):
             data.pop(derived, None)
         return cls(**data)

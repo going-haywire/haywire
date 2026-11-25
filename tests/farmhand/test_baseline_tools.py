@@ -286,6 +286,27 @@ def test_get_errors_returns_ledger_page():
     assert "message" in entry
 
 
+def test_get_errors_counts_unseen_entries_since_seq_hides():
+    """An error raised before the poll's since_seq is out of view; the result says so (#244)."""
+    from haybale_studio.farmhands.errors import StudioGetErrorsTool
+    from haywire.core.errors.haywire_exception import HaywireException
+
+    early = HaywireException.create("raised at graph start").log().ledger_seq
+    seen = HaywireException.create("already triaged").log()
+    seen.seen = True
+    result = run_tool(StudioGetErrorsTool, since_seq=seen.ledger_seq)
+    assert result["total"] == 0
+    assert result["unseen_before"] >= 1
+    assert "call without since_seq" in result["summary"]
+    assert any(e["seq"] == early for e in run_tool(StudioGetErrorsTool, limit=10_000)["errors"])
+
+
+def test_get_errors_without_since_seq_has_no_hidden_count():
+    from haybale_studio.farmhands.errors import StudioGetErrorsTool
+
+    assert "unseen_before" not in run_tool(StudioGetErrorsTool)
+
+
 def test_dismiss_errors_removes_one_entry():
     from haybale_studio.farmhands.errors import StudioDismissErrorsTool, StudioGetErrorsTool
     from haywire.core.errors.haywire_exception import HaywireException
