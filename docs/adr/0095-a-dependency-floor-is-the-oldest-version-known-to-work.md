@@ -29,10 +29,11 @@ level: architectural
 - *Floors at the version current when written.* The old practice; that is how the opencv floor happened.
 - *Caps at the next major as a precaution.* They refuse working combinations, and a library cannot lift a cap in its dependency's metadata.
 - *Testing floors only before a release.* Under batched releases (ADR 0087) a broken floor would surface weeks after the change that broke it.
+- *One reusable `floors` workflow in `going-haywire/.github` for core and the libraries.* Core's jobs are all its own; calling `.github` would be a new pattern, and every change to the job would wait for a `.github` release and a pin bump in core. The libraries get theirs inside `library-ci.yml`, which they already call.
 - *A nightly job, or macOS too.* A nightly needs someone to read it; a resolution is the same on every platform, and only wheel availability differs.
 
 **Consequences.**
 
 - A change that needs a newer API raises the floor in the same commit, or the `floors` job fails.
 - A floor below what another requirement forces (numpy 1.26 while opencv 4.13 needs numpy 2) is not tested by the job until that requirement drops. It still belongs there: it is what this package needs.
-- The org libraries can run the same job through the reusable library CI, as a later step.
+- The org libraries get a `floors` job in `going-haywire/.github`'s `library-ci.yml`, as a later step. For a library that installs core from PyPI it also tests the `haywire-core` floor; for one that reaches core by path, only its third-party floors.
