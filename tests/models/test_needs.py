@@ -222,6 +222,14 @@ def test_edit_adding_a_ref_rechecks(env: Any, graph: Any) -> None:
     assert _texts(env) == ["Needs 1 model (12.0 MB)"]
 
 
+def test_wait_idle_checks_again_when_the_timeout_ends(env: Any, graph: Any) -> None:
+    """A waiter that runs out of time on a loaded runner still sees an idle watcher (#250)."""
+    _add(graph, ref())
+    env.open(graph)
+    env.settle()
+    assert env.watcher.wait_idle(timeout=0)
+
+
 def test_same_model_on_two_nodes_counted_once(env: Any, graph: Any) -> None:
     _add(graph, ref())
     _add(graph, ref())

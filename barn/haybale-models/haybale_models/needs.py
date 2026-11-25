@@ -265,6 +265,7 @@ class NeedsWatcher:
         self._debounce_s = debounce_s
         self._throttle_s = throttle_s
         self._lock = threading.Lock()
+        self._idle = threading.Condition(self._lock)  # notified when a walk ends or a timer is dropped
         self._run_lock = threading.Lock()
         self._watched: dict[int, _Watched] = {}
         self._reports: dict[str, NeedsReport] = {}
@@ -312,6 +313,7 @@ class NeedsWatcher:
             timers = list(self._timers.values())
             self._timers.clear()
             self._deadlines.clear()
+            self._idle.notify_all()
         for timer in timers:
             timer.cancel()
         for w in watched:
@@ -335,16 +337,15 @@ class NeedsWatcher:
         with self._lock:
             return dict(self._reports)
 
-    def wait_idle(self, timeout: float = 5.0) -> bool:
-        """Block until no re-walk is pending or running; ``False`` on timeout. For tests."""
-        deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
-            with self._lock:
-                idle = not self._timers and not self._running
-            if idle:
-                return True
-            time.sleep(0.01)
-        return False
+    def wait_idle(self, timeout: float = 30.0) -> bool:
+        """Block until no re-walk is pending or running; ``False`` on timeout. For tests.
+
+        Woken by the change itself, and checked once more when the timeout ends, so a waiter
+        that was not scheduled for a while still sees an idle watcher. The timeout only
+        bounds a failing run.
+        """
+        with self._idle:
+            return self._idle.wait_for(lambda: not self._timers and not self._running, timeout)
 
     # -- graph registry ----------------------------------------------------------
 
@@ -449,6 +450,7 @@ class NeedsWatcher:
         with self._lock:
             timer = self._timers.pop(binding_id, None)
             self._deadlines.pop(binding_id, None)
+            self._idle.notify_all()
         if timer is not None:
             timer.cancel()
 
@@ -467,6 +469,7 @@ class NeedsWatcher:
         finally:
             with self._lock:
                 self._running -= 1
+                self._idle.notify_all()
 
     # -- the re-walk -------------------------------------------------------------
 
