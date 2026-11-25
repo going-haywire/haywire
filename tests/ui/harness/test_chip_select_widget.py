@@ -20,6 +20,7 @@ import pytest
 from playwright.sync_api import Page
 
 from haybale_testing.widgets.chip_select_widget import CHIP_FIELD_MIN_WIDTH
+from haywire.barn.builtin.widgets.basic_widgets import WRAPPED_LABEL_MAX_HEIGHT
 from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 from tests.ui.harness.probe import attr
 
@@ -109,7 +110,7 @@ def _label(page: Page, node_id: str) -> dict:
     return page.evaluate(
         """(nid) => {
             const container = document.querySelector(`[data-node-id="${nid}"] .widget-container`);
-            const label = container.querySelector('.truncate');
+            const label = container.firstElementChild;
             const slot = document.querySelector(`[data-node-id="${nid}"] .ui-node-slot`);
             return {
                 text: label.textContent,
@@ -117,6 +118,8 @@ def _label(page: Page, node_id: str) -> dict:
                 scroll: label.scrollWidth,
                 client: label.clientWidth,
                 height: label.offsetHeight,
+                containerHeight: container.offsetHeight,
+                lineHeight: parseFloat(getComputedStyle(label).lineHeight),
                 nodeWidth: slot.offsetWidth,
                 nodeHeight: slot.offsetHeight,
             };
@@ -211,3 +214,37 @@ def test_a_longer_status_does_not_resize_the_node(page: Page, harness):
     assert after["nodeHeight"] == before["nodeHeight"], f"node grew taller: {before} -> {after}"
     assert after["height"] == before["height"], f"status line changed height: {before} -> {after}"
     assert after["tip"] == after["text"], f"the hover tip did not follow the status: {after}"
+
+
+# ---------------------------------------------------------------------------
+# A label that wraps
+# ---------------------------------------------------------------------------
+
+
+def test_a_wrapping_label_breaks_its_text_onto_more_lines(page: Page, harness):
+    _open(page, harness)
+    nid = _node_id(page, "wrapped")
+    _select(page, nid)
+
+    label = _label(page, nid)
+    floor = _floor(page, nid)["width"]
+    assert label["scroll"] <= label["client"], f"wrapped text overflows sideways: {label}"
+    assert label["height"] > 2 * label["lineHeight"], f"text did not wrap onto more lines: {label}"
+    assert floor < 400, f"wrapped text floors its node: {floor}px"
+
+
+def test_a_wrapping_label_stops_growing_at_its_height_limit(page: Page, harness):
+    _open(page, harness)
+    nid = _node_id(page, "wrapped")
+    _select(page, nid)
+
+    short = _label(page, nid)
+    page.get_by_test_id("longer-wrapped").click()
+    page.wait_for_function(
+        """([nid, n]) => document.querySelector(`[data-node-id="${nid}"] .widget-container`)
+                            .firstElementChild.textContent.length > n""",
+        arg=[nid, len(short["text"])],
+    )
+    label = _label(page, nid)
+    assert label["height"] > WRAPPED_LABEL_MAX_HEIGHT, f"fixture text too short to reach the limit: {label}"
+    assert label["containerHeight"] == WRAPPED_LABEL_MAX_HEIGHT, f"label not clipped at the limit: {label}"

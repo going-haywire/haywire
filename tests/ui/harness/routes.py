@@ -2326,7 +2326,8 @@ def register_routes(library_service) -> None:
     # GET /graph-chip-field
     #
     # A Chip Field Probe (a chip select that is its widget's root, beside a plain
-    # select) and a Long Label Probe (a status line far wider than the node).
+    # select), a Long Label Probe (a status line far wider than the node) and a
+    # Wrapped Label Probe (the same text in LabelWidget's wrapping mode).
     # Backs test_chip_select_widget.py.
     # -------------------------------------------------------------------------
 
@@ -2346,8 +2347,12 @@ def register_routes(library_service) -> None:
         label = graph.create_node_wrapper(
             "haybale-testing:node:LongLabelProbeNode", position=(3600.0, 4100.0)
         )
+        wrapped = graph.create_node_wrapper(
+            "haybale-testing:node:WrappedLabelProbeNode", position=(4100.0, 4100.0)
+        )
         assert chips is not None, "could not create ChipFieldProbeNode"
         assert label is not None, "could not create LongLabelProbeNode"
+        assert wrapped is not None, "could not create WrappedLabelProbeNode"
 
         # The status is written while the graph runs, as Device In writes its own.
         ui.button(
@@ -2356,8 +2361,14 @@ def register_routes(library_service) -> None:
                 label.node.ports["status"].get_value() * 2
             ),
         ).props('data-testid="longer-status"')
+        ui.button(
+            "longer-wrapped",
+            on_click=lambda: wrapped.node.ports["text"].set_value(
+                wrapped.node.ports["text"].get_value() * 4
+            ),
+        ).props('data-testid="longer-wrapped"')
 
-        for name, wrapper in (("chips", chips), ("label", label)):
+        for name, wrapper in (("chips", chips), ("label", label), ("wrapped", wrapped)):
             ui.label(wrapper.node_id).props(
                 f'id="{name}-node-id" data-testid="{name}-node-id" data-node="{wrapper.node_id}"'
             )

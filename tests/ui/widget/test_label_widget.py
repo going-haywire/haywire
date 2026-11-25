@@ -14,7 +14,7 @@ from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
 from haywire.barn.builtin.types import STRING
-from haywire.barn.builtin.widgets.basic_widgets import LabelWidget
+from haywire.barn.builtin.widgets.basic_widgets import WRAPPED_LABEL_MAX_HEIGHT, LabelWidget
 from haywire.core.types.enums import PortType
 from haywire.core.types.port import DataPort
 from haywire.ui.hover_tip import TIP_ATTR
@@ -105,3 +105,26 @@ async def test_the_size_box_marker_is_a_class_on_a_select_root(user: User) -> No
     assert INLINE_BOX_CLASS in element.classes
     assert element.style[MIN_WIDTH_VAR] == "160px"
     assert not any(name.startswith("data-hw-widget") for name in element.props)
+
+
+def test_a_wrapping_label_gets_a_default_height_limit():
+    assert LabelWidget(_port("x", {"properties": {"wrap": True}})).max_height == WRAPPED_LABEL_MAX_HEIGHT
+    assert LabelWidget(_port("x", {"properties": {"wrap": True}, "max_height": 160})).max_height == 160
+    assert LabelWidget(_port("x")).max_height is None, "a one-line label needs no height limit"
+
+
+@pytest.mark.anyio
+async def test_a_wrapping_label_breaks_its_text_instead_of_cutting_it(user: User) -> None:
+    port = _port(_LONG, {"properties": {"wrap": True}})
+    holder: dict[str, LabelWidget] = {}
+
+    @ui.page("/")
+    def page() -> None:
+        holder["widget"] = LabelWidget(port)
+        holder["widget"].render()
+
+    await user.open("/")
+    text = holder["widget"]._text
+    assert "truncate" not in text.classes
+    assert "whitespace-normal" in text.classes
+    assert text.props[TIP_ATTR] == _LONG

@@ -6,7 +6,7 @@ added in going-haywire/haybale-protokol#26 (`haybale_protokol/chips.py`).
 
 | Status | |
 |---|---|
-| Decided | 2026-11-25: 1A, 2A, 3A (no wrap opt-in), no 3C flag, `min_width=120`, Gap 4 and the `data-hw-requires` split go to their own issues |
+| Decided | 2026-11-25: 1A, 2A, 3A, no 3C flag, `min_width=120`, Gap 4 and the `data-hw-requires` split go to their own issues. Later the same day the owner added 3A+: `LabelWidget.config(properties={"wrap": True})`, with a default `max_height` of 80px |
 | Implemented | on this branch; the widget canon, design guide §4.5 and `.insights/feedback_quasar_field_moves_attributes.md` are canonical, this page is the proposal as sent |
 
 Versions read: NiceGUI 3.18.0, Quasar 2.18.5 (`.venv/.../nicegui/static/quasar.umd.js`).

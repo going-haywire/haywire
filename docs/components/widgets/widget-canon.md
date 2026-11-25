@@ -177,7 +177,7 @@ The declared numbers are the size the widget claims when nothing constrains it: 
 
 `max_height` is a **separate** knob, and not part of the box: it replaces the framework's default expanded-container ceiling (200px) with your own definite px value, for a widget whose *content* is unbounded (a long label, a growing list). Content past it is clipped by the container's `overflow: hidden`. Keep it a px value — the container's reveal is a `max-height` transition, and a percentage of an auto-height ancestor resolves to `none` and snaps.
 
-All three are overridable per call site: `NumpyViewerWidget.config(min_width=320)`. `None` at the call site removes the class's declaration: `LabelWidget.config(min_width=None)` sizes from the text again.
+All three are overridable per call site: `NumpyViewerWidget.config(min_width=320)`. `None` at the call site removes the class's declaration: `LabelWidget.config(min_width=None)` sizes from the text again. A widget can also derive a default from its own options by overriding `_size_overrides()`: `LabelWidget.config(properties={"wrap": True})` gets `max_height=80` unless the call site gives one.
 
 Mechanically, `BaseSkin.render_widget` — the one funnel every skin calls — stamps the resolved values onto the widget's root element as custom properties plus a marker class (`hw-widget-box`, `hw-widget-inline-box`, `hw-widget-max-height`), and `canvas.vue` turns those into `contain` / `contain-intrinsic-size`. Custom skins inherit the behaviour without doing anything. See `haywire/ui/widget/sizing.py`.
 
