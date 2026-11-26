@@ -39,6 +39,12 @@ herdr-app do space.new --name <kind>-<name> \
   --folder ~/.herdr/worktrees/haywire-repo/<kind>-<name> --argv '["claude"]' --task "<brief>"
 ```
 
+Then, before the session starts, record the lead:
+`(cd <worktree> && python3 scripts/worktree_setup.py --lead <your address>)`; the brief
+([the template](../brief.md)) carries the same address. A peer ("spin up a thread") gets
+neither, only your address for messages. A new lead ("spin up a lead for <repo>") is a
+peer in that repository's main folder and names its own tab `<tag> ◆ lead`.
+
 The space opens under the repo and the agent starts with the brief as its first message;
 `hc ls` shows whether it did (`herdr-app` reports only that the terminal was created). If
 `herdr-app` is not there, the user opens the space (*Open worktree*) and gives the agent
@@ -49,7 +55,14 @@ the brief. A library task's worktree goes beside the repositories instead
 
 `hc send <address> "<text>"` arrives as the other agent's next input; `hc ls` lists the
 sessions with their space / tab; `hc --skill` prints the protocol. A task reports to the
-lead with `hc send`. Without `hc`, the user relays.
+lead with `hc send` **before its turn ends**, including what the user told it directly.
+Without `hc`, the user relays.
+
+**Needs a decision** (the workflow's four steps): the task ends its reply with the lead's
+address and sends the lead one line with its own. The lead marks the task's tab
+`? <name>` (`herdr-app do tab.rename --id <tab> --name "? <name>"`) and drops the `? ` on
+"Decided". The hook names a task's tab after its branch; the lead may add its tag
+(`core › <branch>`).
 
 ## The view
 

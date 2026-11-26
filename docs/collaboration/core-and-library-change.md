@@ -43,5 +43,5 @@ sequenceDiagram
 | CI against core's `master` | CI | [The workflow: in a library repository](workflow.md#in-a-library-repository) |
 | A wait no floor can record | agent proposes a reminder | [Sharing libraries §7.1](../guides/sharing-libraries.md#71-release-reminders) |
 | ③ The core release | lead on your word | [A core release](core-release.md) |
-| ④ The unblocked libraries | lead asks, a release task each | [A library release](library-release.md) |
+| ④ The unblocked libraries | lead asks, then releases each from its main folder | [A library release](library-release.md) |
 | Why | — | [ADR 0087](../adr/0087-releases-are-batched-and-a-librarys-dependency-floor-guards-its-release.md) |

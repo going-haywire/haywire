@@ -27,11 +27,16 @@ It does what a new checkout lacks:
    session-start slot waits for (outside the checkout, so no repository sees it). It writes
    ``haywire-setup-started`` there first, so the slot waits only while a setup runs.
 
+``--lead <link>`` also records the task's lead (a T3 thread link, a herdr address) in
+``haywire-lead`` in the worktree's git folder, which the session-start slot reads back. Where
+a setup already ran or is running, it only records the lead.
+
 Standard library only: it runs before ``uv sync``.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import shutil
 import socket
@@ -43,6 +48,7 @@ from pathlib import Path
 CORE = "haywire-repo"
 STARTED = "haywire-setup-started"
 DONE = "haywire-setup-done"
+LEAD = "haywire-lead"
 MAIN_STUDIO_PORT = 8124
 FIRST_WORKTREE_PORT = MAIN_STUDIO_PORT + 1
 SETTINGS = Path(".haywire") / "settings.json"
@@ -168,6 +174,19 @@ def assign_studio_port(checkout: Path, main: Path) -> str:
     return f"studio port: {port}"
 
 
+def write_lead(git_dir: Path, lead: str) -> None:
+    """Record ``lead`` as the worktree's lead, in its git folder."""
+    (git_dir / LEAD).write_text(lead.strip() + "\n")
+
+
+def read_lead(git_dir: Path) -> str | None:
+    """The lead recorded for the worktree, or ``None`` when there is none."""
+    try:
+        return (git_dir / LEAD).read_text().strip() or None
+    except OSError:
+        return None
+
+
 def build_environment(checkout: Path, *, library: bool) -> None:
     sync = ["uv", "sync", "--all-extras", "--dev", "--compile-bytecode", "--quiet"]
     # A library's lock records the core release it was locked against, while its development
@@ -175,17 +194,25 @@ def build_environment(checkout: Path, *, library: bool) -> None:
     subprocess.run([*sync, "--frozen"] if library else sync, cwd=checkout, check=True)
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("--lead", help="the lead's T3 thread link or herdr address, to record")
+    args = parser.parse_args(argv)
     checkout = Path(_git("rev-parse", "--show-toplevel", cwd=Path.cwd())).resolve()
     common = Path(_git("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=checkout))
     main_checkout = common.parent.resolve()
     if checkout == main_checkout:
         print("This is the main checkout; the script is for worktrees.")
         return 1
+    git_dir = Path(_git("rev-parse", "--path-format=absolute", "--git-dir", cwd=checkout))
+    if args.lead:
+        write_lead(git_dir, args.lead)
+        print(f"lead: {read_lead(git_dir)}")
+        if (git_dir / STARTED).exists() or (git_dir / DONE).exists():
+            return 0
     if shutil.which("uv") is None:
         print("uv is not installed: https://docs.astral.sh/uv/")
         return 1
-    git_dir = Path(_git("rev-parse", "--path-format=absolute", "--git-dir", cwd=checkout))
     (git_dir / STARTED).write_text("")
     print(update_branch(checkout))
     if (link := core_link(checkout, main_checkout)) is not None:

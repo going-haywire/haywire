@@ -34,7 +34,7 @@ sequenceDiagram
     CI->>PyPI: every core package
     CI->>GH: GitHub release with notes
     Lead->>You: the notes, then the libraries it unblocks: "publish them?"
-    You->>Lead: ③ "publish" → a release task per library
+    You->>Lead: ③ "publish" → each library's release, from its main folder
 ```
 
 | Step | Who | Where the rule or command lives |

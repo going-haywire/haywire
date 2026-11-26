@@ -68,7 +68,7 @@ These are the checks CI runs. Before you open a pull request, run them on what y
 ```sh
 uv run ruff check <changed files>          # lint (line length 109); "." for everything
 uv run ruff format --check <changed files> # formatting; "ruff check" as an instruction means both
-uv run mypy                                # types: the paths in [tool.mypy] files, as CI checks them
+uv run mypy                                # types: the paths in [tool.mypy] files (tests/ too), as CI checks them
 uv run mypy <path>                         # one package, while iterating
 uv run pytest <tests of the changed area> -q
 ```
