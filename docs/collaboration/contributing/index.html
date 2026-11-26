@@ -5728,9 +5728,10 @@ differs:</p>
 <li><strong>Setting up.</strong> A library reaches core by relative paths: clone it beside a clone of core,
   under the names the paths expect, and run <code>uv sync --frozen</code> in it
   (<a href="../../agents/start/">setting someone up</a>, <em>Develop Haywire</em>). Its <code>pyproject.toml</code>
-  (<code>[tool.uv.sources]</code>) shows which core packages come from <code>../haywire-repo</code>. Running it in the
-  full studio with other libraries:
-  <a href="../../adr/0081-libraries-from-other-repositories-run-from-an-umbrella-environment/">ADR 0081</a>.</li>
+  (<code>[tool.uv.sources]</code>) shows which core packages come from <code>../haywire-repo</code>. Its studio:
+  <code>python3 ../haywire-repo/dev/scripts/studio.py start</code>, the full studio with other libraries
+  when the umbrella is set up
+  (<a href="../../adr/0081-libraries-from-other-repositories-run-from-an-umbrella-environment/">ADR 0081</a>).</li>
 <li><strong>Checks:</strong> <code>uv run --frozen ruff check .</code>, <code>uv run --frozen ruff format --check .</code>,
   <code>uv run --frozen pytest</code>. CI runs the same on every pull request, against core's <code>master</code>,
   and every night.</li>

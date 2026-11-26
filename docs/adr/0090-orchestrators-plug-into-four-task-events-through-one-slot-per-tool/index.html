@@ -5263,6 +5263,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-2026-11-26-261" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment (2026-11-26, #261)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -5344,6 +5355,14 @@
 </ul>
 <h2 id="amendment-adr-0094">Amendment (ADR 0094)<a class="headerlink" href="#amendment-adr-0094" title="Permanent link">&para;</a></h2>
 <p>The slots moved from <code>plugins/haywire-dev/orchestrators/</code> to core's <code>dev/orchestrators/&lt;tool&gt;/</code>, and the agent's how-to from the workflow skill's folder to <code>docs/collaboration/orchestrators/&lt;tool&gt;-agent.md</code> (ADR 0094). The contract is unchanged.</p>
+<h2 id="amendment-2026-11-26-261">Amendment (2026-11-26, #261)<a class="headerlink" href="#amendment-2026-11-26-261" title="Permanent link">&para;</a></h2>
+<p>Starting a folder's studio is not a task event (nothing fires it, and it runs in the main
+folder too), but it follows the same rule: one neutral part, <code>dev/scripts/studio.py
+start|stop|status</code>, which a tool's files only call. It runs the umbrella's <code>haywire-studio</code>
+(ADR 0081) when that is on the <code>PATH</code>, else the checkout's own environment, and says which.
+<code>t3.json</code> calls it in core and, through <code>../haywire-repo</code>, in every library; the agent-facing
+docs name it. A slot that wires the umbrella's <code>haywire-studio</code> directly (herdr's key binding)
+still starts the same full studio.</p>
 
 
 

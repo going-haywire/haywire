@@ -5640,8 +5640,8 @@ for the full studio (<em>Starting the studio</em>).</p>
 <tr>
 <td><strong>Haywire studio</strong></td>
 <td>you, from the scripts menu</td>
-<td>the full studio, see below</td>
-<td><code>haywire studio start --browser</code></td>
+<td><code>python3 scripts/studio.py start --browser</code></td>
+<td>core's <code>studio.py</code>, through <code>../haywire-repo</code></td>
 </tr>
 </tbody>
 </table>
@@ -5672,7 +5672,7 @@ for the full studio (<em>Starting the studio</em>).</p>
   branch, commit, push or PR until the workflow is read, and guard merges.</li>
 <li><strong>The agent works with a studio, started even mid-session.</strong> Each thread starts the
   Farmhand bridge (<code>.mcp.json</code>). When a studio runs for the thread's folder, started from
-  the scripts menu or by the agent with <code>uv run haywire studio start</code>, its tools appear in
+  the scripts menu or by the agent with <code>dev/scripts/studio.py start</code>, its tools appear in
   the session; when it stops, they disappear. Each worktree's studio has its own port, so
   the lead's and every task's studio run side by side. The bridge also serves the docs the
   agent reads for each kind of task.</li>
@@ -5683,17 +5683,13 @@ for the full studio (<em>Starting the studio</em>).</p>
 <p><em>Haywire studio</em> runs in the thread's folder, the lead's main folder or a task's worktree.
 Each worktree's studio uses the port <em>Worktree setup</em> wrote to its <code>.haywire/settings.json</code>,
 so several run side by side; the main folder's is 8124.</p>
-<ul>
-<li><strong>In core</strong> it runs <code>haywire-studio</code> from the
-  <a href="https://github.com/going-haywire/umbrella#readme">umbrella</a> (<code>bin/haywire-studio</code>, linked
-  onto your <code>PATH</code> once, as its README says): the full studio with every library, the
-  worktree's own <code>packages/*</code> and <code>barn/*</code> in place of the umbrella's copies. Without it on
-  the <code>PATH</code> it falls back to <code>uv run --frozen haywire studio start --browser</code>, the studio
-  with this checkout's environment only.</li>
-<li><strong>In a library</strong> it runs <code>uv run --frozen haywire studio start --browser</code>: the studio with
-  core and this library. The full studio with a library task's changes needs the worktree
-  beside the repositories (<a href="../../workflow/#parallel-sessions">the workflow: parallel sessions</a>).</li>
-</ul>
+<p>It runs core's <code>dev/scripts/studio.py start --browser</code>, in a library through the core clone
+beside it, the same command the agent runs (<a href="../../workflow/#parallel-sessions">the workflow: parallel
+sessions</a>). With <code>haywire-studio</code> from the
+<a href="https://github.com/going-haywire/umbrella#readme">umbrella</a> (<code>bin/haywire-studio</code>, linked
+onto your <code>PATH</code> once, as its README says) that is the full studio with every library, the
+worktree's own <code>packages/*</code> and <code>barn/*</code> in place of the umbrella's copies. Without it, the
+studio runs from the checkout's own environment: core, or core and this library.</p>
 <h2 id="things-to-know">Things to know<a class="headerlink" href="#things-to-know" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>After a merge the lead sends nothing to the task's thread.</strong> This overrides the

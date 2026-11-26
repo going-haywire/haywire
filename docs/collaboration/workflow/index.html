@@ -5760,16 +5760,17 @@ finds instead is a wasted round.</p>
    <code>expect</code> what they should see.</li>
 <li><strong>Run it</strong> as a Questionnaire in this worktree's studio (the format:
    <a href="https://github.com/going-haywire/haywire/blob/master/docs/reference/questionnaire.md">docs/reference/questionnaire.md</a>):</li>
-<li><code>uv run haywire studio start</code> from inside the worktree, so the user tests this
-      branch's code. Its tools appear through the Farmhand bridge;
-      <code>farmhand_studio_status</code> says why when they don't.</li>
+<li><code>python3 &lt;core&gt;/dev/scripts/studio.py start</code> from inside the worktree, so the user
+      tests this branch's code (<em>Parallel sessions</em>: never <code>uv run haywire studio start</code>).
+      Its tools appear through the Farmhand bridge; <code>farmhand_studio_status</code> says why when
+      they don't.</li>
 <li><code>haybale-studio_post_questionnaire</code> with a title naming the change. Keep each
       Check to one action and one observable result; hide one that depends on an
       earlier Check with <code>visibleIf</code>, or a failure upstream turns it <code>blocked</code>.</li>
 <li>Tell the user it waits in the studio's aside, with the URL <code>haywire studio start</code>
       printed, and wait for them to say they are done.</li>
 <li><code>haybale-studio_get_findings</code>, then <code>haybale-studio_get_errors</code> with <code>since_seq</code> =
-      <code>ledger_seq.posted</code>. <code>uv run haywire studio stop</code> once the round is recorded.</li>
+      <code>ledger_seq.posted</code>. <code>python3 &lt;core&gt;/dev/scripts/studio.py stop</code> once the round is recorded.</li>
 <li><strong>A failed Check</strong> means your confidence was wrong: fix it and verify the fix yourself
    as above. Ask the user before posting another round, with only the Checks that
    failed.</li>
@@ -5948,23 +5949,24 @@ only the main folder, so search with grep there.</p>
 <li>Run only the tests of the area changed; CI runs the whole suite. Browser tests in two
   worktrees at once are fine: each checkout has its own harness ports.</li>
 <li>A library in another repository (spandrel, visiongraph, …) gets a worktree per task like
-  any other, wherever the orchestrator puts it: the setup links core beside it. Its own
-  studio (core and this library) is <code>uv run haywire studio start</code> in the worktree.</li>
+  any other, wherever the orchestrator puts it: the setup links core beside it.</li>
+<li><code>~/.haywire</code> (global settings, security document, models, volumes) is shared too: a
+  library installed or a setting changed there is seen by every task.</li>
+<li>A worktree drives only its own studio, started from inside the worktree, in core or a
+  library alike:</li>
 </ul>
-<p>For the full studio with every library (ADR 0081's overlay), the worktree has to sit
-  beside the repositories, where the umbrella environment is: create it from the library's
-  main folder with <code>git worktree add ../&lt;repo&gt;-&lt;name&gt; -b &lt;kind&gt;/&lt;name&gt; origin/&lt;default
-  branch&gt;</code>, run the setup there, then from inside the worktree:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="nb">cd</span><span class="w"> </span>../&lt;repo&gt;-&lt;name&gt;
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>uv<span class="w"> </span>run<span class="w"> </span>--frozen<span class="w"> </span>--project<span class="w"> </span>..<span class="w"> </span>--with-editable<span class="w"> </span>barn/&lt;library&gt;<span class="w"> </span>haywire<span class="w"> </span>--no-browser
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>python3<span class="w"> </span>&lt;core&gt;/dev/scripts/studio.py<span class="w"> </span>start<span class="w">      </span><span class="c1"># stop, status</span>
 </span></code></pre></div>
-<p>The studio loads the library from the worktree and hot reload follows its files. <code>--frozen</code>
-  keeps the umbrella's <code>uv.lock</code> as it is.
-- <code>~/.haywire</code> (global settings, security document, models, volumes) is shared too: a
-  library installed or a setting changed there is seen by every task.
-- A worktree drives only its own studio: <code>uv run haywire studio start</code> from inside the
-  worktree. Each folder keeps a port of its own (8124 is the main folder's); when another
-  folder's studio holds it, <code>start</code> takes the next free one and keeps it.</p>
+<p>With the <a href="https://github.com/going-haywire/umbrella#readme">umbrella</a>'s <code>haywire-studio</code>
+  on the <code>PATH</code> it is the full studio, every library of every repository, with the
+  worktree's own packages in place of the umbrella's copies (ADR 0081), wherever the
+  worktree is. Without it, the studio runs from the worktree's own environment (core, or
+  core and this library); the script says which. Never <code>uv run haywire studio start</code> in a
+  checkout of an org repository: it runs without the other repositories' libraries, and
+  every graph that uses them fills the error ledger. Each folder keeps a port of its own
+  (8124 is the main folder's); when another folder's studio holds it, <code>start</code> takes the
+  next free one and keeps it. A worktree's studio starts with no graph open: the setup's
+  copy of the main folder's settings leaves out the haystack it reopens.</p>
 <p><strong>A second machine</strong> works on its own clone: <a href="../second-machine/">second-machine.md</a>.</p>
 <h2 id="lead-and-tasks">Lead and tasks<a class="headerlink" href="#lead-and-tasks" title="Permanent link">&para;</a></h2>
 <p>A <strong>task</strong> is one piece of work: a branch, its worktree, its own agent session. The

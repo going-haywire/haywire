@@ -5524,10 +5524,8 @@ runs (T3 runs no script in a worktree it re-creates); the hook then tells you to
 library's <code>t3.json</code> runs the setup through the library's main folder, which links core beside
 the worktree before <code>uv sync</code> (<em>Parallel sessions</em> in the workflow). The library's committed
 <code>.claude/settings.json</code> and <code>.mcp.json</code> then give the session its hooks and the Farmhand
-bridge, with nothing to install. Only for the full studio with every library does the lead
-create the worktree beside the repositories itself (<code>git worktree add ../&lt;repo&gt;-&lt;name&gt; …</code>) and
-start the thread on it with <code>workspaceStrategy: existing_worktree</code>; T3 runs no create script
-for a worktree it did not create, so the lead runs the setup there.</p>
+bridge, with nothing to install. Its studio, the full one included, starts like a core
+task's (<em>Parallel sessions</em> in the workflow).</p>
 <h2 id="messages">Messages<a class="headerlink" href="#messages" title="Permanent link">&para;</a></h2>
 <p>A task reports with <code>t3_thread_send</code> to the lead's thread id, which its brief carries; the
 message arrives as the lead's next input, no polling. The lead links each task's PR to the
