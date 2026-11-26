@@ -156,7 +156,7 @@ git commit -m "chore: release v0.0.2"
 uv build --package haywire-core                        # smoke: wheel builds from baked docs
 git push -u origin release/v0.0.2
 gh pr create --base master --title "chore: release v0.0.2" --body "Version bump to 0.0.2."
-gh pr checks --watch
+gh pr checks --watch --fail-fast
 gh pr merge --squash                                   # the merge publishes
 ```
 

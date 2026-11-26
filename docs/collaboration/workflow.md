@@ -156,7 +156,8 @@ finds instead is a wasted round.
 ## Committing
 
 Commit on the branch whenever a step is done; no need to ask. Before each commit, run the
-[checks](https://github.com/going-haywire/haywire/blob/master/docs/guides/development.md#checks) on what changed.
+[checks](https://github.com/going-haywire/haywire/blob/master/docs/guides/development.md#checks) on what changed,
+and `uv run mypy` with no paths, as CI does: mypy on single files skips the tests you changed.
 
 Commit messages follow the repository's style
 (`feat(area): …`, `fix(area): …`) and end with the attribution line the session gives.
@@ -190,7 +191,7 @@ PR's URL.
 
 ```sh
 gh pr checks                       # status of this branch's PR (--repo going-haywire/haywire from a fork)
-gh run watch <id> --exit-status    # wait; run it in the background
+gh pr checks --watch --fail-fast   # wait, in the background; it returns at the first failure
 gh run view <id> --log-failed      # only the failing steps
 ```
 
@@ -220,7 +221,7 @@ them.
    PR is merged on "publish" instead, never on "merge" (*Releasing*):
 
    ```sh
-   gh pr checks <n> --watch
+   gh pr checks <n> --watch --fail-fast
    gh pr merge <n> --squash
    ```
 

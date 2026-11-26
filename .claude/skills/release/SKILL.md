@@ -445,7 +445,7 @@ that changes a version unless it does, and the merge commit carries that title.
 Wait for its checks (about 6 minutes, macOS included once the PR is ready, not draft):
 
 ```bash
-gh pr checks --watch
+gh pr checks --watch --fail-fast
 ```
 
 If a check fails, STOP and show the failure: the bump broke something CI catches and
