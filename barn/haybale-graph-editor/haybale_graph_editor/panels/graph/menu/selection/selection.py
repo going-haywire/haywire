@@ -769,9 +769,13 @@ class GroupMenuPanel(BasePanel):
     description="Save a Group as a new macro. Only visible when the right-clicked node is a Graph-node.",
     icon=hui.icon.macro,
     order=50,
+    requires=AccessTier.ADMIN,
 )
 class SaveNewMacroMenuPanel(BasePanel):
-    """Save a Group as a new macro. Only visible when the right-clicked node is a Graph-node."""
+    """Save a Group as a new macro. Only visible when the right-clicked node is a Graph-node.
+
+    Needs admin, the tier every verb that writes into a library needs.
+    """
 
     actions: SelectionActions
 
