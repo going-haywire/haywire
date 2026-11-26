@@ -5576,6 +5576,8 @@ use it is in <a href="../t3-agent/">its agent page</a>.</p>
 <h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h2>
 <p>Before you start with T3 you need: </p>
 <ul>
+<li>T3 Code 0.1.11 or later (an older one drops a script's <code>async</code> on import, see <em>Things to
+  know</em>);</li>
 <li>on the machine: <code>uv</code>, <code>git</code>, <code>python3</code>, <code>jq</code> (the hooks use it) and <code>gh</code>, logged in
   (<code>gh auth login</code>, then <code>gh auth setup-git</code>);</li>
 <li>the clones of the organisation's repositories (a contributor's forks), as in
@@ -5707,6 +5709,16 @@ so several run side by side; the main folder's is 8124.</p>
   yet settles when its turn ends, and the script runs then.</li>
 <li><strong>Storage cleanup</strong> (off by default) has no hook: it removes only worktrees T3 created
   and keeps their branches; <code>finish --sweep</code> cleans those up.</li>
+<li><strong>The scripts T3 runs</strong> are the imported copies in <code>~/.t3/userdata/settings.json</code>, under
+  <code>projectSettingsOverrides.&lt;projectId&gt;.defaultProjectScripts</code>, not <code>t3.json</code> itself.</li>
+<li>T3 before 0.1.11 dropped <code>async</code> on import, so <em>Worktree setup</em> ran alongside the agent
+    (<a href="https://github.com/pingdotgg/t3code/issues/40325">pingdotgg/t3code#40325</a>). On such an
+    install add <code>"async": false</code> to <em>Worktree setup</em> there by hand; until then the
+    session-start hook's wait covers it.</li>
+<li>The agent's <code>t3_project_update</code> reports success but writes elsewhere, and T3 ignores it
+    once the install has folded its project settings (<code>projectSettingsFolded: true</code>,
+    <a href="https://github.com/pingdotgg/t3code/issues/14991">pingdotgg/t3code#14991</a>). That is
+    why the scripts are imported in the app.</li>
 <li>The task view (<code>tasks.py</code>) shows no session column for T3 tasks; the thread list does.</li>
 <li>A second machine joins as a <em>linked environment</em>; its lead is a peer.</li>
 <li>A worktree costs about 840 MB, most of it the <code>.venv</code>.</li>

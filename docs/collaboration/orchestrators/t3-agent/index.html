@@ -5566,7 +5566,11 @@ T3:</p>
 <li>Branch naming: semantic (<code>feat/</code>, <code>fix/</code>, …).</li>
 </ul>
 <p>A project's <code>t3.json</code> scripts the user imports in T3 (<em>Project settings → &lt;project&gt; → Actions →
-Import scripts</em>), never with <code>t3_project_update</code>. When a worktree's setup never ran, the hook
+Import scripts</em>), never with <code>t3_project_update</code>: it reports success, but T3 runs the copies in
+<code>~/.t3/userdata/settings.json</code> (<code>projectSettingsOverrides.&lt;projectId&gt;.defaultProjectScripts</code>)
+and ignores that write once project settings are folded (pingdotgg/t3code#14991). On T3 before
+0.1.11, which dropped <code>async</code> on import, <em>Worktree setup</em> needs <code>"async": false</code> there by hand.
+When a worktree's setup never ran, the hook
 says so: the scripts are probably not imported.</p>
 <ul>
 <li><em>Storage cleanup</em> (off by default) keeps branches; <code>finish --sweep</code> deletes them.</li>
