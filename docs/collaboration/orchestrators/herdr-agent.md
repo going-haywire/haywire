@@ -42,7 +42,8 @@ herdr-app do space.new --name <kind>-<name> \
 Then, before the session starts, record the lead:
 `(cd <worktree> && python3 scripts/worktree_setup.py --lead <your address>)`; the brief
 ([the template](../brief.md)) carries the same address. A peer ("spin up a thread") gets
-neither, only your address for messages.
+neither, only your address for messages. A new lead ("spin up a lead for <repo>") is a
+peer in that repository's main folder and names its own tab `<tag> ◆ lead`.
 
 The space opens under the repo and the agent starts with the brief as its first message;
 `hc ls` shows whether it did (`herdr-app` reports only that the terminal was created). If

@@ -407,9 +407,10 @@ names, or ask the user once whether you are a task (and of whom) or a peer.
 
 **The user's words set the relationship.** "Spin up a task": you are its lead; it gets the
 lead file. "Spin up a thread": it is a peer, with no lead file and your link for messages
-only.
+only. "Spin up a lead (for <repo>)": a peer in that repository's main folder, which names
+itself `<tag> ◆ lead`.
 
-**Names.** The lead names the sessions; a task never renames itself:
+**Names.** A lead names itself and its tasks; a task never renames itself:
 
 - the lead `<tag> ◆ lead` (`core ◆ lead`, `core@<machine> ◆ lead`);
 - a task `<lead tag> › <branch>`;

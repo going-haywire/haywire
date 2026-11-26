@@ -35,7 +35,8 @@ link on the *Lead link* line. T3 records no parent (`delegatedFrom` shows nothin
 setup T3 runs has no `--lead`, so the task records its lead first:
 `python3 scripts/worktree_setup.py --lead <link>` (it only writes the lead file once a
 setup ran); the session-start hook says so. A peer ("spin up a thread") gets no lead line,
-only the other thread's link for messages. The setup script from `t3.json`, once
+only the other thread's link for messages. A new lead ("spin up a lead for <repo>") is a
+peer thread on that repository's project root and names itself `<tag> ◆ lead`. The setup script from `t3.json`, once
 imported into the T3 project (*The user's T3 settings*), runs
 `python3 scripts/worktree_setup.py` when T3 creates the worktree (`runOnWorktreeCreate`).
 `t3.json` sets `async: false` on it so that T3 holds the agent until it exits; T3 before 0.1.11
