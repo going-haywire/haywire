@@ -148,7 +148,7 @@ class RefreshFlow(StepFlow):
         except MalformedMarketplaceError as exc:
             self.fail(exc)
             return
-        except Exception as exc:  # noqa: BLE001 — surfaced inline, never swallowed
+        except Exception as exc:  # surfaced inline, never swallowed
             self.fail(exc)
             return
         if self.fetched is None:
@@ -165,7 +165,7 @@ class RefreshFlow(StepFlow):
             return
         try:
             self.resolved = self.state.resolve(fetched)
-        except Exception as exc:  # noqa: BLE001 — surfaced inline, never swallowed
+        except Exception as exc:  # surfaced inline, never swallowed
             self.fail(exc)
             return
         self._route_after_resolve()
@@ -323,7 +323,7 @@ class RefreshFlow(StepFlow):
                 fetched.global_file = reparsed
             self.resolved = self.state.resolve(fetched)
             self.conflicts = self._detect_conflicts(self.resolved)
-        except Exception as exc:  # noqa: BLE001 — surfaced inline, never swallowed
+        except Exception as exc:  # surfaced inline, never swallowed
             self.fail(exc)
 
     async def advance_from_conflicts(self) -> None:
@@ -356,7 +356,7 @@ class RefreshFlow(StepFlow):
             return
         try:
             self.report = await asyncio.to_thread(self.state.apply_refresh, fetched, resolved)
-        except Exception as exc:  # noqa: BLE001 — surfaced inline, never swallowed
+        except Exception as exc:  # surfaced inline, never swallowed
             self.fail(exc)
             return
         if resolved.newly_stale:

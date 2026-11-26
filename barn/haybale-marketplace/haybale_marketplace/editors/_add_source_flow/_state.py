@@ -123,7 +123,7 @@ class AddSourceFlow(StepFlow):
         except SubscribeError as exc:
             self.fail(exc)
             return
-        except Exception as exc:  # noqa: BLE001 — surfaced inline, never swallowed
+        except Exception as exc:  # surfaced inline, never swallowed
             self.fail(exc)
             return
 
@@ -163,7 +163,7 @@ class AddSourceFlow(StepFlow):
         try:
             self.persist_url = await asyncio.to_thread(self.target.subscribe, resolved)
             self._apply_conflict_choices()
-        except Exception as exc:  # noqa: BLE001 — surfaced inline, never swallowed
+        except Exception as exc:  # surfaced inline, never swallowed
             self.fail(exc)
             return
         self.step = "added"
@@ -206,7 +206,7 @@ class AddSourceFlow(StepFlow):
         self.retry()
         try:
             self.report = await asyncio.to_thread(self.target.refresh)
-        except Exception as exc:  # noqa: BLE001 — surfaced inline, never swallowed
+        except Exception as exc:  # surfaced inline, never swallowed
             self.fail(exc)
             return
         self.step = "refreshed"

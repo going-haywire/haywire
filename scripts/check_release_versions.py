@@ -28,7 +28,7 @@ from pathlib import Path
 # scripts/ on sys.path rather than the repo root — same as scripts/check_deps.py.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from scripts.bump_version import (  # noqa: E402
+from scripts.bump_version import (
     find_haybale_toml,
     locate_packages,
     read_release_config,

@@ -147,7 +147,7 @@ def _installed_version(pkg: Haybale, manager: LibraryManager) -> str:
         return ""
     try:
         return manager.get_installed_version(pkg.name) or ""
-    except Exception:  # noqa: BLE001 — a missing version is not an error here
+    except Exception:  # a missing version is not an error here
         return ""
 
 

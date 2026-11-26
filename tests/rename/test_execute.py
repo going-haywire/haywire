@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from tests.rename.test_planner import _workspace  # noqa: F401
+from tests.rename.test_planner import _workspace
 
 
 def _run(ws: Path, old: str, new: str):

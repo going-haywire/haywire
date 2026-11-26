@@ -134,7 +134,7 @@ class InstallFlow(StepFlow):
             from packaging.version import Version
 
             return Version(self.target_version) < Version(self.current_version)
-        except Exception:  # noqa: BLE001 — unorderable versions are not an error
+        except Exception:  # unorderable versions are not an error
             return False
 
     @property
@@ -180,7 +180,7 @@ class InstallFlow(StepFlow):
             self.blocked = True
             self.fail(exc)
             return
-        except Exception as exc:  # noqa: BLE001 — surfaced inline, never swallowed
+        except Exception as exc:  # surfaced inline, never swallowed
             self.fail(exc)
             return
         self.replaces_editable = self._replaces_editable()
@@ -195,7 +195,7 @@ class InstallFlow(StepFlow):
             return False
         try:
             return self.source.get_install_type(self.package.name) == InstallType.EDITABLE.name
-        except Exception:  # noqa: BLE001 — an unknown install type is not an error here
+        except Exception:  # an unknown install type is not an error here
             return False
 
     async def advance_from_checked(self) -> None:
@@ -223,7 +223,7 @@ class InstallFlow(StepFlow):
                 self.package,
                 self.removals,
             )
-        except Exception as exc:  # noqa: BLE001 — surfaced inline, never swallowed
+        except Exception as exc:  # surfaced inline, never swallowed
             self.fail(exc)
             return
         self.succeeded = success
@@ -259,5 +259,5 @@ def resolve_current_version(source: InstallSource, package: Haybale | None) -> s
         return ""
     try:
         return source.get_installed_version(package.name) or ""
-    except Exception:  # noqa: BLE001 — a missing version is not an error here
+    except Exception:  # a missing version is not an error here
         return ""

@@ -27,7 +27,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import cases as bench_cases  # noqa: E402  (after sys.path tweak)
+import cases as bench_cases  # after sys.path tweak
 
 _DEADBAND_PCT = 2.0  # |drift| below this reads as "~ flat" (noise floor)
 

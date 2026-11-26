@@ -21,11 +21,11 @@ def convert_layout(img: ImageValue, layout: Layout) -> ImageValue:
     """
     if img.layout is layout:
         return img
-    primary = img._primary  # noqa: SLF001 - same package, reads the stored buffer
+    primary = img._primary  # same package, reads the stored buffer
     if isinstance(primary, np.ndarray):
         out = ImageValue.from_array(
-            _numpy_ops.convert_layout(primary, img.layout, layout, img._order),  # noqa: SLF001
-            order=img._order,  # noqa: SLF001
+            _numpy_ops.convert_layout(primary, img.layout, layout, img._order),
+            order=img._order,
             source_depth=img.source_depth,
             metadata=img.metadata,
         )
@@ -33,8 +33,8 @@ def convert_layout(img: ImageValue, layout: Layout) -> ImageValue:
         from haybale_image.value import _torch_ops
 
         out = ImageValue.from_tensor(
-            _torch_ops.convert_layout(primary, img.layout, layout, img._order),  # noqa: SLF001
-            order=img._order,  # noqa: SLF001
+            _torch_ops.convert_layout(primary, img.layout, layout, img._order),
+            order=img._order,
             source_depth=img.source_depth,
             metadata=img.metadata,
         )

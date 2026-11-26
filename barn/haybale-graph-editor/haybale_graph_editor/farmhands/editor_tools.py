@@ -952,7 +952,7 @@ class GraphEditorRemoveElementsTool(Farmhand):
         self,
         ctx: FarmhandContext,
         binding_id: str,
-        # noqa: B006 — this tool has no input_schema_override, so the signature
+        # B006: this tool has no input_schema_override, so the signature
         # IS the published MCP schema: `[]` derives `"default": []`, while
         # `None` would derive `"default": null` and change the tool contract.
         # Both lists are read-only below, so the shared-default trap is inert.

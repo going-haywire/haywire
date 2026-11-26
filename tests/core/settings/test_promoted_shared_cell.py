@@ -55,7 +55,7 @@ def test_disconnected_promoted_inlet_falls_back_to_setting(make_node_with_settin
 
 
 @pytest.mark.integration
-def test_unpromoted_read_does_not_touch_ports(make_node_with_setting):  # noqa: D401
+def test_unpromoted_read_does_not_touch_ports(make_node_with_setting):
     """The unpromoted read path must never consult ``node.ports`` — there is no
     per-read promotion lookup on the hot path (the setting is oblivious to ports)."""
     node = make_node_with_setting(accessor="filter", field="threshold")

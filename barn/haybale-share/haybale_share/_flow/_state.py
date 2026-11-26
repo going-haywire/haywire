@@ -289,7 +289,7 @@ class ShareFlow(StepFlow):
             return ProjectStatus()
         try:
             plan = plan_versions(repo_root)
-        except Exception:  # noqa: BLE001 — see the docstring
+        except Exception:  # see the docstring
             return ProjectStatus(libraries=libraries)
         return ProjectStatus(
             libraries=libraries,

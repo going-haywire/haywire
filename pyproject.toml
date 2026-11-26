@@ -146,7 +146,9 @@ exclude = ["workbench/playground/", ".scratch/"]
 # barn/ only (see .insights/feedback_no_relative_imports_in_barn.md).
 # UP (pyupgrade) and I (isort) keep one annotation syntax and one import order,
 # so agents stop copying whichever convention they read last (CS-T1, CS-I1).
-extend-select = ["E501", "PT", "B", "TID251", "TID252", "UP", "I"]
+# RUF100 and PGH004 police the escape hatches: a noqa that suppresses nothing
+# and a bare noqa that suppresses everything both fail (CS-T5).
+extend-select = ["E501", "PT", "B", "TID251", "TID252", "UP", "I", "RUF100", "PGH004"]
 # UP038 is deprecated upstream: `isinstance(x, A | B)` is slower than a tuple.
 # UP031 is about strings, not annotations, and its sites here are JS templates
 # full of braces, where %-formatting reads better than escaped str.format.

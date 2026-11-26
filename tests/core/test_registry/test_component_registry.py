@@ -12,16 +12,16 @@ pytestmark = pytest.mark.unit
 class _Element:
     """Minimal ``RegisteredClass``: a class_identity with a ``hidden`` flag."""
 
-    class class_identity:  # noqa: N801 - stands in for a BaseIdentity
+    class class_identity:  # stands in for a BaseIdentity
         hidden = False
         label = "Element"
 
-    class class_library:  # noqa: N801
+    class class_library:
         label = "testlib"
 
 
 class _HiddenElement(_Element):
-    class class_identity:  # noqa: N801
+    class class_identity:
         hidden = True
         label = "Hidden"
 

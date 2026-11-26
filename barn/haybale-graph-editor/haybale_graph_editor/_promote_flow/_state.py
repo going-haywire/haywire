@@ -120,7 +120,7 @@ class PromoteFlow(StepFlow):
                 name=self.name,
                 macros_folder=self.target.folder,
             )
-        except Exception as exc:  # noqa: BLE001 — surfaced inline, never swallowed
+        except Exception as exc:  # surfaced inline, never swallowed
             self.fail(exc)
             return
         self.step = "planned"
@@ -144,7 +144,7 @@ class PromoteFlow(StepFlow):
             # back and validates it. Both off the event loop.
             path = await asyncio.to_thread(write_macro_file, plan)
             registry_key = await asyncio.to_thread(self.source.register_macro_file, path, target.library_id)
-        except Exception as exc:  # noqa: BLE001 — surfaced inline, never swallowed
+        except Exception as exc:  # surfaced inline, never swallowed
             self.fail(exc)
             return
 

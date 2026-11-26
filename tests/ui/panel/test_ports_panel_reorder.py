@@ -82,11 +82,7 @@ def _render_lane(ports: list[_FakePort], lane: str = "inlet", ctx: Any = None):
 def _sortables(anchor) -> list[Sortable]:
     # make_sortable parents its controller to client.layout, not to the
     # container, so the controller is reachable only through the container.
-    return [
-        e._sortable  # noqa: SLF001
-        for e in _walk(anchor)
-        if getattr(e, "_sortable", None) is not None
-    ]
+    return [e._sortable for e in _walk(anchor) if getattr(e, "_sortable", None) is not None]
 
 
 def test_panel_renders_lanes_recursively() -> None:
@@ -168,13 +164,9 @@ def test_every_rendered_row_has_a_visible_grip() -> None:
     from haywire.ui import elements as hui
 
     anchor = _render_lane([_FakePort("a", "A"), _FakePort("b", "B")])
-    grips = [
-        e
-        for e in _walk(anchor)
-        if isinstance(e, ui.icon) and _DRAG_HANDLE_CLASS in e._classes  # noqa: SLF001
-    ]
+    grips = [e for e in _walk(anchor) if isinstance(e, ui.icon) and _DRAG_HANDLE_CLASS in e._classes]
     assert len(grips) == 2
-    assert all(g._props["name"] == hui.icon.drag_handle for g in grips)  # noqa: SLF001
+    assert all(g._props["name"] == hui.icon.drag_handle for g in grips)
 
 
 def test_the_sortable_only_accepts_a_drag_from_the_grip() -> None:
@@ -225,9 +217,9 @@ def test_a_fold_child_is_indented_below_its_fold() -> None:
     """Depth drives the child block's padding; a flat panel misreports the card."""
     anchor = _render_lane(_two_folds(), "config")
     pads = {
-        e._style.get("padding-left")  # noqa: SLF001
+        e._style.get("padding-left")
         for e in _walk(anchor)
-        if hasattr(e, "_style") and e._style.get("padding-left")  # noqa: SLF001
+        if hasattr(e, "_style") and e._style.get("padding-left")
     }
     assert "0px" in pads
     assert "12px" in pads
