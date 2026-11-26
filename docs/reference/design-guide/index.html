@@ -8705,7 +8705,7 @@ A widget node's stage face uses the same rule and sets the maximum per node.</p>
 <tr>
 <td><code>--hw-compact-field-h</code></td>
 <td>26px</td>
-<td>Fixed input height for compact widgets.</td>
+<td>Fixed input height for compact widgets; a chip select's minimum.</td>
 </tr>
 <tr>
 <td><code>--hw-max-label-width</code></td>
@@ -8724,6 +8724,12 @@ A widget node's stage face uses the same rule and sets the maximum per node.</p>
 </tr>
 </tbody>
 </table>
+<p><strong>Chip selects grow.</strong> A select with <code>use-chips</code> keeps the compact height while its
+chips fit on one row, and grows a row at a time as they wrap: <code>compact-fields</code>
+exempts Quasar's <code>q-select--with-chips</code> from the fixed height. Nothing to add in
+the widget. On a node card, give such a widget a width with <code>@widget(min_width=...)</code>,
+or the node cannot be narrower than all its chips on one row (see the widget
+canon, <em>Declared size</em>).</p>
 <p><strong>Rule:</strong> Only use <code>compact-fields</code> for settings/property panels. Regular
 editor content uses the standard gap/padding system (§4.1–4.3).</p>
 <p><strong>Rule:</strong> Never apply <code>compact-fields</code> and <code>p-4</code> to the same container. Compact
