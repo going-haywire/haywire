@@ -400,11 +400,10 @@ def test_the_main_folder_needs_no_worktree_setup(tmp_path):
 
 
 _LEAD = "t3-thread://v2/env1/th-lead"
-_T3 = {"terminal": None, "T3CODE_THREAD_ID": "th-1", "T3CODE_HOME": "/nowhere"}
 
 
 def test_in_t3_a_main_folder_session_is_a_lead(tmp_path):
-    context = _place(tmp_path, main=True, **_T3)
+    context = _place(tmp_path, main=True, terminal=None, T3CODE_THREAD_ID="th-1", T3CODE_HOME="/nowhere")
     assert "This is a main folder: you are a lead" in context
     assert f"`{ROOT}/docs/collaboration/brief.md`" in context
     assert "No lead is recorded" not in context
