@@ -20,8 +20,12 @@ with ui.column().classes('w-full gap-0 compact-fields'):
 - **CSS**: `packages/haywire-core/src/haywire/ui/app/shell.py` → `_static_css` string
 - **CSS custom properties** (in `:root`, overridable by themes):
   - `--hw-compact-gap: 0.25rem` — row gap
-  - `--hw-compact-field-h: 26px` — input field height
+  - `--hw-compact-field-h: 26px` — input field height; a chip select's minimum (`.q-select--with-chips` grows as its chips wrap)
   - `--hw-compact-row-min-h: 28px` — minimum row height
+
+**A harness page does not have these rules** unless it adds the studio's CSS
+(`theme_css` in `tests/ui/harness/routes.py`, built from `STATIC_CSS`). Without
+it every field is Quasar's own 56px and the 26px clip cannot be seen.
 
 ## Where it's applied
 

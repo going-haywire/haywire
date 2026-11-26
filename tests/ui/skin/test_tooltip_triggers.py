@@ -62,7 +62,17 @@ def _fold_node(graph):
     return wrapper
 
 
-@pytest.fixture(params=[_node, _fold_node], ids=["widgets_and_configs", "folds"])
+def _label_node(graph):
+    """A node whose config port shows its value with ``LabelWidget``, which adds its
+    text to the port's tip rather than drawing a tip of its own."""
+    from haybale_testing.nodes.testbed.chip_field_probes import LongLabelProbeNode
+
+    wrapper = graph.create_node_wrapper(LongLabelProbeNode.class_identity.registry_key, position=(0, 0))
+    assert wrapper is not None
+    return wrapper
+
+
+@pytest.fixture(params=[_node, _fold_node, _label_node], ids=["widgets_and_configs", "folds", "label"])
 def rendered(request, library_system, nicegui_slot_context):
     skin_factory = library_system.injector.get(SkinFactory)
     graph = _graph()

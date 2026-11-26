@@ -160,7 +160,7 @@ Inside the widget, that config is available as `self._config`; the convention is
 
 A node's size floor is not computed by Haywire — it is whatever CSS intrinsic sizing produces for the card. The resize gadget writes a `min-width`/`min-height` onto the host slot and reads the resulting size back, so **a widget's content becomes its node's floor**. A widget holding an image at its natural 1280×720 floors its node there: the user can grow the node but not shrink it, and no percentage in the widget's own CSS can cap it (percentages resolve to `auto` during intrinsic sizing).
 
-Declaring a size box on the decorator opts the widget out of that. It is opt-in: a widget that declares nothing sizes from its content, which is right for every stock widget.
+Declaring a size box on the decorator opts the widget out of that. It is opt-in: a widget that declares nothing sizes from its content. Declare one when content can be wider than a node should be: an image, a long path or status line, a field of chips that should wrap (`PathWidget` declares 200px, `LabelWidget` 120px).
 
 ```python
 @widget(description="Frame viewer", min_width=160)          # inline axis contained
@@ -177,9 +177,11 @@ The declared numbers are the size the widget claims when nothing constrains it: 
 
 `max_height` is a **separate** knob, and not part of the box: it replaces the framework's default expanded-container ceiling (200px) with your own definite px value, for a widget whose *content* is unbounded (a long label, a growing list). Content past it is clipped by the container's `overflow: hidden`. Keep it a px value — the container's reveal is a `max-height` transition, and a percentage of an auto-height ancestor resolves to `none` and snaps.
 
-All three are overridable per call site: `NumpyViewerWidget.config(min_width=320)`.
+All three are overridable per call site: `NumpyViewerWidget.config(min_width=320)`. `None` at the call site removes the class's declaration: `LabelWidget.config(min_width=None)` sizes from the text again. A widget can also derive a default from its own options by overriding `_size_overrides()`: `LabelWidget.config(properties={"wrap": True})` gets `max_height=80` unless the call site gives one.
 
-Mechanically, `BaseSkin.render_widget` — the one funnel every skin calls — stamps the resolved values onto the widget's root element as custom properties plus a marker attribute, and `canvas.vue` turns those into `contain` / `contain-intrinsic-size`. Custom skins inherit the behaviour without doing anything. See `haywire/ui/widget/sizing.py`.
+Mechanically, `BaseSkin.render_widget` — the one funnel every skin calls — stamps the resolved values onto the widget's root element as custom properties plus a marker class (`hw-widget-box`, `hw-widget-inline-box`, `hw-widget-max-height`), and `canvas.vue` turns those into `contain` / `contain-intrinsic-size`. Custom skins inherit the behaviour without doing anything. See `haywire/ui/widget/sizing.py`.
+
+The root can be any element, a Quasar field such as `ui.select` included: the stamp is a class and a style, the two things Quasar keeps on a field's root. A widget that calls `classes(replace=...)` on its own root after `build()` removes the marker; add and remove single classes instead.
 
 ### `_on_cleanup()` and final cleanup
 

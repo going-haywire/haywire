@@ -5,6 +5,7 @@ Basic widget implementations for common data types
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from nicegui import run, ui
@@ -13,6 +14,7 @@ from haywire.barn.builtin.types import INT
 from haywire.core.types.utils import resolve_options
 from haywire.ui import elements as hui
 from haywire.ui.components.number.drag import NumberDrag
+from haywire.ui.hover_tip import TIP_DESC_ATTR
 from haywire.ui.modals import text_modal
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.converters import DisplayTextConverter, PrimitiveUnwrappingConverter
@@ -398,23 +400,63 @@ class MenuWidget(BaseWidget):
         element.update()
 
 
-@widget(description="Label for display only")
+#: The tallest a wrapping LabelWidget grows before its text is clipped, in px.
+WRAPPED_LABEL_MAX_HEIGHT = 80
+
+
+@widget(description="Label for display only", min_width=120)
 class LabelWidget(BaseWidget):
     """
     Read-only label widget that displays the port value as text.
 
     Text and numbers show as they are; any other value, such as a path, shows in
-    its text form (`scans:in/a.png`). No configuration options.
+    its text form (`scans:in/a.png`). The text never sets the node's width. On a
+    node, hovering it shows the port's name and type with the whole text below.
 
-    Example::
+    By default the text stays on one line: when it is wider than the node it is
+    cut with an ellipsis. The node keeps its height however the text changes,
+    which suits a status line written while the graph runs.
 
-        LabelWidget.config()
+    Options (in `properties`):
+
+    - `wrap`: `True` breaks the text onto more lines when the node is narrower
+      than it. The label grows up to 80 px tall (set `max_height` to change it);
+      text past that is clipped. Suits text that rarely changes, such as a
+      description or a result: a wrapped text that changes its number of lines
+      changes the node's height.
+
+    ```python
+    LabelWidget.config()                                  # one line, cut with an ellipsis
+    LabelWidget.config(properties={"wrap": True})         # wraps, up to 80 px tall
+    LabelWidget.config(properties={"wrap": True}, max_height=160)
+    ```
     """
 
     def build(self) -> Any:
-        return self.bind(
-            ui.label("").classes("text-base text-xs"),
+        text_classes = "whitespace-normal break-words" if self._wraps() else "truncate"
+        self._text = self.bind(
+            ui.label("").classes(f"w-full min-w-0 text-base text-xs {text_classes}"),
             prop="text",
             one_way=True,
             converter=DisplayTextConverter(default_value=""),
         )
+        return self._text
+
+    def on_model_changed(self, value: Any) -> None:
+        super().on_model_changed(value)
+        # The card's port tip on this root shows the whole text as its second line.
+        text = DisplayTextConverter().to_view(value)
+        if text is None or text == "":
+            self._text.props.pop(TIP_DESC_ATTR, None)
+        else:
+            self._text.props[TIP_DESC_ATTR] = str(text)
+
+    def _wraps(self) -> bool:
+        return bool(self._config.get("properties", {}).get("wrap", False))
+
+    def _size_overrides(self) -> Mapping[str, Any]:
+        """The call site's size box; a wrapping label without a ``max_height`` gets the default one."""
+        overrides = super()._size_overrides()
+        if self._wraps() and "max_height" not in overrides:
+            return {**overrides, "max_height": WRAPPED_LABEL_MAX_HEIGHT}
+        return overrides

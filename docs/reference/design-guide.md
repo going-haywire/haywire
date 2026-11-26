@@ -540,10 +540,17 @@ with ui.column().classes("w-full gap-0 compact-fields"):
 
 | Token                    | Default | Purpose                                 |
 | ------------------------ | ------- | --------------------------------------- |
-| `--hw-compact-field-h`   | 26px    | Fixed input height for compact widgets. |
+| `--hw-compact-field-h`   | 26px    | Fixed input height for compact widgets; a chip select's minimum. |
 | `--hw-max-label-width`   | 9rem    | The widest an `sf-label` gets; set on a row or any ancestor. |
 | `--hw-compact-gap`       | 1px     | Vertical gap between compact rows.      |
 | `--hw-compact-row-min-h` | 28px    | Minimum row height in compact mode.     |
+
+**Chip selects grow.** A select with `use-chips` keeps the compact height while its
+chips fit on one row, and grows a row at a time as they wrap: `compact-fields`
+exempts Quasar's `q-select--with-chips` from the fixed height. Nothing to add in
+the widget. On a node card, give such a widget a width with `@widget(min_width=...)`,
+or the node cannot be narrower than all its chips on one row (see the widget
+canon, *Declared size*).
 
 **Rule:** Only use `compact-fields` for settings/property panels. Regular
 editor content uses the standard gap/padding system (§4.1–4.3).

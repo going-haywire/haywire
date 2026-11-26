@@ -2323,6 +2323,60 @@ def register_routes(library_service) -> None:
         _stamp_synced()
 
     # -------------------------------------------------------------------------
+    # GET /graph-chip-field
+    #
+    # A Chip Field Probe (a chip select that is its widget's root, beside a plain
+    # select), a Long Label Probe (a status line far wider than the node) and a
+    # Wrapped Label Probe (the same text in LabelWidget's wrapping mode).
+    # Backs test_chip_select_widget.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-chip-field")
+    async def graph_chip_field_page():
+        from haywire.core.graph.editor import Editor
+
+        if theme_css:
+            ui.add_css(theme_css)  # the studio's compact-fields rules are what clips chips
+
+        graph = _harness_graph("Chip Field Fixture")
+        editor = Editor(graph, library_service.get_node_factory())
+
+        chips = graph.create_node_wrapper(
+            "haybale-testing:node:ChipFieldProbeNode", position=(3600.0, 3700.0)
+        )
+        label = graph.create_node_wrapper(
+            "haybale-testing:node:LongLabelProbeNode", position=(3600.0, 4100.0)
+        )
+        wrapped = graph.create_node_wrapper(
+            "haybale-testing:node:WrappedLabelProbeNode", position=(4100.0, 4100.0)
+        )
+        assert chips is not None, "could not create ChipFieldProbeNode"
+        assert label is not None, "could not create LongLabelProbeNode"
+        assert wrapped is not None, "could not create WrappedLabelProbeNode"
+
+        # The status is written while the graph runs, as Device In writes its own.
+        ui.button(
+            "longer-status",
+            on_click=lambda: label.node.ports["status"].set_value(
+                label.node.ports["status"].get_value() * 2
+            ),
+        ).props('data-testid="longer-status"')
+        ui.button(
+            "longer-wrapped",
+            on_click=lambda: wrapped.node.ports["text"].set_value(
+                wrapped.node.ports["text"].get_value() * 4
+            ),
+        ).props('data-testid="longer-wrapped"')
+
+        for name, wrapper in (("chips", chips), ("label", label), ("wrapped", wrapped)):
+            ui.label(wrapper.node_id).props(
+                f'id="{name}-node-id" data-testid="{name}-node-id" data-node="{wrapper.node_id}"'
+            )
+
+        _mount_graph_canvas(library_service, graph, editor, testid="chipfield")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
     # GET /graph-path-demo
     #
     # A Path Demo node whose File inlet points at a file 30 folders deep inside a
