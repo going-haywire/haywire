@@ -24,7 +24,8 @@ def _promote(monkeypatch, tier: AccessTier) -> tuple[MagicMock, MagicMock]:
     wrapper = SimpleNamespace(node=SimpleNamespace(resolve_definition=lambda: SimpleNamespace()))
     graph = MagicMock()
     graph.get_node_wrapper.side_effect = lambda node_id: wrapper if node_id == "card" else None
-    context = SimpleNamespace(can_access=tier.satisfies)
+    context = MagicMock()
+    context.can_access.side_effect = tier.satisfies
     handler = VisualLayerHandlers(
         graph=graph,
         route=edit_route(MagicMock()),
