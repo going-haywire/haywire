@@ -13,11 +13,17 @@ Usage (standard library only; core also has it at ``scripts/tasks.py``)::
     python3 tasks.py
     python3 tasks.py --json
     python3 tasks.py --root /path/to/folder/holding/the/repositories
+    python3 tasks.py --since <sha>
 
 Each line reads ``<repo> / <branch> (<address>) · #<pr> <state> · checks <✓|✗|…> · <agent status>``,
 followed by ``dirty``, ``ahead N`` or ``behind N`` against the branch's upstream when they apply.
 Without ``gh`` or without network the pull request reads ``pr unknown``; when no slot lists
 an agent for the worktree, the agent part is left out.
+
+``--since <sha>`` also lists what reached the default branch after that commit, in the
+repository that holds it: the commits merged (after fetching ``origin``) and the tags among
+them, and the branch's head, the commit to pass next time. The lead runs it before each
+report to the user, so a merge or release it did not make shows.
 
 Output is ``key: value`` lines on stdout, errors included (``error:`` then ``help:``).
 Exit codes: 0 listed, 1 a command failed, 2 usage.
@@ -185,6 +191,75 @@ def agents(slots: Path = ORCHESTRATORS) -> dict[Path, dict]:
     return found
 
 
+# --- what reached the default branch -------------------------------------------
+
+
+def default_branch(repo: Path) -> str:
+    """Return ``origin``'s default branch as the clone records it, else ``master`` or ``main``."""
+    try:
+        head = run("git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD", cwd=repo)
+        return head.strip().split("/", 1)[1]
+    except CommandFailed:
+        pass
+    for branch in sorted(DEFAULT_BRANCHES, reverse=True):
+        try:
+            run("git", "rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{branch}", cwd=repo)
+        except CommandFailed:
+            continue
+        return branch
+    return "master"
+
+
+def holds(repo: Path, sha: str) -> bool:
+    """Return whether *repo* has the commit *sha*."""
+    try:
+        run("git", "cat-file", "-e", f"{sha}^{{commit}}", cwd=repo)
+    except CommandFailed:
+        return False
+    return True
+
+
+def since(root: Path, sha: str) -> dict | None:
+    """Return what reached the default branch after *sha*, in the repository under *root* holding it.
+
+    ``None`` when no repository holds the commit. ``fetched`` is false when ``origin`` could not
+    be reached; the lists then come from the last fetch.
+    """
+    for repo in repositories(root):
+        if not holds(repo, sha):
+            continue
+        branch = default_branch(repo)
+        try:
+            run("git", "fetch", "--quiet", "--tags", "origin", branch, cwd=repo)
+            fetched = True
+        except CommandFailed:
+            fetched = False
+        tip = f"origin/{branch}"
+        log = run("git", "log", "--first-parent", "--format=%h %s", f"{sha}..{tip}", cwd=repo)
+        tags = run("git", "tag", "--merged", tip, "--no-merged", sha, "--sort=creatordate", cwd=repo)
+        return {
+            "repo": repo.name,
+            "sha": sha,
+            "branch": tip,
+            "head": run("git", "rev-parse", "--short", tip, cwd=repo).strip(),
+            "fetched": fetched,
+            "merged": log.splitlines(),
+            "tags": tags.split(),
+        }
+    return None
+
+
+def describe_since(news: dict) -> list[str]:
+    """Return the lines that read *news* from :func:`since`."""
+    lines = [f"since: {news['sha']} in {news['repo']}, {news['branch']} now at {news['head']}"]
+    if not news["fetched"]:
+        lines.append("warning: could not fetch origin; this is the last fetch's state")
+    lines.append(f"merged[{len(news['merged'])}]:" if news["merged"] else "merged: none")
+    lines.extend(f"  {line}" for line in news["merged"])
+    lines.append("tags: " + (", ".join(news["tags"]) or "none"))
+    return lines
+
+
 # --- the view ----------------------------------------------------------------
 
 
@@ -250,6 +325,9 @@ def main(argv: list[str] | None = None) -> int:
         "--root", type=Path, help="the folder holding the repositories (default: beside this repository)"
     )
     parser.add_argument("--json", action="store_true", help="one JSON object on stdout")
+    parser.add_argument(
+        "--since", metavar="SHA", help="also list merges and tags on the default branch after SHA"
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -258,12 +336,20 @@ def main(argv: list[str] | None = None) -> int:
             print(f"error: {root} is not a folder\nhelp: pass the folder that holds the repositories")
             return 1
         rows = collect(root)
+        news = since(root, args.since) if args.since else None
     except CommandFailed as exc:
         print(f"error: {exc}")
         return 1
+    if args.since and news is None:
+        print(f"error: no repository under {root} holds {args.since}")
+        print("help: pass a commit of the default branch")
+        return 1
     if args.json:
-        print(json.dumps({"tasks": rows}, indent=2))
-    elif not rows:
+        print(json.dumps({"tasks": rows, **({"since": news} if news else {})}, indent=2))
+        return 0
+    if news:
+        print("\n".join(describe_since(news)))
+    if not rows:
         print(f"tasks: 0 (no worktree besides a main folder on its default branch under {root})")
     else:
         print(f"tasks[{len(rows)}]:")

@@ -148,6 +148,7 @@ def _place(
     where: str | None = "feat-x / 1",
     output: list[dict] | None = None,
     t3_json=False,
+    lead: str | None = None,
     **extra_env: str,
 ) -> str:
     """The hook's context in ``tmp_path/work``: a main folder if ``main``, else a worktree on ``feat/x``.
@@ -167,6 +168,8 @@ def _place(
         _git(origin, "worktree", "add", "-q", "-b", "feat/x", str(work))
     if t3_json:
         shutil.copy(ROOT / "t3.json", work / "t3.json")
+    if lead is not None:
+        _setup_mark(work, "haywire-lead", lead + "\n")
     bin_dir = _fake_bin(tmp_path, None)
     (bin_dir / "git").symlink_to(shutil.which("git") or "git")
     for name, script, wanted in (("hc", _HC, hc), ("herdr-app", _HERDR_APP, herdr is not None)):
@@ -249,6 +252,7 @@ def _t3_output(
     venv=True,
     done=True,
     t3_json=False,
+    lead: str | None = None,
     **env: str,
 ) -> dict:
     """The hook's output in a T3 worktree, with the repository's t3.json if ``t3_json``."""
@@ -265,6 +269,8 @@ def _t3_output(
         (work / ".venv").mkdir()
     if done:
         _setup_done(work)
+    if lead is not None:
+        _setup_mark(work, "haywire-lead", lead + "\n")
     bin_dir = _fake_bin(tmp_path, None)
     (bin_dir / "git").symlink_to(shutil.which("git") or "git")
     result = _run(
@@ -281,7 +287,7 @@ def _t3_output(
     return json.loads(result.stdout)
 
 
-def _setup_mark(work: Path, marker: str) -> None:
+def _setup_mark(work: Path, marker: str, text: str = "") -> None:
     """Write one of dev/scripts/worktree_setup.py's markers into ``work``'s git folder."""
     git_dir = subprocess.run(
         ["git", "-C", str(work), "rev-parse", "--path-format=absolute", "--git-dir"],
@@ -289,7 +295,7 @@ def _setup_mark(work: Path, marker: str) -> None:
         text=True,
         check=True,
     ).stdout.strip()
-    (Path(git_dir) / marker).write_text("")
+    (Path(git_dir) / marker).write_text(text)
 
 
 def _setup_done(work: Path) -> None:
@@ -391,6 +397,73 @@ def test_the_lead_thread_is_checked_too(tmp_path):
 def test_the_main_folder_needs_no_worktree_setup(tmp_path):
     context = _place(tmp_path, main=True, terminal=None, T3CODE_THREAD_ID="th-1", T3CODE_HOME=str(tmp_path))
     assert "T3 setup is incomplete" not in context
+
+
+_LEAD = "t3-thread://v2/env1/th-lead"
+_T3 = {"terminal": None, "T3CODE_THREAD_ID": "th-1", "T3CODE_HOME": "/nowhere"}
+
+
+def test_in_t3_a_main_folder_session_is_a_lead(tmp_path):
+    context = _place(tmp_path, main=True, **_T3)
+    assert "This is a main folder: you are a lead" in context
+    assert f"`{ROOT}/docs/collaboration/brief.md`" in context
+    assert "No lead is recorded" not in context
+
+
+def test_in_t3_a_worktree_with_a_lead_file_is_its_task(tmp_path):
+    context = _t3_setup(tmp_path, lead=_LEAD)
+    assert f"You are a task of {_LEAD}; report to it with `t3_thread_send`" in context
+    assert "you are a lead" not in context
+
+
+def test_in_t3_a_worktree_without_a_lead_file_asks_once(tmp_path):
+    context = _t3_setup(tmp_path)
+    assert "No lead is recorded for this worktree." in context
+    assert f"`python3 {ROOT}/dev/scripts/worktree_setup.py --lead <link>`" in context
+    assert "ask the user once whether you are a task (and of whom) or a peer" in context
+
+
+def test_in_herdr_a_main_folder_session_is_a_lead(tmp_path):
+    context = _place(tmp_path, main=True)
+    assert "This is a main folder: you are a lead" in context
+    assert f"`{ROOT}/docs/collaboration/brief.md`" in context
+
+
+def test_in_herdr_a_worktree_with_a_lead_file_is_its_task(tmp_path):
+    context = _place(tmp_path, lead="lead / lead (t1)")
+    assert "You are a task of lead / lead (t1); report to it with `hc send`" in context
+
+
+def test_in_herdr_a_worktree_without_a_lead_file_asks_once(tmp_path):
+    context = _place(tmp_path)
+    assert "No lead is recorded for this worktree." in context
+    assert "--lead <address>" in context
+
+
+def test_the_slots_work_from_an_umbrella_folder(tmp_path):
+    """The umbrella runs core's hooks as ``./haywire-repo/dev/hooks/…``, its own folder the project."""
+    umbrella = tmp_path / "umbrella"
+    umbrella.mkdir()
+    _git(umbrella, "init", "-q")
+    (umbrella / "haywire-repo").symlink_to(ROOT, target_is_directory=True)
+    bin_dir = _fake_bin(tmp_path, None)
+    (bin_dir / "git").symlink_to(shutil.which("git") or "git")
+    result = subprocess.run(
+        [str(umbrella / "haywire-repo" / "dev" / "hooks" / "session-place.sh")],
+        capture_output=True,
+        text=True,
+        env={
+            "PATH": str(bin_dir),
+            "CLAUDE_PROJECT_DIR": str(umbrella),
+            "T3CODE_THREAD_ID": "th-1",
+            "T3CODE_HOME": str(tmp_path),
+        },
+        check=False,
+    )
+    context = json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+    assert "You run in T3 Code as thread `th-1`." in context
+    assert "This is a main folder: you are a lead" in context
+    assert f"the template `{ROOT}/docs/collaboration/brief.md`" in context
 
 
 def test_another_claude_code_entrypoint_is_not_t3(tmp_path):

@@ -3,7 +3,8 @@
 # agent runs in herdr, its address and how to reach other agents. A worktree session whose
 # tab is still called by its number gets the tab renamed to its branch; in the main folder
 # the agent is told to name it by role, and the other live sessions in that folder are listed.
-# Prints nothing outside herdr or without hc.
+# It also says the agent's role: lead in a main folder, else the task of the lead recorded in
+# the worktree's git folder. Prints nothing outside herdr or without hc.
 
 [ -n "$HC_TERMINAL_ID" ] || exit 0
 command -v hc >/dev/null 2>&1 || exit 0
@@ -42,6 +43,19 @@ else
 fi
 
 context="You run in herdr as ${where:+\`$where\` (}\`$HC_TERMINAL_ID\`${where:+)}. Other agents: \`hc ls\`. Message one: \`hc send <address> \"...\"\` (it arrives as their next input). Protocol: \`hc --skill\`. Refer to an agent by its space / tab, the address only in brackets. Lead and tasks in herdr: core's \`docs/collaboration/orchestrators/herdr-agent.md\` (the bridge serves it as \`farmhand://dev/collaboration/orchestrators/herdr-agent.md\`).${tab_hint:+ $tab_hint}"
+
+# The role comes from the lead file worktree_setup.py --lead writes (workflow, Lead and tasks).
+core=$(cd "${BASH_SOURCE[0]%/*}/../../.." && pwd -P)
+git_dir=$(git -C "$dir" rev-parse --path-format=absolute --git-dir 2>/dev/null)
+if $main_folder; then
+  context+=" This is a main folder: you are a lead (a peer, if the user started you as one). Brief a task with the template \`$core/docs/collaboration/brief.md\` (\`farmhand://dev/collaboration/brief.md\`)."
+elif [ -z "$git_dir" ]; then
+  : # not a git folder: no role to tell
+elif lead=$(sed -n 1p "$git_dir/haywire-lead" 2>/dev/null) && [ -n "$lead" ]; then
+  context+=" You are a task of $lead; report to it with \`hc send\` before each turn ends, and pass on what the user tells you directly."
+else
+  context+=" No lead is recorded for this worktree. If your brief names your lead, record it: \`python3 $core/dev/scripts/worktree_setup.py --lead <address>\`. Otherwise ask the user once whether you are a task (and of whom) or a peer."
+fi
 
 if $main_folder; then
   others=$(bounded hc ls --json | jq -r --arg dir "$dir" --arg self "$HC_TERMINAL_ID" '

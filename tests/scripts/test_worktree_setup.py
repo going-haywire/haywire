@@ -1,15 +1,23 @@
-"""The pure parts of dev/scripts/worktree_setup.py: the studio port and the core link."""
+"""dev/scripts/worktree_setup.py: the studio port, the core link and the recorded lead."""
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
+import pytest
+
+from scripts import worktree_setup
 from scripts.worktree_setup import (
+    DONE,
     FIRST_WORKTREE_PORT,
+    LEAD,
     choose_studio_port,
     core_link,
+    read_lead,
     studio_port,
     with_studio_port,
+    write_lead,
 )
 
 
@@ -76,3 +84,43 @@ def test_no_link_when_the_main_folder_has_no_core_beside_it(tmp_path):
     main = _repo(tmp_path / "work" / "haybale-x")
     worktree = _repo(tmp_path / "t3" / "haybale-x" / "feat")
     assert core_link(worktree, main) is None
+
+
+T3_LINK = "t3-thread://v2/337c3f3f/mcp:launch:49a6"
+
+
+def test_the_lead_is_written_and_read_back(tmp_path):
+    assert read_lead(tmp_path) is None
+    write_lead(tmp_path, f"  {T3_LINK}\n")
+    assert (tmp_path / LEAD).read_text() == f"{T3_LINK}\n"
+    assert read_lead(tmp_path) == T3_LINK
+
+
+def test_an_empty_lead_file_records_no_lead(tmp_path):
+    (tmp_path / LEAD).write_text("\n")
+    assert read_lead(tmp_path) is None
+
+
+def _git(cwd: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@example.org", *args],
+        cwd=cwd,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def test_lead_on_a_set_up_worktree_only_records_the_lead(tmp_path, monkeypatch, capsys):
+    main = tmp_path / "main"
+    main.mkdir()
+    _git(main, "init", "-q")
+    _git(main, "commit", "-q", "--allow-empty", "-m", "x")
+    _git(main, "worktree", "add", "-q", "-b", "feat/x", str(tmp_path / "work"))
+    git_dir = Path(_git(tmp_path / "work", "rev-parse", "--path-format=absolute", "--git-dir"))
+    (git_dir / DONE).write_text("")
+    monkeypatch.chdir(tmp_path / "work")
+    monkeypatch.setattr(worktree_setup, "build_environment", pytest.fail)
+    assert worktree_setup.main(["--lead", "herdr-lead (t1)"]) == 0
+    assert capsys.readouterr().out == "lead: herdr-lead (t1)\n"
+    assert read_lead(git_dir) == "herdr-lead (t1)"

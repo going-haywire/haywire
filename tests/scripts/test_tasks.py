@@ -273,3 +273,38 @@ def test_a_missing_root_is_an_error_with_a_help_line(folder, capsys):
     out = capsys.readouterr().out
     assert out.startswith("error:")
     assert "help:" in out
+
+
+def test_since_lists_merges_and_tags_made_elsewhere(folder, tmp_path, capsys):
+    seen = git(folder.main, "rev-parse", "--short", "HEAD")
+    other = tmp_path / "other"
+    subprocess.run(["git", "clone", "-q", str(tmp_path / "origin.git"), str(other)], check=True)
+    commit(other, "fix-one")
+    commit(other, "release")
+    git(other, "tag", "v1.0.1")
+    git(other, "push", "-q", "origin", "master", "--tags")
+    head = git(other, "rev-parse", "--short", "HEAD")
+    assert tasks.main(["--root", str(folder.root), "--since", seen]) == 0
+    assert capsys.readouterr().out.splitlines()[:5] == [
+        f"since: {seen} in alpha, origin/master now at {head}",
+        "merged[2]:",
+        f"  {head} release",
+        f"  {git(other, 'rev-parse', '--short', 'HEAD~1')} fix-one",
+        "tags: v1.0.1",
+    ]
+
+
+def test_since_the_head_lists_nothing(folder, capsys):
+    seen = git(folder.main, "rev-parse", "HEAD")
+    assert tasks.main(["--root", str(folder.root), "--since", seen, "--json"]) == 0
+    news = json.loads(capsys.readouterr().out)["since"]
+    assert news["merged"] == []
+    assert news["tags"] == []
+    assert news["fetched"] is True
+
+
+def test_since_an_unknown_commit_is_an_error(folder, capsys):
+    assert tasks.main(["--root", str(folder.root), "--since", "0" * 40]) == 1
+    out = capsys.readouterr().out
+    assert out.startswith("error: no repository")
+    assert "help:" in out
