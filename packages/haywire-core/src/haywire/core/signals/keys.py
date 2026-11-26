@@ -4,8 +4,8 @@ A combo is ``+``-joined modifiers followed by one key, e.g. ``Mod+Shift+Z``.
 ``Mod`` is the platform command key (Cmd on macOS, Ctrl elsewhere); ``Ctrl``
 is the physical Control key on macOS. Canonical order is ``Mod``, ``Ctrl``,
 ``Alt``, ``Shift``, then the key. A single-character key is upper-cased; a
-named key keeps its ``KeyboardEvent.key`` spelling (``Delete``, ``Escape``,
-``F1`` to ``F24``).
+named key keeps its ``KeyboardEvent.key`` spelling (``Delete``, ``Insert``,
+``Escape``, ``F1`` to ``F24``).
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ _NAMED_KEYS: dict[str, str] = {
     k.lower(): k
     for k in (
         "Delete",
+        "Insert",
         "Backspace",
         "Escape",
         "Enter",

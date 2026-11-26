@@ -53,6 +53,19 @@ def test_normalize_accepts_function_keys(raw, canonical):
     assert normalize_combo(raw) == canonical
 
 
+@pytest.mark.parametrize(
+    ("raw", "canonical"),
+    [("insert", "Insert"), ("mod+insert", "Mod+Insert"), ("shift+Insert", "Shift+Insert")],
+)
+def test_normalize_accepts_insert(raw, canonical):
+    assert normalize_combo(raw) == canonical
+
+
+def test_format_insert_keeps_its_full_name():
+    assert format_combo("Mod+Insert", mac=False) == "Ctrl+Insert"
+    assert format_combo("Shift+Insert", mac=True) == "⇧Insert"
+
+
 def test_normalize_named_key_is_case_insensitive():
     assert normalize_combo("mod+delete") == "Mod+Delete"
 
