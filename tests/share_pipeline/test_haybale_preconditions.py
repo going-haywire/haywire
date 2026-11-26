@@ -258,6 +258,24 @@ def test_the_bump_records_where_the_library_is_published_from(project: Path) -> 
     assert "origin = " in declared
 
 
+def test_the_first_release_leaves_no_pyproject_drift(project: Path) -> None:
+    """#33: the first publish writes ``origin`` into haybale.toml; the bump must
+    carry it into ``[project.urls] Source`` too, or the release itself leaves
+    the drift that blocks the next ``share --status``."""
+    import tomllib
+
+    assert pyproject_drift(_lib(project)) == {}
+    pipeline = SharePipeline(project)
+
+    pipeline.apply_bump("1.2.3")
+
+    pyproject = _lib(project) / "pyproject.toml"
+    origin = tomllib.loads(_declared_file(project).read_text())["origin"]
+    assert pyproject_drift(_lib(project)) == {}
+    assert tomllib.loads(pyproject.read_text())["project"]["urls"]["Source"] == origin
+    assert pyproject in pipeline.written
+
+
 def test_the_row_prefers_the_declaration_over_re_deriving_it(project: Path) -> None:
     """Phase B reads what Phase A wrote. Re-deriving would let the row and the
     shipped file disagree about where the library came from."""
