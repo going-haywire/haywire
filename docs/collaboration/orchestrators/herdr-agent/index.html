@@ -2856,6 +2856,8 @@
       
         
       
+        
+      
     
     
     
@@ -3115,6 +3117,41 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../../brief/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The brief
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -3147,7 +3184,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2_9_7" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2_9_8" checked>
         
           
           <div class="md-nav__link md-nav__container">
@@ -3176,14 +3213,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_4_2_9_7" id="__nav_4_2_9_7_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_4_2_9_8" id="__nav_4_2_9_8_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_4_2_9_7_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_4_2_9_7">
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_4_2_9_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_2_9_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -5499,6 +5536,11 @@ then names this file.</p>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>herdr-app<span class="w"> </span><span class="k">do</span><span class="w"> </span>space.new<span class="w"> </span>--name<span class="w"> </span>&lt;kind&gt;-&lt;name&gt;<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span>--folder<span class="w"> </span>~/.herdr/worktrees/haywire-repo/&lt;kind&gt;-&lt;name&gt;<span class="w"> </span>--argv<span class="w"> </span><span class="s1">&#39;[&quot;claude&quot;]&#39;</span><span class="w"> </span>--task<span class="w"> </span><span class="s2">&quot;&lt;brief&gt;&quot;</span>
 </span></code></pre></div>
+<p>Then, before the session starts, record the lead:
+<code>(cd &lt;worktree&gt; &amp;&amp; python3 scripts/worktree_setup.py --lead &lt;your address&gt;)</code>; the brief
+(<a href="../../brief/">the template</a>) carries the same address. A peer ("spin up a thread") gets
+neither, only your address for messages. A new lead ("spin up a lead for <repo>") is a
+peer in that repository's main folder and names its own tab <code>&lt;tag&gt; ◆ lead</code>.</p>
 <p>The space opens under the repo and the agent starts with the brief as its first message;
 <code>hc ls</code> shows whether it did (<code>herdr-app</code> reports only that the terminal was created). If
 <code>herdr-app</code> is not there, the user opens the space (<em>Open worktree</em>) and gives the agent
@@ -5507,7 +5549,13 @@ the brief. A library task's worktree goes beside the repositories instead
 <h2 id="messages">Messages<a class="headerlink" href="#messages" title="Permanent link">&para;</a></h2>
 <p><code>hc send &lt;address&gt; "&lt;text&gt;"</code> arrives as the other agent's next input; <code>hc ls</code> lists the
 sessions with their space / tab; <code>hc --skill</code> prints the protocol. A task reports to the
-lead with <code>hc send</code>. Without <code>hc</code>, the user relays.</p>
+lead with <code>hc send</code> <strong>before its turn ends</strong>, including what the user told it directly.
+Without <code>hc</code>, the user relays.</p>
+<p><strong>Needs a decision</strong> (the workflow's four steps): the task ends its reply with the lead's
+address and sends the lead one line with its own. The lead marks the task's tab
+<code>? &lt;name&gt;</code> (<code>herdr-app do tab.rename --id &lt;tab&gt; --name "? &lt;name&gt;"</code>) and drops the <code>?</code> on
+"Decided". The hook names a task's tab after its branch; the lead may add its tag
+(<code>core › &lt;branch&gt;</code>).</p>
 <h2 id="the-view">The view<a class="headerlink" href="#the-view" title="Permanent link">&para;</a></h2>
 <p><code>tasks.py</code> adds each task's session through the slot's <code>agents.py</code>, which reads
 <code>hc ls --json</code>: the address after the task's name, and its status.</p>

@@ -2996,6 +2996,8 @@
       
         
       
+        
+      
     
     
     
@@ -3259,6 +3261,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../collaboration/brief/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The brief
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -3289,7 +3326,7 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2_9_7" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2_9_8" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -3318,14 +3355,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_4_2_9_7" id="__nav_4_2_9_7_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_4_2_9_8" id="__nav_4_2_9_8_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_4_2_9_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_2_9_7">
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_4_2_9_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2_9_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -5587,7 +5624,7 @@ you answer each Check there and submit, and the agent reads the Findings back.</
 <p>These are the checks CI runs. Before you open a pull request, run them on what you changed:</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>check<span class="w"> </span>&lt;changed<span class="w"> </span>files&gt;<span class="w">          </span><span class="c1"># lint (line length 109); &quot;.&quot; for everything</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>format<span class="w"> </span>--check<span class="w"> </span>&lt;changed<span class="w"> </span>files&gt;<span class="w"> </span><span class="c1"># formatting; &quot;ruff check&quot; as an instruction means both</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>uv<span class="w"> </span>run<span class="w"> </span>mypy<span class="w">                                </span><span class="c1"># types: the paths in [tool.mypy] files, as CI checks them</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>uv<span class="w"> </span>run<span class="w"> </span>mypy<span class="w">                                </span><span class="c1"># types: the paths in [tool.mypy] files (tests/ too), as CI checks them</span>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>uv<span class="w"> </span>run<span class="w"> </span>mypy<span class="w"> </span>&lt;path&gt;<span class="w">                         </span><span class="c1"># one package, while iterating</span>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>&lt;tests<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>changed<span class="w"> </span>area&gt;<span class="w"> </span>-q
 </span></code></pre></div>

@@ -2856,6 +2856,8 @@
       
         
       
+        
+      
     
     
     
@@ -3115,6 +3117,41 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../../brief/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The brief
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -3147,7 +3184,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2_9_7" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2_9_8" checked>
         
           
           <div class="md-nav__link md-nav__container">
@@ -3176,14 +3213,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_4_2_9_7" id="__nav_4_2_9_7_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_4_2_9_8" id="__nav_4_2_9_8_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_4_2_9_7_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_4_2_9_7">
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_4_2_9_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_2_9_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -5507,12 +5544,22 @@ and <code>T3CODE_THREAD_ID</code>; the session-start hook then names this file. 
 <ul>
 <li><strong>The lead</strong> is a T3 thread on the project root (the main folder).</li>
 <li><strong>A task</strong> is a T3 thread in a worktree of its own, started by the lead with
-  <code>t3_thread_launch</code>. T3 puts core worktrees under <code>~/.t3/worktrees/&lt;repo&gt;/</code>. The thread's
-  title is the task's name, its branch.</li>
+  <code>t3_thread_launch</code>. T3 puts core worktrees under <code>~/.t3/worktrees/&lt;repo&gt;/</code>.</li>
+<li><strong>Titles</strong> are the lead's to set, with <code>t3_thread_update</code> (<em>Names</em> in the workflow): its
+  own <code>&lt;tag&gt; ◆ lead</code>, a task's <code>&lt;lead tag&gt; › &lt;branch&gt;</code>, <code>?</code> in front while it waits on the
+  user. A task never renames itself.</li>
+<li><strong>A link</strong> to a thread is <code>t3-thread://v2/&lt;environment&gt;/&lt;thread id&gt;</code>; its last part is
+  the id <code>t3_thread_send</code> takes.</li>
 </ul>
 <h2 id="created">Created<a class="headerlink" href="#created" title="Permanent link">&para;</a></h2>
 <p>The lead calls <code>t3_thread_launch</code> with a new worktree from <code>origin/master</code>, the branch
-<code>&lt;kind&gt;/&lt;name&gt;</code> and the brief as the first message. The setup script from <code>t3.json</code>, once
+<code>&lt;kind&gt;/&lt;name&gt;</code> and the brief (<a href="../../brief/">the template</a>) as the first message, its own
+link on the <em>Lead link</em> line. T3 records no parent (<code>delegatedFrom</code> shows nothing), and the
+setup T3 runs has no <code>--lead</code>, so the task records its lead first:
+<code>python3 scripts/worktree_setup.py --lead &lt;link&gt;</code> (it only writes the lead file once a
+setup ran); the session-start hook says so. A peer ("spin up a thread") gets no lead line,
+only the other thread's link for messages. A new lead ("spin up a lead for <repo>") is a
+peer thread on that repository's project root and names itself <code>&lt;tag&gt; ◆ lead</code>. The setup script from <code>t3.json</code>, once
 imported into the T3 project (<em>The user's T3 settings</em>), runs
 <code>python3 scripts/worktree_setup.py</code> when T3 creates the worktree (<code>runOnWorktreeCreate</code>).
 <code>t3.json</code> sets <code>async: false</code> on it so that T3 holds the agent until it exits; T3 before 0.1.11
@@ -5527,9 +5574,15 @@ the worktree before <code>uv sync</code> (<em>Parallel sessions</em> in the work
 bridge, with nothing to install. Its studio, the full one included, starts like a core
 task's (<em>Parallel sessions</em> in the workflow).</p>
 <h2 id="messages">Messages<a class="headerlink" href="#messages" title="Permanent link">&para;</a></h2>
-<p>A task reports with <code>t3_thread_send</code> to the lead's thread id, which its brief carries; the
-message arrives as the lead's next input, no polling. The lead links each task's PR to the
-task's thread with <code>link_pull_request</code>, so the thread shows it.</p>
+<p>A task reports with <code>t3_thread_send</code> to the lead's thread id, <strong>before its turn ends</strong>: T3
+may settle a thread at turn end, so a silent stop looks like done. The message arrives as
+the lead's next input, no polling. The lead links each task's PR to the task's thread with
+<code>link_pull_request</code>, so the thread shows it.</p>
+<p><strong>Needs a decision</strong> (the workflow's four steps): the task ends its reply with the lead's
+link on its own line and sends the lead one line with its own link. The lead renames the
+task <code>? &lt;title&gt;</code> and marks it unread with <code>t3_thread_organize</code> (<code>mark_unread</code> works only
+once the task's turn has ended), then gives the user the line and the link. When the task
+sends "Decided", the lead drops the <code>?</code>.</p>
 <h2 id="the-view">The view<a class="headerlink" href="#the-view" title="Permanent link">&para;</a></h2>
 <p><code>tasks.py</code> shows no session column for T3: T3 has no slot <code>agents.py</code>. The lead reads its
 task threads with <code>t3_thread_list</code>, <code>t3_worktree_list</code> and the PRs linked to them.</p>

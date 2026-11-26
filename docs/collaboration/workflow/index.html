@@ -3073,6 +3073,8 @@
       
         
       
+        
+      
     
     
     
@@ -3336,6 +3338,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../brief/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The brief
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -3366,7 +3403,7 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2_9_7" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2_9_8" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -3395,14 +3432,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_4_2_9_7" id="__nav_4_2_9_7_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_4_2_9_8" id="__nav_4_2_9_8_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_4_2_9_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_2_9_7">
+        <nav class="md-nav" data-md-level="4" aria-labelledby="__nav_4_2_9_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2_9_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -5697,10 +5734,15 @@ should never have to go and find it.</p>
   (<code>gh run view &lt;id&gt; --json url --jq .url</code>). A local file: a markdown link with the line,
   <code>[name.py:42](path/to/name.py#L42)</code>. A diff: the PR's <em>Files changed</em> URL
   (<code>&lt;pr-url&gt;/files</code>).</li>
-<li><strong>Say what is decided</strong>, the options lettered, and which one you recommend and why,
-  in a sentence each.</li>
+<li><strong>Number every decision</strong> (1, 2, 3) and letter its options (a, b, c). Each says what
+  is decided, the options, and your recommendation with a one-sentence reason. No
+  question stays in running text: every question gets a number.</li>
 <li><strong>Put the evidence next to it:</strong> test results, the failing check, the measured
   number, the relevant lines. Quote briefly; link the rest.</li>
+<li><strong>End with the recommendations</strong>, one line, so the user can answer by number:
+  <code>Recommended: 1 b · 2 a · 3 yes</code>.</li>
+<li><strong>"Go" accepts every recommendation.</strong> The user names a number only where they
+  differ: "go, but 2 a".</li>
 </ul>
 <p>A PR ready to merge is reported as: its URL, one line on what it changes, the CI result
 with the run's URL, anything the user should look at first (with links), then the
@@ -5791,7 +5833,8 @@ finds instead is a wasted round.</p>
    section.</p>
 <h2 id="committing">Committing<a class="headerlink" href="#committing" title="Permanent link">&para;</a></h2>
 <p>Commit on the branch whenever a step is done; no need to ask. Before each commit, run the
-<a href="https://github.com/going-haywire/haywire/blob/master/docs/guides/development.md#checks">checks</a> on what changed.</p>
+<a href="https://github.com/going-haywire/haywire/blob/master/docs/guides/development.md#checks">checks</a> on what changed,
+and <code>uv run mypy</code> with no paths, as CI does: mypy on single files skips the tests you changed.</p>
 <p>Commit messages follow the repository's style
 (<code>feat(area): …</code>, <code>fix(area): …</code>) and end with the attribution line the session gives.</p>
 <h2 id="pushing-and-opening-the-pr">Pushing and opening the PR<a class="headerlink" href="#pushing-and-opening-the-pr" title="Permanent link">&para;</a></h2>
@@ -5813,7 +5856,7 @@ first), lists anything still owed, and ends with the attribution line. Give the 
 PR's URL.</p>
 <h2 id="reading-ci">Reading CI<a class="headerlink" href="#reading-ci" title="Permanent link">&para;</a></h2>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>gh<span class="w"> </span>pr<span class="w"> </span>checks<span class="w">                       </span><span class="c1"># status of this branch&#39;s PR (--repo going-haywire/haywire from a fork)</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>gh<span class="w"> </span>run<span class="w"> </span>watch<span class="w"> </span>&lt;id&gt;<span class="w"> </span>--exit-status<span class="w">    </span><span class="c1"># wait; run it in the background</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>gh<span class="w"> </span>pr<span class="w"> </span>checks<span class="w"> </span>--watch<span class="w"> </span>--fail-fast<span class="w">   </span><span class="c1"># wait, in the background; it returns at the first failure</span>
 </span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>gh<span class="w"> </span>run<span class="w"> </span>view<span class="w"> </span>&lt;id&gt;<span class="w"> </span>--log-failed<span class="w">      </span><span class="c1"># only the failing steps</span>
 </span></code></pre></div>
 <p>Fix a failure with another commit and push. A cancelled job is not a failure: a newer
@@ -5840,7 +5883,7 @@ them.</p>
 <li>Merge only on the user's word ("merge"), and only once the checks are green. A release
    PR is merged on "publish" instead, never on "merge" (<em>Releasing</em>):</li>
 </ol>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>gh<span class="w"> </span>pr<span class="w"> </span>checks<span class="w"> </span>&lt;n&gt;<span class="w"> </span>--watch
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>gh<span class="w"> </span>pr<span class="w"> </span>checks<span class="w"> </span>&lt;n&gt;<span class="w"> </span>--watch<span class="w"> </span>--fail-fast
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>gh<span class="w"> </span>pr<span class="w"> </span>merge<span class="w"> </span>&lt;n&gt;<span class="w"> </span>--squash
 </span></code></pre></div>
 <p>Before merging, read every comment on the PR. The user may review on GitHub and say
@@ -5900,7 +5943,7 @@ release PR and merges it once its checks are green, without asking again. When t
 <li><strong>A library</strong> usually releases one change at a time: after each merged change the agent
   asks (<em>In a library repository</em>).</li>
 <li><strong>After a core release</strong>, the lead asks once whether to publish the libraries it
-  unblocked; on "publish" it starts one short release task per library.</li>
+  unblocked; on "publish" it releases each one from the library's main folder.</li>
 </ul>
 <h2 id="keeping-a-branch-current">Keeping a branch current<a class="headerlink" href="#keeping-a-branch-current" title="Permanent link">&para;</a></h2>
 <p>When <code>master</code> moved on and the branch needs it (a conflict, a fix it depends on), merge it
@@ -5969,19 +6012,15 @@ only the main folder, so search with grep there.</p>
   copy of the main folder's settings leaves out the haystack it reopens.</p>
 <p><strong>A second machine</strong> works on its own clone: <a href="../second-machine/">second-machine.md</a>.</p>
 <h2 id="lead-and-tasks">Lead and tasks<a class="headerlink" href="#lead-and-tasks" title="Permanent link">&para;</a></h2>
-<p>A <strong>task</strong> is one piece of work: a branch, its worktree, its own agent session. The
-<strong>lead</strong> is the one session per machine that the user talks to; it starts tasks, receives
-their reports, and orders merges, releases and cleanup. It lives in the main folder and
-never writes task code. Without a lead the user is the lead: the task session reports to
-the user and does everything below that is the lead's. A second machine's lead is a peer
+<p>A <strong>task</strong> is one piece of work: a branch, its worktree, its own agent session, one pull
+request. The <strong>lead</strong> is the session the user talks to; it starts tasks, receives their
+reports, and orders merges, releases and cleanup from the main folder. It never writes
+task code. Without a lead the user is the lead. A second machine's lead is a peer
 (<a href="../second-machine/">second-machine.md</a>).</p>
-<p><strong>The orchestrator.</strong> An app that runs the lead and the tasks as agent sessions and carries
-their messages is an <em>orchestrator</em>. Every one is optional and a contributor needs none.
-Each has a slot (ADR 0090): its page <code>orchestrators/&lt;tool&gt;-agent.md</code> beside this one says how its events run
-there, and the session-start hook names the tool you run in and its file. Read that file
-before you start or report on a task. Without an orchestrator the user opens the sessions
-and relays the messages. A task has four events; each has one neutral part, which every
-orchestrator only translates to:</p>
+<p><strong>The orchestrator</strong> (an app that runs the sessions and carries their messages) is
+optional. Each has a page <code>orchestrators/&lt;tool&gt;-agent.md</code> beside this one, which the
+session-start hook names; read it before you start or report on a task. Its four events
+each translate one neutral part:</p>
 <table>
 <thead>
 <tr>
@@ -5992,15 +6031,15 @@ orchestrator only translates to:</p>
 <tbody>
 <tr>
 <td>Created</td>
-<td><code>worktree_setup.py</code> in the new worktree (<em>Parallel sessions</em>; each repository's <code>t3.json</code> names its line)</td>
+<td><code>worktree_setup.py [--lead &lt;link&gt;]</code> in the new worktree (<em>Parallel sessions</em>)</td>
 </tr>
 <tr>
 <td>Viewed</td>
-<td><code>tasks.py</code>, below</td>
+<td><code>tasks.py [--since &lt;sha&gt;]</code>, below</td>
 </tr>
 <tr>
 <td>Message the lead</td>
-<td>The report rule, below</td>
+<td>The reports, below</td>
 </tr>
 <tr>
 <td>Merged</td>
@@ -6008,35 +6047,44 @@ orchestrator only translates to:</p>
 </tr>
 </tbody>
 </table>
-<p><strong>Naming.</strong> A task's name is its branch, and that is the name its session carries in the
-orchestrator. Call another agent by that name; a tool's own address only in brackets.</p>
-<p><strong>The lead starts a task</strong>, from the main folder on an up-to-date <code>master</code>: it creates the
-worktree on a new <code>&lt;kind&gt;/&lt;name&gt;</code> branch from <code>origin/master</code>, makes sure
-<code>worktree_setup.py</code> ran there, and starts the task's session in it with the brief, each the
-orchestrator's way.</p>
-<p>The brief holds the issue (URL), the branch, the acceptance points, the report rule below
-and where to report (the lead's name or address). Tell the task to read this page first.
-A task is one pull request: its worktree and branch end with the merge. Work that comes after
-the merge (the next slice, a step that needs the merged state) is a new task with a brief of
-its own.</p>
-<p><strong>A task reports to the lead</strong> through the orchestrator's messages, one line each, with
-the PR's URL:</p>
+<p><strong>Your role</strong> comes from the lead file, which <code>worktree_setup.py --lead</code> writes into the
+worktree's git folder; the session-start hook prints it. With one you are that lead's task.
+In a main folder you are a lead. In a worktree without one, record the lead your brief
+names, or ask the user once whether you are a task (and of whom) or a peer.</p>
+<p><strong>The user's words set the relationship.</strong> "Spin up a task": you are its lead; it gets the
+lead file. "Spin up a thread": it is a peer, with no lead file and your link for messages
+only. "Spin up a lead (for <repo>)": a peer in that repository's main folder, which names
+itself <code>&lt;tag&gt; ◆ lead</code>.</p>
+<p><strong>Names.</strong> A lead names itself and its tasks; a task never renames itself:</p>
 <ul>
-<li><em>PR opened</em> (draft).</li>
-<li><em>Live check waiting</em> (the Questionnaire is posted in its studio).</li>
-<li><em>Ready</em>, with the last live check's table, or why there was none.</li>
-<li><em>Blocked</em>, and on what.</li>
-<li><em>Needs a decision</em>, with the lettered options.</li>
-<li><em>Finished</em> (after <code>finish</code>).</li>
+<li>the lead <code>&lt;tag&gt; ◆ lead</code> (<code>core ◆ lead</code>, <code>core@&lt;machine&gt; ◆ lead</code>);</li>
+<li>a task <code>&lt;lead tag&gt; › &lt;branch&gt;</code>;</li>
+<li><code>?</code> in front while a task waits on the user.</li>
 </ul>
-<p>A task talks to the user directly only for a live check or a decision only the user can
-make.</p>
-<p><strong>The lead merges</strong> only on the user's word, then watches <code>master</code>'s run (<em>Finishing as the
-maintainer</em>, step 4), warns the tasks whose PRs now conflict, and tells the task "merged".
-The task runs <code>finish</code> itself; the worktree's folder then goes the orchestrator's way.</p>
-<p><strong>The lead writes reports to the user by name</strong>: task name, PR URL, state.
-<code>python3 &lt;core&gt;/dev/scripts/tasks.py</code> lists every task with its PR and, when an orchestrator's slot can list
-them, its session.</p>
+<p><strong>Starting a task.</strong> From the main folder on an up-to-date <code>master</code>: a worktree on a new
+<code>&lt;kind&gt;/&lt;name&gt;</code> branch from <code>origin/master</code>, <code>worktree_setup.py --lead &lt;your link&gt;</code> there,
+and the session started with a brief from <a href="../brief/">the template</a>, each the
+orchestrator's way.</p>
+<p><strong>A task reports</strong> to the lead through the orchestrator, one line each with the PR's URL,
+<strong>before its turn ends</strong>: <em>PR opened</em>, <em>Live check waiting</em>, <em>Ready</em> (with the live check's
+table or why there was none), <em>Blocked</em> (on what), <em>Needs a decision</em>, <em>Decided</em>,
+<em>Finished</em>. Whatever the user told the task directly goes to the lead too.</p>
+<p><strong>A decision lives in the task's thread:</strong></p>
+<ol>
+<li>The task writes the decisions there in the format of <em>Asking the user for a
+   decision</em>, ending with the lead's link, and sends the lead one line with its own link.</li>
+<li>The lead puts <code>?</code> before the task's name, marks it unread, and gives the user the line
+   and the link.</li>
+<li>The user answers in the task. That is the user's word for that task, approvals
+   included.</li>
+<li>The task sends the lead "Decided: … (approved: …)"; the lead drops the <code>?</code>.</li>
+</ol>
+<p><strong>The lead merges</strong> only on the user's word, watches <code>master</code>'s run (<em>Finishing as the
+maintainer</em>, step 4), warns the tasks whose PRs now conflict, and tells the task "merged";
+the task runs <code>finish</code>. Releases, libraries' included, are the lead's, from the main folder.</p>
+<p><strong>The lead reports to the user by name</strong> (task, PR URL, state), and runs
+<code>python3 &lt;core&gt;/dev/scripts/tasks.py --since &lt;sha of its last report&gt;</code> first: every task
+with its PR, plus the merges and tags since, which someone else may have made.</p>
 <h2 id="in-a-library-repository">In a library repository<a class="headerlink" href="#in-a-library-repository" title="Permanent link">&para;</a></h2>
 <p>The org's libraries (<code>going-haywire/haybale-*</code>) follow the same steps. Their process files
 come from <a href="https://github.com/going-haywire/.github">going-haywire/.github</a> (the reusable CI);
@@ -6061,8 +6109,8 @@ core beside it, through the library's committed files (<code>.claude/settings.js
   "publish now, or wait for more?"; if a dependency floor waits for core, say so instead.
   On "publish": <code>uv run --frozen haywire share --bump patch --pr</code>, which opens the release
   PR (<code>STATE: RELEASE_BRANCH_PUSHED</code> means it could not: run its <code>NEXT:</code> command), then
-  merge the release PR once its checks are green. It runs in the task's worktree too, on a
-  branch at the default branch's tip. The merge run tags and publishes. Never tag by hand.</li>
+  merge the release PR once its checks are green. The lead runs it, from the main folder.
+  The merge run tags and publishes. Never tag by hand.</li>
 <li><strong><code>finish</code> and the task view</strong> run from core's <code>dev/scripts/</code>, as above; they read the
   default branch from the clone (<code>main</code> in haybale-stream).</li>
 </ul>
