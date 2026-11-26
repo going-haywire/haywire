@@ -1,3 +1,5 @@
 # Mechanical commits `git blame` skips: mass auto-fixes and reformatting only.
 # GitHub reads this file by itself; locally: git config blame.ignoreRevsFile .git-blame-ignore-revs
 # One full commit SHA per line, with the commit's subject in a comment above it.
+# chore(lint): ruff UP, I and required __future__ annotations (#195)
+ec83ccb670082c052e22c40fd0172f2f0303ac72

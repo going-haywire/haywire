@@ -57,35 +57,35 @@ class NodeSkin(BaseSkin, ABC):
         self._ui_settings = NodeSkinSettings()
 
     @property
-    def CARD_H_PADDING(self) -> int:  # noqa: N802
+    def CARD_H_PADDING(self) -> int:
         return self._ui_settings.card_padding
 
     @property
-    def PIN_GUTTER(self) -> int:  # noqa: N802
+    def PIN_GUTTER(self) -> int:
         return self._ui_settings.pin_gutter
 
     @property
-    def PIN_PROTRUSION(self) -> int:  # noqa: N802
+    def PIN_PROTRUSION(self) -> int:
         return self._ui_settings.pin_protrusion
 
     @property
-    def CONTENT_GAP(self) -> int:  # noqa: N802
+    def CONTENT_GAP(self) -> int:
         return self._ui_settings.content_gap
 
     @property
-    def FOLD_INDENT(self) -> int:  # noqa: N802
+    def FOLD_INDENT(self) -> int:
         return self._ui_settings.fold_indent
 
     @property
-    def PIN_ROW_HEIGHT(self) -> int:  # noqa: N802
+    def PIN_ROW_HEIGHT(self) -> int:
         return self._ui_settings.pin_row_height
 
     @property
-    def PIN_COLUMN_WIDTH(self) -> int:  # noqa: N802
+    def PIN_COLUMN_WIDTH(self) -> int:
         return self._ui_settings.pin_column_width
 
     @property
-    def CARD_V_PADDING(self) -> int:  # noqa: N802
+    def CARD_V_PADDING(self) -> int:
         return self._ui_settings.card_padding_block
 
     def card_style(self) -> str:

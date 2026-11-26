@@ -85,7 +85,7 @@ class UninstallFlow(StepFlow):
         self.retry()
         try:
             self.impact = await asyncio.to_thread(self._collect_impact)
-        except Exception as exc:  # noqa: BLE001 — surfaced inline, never swallowed
+        except Exception as exc:  # surfaced inline, never swallowed
             self.fail(exc)
             return
         self.step = "impact"
@@ -116,7 +116,7 @@ class UninstallFlow(StepFlow):
         self.retry()
         try:
             success, message, hints = await self.source.uninstall_streaming(self.library_id, self.push_log)
-        except Exception as exc:  # noqa: BLE001 — surfaced inline, never swallowed
+        except Exception as exc:  # surfaced inline, never swallowed
             self.fail(exc)
             return
         self.succeeded = success

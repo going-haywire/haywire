@@ -33,7 +33,7 @@ def candidates(resources: Sequence[Resource], preference: Preference) -> list[tu
     return ranked
 
 
-def entry_matches(entry: CatalogEntry, filter: dict[str, list[Any]]) -> bool:  # noqa: A002
+def entry_matches(entry: CatalogEntry, filter: dict[str, list[Any]]) -> bool:
     """Whether the entry satisfies a port ``filter`` (entry field -> allowed values).
 
     List-valued fields (``purpose``, ``tags``) match on any overlap; scalars on

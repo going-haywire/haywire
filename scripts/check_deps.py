@@ -29,7 +29,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from scripts.bump_version import locate_packages, read_release_config  # noqa: E402
+from scripts.bump_version import locate_packages, read_release_config
 
 # Distributions whose deptry "unused"/"transitive" findings are known false
 # positives or deliberate, keyed by package -> set of module names to ignore.

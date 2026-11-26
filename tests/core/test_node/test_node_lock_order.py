@@ -30,7 +30,7 @@ def _node_lock_is_free_while_the_worker_waits(wrapper, action: Callable[[], Any]
     def run() -> None:
         try:
             action()
-        except BaseException as e:  # noqa: BLE001 — reported by the test
+        except BaseException as e:  # reported by the test
             errors.append(e)
 
     with wrapper.graph._validation.lock:

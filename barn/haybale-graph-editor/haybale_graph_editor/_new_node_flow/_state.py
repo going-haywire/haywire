@@ -230,7 +230,7 @@ class NewNodeFlow(StepFlow):
                 self.libraries,
                 registry=self.registry,
             )
-        except Exception as exc:  # noqa: BLE001 — surfaced inline, never swallowed
+        except Exception as exc:  # surfaced inline, never swallowed
             self.fail(exc)
             return
         self.step = "planned"
@@ -256,7 +256,7 @@ class NewNodeFlow(StepFlow):
             with RegistrationWatch(self.registry, self.ledger, plan.module_name, plan.registry_key) as watch:
                 await asyncio.to_thread(write_node, plan, library)
                 self.outcome = await watch.result(self.timeout_s)
-        except Exception as exc:  # noqa: BLE001 — surfaced inline, never swallowed
+        except Exception as exc:  # surfaced inline, never swallowed
             self.fail(exc)
             return
         self.step = "result"

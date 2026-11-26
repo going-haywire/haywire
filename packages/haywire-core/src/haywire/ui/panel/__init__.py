@@ -28,7 +28,7 @@ from .redraw_coordinator import PanelRedrawCoordinator
 # rather than the `.panel` submodule (the `from .panel import BasePanel` above
 # binds `panel` as a submodule attribute on the package; importing the
 # decorator after that shadows it back to the function).
-from .decorator import panel  # noqa: E402
+from .decorator import panel
 
 __all__ = [
     "PanelIdentity",

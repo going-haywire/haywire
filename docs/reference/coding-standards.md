@@ -273,7 +273,7 @@ longer suppresses anything is deleted.
 **Why**: an unexplained suppression is never removed, and a stale one hides the next real
 error on that line.
 **Enforced by**: mypy `ignore-without-code` and `warn_unused_ignores`; ruff `PGH004` and
-`RUF100` (planned); review for the reason. **Scope**: repo.
+`RUF100`; review for the reason. **Scope**: repo.
 
 ### CS-T6 · `Any` only where the type is unknowable
 

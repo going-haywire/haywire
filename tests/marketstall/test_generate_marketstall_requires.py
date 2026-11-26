@@ -15,7 +15,7 @@ from haywire.core.marketstall.requirement import haywire_core_requirement, requi
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from scripts.generate_marketstall import _ENTRY_FIELD_ORDER  # noqa: E402
+from scripts.generate_marketstall import _ENTRY_FIELD_ORDER
 
 pytestmark = pytest.mark.unit
 

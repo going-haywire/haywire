@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from tests.rename.test_planner import _workspace  # noqa: F401
+from tests.rename.test_planner import _workspace
 
 
 @pytest.mark.unit

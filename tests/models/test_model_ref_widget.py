@@ -37,7 +37,7 @@ def _mod(name: str) -> Any:
     return importlib.import_module(name)
 
 
-def ModelRef(**kwargs: Any) -> Any:  # noqa: N802 - the class, looked up after any reload
+def ModelRef(**kwargs: Any) -> Any:  # the class, looked up after any reload
     return _mod("haybale_models.value.model_ref").ModelRef(**kwargs)
 
 

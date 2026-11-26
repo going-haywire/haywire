@@ -270,7 +270,7 @@ def fetch_ci_templates() -> tuple[str, str, dict[str, str]]:
     texts = {}
     for source in CI_FILES.values():
         raw = f"https://raw.githubusercontent.com/{ORG_REPO}/{commit}/{source}"
-        with urllib.request.urlopen(raw, timeout=20) as response:  # noqa: S310  # a fixed https URL
+        with urllib.request.urlopen(raw, timeout=20) as response:  # a fixed https URL
             texts[source] = response.read().decode("utf-8")
     return commit, label, texts
 

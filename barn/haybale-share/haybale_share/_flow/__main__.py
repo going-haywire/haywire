@@ -109,7 +109,7 @@ def _inject_theme() -> None:
         # dropdowns. Without it a select opens as a white menu with white
         # text, which is a harness artefact and not something the panel does.
         ui.add_css(STATIC_CSS)
-    except Exception as exc:  # noqa: BLE001 — a themeless harness still renders
+    except Exception as exc:  # a themeless harness still renders
         print(f"harness: could not inject a workbench theme ({exc})")
 
 

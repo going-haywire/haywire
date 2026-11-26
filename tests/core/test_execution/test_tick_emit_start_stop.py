@@ -37,7 +37,7 @@ def _together(n: int, fn) -> list[BaseException]:
         barrier.wait()
         try:
             fn()
-        except BaseException as e:  # noqa: BLE001 - the test reports every failure
+        except BaseException as e:  # the test reports every failure
             errors.append(e)
 
     threads = [threading.Thread(target=run) for _ in range(n)]

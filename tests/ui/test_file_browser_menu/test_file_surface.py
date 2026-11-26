@@ -37,7 +37,7 @@ def test_file_menu_applies_when_right_clicked():
 
 def test_file_menu_registered_in_surface_map():
     """Surface.__init_subclass__ should have registered FileMenu by id."""
-    from haybale_studio.surfaces import FileMenu  # noqa: F401 — triggers registration
+    from haybale_studio.surfaces import FileMenu  # triggers registration
     from haywire.ui.surface import surface_by_id
 
     assert surface_by_id("file") is FileMenu
