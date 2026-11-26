@@ -518,9 +518,9 @@ uv run python scripts/release_sweep.py reminders --ref v<NEW_VERSION>
 
 The release URL first. Then the libraries `floors` lists as `unblocked`: each now has a
 core release that satisfies its dependency floor, so the library's own release can go
-ahead. Ask once: "publish <libraries> now?". On "publish", start one release task per
-library (*Lead and tasks* in the workflow), whose brief is the library
-release of *In a library repository*: the release PR, its merge once green, `finish`. Then the reminders: each open one with
+ahead. Ask once: "publish <libraries> now?". On "publish", release each library yourself from its
+main folder (*Lead and tasks* in the workflow), as *In a library repository* says: the
+release PR, its merge once green. Then the reminders: each open one with
 the commit on its `Waits for:` line and `released` (the tag contains it), `waiting`,
 `unknown commit` (not in this clone: `git fetch`) or `no Waits for line` (read the
 issue's body and say what it waits for). Show them as a table with the URLs. Offer, per

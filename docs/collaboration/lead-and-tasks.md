@@ -40,7 +40,7 @@ sequenceDiagram
 
 | Step | Who | Where the rule or command lives |
 |---|---|---|
-| ① Start a task (event *created*); reports and names (event *message the lead*) | lead, task | [The workflow: lead and tasks](workflow.md#lead-and-tasks), `worktree_setup.py`, the [orchestrator's page](orchestrators/index.md) |
+| ① Start a task (event *created*); reports and names (event *message the lead*) | lead, task | [The workflow: lead and tasks](workflow.md#lead-and-tasks), [the brief](brief.md), `worktree_setup.py --lead`, the [orchestrator's page](orchestrators/index.md) |
 | Worktrees and their rules | lead, task | [The workflow: parallel sessions](workflow.md#parallel-sessions) |
 | ② Decisions | you | [The workflow: asking the user for a decision](workflow.md#asking-the-user-for-a-decision) |
 | Merge, watch master, finish (event *merged*) | lead, task | [The workflow: finishing as the maintainer](workflow.md#finishing-as-the-maintainer) |

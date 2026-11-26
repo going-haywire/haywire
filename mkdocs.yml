@@ -161,6 +161,7 @@ nav:
               - A core release: collaboration/core-release.md
               - A library release: collaboration/library-release.md
               - Lead and tasks: collaboration/lead-and-tasks.md
+              - The brief: collaboration/brief.md
               - Orchestrators:
                   - collaboration/orchestrators/index.md
                   - T3 Code: collaboration/orchestrators/t3.md

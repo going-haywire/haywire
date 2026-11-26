@@ -293,7 +293,7 @@ release PR and merges it once its checks are green, without asking again. When t
 - **A library** usually releases one change at a time: after each merged change the agent
   asks (*In a library repository*).
 - **After a core release**, the lead asks once whether to publish the libraries it
-  unblocked; on "publish" it starts one short release task per library.
+  unblocked; on "publish" it releases each one from the library's main folder.
 
 ## Keeping a branch current
 
@@ -382,62 +382,66 @@ only the main folder, so search with grep there.
 
 ## Lead and tasks
 
-A **task** is one piece of work: a branch, its worktree, its own agent session. The
-**lead** is the one session per machine that the user talks to; it starts tasks, receives
-their reports, and orders merges, releases and cleanup. It lives in the main folder and
-never writes task code. Without a lead the user is the lead: the task session reports to
-the user and does everything below that is the lead's. A second machine's lead is a peer
+A **task** is one piece of work: a branch, its worktree, its own agent session, one pull
+request. The **lead** is the session the user talks to; it starts tasks, receives their
+reports, and orders merges, releases and cleanup from the main folder. It never writes
+task code. Without a lead the user is the lead. A second machine's lead is a peer
 ([second-machine.md](second-machine.md)).
 
-**The orchestrator.** An app that runs the lead and the tasks as agent sessions and carries
-their messages is an *orchestrator*. Every one is optional and a contributor needs none.
-Each has a slot (ADR 0090): its page `orchestrators/<tool>-agent.md` beside this one says how its events run
-there, and the session-start hook names the tool you run in and its file. Read that file
-before you start or report on a task. Without an orchestrator the user opens the sessions
-and relays the messages. A task has four events; each has one neutral part, which every
-orchestrator only translates to:
+**The orchestrator** (an app that runs the sessions and carries their messages) is
+optional. Each has a page `orchestrators/<tool>-agent.md` beside this one, which the
+session-start hook names; read it before you start or report on a task. Its four events
+each translate one neutral part:
 
 | Event | The neutral part |
 |---|---|
-| Created | `worktree_setup.py` in the new worktree (*Parallel sessions*; each repository's `t3.json` names its line) |
-| Viewed | `tasks.py`, below |
-| Message the lead | The report rule, below |
+| Created | `worktree_setup.py [--lead <link>]` in the new worktree (*Parallel sessions*) |
+| Viewed | `tasks.py [--since <sha>]`, below |
+| Message the lead | The reports, below |
 | Merged | `finish.py <branch>` (*Finishing as the maintainer*, step 5) |
 
-**Naming.** A task's name is its branch, and that is the name its session carries in the
-orchestrator. Call another agent by that name; a tool's own address only in brackets.
+**Your role** comes from the lead file, which `worktree_setup.py --lead` writes into the
+worktree's git folder; the session-start hook prints it. With one you are that lead's task.
+In a main folder you are a lead. In a worktree without one, record the lead your brief
+names, or ask the user once whether you are a task (and of whom) or a peer.
 
-**The lead starts a task**, from the main folder on an up-to-date `master`: it creates the
-worktree on a new `<kind>/<name>` branch from `origin/master`, makes sure
-`worktree_setup.py` ran there, and starts the task's session in it with the brief, each the
+**The user's words set the relationship.** "Spin up a task": you are its lead; it gets the
+lead file. "Spin up a thread": it is a peer, with no lead file and your link for messages
+only.
+
+**Names.** The lead names the sessions; a task never renames itself:
+
+- the lead `<tag> ◆ lead` (`core ◆ lead`, `core@<machine> ◆ lead`);
+- a task `<lead tag> › <branch>`;
+- `? ` in front while a task waits on the user.
+
+**Starting a task.** From the main folder on an up-to-date `master`: a worktree on a new
+`<kind>/<name>` branch from `origin/master`, `worktree_setup.py --lead <your link>` there,
+and the session started with a brief from [the template](brief.md), each the
 orchestrator's way.
 
-The brief holds the issue (URL), the branch, the acceptance points, the report rule below
-and where to report (the lead's name or address). Tell the task to read this page first.
-A task is one pull request: its worktree and branch end with the merge. Work that comes after
-the merge (the next slice, a step that needs the merged state) is a new task with a brief of
-its own.
+**A task reports** to the lead through the orchestrator, one line each with the PR's URL,
+**before its turn ends**: *PR opened*, *Live check waiting*, *Ready* (with the live check's
+table or why there was none), *Blocked* (on what), *Needs a decision*, *Decided*,
+*Finished*. Whatever the user told the task directly goes to the lead too.
 
-**A task reports to the lead** through the orchestrator's messages, one line each, with
-the PR's URL:
+**A decision lives in the task's thread:**
 
-- *PR opened* (draft).
-- *Live check waiting* (the Questionnaire is posted in its studio).
-- *Ready*, with the last live check's table, or why there was none.
-- *Blocked*, and on what.
-- *Needs a decision*, with the lettered options.
-- *Finished* (after `finish`).
+1. The task writes the lettered options and its recommendation there, ending with the
+   lead's link, and sends the lead one line with its own link.
+2. The lead puts `? ` before the task's name, marks it unread, and gives the user the line
+   and the link.
+3. The user answers in the task. That is the user's word for that task, approvals
+   included.
+4. The task sends the lead "Decided: … (approved: …)"; the lead drops the `? `.
 
-A task talks to the user directly only for a live check or a decision only the user can
-make.
+**The lead merges** only on the user's word, watches `master`'s run (*Finishing as the
+maintainer*, step 4), warns the tasks whose PRs now conflict, and tells the task "merged";
+the task runs `finish`. Releases, libraries' included, are the lead's, from the main folder.
 
-**The lead merges** only on the user's word, then watches `master`'s run (*Finishing as the
-maintainer*, step 4), warns the tasks whose PRs now conflict, and tells the task "merged".
-The task runs `finish` itself; the worktree's folder then goes the orchestrator's way.
-
-**The lead writes reports to the user by name**: task name, PR URL, state.
-`python3 <core>/dev/scripts/tasks.py` lists every task with its PR and, when an orchestrator's slot can list
-them, its session.
+**The lead reports to the user by name** (task, PR URL, state), and runs
+`python3 <core>/dev/scripts/tasks.py --since <sha of its last report>` first: every task
+with its PR, plus the merges and tags since, which someone else may have made.
 
 ## In a library repository
 
@@ -464,7 +468,7 @@ core beside it, through the library's committed files (`.claude/settings.json`, 
   "publish now, or wait for more?"; if a dependency floor waits for core, say so instead.
   On "publish": `uv run --frozen haywire share --bump patch --pr`, which opens the release
   PR (`STATE: RELEASE_BRANCH_PUSHED` means it could not: run its `NEXT:` command), then
-  merge the release PR once its checks are green. It runs in the task's worktree too, on a
-  branch at the default branch's tip. The merge run tags and publishes. Never tag by hand.
+  merge the release PR once its checks are green. The lead runs it, from the main folder.
+  The merge run tags and publishes. Never tag by hand.
 - **`finish` and the task view** run from core's `dev/scripts/`, as above; they read the
   default branch from the clone (`main` in haybale-stream).

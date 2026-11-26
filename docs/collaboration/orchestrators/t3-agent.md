@@ -20,13 +20,22 @@ and `T3CODE_THREAD_ID`; the session-start hook then names this file. T3's tools
 
 - **The lead** is a T3 thread on the project root (the main folder).
 - **A task** is a T3 thread in a worktree of its own, started by the lead with
-  `t3_thread_launch`. T3 puts core worktrees under `~/.t3/worktrees/<repo>/`. The thread's
-  title is the task's name, its branch.
+  `t3_thread_launch`. T3 puts core worktrees under `~/.t3/worktrees/<repo>/`.
+- **Titles** are the lead's to set, with `t3_thread_update` (*Names* in the workflow): its
+  own `<tag> ◆ lead`, a task's `<lead tag> › <branch>`, `? ` in front while it waits on the
+  user. A task never renames itself.
+- **A link** to a thread is `t3-thread://v2/<environment>/<thread id>`; its last part is
+  the id `t3_thread_send` takes.
 
 ## Created
 
 The lead calls `t3_thread_launch` with a new worktree from `origin/master`, the branch
-`<kind>/<name>` and the brief as the first message. The setup script from `t3.json`, once
+`<kind>/<name>` and the brief ([the template](../brief.md)) as the first message, its own
+link on the *Lead link* line. T3 records no parent (`delegatedFrom` shows nothing), and the
+setup T3 runs has no `--lead`, so the task records its lead first:
+`python3 scripts/worktree_setup.py --lead <link>` (it only writes the lead file once a
+setup ran); the session-start hook says so. A peer ("spin up a thread") gets no lead line,
+only the other thread's link for messages. The setup script from `t3.json`, once
 imported into the T3 project (*The user's T3 settings*), runs
 `python3 scripts/worktree_setup.py` when T3 creates the worktree (`runOnWorktreeCreate`).
 `t3.json` sets `async: false` on it so that T3 holds the agent until it exits; T3 before 0.1.11
@@ -46,9 +55,16 @@ for a worktree it did not create, so the lead runs the setup there.
 
 ## Messages
 
-A task reports with `t3_thread_send` to the lead's thread id, which its brief carries; the
-message arrives as the lead's next input, no polling. The lead links each task's PR to the
-task's thread with `link_pull_request`, so the thread shows it.
+A task reports with `t3_thread_send` to the lead's thread id, **before its turn ends**: T3
+may settle a thread at turn end, so a silent stop looks like done. The message arrives as
+the lead's next input, no polling. The lead links each task's PR to the task's thread with
+`link_pull_request`, so the thread shows it.
+
+**Needs a decision** (the workflow's four steps): the task ends its reply with the lead's
+link on its own line and sends the lead one line with its own link. The lead renames the
+task `? <title>` and marks it unread with `t3_thread_organize` (`mark_unread` works only
+once the task's turn has ended), then gives the user the line and the link. When the task
+sends "Decided", the lead drops the `? `.
 
 ## The view
 
