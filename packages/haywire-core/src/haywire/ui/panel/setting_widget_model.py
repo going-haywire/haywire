@@ -45,7 +45,7 @@ class SettingWidgetModel:
             on_edit: Called with each raw value the widget produces. Returns ``False`` to
                 refuse the write; any other result counts as accepted.
             requires: The level mode a write needs, which the widget's element is stamped
-                with (``data-hw-requires``); ``None`` when no route takes the writes.
+                with (``stamp_requires``); ``None`` when no route takes the writes.
             wrapper: The ``NodeWrapper`` of the port this model stands for, so a widget
                 can ask its node (``_wrapper`` on a ``DataPort``); ``None`` for a
                 settings field.

@@ -12,11 +12,23 @@
 //
 // Nested stamps: the strictest one around el decides, so an inner stamp can only tighten.
 //
+// A stamp is two classes, .hw-requires and .hw-requires-<mode> (ui/access_stamp.py), never an
+// attribute: a Quasar field moves every attribute but class and style off its root.
+//
 //   canvas: el inside a card (.ui-node-slot) under a [data-hw-level-mode] root;
-//           required = strictest [data-hw-requires] from el up to the slot, unstamped = 'edit'.
+//           required = strictest stamp from el up to the slot, unstamped = 'edit'.
 //   panel:  el inside [data-hw-mode-scope="session"]; gated only when a
-//           [data-hw-requires] ancestor (or el) ranks above <html data-hw-session-mode>.
+//           stamped ancestor (or el) ranks above <html data-hw-session-mode>.
 const RANK = { view: 0, operate: 1, edit: 2 };
+const STAMP = '.hw-requires';
+
+// The mode a stamped node names, or null when its stamp names none of the three.
+function stampMode(node) {
+  for (const mode in RANK) {
+    if (node.classList.contains(`hw-requires-${mode}`)) return mode;
+  }
+  return null;
+}
 
 // A value outside the three ranks needs more than edit, as an unstamped card element does.
 function requiredRank(value) {
@@ -31,9 +43,9 @@ function canvasGated(el) {
   const mode = root.dataset.hwLevelMode;
   if (!(mode in RANK)) return false;
   let required = null;
-  for (let node = el.closest('[data-hw-requires]'); node && slot.contains(node);
-       node = node.parentElement ? node.parentElement.closest('[data-hw-requires]') : null) {
-    required = Math.max(required ?? RANK.view, requiredRank(node.dataset.hwRequires));
+  for (let node = el.closest(STAMP); node && slot.contains(node);
+       node = node.parentElement ? node.parentElement.closest(STAMP) : null) {
+    required = Math.max(required ?? RANK.view, requiredRank(stampMode(node)));
   }
   return (required ?? RANK.edit) > RANK[mode];
 }
@@ -44,10 +56,10 @@ function panelGated(el) {
   const mode = document.documentElement.dataset.hwSessionMode || 'view';
   if (!(mode in RANK)) return false;
   // Only stamps inside the scope count; an unknown stamp gates nothing here.
-  for (let node = el.closest('[data-hw-requires]'); node && node !== scope && scope.contains(node);
-       node = node.parentElement ? node.parentElement.closest('[data-hw-requires]') : null) {
-    const required = node.dataset.hwRequires;
-    if (required in RANK && RANK[required] > RANK[mode]) return true;
+  for (let node = el.closest(STAMP); node && node !== scope && scope.contains(node);
+       node = node.parentElement ? node.parentElement.closest(STAMP) : null) {
+    const required = stampMode(node);
+    if (required !== null && RANK[required] > RANK[mode]) return true;
   }
   return false;
 }
@@ -111,39 +123,39 @@ export default {
 
 <style>
 /* Canvas cards. Below edit, card content takes no pointer input, except
- * [data-hw-requires="view"] elements in every mode and [data-hw-requires="operate"]
+ * .hw-requires-view elements in every mode and .hw-requires-operate
  * ones in operate; unstamped content counts as edit. Keyed on .ui-node-slot
  * descendants so the card root and the slot keep taking presses (a double-click on
  * the card body still enters); pins sit inside the slot and are gated too.
  * !important plus the extra selectors out-specify .connection-pin's rule in
  * canvas.vue. The gate never matches inside an exempt subtree that holds no stricter
  * stamp, so a widget's own pointer-events rules (a disabled widget's none) stay in force. */
-[data-hw-level-mode="view"] .ui-node-slot *:not([data-hw-requires="view"]):not([data-hw-requires="view"] *),
-[data-hw-level-mode="operate"] .ui-node-slot *:not([data-hw-requires="view"]):not([data-hw-requires="view"] *):not([data-hw-requires="operate"]):not([data-hw-requires="operate"] *) {
+[data-hw-level-mode="view"] .ui-node-slot *:not(.hw-requires-view):not(.hw-requires-view *),
+[data-hw-level-mode="operate"] .ui-node-slot *:not(.hw-requires-view):not(.hw-requires-view *):not(.hw-requires-operate):not(.hw-requires-operate *) {
     pointer-events: none !important;
 }
 /* pointer-events inherits, so an exempt root would take the gated ancestors'
  * none; :where() gives it auto at zero specificity, so its own rules still win. */
-:where([data-hw-level-mode="view"] .ui-node-slot [data-hw-requires="view"],
-       [data-hw-level-mode="operate"] .ui-node-slot [data-hw-requires="view"],
-       [data-hw-level-mode="operate"] .ui-node-slot [data-hw-requires="operate"]) { pointer-events: auto; }
+:where([data-hw-level-mode="view"] .ui-node-slot .hw-requires-view,
+       [data-hw-level-mode="operate"] .ui-node-slot .hw-requires-view,
+       [data-hw-level-mode="operate"] .ui-node-slot .hw-requires-operate) { pointer-events: auto; }
 /* A stricter (or unknown) stamp nested in an exempt one is gated again: nesting only tightens. */
-[data-hw-level-mode="view"] .ui-node-slot [data-hw-requires]:not([data-hw-requires="view"]),
-[data-hw-level-mode="view"] .ui-node-slot [data-hw-requires]:not([data-hw-requires="view"]) *,
-[data-hw-level-mode="operate"] .ui-node-slot [data-hw-requires]:not([data-hw-requires="view"]):not([data-hw-requires="operate"]),
-[data-hw-level-mode="operate"] .ui-node-slot [data-hw-requires]:not([data-hw-requires="view"]):not([data-hw-requires="operate"]) * {
+[data-hw-level-mode="view"] .ui-node-slot .hw-requires:not(.hw-requires-view),
+[data-hw-level-mode="view"] .ui-node-slot .hw-requires:not(.hw-requires-view) *,
+[data-hw-level-mode="operate"] .ui-node-slot .hw-requires:not(.hw-requires-view):not(.hw-requires-operate),
+[data-hw-level-mode="operate"] .ui-node-slot .hw-requires:not(.hw-requires-view):not(.hw-requires-operate) * {
     pointer-events: none !important;
 }
 
 /* Panels under [data-hw-mode-scope="session"]: only stamped writers are gated,
  * greyed as a disabled input (design guide 2.11). No session mode counts as view. */
-:is(html[data-hw-session-mode="view"], html:not([data-hw-session-mode])) [data-hw-mode-scope="session"] :is([data-hw-requires="operate"], [data-hw-requires="edit"]),
-html[data-hw-session-mode="operate"] [data-hw-mode-scope="session"] [data-hw-requires="edit"] {
+:is(html[data-hw-session-mode="view"], html:not([data-hw-session-mode])) [data-hw-mode-scope="session"] :is(.hw-requires-operate, .hw-requires-edit),
+html[data-hw-session-mode="operate"] [data-hw-mode-scope="session"] .hw-requires-edit {
     opacity: 0.5;
     pointer-events: none !important;
 }
-:is(html[data-hw-session-mode="view"], html:not([data-hw-session-mode])) [data-hw-mode-scope="session"] :is([data-hw-requires="operate"], [data-hw-requires="edit"]) *,
-html[data-hw-session-mode="operate"] [data-hw-mode-scope="session"] [data-hw-requires="edit"] * {
+:is(html[data-hw-session-mode="view"], html:not([data-hw-session-mode])) [data-hw-mode-scope="session"] :is(.hw-requires-operate, .hw-requires-edit) *,
+html[data-hw-session-mode="operate"] [data-hw-mode-scope="session"] .hw-requires-edit * {
     pointer-events: none !important;
 }
 </style>

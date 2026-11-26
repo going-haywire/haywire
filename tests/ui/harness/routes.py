@@ -2696,10 +2696,12 @@ def register_routes(library_service) -> None:
     #
     # The page's AccessGate in session mode ``mode``; a session scope column
     # (``[data-hw-mode-scope="session"]``) holding an unstamped input
-    # (``free-input``), one stamped ``operate`` (``operate-input``) and one stamped
-    # ``edit`` (``edit-input``), in that order; and the ``/graph-enter`` Group card,
-    # whose number widget is a focusable card input, on a canvas in level mode
-    # ``mode``. ``access-card-id`` carries the card id. F8, F9 and F10 move both the
+    # (``free-input``), one stamped ``operate`` (``operate-input``), one stamped
+    # ``edit`` (``edit-input``) and a select stamped ``edit`` (``edit-select``), in
+    # that order; and, on a canvas in level mode ``mode``, the ``/graph-enter`` Group
+    # card, whose number widget is a focusable card input, and a Chip Field Probe,
+    # whose plain select is operable. ``access-card-id`` and ``access-chips-id``
+    # carry the card ids. F8, F9 and F10 move both the
     # session mode and the canvas to ``view``, ``operate`` and ``edit``, also while
     # an input has focus. Backs test_access_gate.py.
     # -------------------------------------------------------------------------
@@ -2715,8 +2717,14 @@ def register_routes(library_service) -> None:
             ui.input("Free").props('data-testid="free-input"')
             stamp_requires(ui.input("Operate").props('data-testid="operate-input"'), LevelMode.OPERATE)
             stamp_requires(ui.input("Edit").props('data-testid="edit-input"'))
+            stamp_requires(ui.select(["a", "b"], label="Pick").props('data-testid="edit-select"'))
         graph, editor, card_id = _build_enter_graph(library_service)
+        chips = graph.create_node_wrapper(
+            "haybale-testing:node:ChipFieldProbeNode", position=(3400.0, 4000.0)
+        )
+        assert chips is not None
         ui.label(card_id).props(f'data-testid="access-card-id" data-node="{card_id}"')
+        ui.label(chips.node_id).props(f'data-testid="access-chips-id" data-node="{chips.node_id}"')
         manager = _mount_graph_canvas(library_service, graph, editor, testid="access", level=level)
         keys = {"F8": LevelMode.VIEW, "F9": LevelMode.OPERATE, "F10": LevelMode.EDIT}
 

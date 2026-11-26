@@ -102,7 +102,9 @@ import 'arrow_heads';
  *                       macro placement card. A double-click on it (not on a
  *                       widget or a pin) emits EnterGroupEvent in level mode
  *                       operate and edit. Written by ui_node.py.
- *   data-hw-requires    'view' | 'operate' | 'edit': the lowest level mode in
+ *   .hw-requires        A class, with .hw-requires-view | -operate | -edit
+ *                       beside it (a class: a Quasar field moves every other
+ *                       attribute off its root): the lowest level mode in
  *                       which an element inside a card takes pointer input. An
  *                       unstamped element counts as 'edit'; of nested stamps the
  *                       strictest decides. Written by
@@ -118,7 +120,7 @@ import 'arrow_heads';
  *                       gate (ui/components/access_gate).
  *   data-hw-inset       The body of an Inset card (a Graph-node drawn with the
  *                       Inset skin, haybale_graph_editor/skins/inset_skin.py).
- *                       Inside it only [data-hw-requires="operate"] widgets take
+ *                       Inside it only .hw-requires-operate widgets take
  *                       pointer input and pins are hidden (global style block);
  *                       box select skips it.
  *   data-pin-id         A pin's id; drives pin-menu detection.
@@ -169,8 +171,8 @@ import 'arrow_heads';
  *                       double-click Enter ('enterGroup'). Click, Shift-click
  *                       and box select work in every mode; selecting changes
  *                       no document. Card content takes no pointer input
- *                       below 'edit', except [data-hw-requires="view"]
- *                       elements in every mode and [data-hw-requires="operate"]
+ *                       below 'edit', except .hw-requires-view
+ *                       elements in every mode and .hw-requires-operate
  *                       ones in 'operate'. Distinct from
  *                       data-node-props-locked, which is per node and also
  *                       keeps the node out of a multi-selection. The server
@@ -186,6 +188,14 @@ import 'arrow_heads';
 
 // Level modes in cumulative order: each includes the ones before it (LevelMode.rank).
 const LEVEL_MODE_RANK = { view: 0, operate: 1, edit: 2 };
+
+/** The mode a .hw-requires stamp names ('view' | 'operate' | 'edit'), or null for none. */
+function stampMode(node) {
+    for (const mode in LEVEL_MODE_RANK) {
+        if (node.classList.contains(`hw-requires-${mode}`)) return mode;
+    }
+    return null;
+}
 
 export default {
     name: 'GraphCanvas',
@@ -1856,7 +1866,7 @@ export default {
             const draggableElement = this._findDraggableElement(target);
             if (draggableElement) {
                 // Below edit a press on a card or edge arms a click that selects and drags
-                // nothing; an element whose data-hw-requires stamps the level mode satisfies keeps its press.
+                // nothing; an element whose stamp (.hw-requires) the level mode satisfies keeps its press.
                 const keepsPress = !this.editing && this._stampsSatisfied(target);
                 if (keepsPress) return;
                 this._startUnifiedDrag(event, draggableElement);
@@ -4041,14 +4051,14 @@ export default {
             return needed !== undefined && LEVEL_MODE_RANK[this.levelMode] >= needed;
         },
 
-        /** True when `element` sits in at least one [data-hw-requires] stamp and the level mode
+        /** True when `element` sits in at least one stamp (.hw-requires) and the level mode
          *  satisfies every stamp around it: a nested stamp can only tighten. */
         _stampsSatisfied(element) {
-            let node = element.closest('[data-hw-requires]');
+            let node = element.closest('.hw-requires');
             if (!node) return false;
             for (; node && this.$el.contains(node);
-                node = node.parentElement ? node.parentElement.closest('[data-hw-requires]') : null) {
-                if (!this._levelModeSatisfies(node.dataset.hwRequires)) return false;
+                node = node.parentElement ? node.parentElement.closest('.hw-requires') : null) {
+                if (!this._levelModeSatisfies(stampMode(node))) return false;
             }
             return true;
         },
@@ -4070,10 +4080,10 @@ export default {
                 return false;
             }
 
-            // A widget whose data-hw-requires the level mode satisfies keeps its press inside
+            // A widget whose stamp (.hw-requires) the level mode satisfies keeps its press inside
             // a drag handle too: a widget node's whole card is one, and so is an Inset's interior card.
             // The nearer of stamp and drag handle decides, so a widget can hand a part back to the card.
-            const stamped = element.closest('[data-hw-requires]');
+            const stamped = element.closest('.hw-requires');
             const handle = element.closest('.drag-handle');
             if (stamped && (!handle || handle.contains(stamped)) && this._stampsSatisfied(element)) {
                 return true;
@@ -4627,13 +4637,13 @@ export default {
 
 /* An Inset's interior takes input only on its operable widgets, in every mode the
  * gate above allows; any other press lands on the host card. Its pins are hidden. */
-.graph-canvas [data-hw-inset] *:not([data-hw-requires="operate"]):not([data-hw-requires="operate"] *) {
+.graph-canvas [data-hw-inset] *:not(.hw-requires-operate):not(.hw-requires-operate *) {
     pointer-events: none !important;
 }
-:where(.graph-canvas [data-hw-inset] [data-hw-requires="operate"]) { pointer-events: auto; }
+:where(.graph-canvas [data-hw-inset] .hw-requires-operate) { pointer-events: auto; }
 /* A stricter (or unknown) stamp nested in an operable widget is inert again: nesting only tightens. */
-.graph-canvas [data-hw-inset] [data-hw-requires="operate"] [data-hw-requires]:not([data-hw-requires="operate"]):not([data-hw-requires="view"]),
-.graph-canvas [data-hw-inset] [data-hw-requires="operate"] [data-hw-requires]:not([data-hw-requires="operate"]):not([data-hw-requires="view"]) * {
+.graph-canvas [data-hw-inset] .hw-requires-operate .hw-requires:not(.hw-requires-operate):not(.hw-requires-view),
+.graph-canvas [data-hw-inset] .hw-requires-operate .hw-requires:not(.hw-requires-operate):not(.hw-requires-view) * {
     pointer-events: none !important;
 }
 .graph-canvas [data-hw-inset] [data-pin-id] { display: none !important; }

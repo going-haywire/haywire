@@ -25,6 +25,7 @@ from haywire.core.types.enums import PortType
 from haywire.core.types.port import DataPort
 from haywire.core.undo.config import UndoConfig
 from haywire.core.volumes import VolumeStore, volume_location
+from haywire.ui.access_stamp import stamped_mode
 from haywire.ui.widget.factory import WidgetFactory
 from tests.conftest import edit_route, make_node
 from tests.ui.user_wait import eventually
@@ -267,7 +268,7 @@ async def test_card_shows_an_unpinned_address_with_its_pin(user: User, state: An
     assert "hw-text-warning" in _icon_classes(widget)
     assert widget._name.text == "m.pth"
     assert widget._pin.visible
-    assert widget._pin.props["data-hw-requires"] == "edit"
+    assert stamped_mode(widget._pin) is LevelMode.EDIT
 
 
 @pytest.mark.unit

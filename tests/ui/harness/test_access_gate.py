@@ -1,15 +1,16 @@
 """Browser tests for ``AccessGate``, the page's level-mode gate on canvas cards and panels.
 
 Drives the ``/access-gate`` harness route: a session scope column with an
-unstamped input, one stamped ``operate`` and one stamped ``edit``, and a Group
-card whose number widget is a card input, on a canvas. F8, F9 and F10 move
-the session mode and the canvas to ``view``, ``operate`` and ``edit``.
+unstamped input, one stamped ``operate``, one stamped ``edit`` and a select
+stamped ``edit``, and, on a canvas, a Group card whose number widget is a card
+input and a Chip Field Probe with an operable select. F8, F9 and F10 move the
+session mode and the canvas to ``view``, ``operate`` and ``edit``.
 """
 
 from __future__ import annotations
 
 import pytest
-from playwright.sync_api import Page
+from playwright.sync_api import Page, expect
 
 from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 
@@ -47,11 +48,14 @@ def _field(page: Page, testid: str) -> str:
 
 
 def _stamped(page: Page, testid: str) -> dict:
-    """The computed opacity and pointer-events of the panel field ``testid``'s native input."""
+    """The panel field ``testid``'s computed opacity (on its root) and its native input's pointer-events."""
     return page.evaluate(
         """(sel) => {
-            const style = getComputedStyle(document.querySelector(sel));
-            return { opacity: style.opacity, pointer: style.pointerEvents };
+            const native = document.querySelector(sel);
+            return {
+                opacity: getComputedStyle(native.closest('.q-field')).opacity,
+                pointer: getComputedStyle(native).pointerEvents,
+            };
         }""",
         _field(page, testid),
     )
@@ -177,7 +181,7 @@ _PARITY_JS = """
         window.__hwBaseline = new WeakMap(els.map((el) => [el, getComputedStyle(el).pointerEvents]));
     }
     const describe = (el) => `${el.tagName.toLowerCase()}.${[...el.classList].join('.')}`
-        + ` requires=${el.closest('[data-hw-requires]')?.dataset.hwRequires}`;
+        + ` requires=${[...(el.closest('.hw-requires')?.classList ?? [])].join('.')}`;
     const unknown = els.filter((el) => !window.__hwBaseline.has(el)).length;
     // An element its own rules make inert in edit (a focus helper) stays inert: the gate only adds none.
     const mismatches = els
@@ -208,7 +212,7 @@ _NEST_JS = """
         let parent = host;
         for (const stamp of stamps) {
             const el = document.createElement('div');
-            el.dataset.hwRequires = stamp;
+            el.classList.add('hw-requires', `hw-requires-${stamp}`);
             parent.appendChild(el);
             parent = el;
         }
@@ -287,3 +291,85 @@ def test_the_strictest_nested_stamp_decides(page: Page, harness, mode: str, card
 
     assert _nest_gated(page, card_scope) == {k: [v, v] for k, v in card.items()}
     assert _nest_gated(page, '[data-hw-mode-scope="session"]') == {k: [v, v] for k, v in panel.items()}
+
+
+# The parts of a Quasar field a press can land on. Quasar moves every attribute but
+# class and style from the field's root to its native element, so a stamp that is
+# an attribute gates only the native part (#253).
+_FIELD_PARTS = {
+    "label": ".q-field__label",
+    "native": ".q-field__native",
+    "arrow": ".q-field__append",
+    "padding": ".q-field__control",
+}
+
+_PARTS_HIT_JS = """
+([fieldSel, parts]) => {
+    const field = document.querySelector(fieldSel);
+    field.scrollIntoView({ block: 'center' });
+    // A field without a label (a card widget's) draws no .q-field__label.
+    const drawn = Object.entries(parts).filter(([, sel]) => field.querySelector(sel));
+    return Object.fromEntries(drawn.map(([name, sel]) => {
+        const r = field.querySelector(sel).getBoundingClientRect();
+        // The control's padding: 2px in from its left edge; every other part: its centre.
+        const x = name === 'padding' ? r.left + 2 : r.left + r.width / 2;
+        const hit = document.elementFromPoint(x, r.top + r.height / 2);
+        return [name, !!hit && field.contains(hit)];
+    }));
+}
+"""
+
+
+def _parts_hit(page: Page, field: str) -> set[bool]:
+    """Whether a press on each of ``_FIELD_PARTS`` the field root ``field`` draws reaches the field.
+
+    One value when every part agrees; native, arrow and padding are always drawn.
+    """
+    hits = page.evaluate(_PARTS_HIT_JS, [field, _FIELD_PARTS])
+    assert {"native", "arrow", "padding"} <= hits.keys(), hits
+    return set(hits.values())
+
+
+_PANEL_SELECT = '.q-field:has([data-testid="edit-select"])'
+
+
+def _card_select(page: Page, *, chips: bool) -> str:
+    """The Chip Field Probe's chip select or its plain select; the factory stamps both operable."""
+    node_id = page.locator('[data-testid="access-chips-id"]').get_attribute("data-node")
+    which = ".q-select--with-chips" if chips else ".q-select:not(.q-select--with-chips)"
+    return f'[data-node-id="{node_id}"] {which}'
+
+
+@pytest.mark.parametrize(("mode", "live"), [("view", False), ("operate", False), ("edit", True)])
+def test_a_press_anywhere_on_a_stamped_panel_field_follows_its_stamp(
+    page: Page, harness, mode: str, live: bool
+):
+    _open(page, harness, mode)
+
+    assert "label" in page.evaluate(_PARTS_HIT_JS, [_PANEL_SELECT, _FIELD_PARTS])
+    assert _parts_hit(page, _PANEL_SELECT) == {live}
+    assert (
+        page.evaluate(
+            "(sel) => window.hwAccess.isGated(document.querySelector(sel).querySelector('.q-field__label'))",
+            _PANEL_SELECT,
+        )
+        is not live
+    )
+
+
+@pytest.mark.parametrize(("mode", "live"), [("view", False), ("operate", True), ("edit", True)])
+def test_a_press_anywhere_on_an_operable_card_field_follows_its_stamp(
+    page: Page, harness, mode: str, live: bool
+):
+    _open(page, harness, mode)
+
+    for chips in (False, True):
+        assert _parts_hit(page, _card_select(page, chips=chips)) == {live}, chips
+
+
+def test_an_operator_opens_an_operable_card_select_by_its_arrow(page: Page, harness):
+    _open(page, harness, "operate")
+
+    page.locator(_card_select(page, chips=False)).locator(".q-field__append").click()
+
+    expect(page.locator(".q-menu")).to_be_visible()

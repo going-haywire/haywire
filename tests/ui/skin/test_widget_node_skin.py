@@ -13,6 +13,7 @@ from haybale_core.nodes.widgets.menu import MenuNode
 from haybale_core.nodes.widgets.slider import FloatSliderNode
 from haybale_core.skins.widget_node_skin import WidgetNodeSkin
 from haybale_graph_editor.editors.graph_canvas.ui_node import UINode
+from haywire.core.access import LevelMode
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.scheduler import ThreadingTimerScheduler
@@ -20,6 +21,7 @@ from haywire.core.graph.types import ChangeReason
 from haywire.core.node.layout import PATCH, STAGE, LayoutChannel
 from haywire.core.node.promotion import promote_setting, set_promoted_show_widget
 from haywire.core.types.enums import PortType, ShowWidgetStrategy
+from haywire.ui.access_stamp import stamped_mode
 from haywire.ui.skin.factory import SkinFactory
 from tests.conftest import edit_route, make_node
 
@@ -67,7 +69,7 @@ def _with(ui_node: UINode, prop: str) -> list[Any]:
 
 
 def _operable(ui_node: UINode) -> list[Any]:
-    return [e for e in ui_node.container.descendants() if e._props.get("data-hw-requires") == "operate"]
+    return [e for e in ui_node.container.descendants() if stamped_mode(e) is LevelMode.OPERATE]
 
 
 def _pins(ui_node: UINode) -> list[Any]:

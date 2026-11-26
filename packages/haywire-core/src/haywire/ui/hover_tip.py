@@ -3,7 +3,9 @@
 An element with ``data-hw-tip`` (a bold first line), optionally ``data-hw-tip-type``
 (a data-type name after it, as ``Label: TYPE``) and ``data-hw-tip-desc`` (a second
 line, where a newline starts a new line) shows a tooltip while the pointer is over
-it. The tip wraps at 320 px. One script per page serves every such element, so the
+it. A Quasar field (``ui.select``, ``ui.input``, ...) moves these attributes from
+its root to its native element; the tip still shows anywhere on the field. The
+tip wraps at 320 px. One script per page serves every such element, so the
 server registers no listener for it and a hover makes no round trip.
 ``set_hover_tip`` writes the attributes; ``add_hover_tip_script`` installs the script.
 """
@@ -44,8 +46,19 @@ _SCRIPT = """<script>
     anchor = null;
     if (tip) tip.style.display = "none";
   }
-  function show(el) {
-    anchor = el;
+  // A Quasar field moves the tip's attributes from its root to its native element, so a
+  // pointer anywhere on the field shows the tip of the first tipped element inside it,
+  // placed under the whole field.
+  function find(target) {
+    var el = target.closest("[data-hw-tip]");
+    var field = target.closest(".q-field");
+    if (!field) return el ? { src: el, at: el } : null;
+    var own = field.querySelector("[data-hw-tip]");
+    if (own && (!el || el === own)) return { src: own, at: field };
+    return el ? { src: el, at: el } : null;
+  }
+  function show(el, at) {
+    anchor = at;
     var t = box();
     t.replaceChildren();
     var head = document.createElement("div");
@@ -71,7 +84,7 @@ _SCRIPT = """<script>
       t.appendChild(line);
     }
     t.style.display = "block";
-    var r = el.getBoundingClientRect(), w = t.offsetWidth, h = t.offsetHeight;
+    var r = at.getBoundingClientRect(), w = t.offsetWidth, h = t.offsetHeight;
     var left = Math.min(Math.max(MARGIN, r.left + r.width / 2 - w / 2), window.innerWidth - w - MARGIN);
     var top = r.bottom + GAP;
     if (top + h > window.innerHeight - MARGIN) top = Math.max(MARGIN, r.top - GAP - h);
@@ -79,9 +92,9 @@ _SCRIPT = """<script>
     t.style.top = top + "px";
   }
   document.addEventListener("pointerover", function (e) {
-    var el = e.target && e.target.closest ? e.target.closest("[data-hw-tip]") : null;
-    if (el === anchor) return;
-    if (el) show(el); else hide();
+    var hit = e.target && e.target.closest ? find(e.target) : null;
+    if (hit && hit.at === anchor) return;
+    if (hit) show(hit.src, hit.at); else hide();
   }, true);
   document.addEventListener("pointerdown", hide, true);
   document.addEventListener("wheel", hide, { capture: true, passive: true });

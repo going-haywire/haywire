@@ -374,7 +374,7 @@ graph unsaved and records the undo step (see
   model. `widget_key` picks a widget other than the field's own: the annotation skin draws
   `AnnotationTextWidget` on `annotation.text`, so the Properties panel keeps the plain text widget.
   The skin keeps the look by wrapping the widget in an element whose CSS the widget inherits.
-- **Operable or not:** both calls stamp `data-hw-requires` on the widget (below), from the route's
+- **Operable or not:** both calls stamp the widget (below), from the route's
   `required_mode`. A port or field declared `operable=False` is stamped `edit`, and the route
   needs level mode `edit` for its writes.
 
@@ -386,8 +386,9 @@ route.
 ## Pointer input below level mode `edit`
 
 Below the mode an element requires, `AccessGate` takes its pointer input away (see
-[ADR 0060](../../adr/0060-the-browser-projects-the-route.md)). One attribute, `data-hw-requires="view|operate|edit"`,
-says from which level mode an element takes input:
+[ADR 0060](../../adr/0060-the-browser-projects-the-route.md)). One stamp, the classes `hw-requires` and `hw-requires-view|operate|edit` written by
+`stamp_requires`, says from which level mode an element takes input. It is a class, not an
+attribute, because a Quasar field moves every attribute but `class` and `style` off its root:
 
 - **A control** a skin draws must be a widget drawn through `BaseSkin.render_widget` or
   `BaseSkin.render_setting_widget`, which stamp it from the route's `required_mode`: `operate` for
@@ -461,7 +462,7 @@ A skin made for the stage alone is tagged `["general", "stage-only"]`. A skin fo
 - **Body.** An `InsetView` builds one ordinary `UINode` per staged interior node, with its stage skin, at its raw stage position (`props.get_position(STAGE)`), so stage (0, 0) is the body's top-left. The containers carry `data-hw-inset-node`, never `data-node-id`. The body has a 240 × 160 floor and clips; an empty stage shows a placeholder. A node whose interior does not resolve gets a message instead of the view: "failed to build" for a stand-in, "has no interior" otherwise.
 - **Writes.** The cards write through `EditRoute.for_subgraph(definition)`: the host route's level mode, recorded on the host's history.
 - **Lifetime.** The host card redraws when an on-stage interior node repaints or the interior's stage membership changes (`GraphNode`), which rebuilds the view; a change to a node off stage leaves it as drawn. The skin hands `view.cleanup` to `BaseSkin.on_card_cleanup`, so the old cards are released with the card. A skin that builds anything outliving its draw call does the same.
-- **Input.** `canvas.vue` makes everything inside `[data-hw-inset]` inert except `[data-hw-requires]` subtrees the mode reaches, and hides its pins, so a press acts on the host card; box select skips the body. The Inset draws no edges.
+- **Input.** `canvas.vue` makes everything inside `[data-hw-inset]` inert except stamped (`.hw-requires`) subtrees the mode reaches, and hides its pins, so a press acts on the host card; box select skips the body. The Inset draws no edges.
 
 ## Where the default skins live
 

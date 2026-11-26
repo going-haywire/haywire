@@ -15,7 +15,8 @@ element** (`div.q-field__native`, or the `<input>` with `use-input`).
 So `element.props["data-x"] = "1"` on a select root ends up on `.q-field__native`.
 Nothing warns. Measured in Chromium on a chip select root (2026-11-25): the root
 carried `class` and `style` only; `data-hw-widget-inline-box`, `data-hw-requires` and
-the port's `data-hw-tip*` were all on `.q-field__native`.
+the port's `data-hw-tip*` were all on `.q-field__native` (the stamp has since become a
+class, see below).
 
 Consequences:
 
@@ -30,3 +31,13 @@ Consequences:
 style (custom property). When an attribute is unavoidable, put it on a plain
 element around the field, or check where it lands in a browser test: a Python test
 of `element.props` passes either way.
+
+Applied so far:
+
+- The size-box markers (`haywire/ui/widget/sizing.py`) are classes.
+- The level-mode stamp is the classes `hw-requires hw-requires-<mode>` (`stamp_requires`,
+  #253), so a press on a field's label, arrow, chips or padding is gated like one on its
+  native element (`tests/ui/harness/test_access_gate.py`).
+- The hover tip keeps its `data-hw-tip*` attributes (they carry text, a class cannot); the
+  tip script (`haywire/ui/hover_tip.py`) treats a pointer anywhere on a `.q-field` as over
+  the first tipped element inside it (`test_hover_tip.py`).
