@@ -38,10 +38,15 @@ should never have to go and find it.
   (`gh run view <id> --json url --jq .url`). A local file: a markdown link with the line,
   `[name.py:42](path/to/name.py#L42)`. A diff: the PR's *Files changed* URL
   (`<pr-url>/files`).
-- **Say what is decided**, the options lettered, and which one you recommend and why,
-  in a sentence each.
+- **Number every decision** (1, 2, 3) and letter its options (a, b, c). Each says what
+  is decided, the options, and your recommendation with a one-sentence reason. No
+  question stays in running text: every question gets a number.
 - **Put the evidence next to it:** test results, the failing check, the measured
   number, the relevant lines. Quote briefly; link the rest.
+- **End with the recommendations**, one line, so the user can answer by number:
+  `Recommended: 1 b · 2 a · 3 yes`.
+- **"Go" accepts every recommendation.** The user names a number only where they
+  differ: "go, but 2 a".
 
 A PR ready to merge is reported as: its URL, one line on what it changes, the CI result
 with the run's URL, anything the user should look at first (with links), then the
@@ -429,8 +434,8 @@ table or why there was none), *Blocked* (on what), *Needs a decision*, *Decided*
 
 **A decision lives in the task's thread:**
 
-1. The task writes the lettered options and its recommendation there, ending with the
-   lead's link, and sends the lead one line with its own link.
+1. The task writes the decisions there in the format of *Asking the user for a
+   decision*, ending with the lead's link, and sends the lead one line with its own link.
 2. The lead puts `? ` before the task's name, marks it unread, and gives the user the line
    and the link.
 3. The user answers in the task. That is the user's word for that task, approvals

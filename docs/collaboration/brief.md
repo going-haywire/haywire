@@ -41,4 +41,5 @@ the session-start hook already names it).
 
 **Approved** is the only place a task reads its limits from. The lead widens it with a
 message naming the line ("Approved: push and draft PR"); an owner's answer in the task's
-thread widens it too, and the task reports it to the lead as *Decided*.
+thread widens it too, and the task reports it to the lead as *Decided*. A question for the
+owner follows *Asking the user for a decision* in [the workflow](workflow.md).
