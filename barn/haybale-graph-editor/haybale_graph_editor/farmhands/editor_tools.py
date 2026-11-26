@@ -457,6 +457,12 @@ def _settings_payload(node, accessors: list[str], data: str, filters: _Filters):
     return out
 
 
+def _cause_of(exc: object) -> str | None:
+    """The wrapped exception's type and text, or ``None`` when *exc* wraps none."""
+    cause = getattr(exc, "cause", None)
+    return cause() if callable(cause) else None
+
+
 def _state_row(wrapper) -> dict:
     """Lifecycle state: which stage failed, and why.
 
@@ -486,7 +492,7 @@ def _state_row(wrapper) -> dict:
         "is_structural": state.is_structural,
         "has_test_passed": state.has_test_passed,
         "errors": [
-            {"stage": stage, "message": str(exc)}
+            {"stage": stage, "message": str(exc), "cause": _cause_of(exc)}
             for stage in stages
             if (exc := getattr(state, stage, None)) is not None
         ],
@@ -644,7 +650,7 @@ _DIRECTIONS = ("inlet", "swinglet", "outlet", "config")
     "  settings: author-declared settings bags, nested {bag: {category: [rows]}} at data='info' "
     "and {bag: [rows]} deeper — never a flat list, so bag identity is always explicit\n"
     "  props: framework properties (position, size, locked, skin) — never mixed into settings\n"
-    "  state: is_valid + per-stage lifecycle booleans + errors [{stage, message}] + warnings; "
+    "  state: is_valid + per-stage lifecycle booleans + errors [{stage, message, cause}] + warnings; "
     "read this after editing a node's source to learn WHICH stage failed; is_stand_in True = an "
     "error node holds the place of a node whose class cannot be built (fix the class, then reset)\n"
     f"data: one of {', '.join(_DATA_LEVELS)} (default info) — how much per row\n"
@@ -1063,6 +1069,17 @@ def _read_property(node, name: str):
     return False, None
 
 
+def _requested(node, name: str, value: Any) -> Any:
+    """Return *value* as port *name* of *node* stores it; as given for a setting or a rejected value."""
+    port = node.ports.get(name)
+    if port is None:
+        return value
+    try:
+        return port.data.as_stored(value)
+    except (TypeError, ValueError):
+        return value
+
+
 @farmhand(
     label="Set property",
     description="Set a node property (port value or settings field) by name. Undo-recorded.",
@@ -1105,8 +1122,9 @@ class GraphEditorSetPropertyTool(Farmhand):
         # Post-condition check: is the field now what was asked for? Writing a
         # value the field already held is a legitimate no-op and still passes,
         # because the read-back equals the request either way.
-        found, actual = _read_property(_node(editor, node_id).node, name)
-        if found and actual != value:
+        node = _node(editor, node_id).node
+        found, actual = _read_property(node, name)
+        if found and actual != _requested(node, name, value):
             raise FarmhandError(
                 "set_rejected",
                 f"Write to '{name}' on '{node_id}' did not take: requested {value!r}, "
@@ -1185,7 +1203,7 @@ class GraphEditorOperateTool(Farmhand):
                 ),
             )
         actual = port.data.get_own_value()
-        if actual != value:
+        if actual != _requested(wrapper.node, port_id, value):
             raise FarmhandError(
                 "set_rejected",
                 f"Write to '{port_id}' on '{node_id}' did not take: requested {value!r}, "

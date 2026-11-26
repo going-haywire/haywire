@@ -357,11 +357,12 @@ class HaywireVM:
 
         Stores the error in the node's runtime errors.
         """
-
+        graph = getattr(node.wrapper, "graph", None)
         error = HaywireException.from_exception(
             exception=exception, operation=operation, message=f"Error executing node '{node.identity.label}'"
         ).enrich(
-            _node_id=node.node_id,
+            node_id=node.node_id,
+            graph_id=getattr(graph, "graph_id", None),
             registry_key=node.identity.registry_key,
             module_name=node.__class__.__module__,
             library_identity=node.library,

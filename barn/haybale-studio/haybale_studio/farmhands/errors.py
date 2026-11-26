@@ -20,7 +20,9 @@ from haywire.core.errors.ledger import get_error_ledger
     description="Query the studio's error ledger.",
     instructions="Query the studio's error ledger (since_seq/library/registry_key filters); "
     "results carry the current cursor for incremental polling and first_retained_seq "
-    "so a client can detect when older history was evicted or deleted.",
+    "so a client can detect when older history was evicted or deleted. Each entry's "
+    "message says where it failed and its cause says why (the raised exception's type and "
+    "text). With since_seq, unseen_before counts the unseen entries the filter hides.",
     registry_id="get_errors",
     annotations=ToolAnnotations(read_only_hint=True),
     requires=AccessTier.VIEW,
@@ -35,7 +37,8 @@ class StudioGetErrorsTool(Farmhand):
         limit: int = 50,
         offset: int = 0,
     ) -> dict:
-        result = get_error_ledger().query(
+        ledger = get_error_ledger()
+        result = ledger.query(
             since_seq=since_seq,
             library=library,
             registry_key=registry_key,
@@ -43,6 +46,18 @@ class StudioGetErrorsTool(Farmhand):
             offset=offset,
         )
         note = truncation_note(len(result.entries), result.total, offset)
+        extra: dict = {}
+        if since_seq is not None:
+            # Errors raised before since_seq (a graph failing at start, before a poll
+            # began) are out of view but may still be open: say so.
+            everything = ledger.query(library=library, registry_key=registry_key, limit=ledger.current_seq)
+            hidden = sum(1 for e in everything.entries if e.ledger_seq <= since_seq and not e.seen)
+            extra["unseen_before"] = hidden
+            if hidden:
+                note += (
+                    f" {hidden} unseen entries are older than since_seq={since_seq}; "
+                    f"call without since_seq to see them."
+                )
         return {
             "summary": f"{result.total} ledger entries match (cursor {result.cursor}).{note}",
             # The ledger holds live HaywireException objects; serialize each to a
@@ -53,6 +68,7 @@ class StudioGetErrorsTool(Farmhand):
             # Smallest seq still retained; entries below it were evicted or
             # deleted. A client polling with since_seq below this has a gap.
             "first_retained_seq": result.first_retained_seq,
+            **extra,
         }
 
 
