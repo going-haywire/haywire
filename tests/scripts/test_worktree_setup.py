@@ -10,6 +10,7 @@ from scripts.worktree_setup import (
     core_link,
     studio_port,
     with_studio_port,
+    without_open_haystack,
 )
 
 
@@ -39,6 +40,18 @@ def test_no_port_in_empty_or_partial_settings():
     assert studio_port({}) is None
     assert studio_port({"network": {}}) is None
     assert studio_port(with_studio_port({}, 8125)) == 8125
+
+
+def test_the_copy_leaves_out_the_haystack_the_main_studio_reopens():
+    settings = {
+        "haystack": {"last_haystack_name": {"value": "Single"}, "new_counter": {"value": 49}},
+        "ui": {"theme": {"value": "dark"}},
+    }
+    copied = without_open_haystack(settings)
+    assert copied == {"haystack": {"new_counter": {"value": 49}}, "ui": {"theme": {"value": "dark"}}}
+    assert settings["haystack"]["last_haystack_name"] == {"value": "Single"}
+    assert without_open_haystack({"haystack": {"last_haystack_name": {"value": "x"}}}) == {}
+    assert without_open_haystack({}) == {}
 
 
 def _repo(path: Path, *, core: bool = False) -> Path:

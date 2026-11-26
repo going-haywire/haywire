@@ -21,7 +21,8 @@ It does what a new checkout lacks:
    stays as committed).
 4. Gives the worktree's studio a port of its own in ``.haywire/settings.json``, starting from
    a copy of the main checkout's settings (``haywire studio start`` moves it again if another
-   folder's studio holds it).
+   folder's studio holds it). The copy leaves out the haystack the main studio reopens, so a
+   worktree's studio starts with no graph open.
 5. Writes ``haywire-setup-done`` into the worktree's git folder last, which an orchestrator's
    session-start slot waits for (outside the checkout, so no repository sees it). It writes
    ``haywire-setup-started`` there first, so the slot waits only while a setup runs.
@@ -57,6 +58,18 @@ def with_studio_port(settings: dict, port: int) -> dict:
     """A copy of ``settings`` with the studio port set, everything else kept."""
     updated = json.loads(json.dumps(settings))
     updated.setdefault("network", {})["port"] = {"value": port}
+    return updated
+
+
+def without_open_haystack(settings: dict) -> dict:
+    """A copy of ``settings`` without the haystack the studio reopens at startup."""
+    updated = json.loads(json.dumps(settings))
+    haystack = updated.get("haystack")
+    if not isinstance(haystack, dict):
+        return updated
+    haystack.pop("last_haystack_name", None)
+    if not haystack:
+        updated.pop("haystack", None)
     return updated
 
 
@@ -144,7 +157,7 @@ def assign_studio_port(checkout: Path, main: Path) -> str:
         if other.resolve() not in (checkout, main) and (port := studio_port(_read_settings(other))):
             claimed.add(port)
     port = choose_studio_port(claimed, _listening)
-    base = own or _read_settings(main)
+    base = own or without_open_haystack(_read_settings(main))
     path = checkout / SETTINGS
     path.parent.mkdir(exist_ok=True)
     # Core's helper (ensure_haywire_dir, ADR 0096) is not importable before uv sync.

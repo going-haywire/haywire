@@ -166,9 +166,10 @@ differs:
 - **Setting up.** A library reaches core by relative paths: clone it beside a clone of core,
   under the names the paths expect, and run `uv sync --frozen` in it
   ([setting someone up](../agents/start.md), *Develop Haywire*). Its `pyproject.toml`
-  (`[tool.uv.sources]`) shows which core packages come from `../haywire-repo`. Running it in the
-  full studio with other libraries:
-  [ADR 0081](../adr/0081-libraries-from-other-repositories-run-from-an-umbrella-environment.md).
+  (`[tool.uv.sources]`) shows which core packages come from `../haywire-repo`. Its studio:
+  `python3 ../haywire-repo/dev/scripts/studio.py start`, the full studio with other libraries
+  when the umbrella is set up
+  ([ADR 0081](../adr/0081-libraries-from-other-repositories-run-from-an-umbrella-environment.md)).
 - **Checks:** `uv run --frozen ruff check .`, `uv run --frozen ruff format --check .`,
   `uv run --frozen pytest`. CI runs the same on every pull request, against core's `master`,
   and every night.

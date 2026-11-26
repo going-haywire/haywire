@@ -122,16 +122,17 @@ finds instead is a wasted round.
    `expect` what they should see.
 2. **Run it** as a Questionnaire in this worktree's studio (the format:
    [docs/reference/questionnaire.md](https://github.com/going-haywire/haywire/blob/master/docs/reference/questionnaire.md)):
-   1. `uv run haywire studio start` from inside the worktree, so the user tests this
-      branch's code. Its tools appear through the Farmhand bridge;
-      `farmhand_studio_status` says why when they don't.
+   1. `python3 <core>/dev/scripts/studio.py start` from inside the worktree, so the user
+      tests this branch's code (*Parallel sessions*: never `uv run haywire studio start`).
+      Its tools appear through the Farmhand bridge; `farmhand_studio_status` says why when
+      they don't.
    2. `haybale-studio_post_questionnaire` with a title naming the change. Keep each
       Check to one action and one observable result; hide one that depends on an
       earlier Check with `visibleIf`, or a failure upstream turns it `blocked`.
    3. Tell the user it waits in the studio's aside, with the URL `haywire studio start`
       printed, and wait for them to say they are done.
    4. `haybale-studio_get_findings`, then `haybale-studio_get_errors` with `since_seq` =
-      `ledger_seq.posted`. `uv run haywire studio stop` once the round is recorded.
+      `ledger_seq.posted`. `python3 <core>/dev/scripts/studio.py stop` once the round is recorded.
 3. **A failed Check** means your confidence was wrong: fix it and verify the fix yourself
    as above. Ask the user before posting another round, with only the Checks that
    failed.
@@ -357,26 +358,26 @@ only the main folder, so search with grep there.
 - Run only the tests of the area changed; CI runs the whole suite. Browser tests in two
   worktrees at once are fine: each checkout has its own harness ports.
 - A library in another repository (spandrel, visiongraph, …) gets a worktree per task like
-  any other, wherever the orchestrator puts it: the setup links core beside it. Its own
-  studio (core and this library) is `uv run haywire studio start` in the worktree.
-
-  For the full studio with every library (ADR 0081's overlay), the worktree has to sit
-  beside the repositories, where the umbrella environment is: create it from the library's
-  main folder with `git worktree add ../<repo>-<name> -b <kind>/<name> origin/<default
-  branch>`, run the setup there, then from inside the worktree:
-
-  ```sh
-  cd ../<repo>-<name>
-  uv run --frozen --project .. --with-editable barn/<library> haywire --no-browser
-  ```
-
-  The studio loads the library from the worktree and hot reload follows its files. `--frozen`
-  keeps the umbrella's `uv.lock` as it is.
+  any other, wherever the orchestrator puts it: the setup links core beside it.
 - `~/.haywire` (global settings, security document, models, volumes) is shared too: a
   library installed or a setting changed there is seen by every task.
-- A worktree drives only its own studio: `uv run haywire studio start` from inside the
-  worktree. Each folder keeps a port of its own (8124 is the main folder's); when another
-  folder's studio holds it, `start` takes the next free one and keeps it.
+- A worktree drives only its own studio, started from inside the worktree, in core or a
+  library alike:
+
+  ```sh
+  python3 <core>/dev/scripts/studio.py start      # stop, status
+  ```
+
+  With the [umbrella](https://github.com/going-haywire/umbrella#readme)'s `haywire-studio`
+  on the `PATH` it is the full studio, every library of every repository, with the
+  worktree's own packages in place of the umbrella's copies (ADR 0081), wherever the
+  worktree is. Without it, the studio runs from the worktree's own environment (core, or
+  core and this library); the script says which. Never `uv run haywire studio start` in a
+  checkout of an org repository: it runs without the other repositories' libraries, and
+  every graph that uses them fills the error ledger. Each folder keeps a port of its own
+  (8124 is the main folder's); when another folder's studio holds it, `start` takes the
+  next free one and keeps it. A worktree's studio starts with no graph open: the setup's
+  copy of the main folder's settings leaves out the haystack it reopens.
 
 **A second machine** works on its own clone: [second-machine.md](second-machine.md).
 
