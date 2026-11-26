@@ -454,6 +454,23 @@ def test_update_is_refused_below_edit(haystack, macro_file, tmp_path):
     assert haystack.get_by_path(path) is None
 
 
+def test_update_is_refused_below_admin(haystack, macro_file, tmp_path):
+    """Update Macro… writes into a library: an edit principal is refused before anything changes."""
+    from haywire.api.workbench import AccessTier
+
+    path, _, _ = macro_file
+    host = _open_graph(haystack, tmp_path, "host")
+    card_id, _ = _modified_instance(host)
+    ctx = _ctx(haystack, host, card_id)
+    ctx.can_access.side_effect = AccessTier.EDIT.satisfies
+
+    notify = _update(ctx, card_id)
+
+    assert host.graph.get_node_wrapper(card_id) is not None
+    assert haystack.get_by_path(path) is None
+    assert "admin" in notify.call_args.args[0]
+
+
 def test_update_is_refused_while_the_macro_tab_is_unsaved(haystack, macro_file, tmp_path):
     """The row can be stale: the click re-checks, and nothing changes."""
     path, _, _ = macro_file

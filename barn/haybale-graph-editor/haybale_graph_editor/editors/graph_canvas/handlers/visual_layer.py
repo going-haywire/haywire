@@ -35,7 +35,7 @@ from haybale_graph_editor.editors.graph_canvas.ui_edge import (
 from haybale_graph_editor.editors.graph_canvas.ui_node import UINode
 from haybale_graph_editor.states.edit_state import EditState
 from haywire.api import BaseNode, MacroRegistry
-from haywire.api.workbench import LevelMode, RevealComponentDocs
+from haywire.api.workbench import AccessTier, LevelMode, RevealComponentDocs
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.execution import gc_freeze
 from haywire.core.graph.stacking import Restack
@@ -1235,10 +1235,14 @@ class VisualLayerHandlers:
 
         The flow itself writes nothing until its last step; everything here is
         resolving what it needs — the Subgraph to serialize and the libraries
-        that could receive it.
+        that could receive it. Refused below admin, the tier writing into a
+        library needs: the level mode this handler declares tops out at edit.
         """
         editor = self.route.editor()
         if editor is None:
+            return
+        if self.context is None or not self.context.can_access(AccessTier.ADMIN):
+            ui.notify("Saving a new macro needs admin access", type="warning")
             return
         from haybale_graph_editor._promote_flow import EditorPromoteSource, show_promote_flow
         from haywire.core.authoring.targets import authoring_targets

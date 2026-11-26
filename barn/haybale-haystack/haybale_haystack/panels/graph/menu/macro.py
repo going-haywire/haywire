@@ -20,7 +20,7 @@ from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.surfaces import SelectionActions, SelectionMacroMenu
 from haybale_haystack.states.haystack_state import HaystackState
 from haywire.api import report_failure
-from haywire.api.workbench import BasePanel, PanelLayout, Reveal, hui, panel
+from haywire.api.workbench import AccessTier, BasePanel, PanelLayout, Reveal, hui, panel
 
 if TYPE_CHECKING:
     from haywire.api.workbench import SessionContext
@@ -108,13 +108,15 @@ def _open_macro(ctx: SessionContext, registry_key: str) -> None:
     description="Send a modified instance's changes back to the macro it came from.",
     icon=hui.icon.macro,
     order=30,
+    requires=AccessTier.ADMIN,
 )
 class UpdateMacroMenuPanel(BasePanel):
     """Send a modified instance's changes back to the macro it came from.
 
     Only visible on a Group that was detached from a macro. The card becomes a
     placement of that macro again, and the macro opens in its own tab with the
-    instance's contents, unsaved. Saving it updates every placement.
+    instance's contents, unsaved. Saving it updates every placement. Needs
+    admin, the tier every verb that writes into a library needs.
 
     Greyed out when the macro is not installed, cannot be edited in place, or
     has unsaved edits in its tab.
@@ -183,8 +185,8 @@ def _update_macro(ctx: SessionContext, node_id: str) -> None:
 
     The swap is one undoable step on the host graph. The macro's tab holds the
     instance's contents, unsaved; nothing is written until the user saves it.
-    Refused with a notice, before anything changes, below level mode edit or when
-    ``_update_refusal`` gives a reason.
+    Refused with a notice, before anything changes, below the admin tier, below
+    level mode edit, or when ``_update_refusal`` gives a reason.
     """
     from nicegui import ui
 
@@ -200,6 +202,10 @@ def _update_macro(ctx: SessionContext, node_id: str) -> None:
 
     # Opening the macro redraws panels; the notices must not depend on this row's slot.
     client = ui.context.client
+
+    if not ctx.can_access(AccessTier.ADMIN):
+        ui.notify("Updating a macro needs admin access", type="warning")
+        return
 
     route = route_for(ctx)
     editor = route.editor() if route is not None else None

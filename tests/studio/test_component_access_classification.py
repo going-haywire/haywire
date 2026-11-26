@@ -65,7 +65,9 @@ ADMIN_PANELS = {
     "NewNodeToolbarPanel",
     "OpenRosterPanel",
     "RotateSecretPanel",
+    "SaveNewMacroMenuPanel",
     "SecurityPanel",
+    "UpdateMacroMenuPanel",
 }
 
 
@@ -155,7 +157,6 @@ EDIT_PANELS = {
     "PinEditMenuPanel",
     "PinShowWidgetMenuPanel",
     "PortShowWidgetStrategyPanel",
-    "SaveNewMacroMenuPanel",
     "PortTypeMenuPanel",
     "PortWidgetMenuPanel",
     "RebuildSelectionMenuPanel",
@@ -185,7 +186,6 @@ EDIT_PANELS = {
     "TestSessionStateMenuPanel",
     "ThemeSettingsPanel",
     "TrimCanvasPanel",
-    "UpdateMacroMenuPanel",
     "SelectDownstreamMenuPanel",
     "SelectFlowSelectionMenuPanel",
     "SelectUpstreamMenuPanel",
