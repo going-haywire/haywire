@@ -8,11 +8,11 @@ serves to every agent session of an org repository (`farmhand://dev/collaboratio
 | Path | What |
 |---|---|
 | `hooks/*.sh` | `block-dangerous-git`, `require-workflow-read` + `mark-workflow-read`, `guard-pr-merge`, `session-role`, `session-place` |
-| `scripts/worktree_setup.py`, `scripts/finish.py`, `scripts/tasks.py` | Set up a new worktree (core or an org library); finish a merged task; list the tasks in flight (standard library only) |
+| `scripts/worktree_setup.py`, `scripts/finish.py`, `scripts/tasks.py`, `scripts/studio.py` | Set up a new worktree (core or an org library); finish a merged task; list the tasks in flight; start, stop or report the folder's studio (standard library only) |
 | `orchestrators/<tool>/` | One slot per orchestrator (`t3`, `herdr`): `session.sh` for `session-place`, optionally `agents.py` for `tasks.py`, a `doctor.py` where the tool needs setting up. The agent's how-to and a person's setup are docs pages: `docs/collaboration/orchestrators/<tool>-agent.md` and `<tool>.md` (ADR 0090) |
 
 Core runs these files in place: `.claude/settings.json` calls `dev/hooks/`, and
-`scripts/worktree_setup.py`, `scripts/finish.py` and `scripts/tasks.py` are links into this folder.
+`scripts/worktree_setup.py`, `scripts/finish.py`, `scripts/tasks.py` and `scripts/studio.py` are links into this folder.
 An org library reaches the same files through the core clone beside it (`../haywire-repo/dev/`),
 from the committed files `going-haywire/.github`'s `templates/library/` gives it.
 

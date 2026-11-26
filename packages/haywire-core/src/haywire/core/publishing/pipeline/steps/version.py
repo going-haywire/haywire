@@ -91,6 +91,30 @@ def write_barn_origins(repo_root: Path) -> list[Path]:
     return sorted(written)
 
 
+def sync_barn_pyprojects(repo_root: Path) -> list[Path]:
+    """Regenerate each barn library's ``[project]`` fields from its haybale.toml.
+
+    Phase B of the publish, after every haybale.toml write above it: the
+    version and origin just written must reach ``pyproject.toml`` too, or the
+    release itself leaves drift (``[project.urls] Source`` for a first
+    ``origin``) and the next ``share --status`` blocks on it. Preflight already
+    refused any drift that was there before, so this carries only what the bump
+    wrote. Returns the pyproject.toml paths that changed, sorted.
+    """
+    from haywire.core.library.dep_detect import find_module_dir
+    from haywire.core.library.haybale_toml import HAYBALE_TOML
+    from haywire.core.publishing.generate import sync_pyproject_from_haybale
+
+    written: list[Path] = []
+    for lib_dir in barn_library_dirs(repo_root):
+        module_dir = find_module_dir(lib_dir)
+        if module_dir is None or not (module_dir / HAYBALE_TOML).is_file():
+            continue
+        if sync_pyproject_from_haybale(lib_dir):
+            written.append(lib_dir / "pyproject.toml")
+    return sorted(written)
+
+
 def apply_bump(pipeline: SharePipeline, spec: str) -> BumpResult:
     """Resolve *spec*, verify the tag is free, then bump every barn library.
 
@@ -119,6 +143,7 @@ def apply_bump(pipeline: SharePipeline, spec: str) -> BumpResult:
 
     written = write_barn_versions(pipeline.repo_root, version)
     written += write_barn_origins(pipeline.repo_root)
+    written += sync_barn_pyprojects(pipeline.repo_root)
     pipeline.record(written)
 
     lock_refreshed, lock_warning = refresh_lockfile(pipeline.repo_root)

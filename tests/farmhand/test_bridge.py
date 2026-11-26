@@ -113,6 +113,7 @@ def test_the_index_lists_the_pages_served_to_every_project():
     assert STATUS_TOOL in index
     assert "farmhand://docs/components/nodes/node-canon.md" in index
     assert "farmhand://docs/_manifest" in index
+    assert "start it with `uv run haywire studio start` in the project" in index
 
 
 def _bridge_session(bridge: Bridge, scenario):
@@ -229,6 +230,8 @@ def test_the_index_lists_the_declared_developer_pages(tmp_path):
     index = product_index(developer_docs(_developer_project(tmp_path)))
     assert "- farmhand://dev/collaboration/workflow.md (The workflow): Read before a commit" in index
     assert "notes.md" not in index
+    assert "start it as farmhand://dev/collaboration/workflow.md says (*Live check*)" in index
+    assert "uv run haywire studio start" not in index
 
 
 def test_a_developer_page_is_read_from_its_folder_and_never_outside_it(tmp_path):
