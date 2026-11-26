@@ -7908,7 +7908,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Operate (tier)</strong></td>
-<td>The <strong>Access Tier</strong> between <code>view</code> and <code>edit</code>: may change values on the widgets stamped <code>data-hw-requires="operate"</code> (see <strong>Requires (marker)</strong>) on node cards and the stage, and <strong>Enter</strong> a level, and Start and Stop a graph in the haystack, and select on the canvas, and nothing else — no menus, no structural edits, no Undo/Redo, no Properties writes, no unlock. See <a href="../../adr/0051-operate-tier-and-the-canvas-lock/">ADR-0051</a></td>
+<td>The <strong>Access Tier</strong> between <code>view</code> and <code>edit</code>: may change values on the widgets stamped <code>operate</code> (see <strong>Requires (marker)</strong>) on node cards and the stage, and <strong>Enter</strong> a level, and Start and Stop a graph in the haystack, and select on the canvas, and nothing else — no menus, no structural edits, no Undo/Redo, no Properties writes, no unlock. See <a href="../../adr/0051-operate-tier-and-the-canvas-lock/">ADR-0051</a></td>
 <td>Player, performer role, run mode</td>
 </tr>
 <tr>
@@ -7928,13 +7928,13 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Mode requirement</strong></td>
-<td>The lowest <strong>Level mode</strong> an action needs: <code>@handles_event(requires=)</code> on a canvas handler (pushed to the browser as the canvas's gesture map), <code>minimum=</code> on a port or field (through <code>required_mode()</code>), and the <strong>Requires (marker)</strong> <code>data-hw-requires</code>. Defaults to <code>edit</code>; only a lowered requirement is written down. The "requires" side of the mode axis, whose "has" side is the <strong>Level mode</strong>; its tier-axis twin is the <strong>Access requirement</strong>. See <a href="../../adr/0060-the-browser-projects-the-route/">ADR-0060</a></td>
+<td>The lowest <strong>Level mode</strong> an action needs: <code>@handles_event(requires=)</code> on a canvas handler (pushed to the browser as the canvas's gesture map), <code>minimum=</code> on a port or field (through <code>required_mode()</code>), and the <strong>Requires (marker)</strong>. Defaults to <code>edit</code>; only a lowered requirement is written down. The "requires" side of the mode axis, whose "has" side is the <strong>Level mode</strong>; its tier-axis twin is the <strong>Access requirement</strong>. See <a href="../../adr/0060-the-browser-projects-the-route/">ADR-0060</a></td>
 <td>Access (on a handler), handler access, gesture access</td>
 </tr>
 <tr>
 <td><strong>Requires (marker)</strong></td>
-<td>The attribute <code>data-hw-requires="view\|operate\|edit"</code> stamping the <strong>Mode requirement</strong> of an element, the lowest <strong>Level mode</strong> at which it takes input, derived from <code>required_mode(minimum, operable)</code> and set by <code>stamp_requires(el, mode=LevelMode.EDIT)</code>, which always writes the attribute. On card content an unmarked element counts as <code>edit</code>; in a panel under <code>data-hw-mode-scope="session"</code> only stamped writers are gated (greyed). A widget for an <code>operable=False</code> port or field is stamped <code>edit</code>. See <a href="../../adr/0060-the-browser-projects-the-route/">ADR-0060</a></td>
-<td>Operable widget, readable/operable marker (removed)</td>
+<td>The classes <code>hw-requires</code> and <code>hw-requires-view\|operate\|edit</code> stamping the <strong>Mode requirement</strong> of an element, the lowest <strong>Level mode</strong> at which it takes input, derived from <code>required_mode(minimum, operable)</code> and set by <code>stamp_requires(el, mode=LevelMode.EDIT)</code>, which always writes the stamp. A class, not an attribute: a Quasar field moves every attribute but <code>class</code> and <code>style</code> off its root. On card content an unmarked element counts as <code>edit</code>; in a panel under <code>data-hw-mode-scope="session"</code> only stamped writers are gated (greyed). A widget for an <code>operable=False</code> port or field is stamped <code>edit</code>. See <a href="../../adr/0060-the-browser-projects-the-route/">ADR-0060</a></td>
+<td>Operable widget, readable/operable marker (removed), <code>data-hw-requires</code> (removed)</td>
 </tr>
 <tr>
 <td><strong>Session level mode</strong></td>

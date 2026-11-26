@@ -6278,7 +6278,7 @@ graph unsaved and records the undo step (see
   model. <code>widget_key</code> picks a widget other than the field's own: the annotation skin draws
   <code>AnnotationTextWidget</code> on <code>annotation.text</code>, so the Properties panel keeps the plain text widget.
   The skin keeps the look by wrapping the widget in an element whose CSS the widget inherits.</li>
-<li><strong>Operable or not:</strong> both calls stamp <code>data-hw-requires</code> on the widget (below), from the route's
+<li><strong>Operable or not:</strong> both calls stamp the widget (below), from the route's
   <code>required_mode</code>. A port or field declared <code>operable=False</code> is stamped <code>edit</code>, and the route
   needs level mode <code>edit</code> for its writes.</li>
 </ul>
@@ -6288,8 +6288,9 @@ it needs during one render is keyed by node id, the way <code>BaseSkin._render</
 route.</p>
 <h2 id="pointer-input-below-level-mode-edit">Pointer input below level mode <code>edit</code><a class="headerlink" href="#pointer-input-below-level-mode-edit" title="Permanent link">&para;</a></h2>
 <p>Below the mode an element requires, <code>AccessGate</code> takes its pointer input away (see
-<a href="../../../adr/0060-the-browser-projects-the-route/">ADR 0060</a>). One attribute, <code>data-hw-requires="view|operate|edit"</code>,
-says from which level mode an element takes input:</p>
+<a href="../../../adr/0060-the-browser-projects-the-route/">ADR 0060</a>). One stamp, the classes <code>hw-requires</code> and <code>hw-requires-view|operate|edit</code> written by
+<code>stamp_requires</code>, says from which level mode an element takes input. It is a class, not an
+attribute, because a Quasar field moves every attribute but <code>class</code> and <code>style</code> off its root:</p>
 <ul>
 <li><strong>A control</strong> a skin draws must be a widget drawn through <code>BaseSkin.render_widget</code> or
   <code>BaseSkin.render_setting_widget</code>, which stamp it from the route's <code>required_mode</code>: <code>operate</code> for
@@ -6396,7 +6397,7 @@ previous setup is restored from the node's right-click menu (ADR 0062).</p>
 <li><strong>Body.</strong> An <code>InsetView</code> builds one ordinary <code>UINode</code> per staged interior node, with its stage skin, at its raw stage position (<code>props.get_position(STAGE)</code>), so stage (0, 0) is the body's top-left. The containers carry <code>data-hw-inset-node</code>, never <code>data-node-id</code>. The body has a 240 × 160 floor and clips; an empty stage shows a placeholder. A node whose interior does not resolve gets a message instead of the view: "failed to build" for a stand-in, "has no interior" otherwise.</li>
 <li><strong>Writes.</strong> The cards write through <code>EditRoute.for_subgraph(definition)</code>: the host route's level mode, recorded on the host's history.</li>
 <li><strong>Lifetime.</strong> The host card redraws when an on-stage interior node repaints or the interior's stage membership changes (<code>GraphNode</code>), which rebuilds the view; a change to a node off stage leaves it as drawn. The skin hands <code>view.cleanup</code> to <code>BaseSkin.on_card_cleanup</code>, so the old cards are released with the card. A skin that builds anything outliving its draw call does the same.</li>
-<li><strong>Input.</strong> <code>canvas.vue</code> makes everything inside <code>[data-hw-inset]</code> inert except <code>[data-hw-requires]</code> subtrees the mode reaches, and hides its pins, so a press acts on the host card; box select skips the body. The Inset draws no edges.</li>
+<li><strong>Input.</strong> <code>canvas.vue</code> makes everything inside <code>[data-hw-inset]</code> inert except stamped (<code>.hw-requires</code>) subtrees the mode reaches, and hides its pins, so a press acts on the host card; box select skips the body. The Inset draws no edges.</li>
 </ul>
 <h2 id="where-the-default-skins-live">Where the default skins live<a class="headerlink" href="#where-the-default-skins-live" title="Permanent link">&para;</a></h2>
 <p>Stacked (the default skin), Split, Error, their <code>NodeSkin</code> base and the <code>NodeSkinSettings</code> geometry bag (namespace <code>ui.node.skin</code>) ship in <strong>haybale-graph-editor</strong>, the library that draws node cards: <code>haybale_graph_editor.skins.node_skin.NodeSkin</code>. A skin that subclasses <code>NodeSkin</code> depends on haybale-graph-editor. A skin built on <code>BaseSkin</code> (as <code>WidgetNodeSkin</code> and the builtin reroute and annotation skins are) depends on haywire-core only. See <a href="../../../adr/0057-the-default-skins-live-in-the-graph-editor/">ADR 0057</a>.</p>

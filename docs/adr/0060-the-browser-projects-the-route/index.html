@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The browser gates input from what the server declares, not from its own rules - one data-hw-requires stamp derived from the route's required_mode, gesture mode requirements taken from the handler table, one AccessGate owning the gate for canvases and panels">
+        <meta name="description" content="The browser gates input from what the server declares, not from its own rules - one level-mode stamp derived from the route's required_mode, gesture mode requirements taken from the handler table, one AccessGate owning the gate for canvases and panels">
       
       
       
@@ -5309,6 +5309,11 @@
 <ul>
 <li>Where stamps nest, the strictest one around an element decides: an inner stamp can only tighten, never loosen, the one it sits in. The card CSS, <code>isGated</code>, the canvas's press check and the Inset rule all read it so; the panel rule already did. An unknown value counts as <code>edit</code> on a card and gates nothing in a panel. This closes the known gap above (follow-up #49).</li>
 <li>On a card the nearer of a stamp and a <code>.drag-handle</code> decides whether a press stays with the element or drags the card, so a widget can hand a part of itself back to the card (<code>NoteTextWidget</code>'s shown text, follow-up #50).</li>
+</ul>
+<p><strong>Amendment (the stamp is a class, issue #253).</strong></p>
+<ul>
+<li>The stamp is two classes, <code>hw-requires</code> and <code>hw-requires-view|operate|edit</code>, no longer the attribute <code>data-hw-requires</code>. A Quasar field (<code>ui.select</code>, <code>ui.input</code>, <code>ui.number</code>, ...) keeps only <code>class</code> and <code>style</code> on its root and moves every other attribute to its inner native element, so a stamp written as an attribute missed a press on the field's label, icons, chips and padding: an <code>operate</code> card field was half dead in <code>operate</code>, an <code>edit</code> panel field half live in <code>view</code>. <code>stamp_requires</code> keeps its signature and writes the classes, replacing any earlier stamp; <code>stamped_mode(el)</code> reads one back. The gate CSS, <code>isGated</code>, the canvas's press check and the Inset rule key on the classes. An element with <code>hw-requires</code> but no mode class is an unknown stamp, read as before.</li>
+<li>The hover tip (<code>data-hw-tip*</code>) keeps its attributes, since they carry text. On a field they land on the native element, so the tip script treats a pointer anywhere on a <code>.q-field</code> as over the first tipped element inside it, and places the tip under the whole field.</li>
 </ul>
 
 
