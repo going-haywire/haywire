@@ -92,7 +92,11 @@ T3:
 - Branch naming: semantic (`feat/`, `fix/`, …).
 
 A project's `t3.json` scripts the user imports in T3 (*Project settings → <project\> → Actions →
-Import scripts*), never with `t3_project_update`. When a worktree's setup never ran, the hook
+Import scripts*), never with `t3_project_update`: it reports success, but T3 runs the copies in
+`~/.t3/userdata/settings.json` (`projectSettingsOverrides.<projectId>.defaultProjectScripts`)
+and ignores that write once project settings are folded (pingdotgg/t3code#14991). On T3 before
+0.1.11, which dropped `async` on import, *Worktree setup* needs `"async": false` there by hand.
+When a worktree's setup never ran, the hook
 says so: the scripts are probably not imported.
 
 - *Storage cleanup* (off by default) keeps branches; `finish --sweep` deletes them.
