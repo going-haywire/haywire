@@ -16,7 +16,7 @@
     },
     {
       "name": "Haywire studio",
-      "command": "if command -v haywire-studio >/dev/null; then haywire-studio; else uv run --frozen haywire studio start --browser; fi",
+      "command": "python3 scripts/studio.py start --browser",
       "icon": "play",
       "runOnWorktreeCreate": false
     }

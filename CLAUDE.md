@@ -39,6 +39,12 @@ UI/UX visual rules, tokens, and anti-patterns are canonical in `docs/reference/d
 
 Before the first branch, commit, push or `gh pr` command of any task, however small, read the workflow and follow it: [docs/collaboration/workflow.md](docs/collaboration/workflow.md), also served by the Farmhand bridge as `farmhand://dev/collaboration/workflow.md`; releases: `/release`. The non-obvious parts: [.insights/project_pr_workflow.md](.insights/project_pr_workflow.md).
 
+## Starting the studio
+
+Start this folder's studio with `python3 dev/scripts/studio.py start` (`stop`, `status`), never
+`uv run haywire studio start`, which runs without the libraries of the other org repositories:
+[docs/collaboration/workflow.md](docs/collaboration/workflow.md), *Parallel sessions*.
+
 ## Traps and gotchas
 
 This codebase has many silent failure modes (NiceGUI slots and events, test isolation, DI globals, registries, edge and pin rendering, settings). Each known one has a file in `.insights/`, indexed in [.insights/INDEX.md](.insights/INDEX.md). Check the index first whenever a symptom is silent or surprising: assume a known trap before a new bug.

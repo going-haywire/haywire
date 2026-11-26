@@ -167,11 +167,17 @@ def read_developer_doc(root: Path, rel_path: str) -> str:
 
 def product_index(developer_root: Path | None = None) -> str:
     """Return the bridge's server instructions: what this server is and which pages to read for what."""
+    # A development repository may run a fuller studio than its own environment holds; its
+    # workflow names the command.
+    start = (
+        f"as {_DEV_PREFIX}collaboration/workflow.md says (*Live check*)"
+        if developer_root is not None
+        else "with `uv run haywire studio start` in the project"
+    )
     lines = [
         "This is Haywire's Farmhand bridge for this project. It is always connected; the running "
-        "studio's tools appear here when the studio is up (start it with `uv run haywire studio start` "
-        f"in the project) and disappear when it stops. `{STATUS_TOOL}` says whether a studio is "
-        "connected and, if not, why.",
+        f"studio's tools appear here when the studio is up (start it {start}) and disappear when it "
+        f"stops. `{STATUS_TOOL}` says whether a studio is connected and, if not, why.",
         "",
         "Read the page that matches your task before acting (MCP resources of this server):",
     ]

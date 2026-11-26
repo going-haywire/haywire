@@ -101,7 +101,9 @@ def test_org_files_wire_core_s_hooks_from_the_clone_beside_it(tmp_path: Path) ->
     assert 'developer-docs = "../haywire-repo/docs"' in (library / "pyproject.toml").read_text()
     assert not (library / ".gitignore").exists()
     assert "worktree_setup.py" in (library / "t3.json").read_text()
+    assert "../haywire-repo/dev/scripts/studio.py start" in (library / "t3.json").read_text()
     assert "## Working in this repository" in (library / "CLAUDE.md").read_text()
+    assert "../haywire-repo/dev/scripts/studio.py start" in (library / "CLAUDE.md").read_text()
 
 
 def test_the_ci_callers_are_pinned_and_name_the_library_s_branch(tmp_path: Path) -> None:

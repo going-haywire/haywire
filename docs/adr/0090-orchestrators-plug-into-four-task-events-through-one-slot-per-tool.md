@@ -52,3 +52,13 @@ level: architectural
 ## Amendment (ADR 0094)
 
 The slots moved from `plugins/haywire-dev/orchestrators/` to core's `dev/orchestrators/<tool>/`, and the agent's how-to from the workflow skill's folder to `docs/collaboration/orchestrators/<tool>-agent.md` (ADR 0094). The contract is unchanged.
+
+## Amendment (2026-11-26, #261)
+
+Starting a folder's studio is not a task event (nothing fires it, and it runs in the main
+folder too), but it follows the same rule: one neutral part, `dev/scripts/studio.py
+start|stop|status`, which a tool's files only call. It runs the umbrella's `haywire-studio`
+(ADR 0081) when that is on the `PATH`, else the checkout's own environment, and says which.
+`t3.json` calls it in core and, through `../haywire-repo`, in every library; the agent-facing
+docs name it. A slot that wires the umbrella's `haywire-studio` directly (herdr's key binding)
+still starts the same full studio.

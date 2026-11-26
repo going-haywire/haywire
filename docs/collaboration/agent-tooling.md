@@ -86,31 +86,32 @@ haywire-repo/
 │   ├── scripts/
 │   │   ├── worktree_setup.py # event (16)
 │   │   ├── finish.py        # event (17)
-│   │   └── tasks.py         # agent (18)
+│   │   ├── tasks.py         # agent (18)
+│   │   └── studio.py        # agent (19)
 │   └── orchestrators/
-│       ├── t3/session.sh    # hook (19)
-│       ├── t3/doctor.py     # you (20)
-│       ├── herdr/session.sh # hook (21)
-│       └── herdr/agents.py  # agent (22)
+│       ├── t3/session.sh    # hook (20)
+│       ├── t3/doctor.py     # you (21)
+│       ├── herdr/session.sh # hook (22)
+│       └── herdr/agents.py  # agent (23)
 ├── docs/
-│   ├── agents/start.md      # agent (23)
+│   ├── agents/start.md      # agent (24)
 │   └── collaboration/
-│       ├── workflow.md      # bridge (24)
-│       ├── contributing.md  # bridge (25)
-│       ├── new-org-library.md # bridge (26)
-│       ├── second-machine.md # bridge (27)
-│       ├── agent-tooling.md # bridge (28)
+│       ├── workflow.md      # bridge (25)
+│       ├── contributing.md  # bridge (26)
+│       ├── new-org-library.md # bridge (27)
+│       ├── second-machine.md # bridge (28)
+│       ├── agent-tooling.md # bridge (29)
 │       └── orchestrators/
-│           ├── t3-agent.md  # bridge (29)
-│           └── herdr-agent.md # bridge (30)
+│           ├── t3-agent.md  # bridge (30)
+│           └── herdr-agent.md # bridge (31)
 ├── packages/haywire-studio/src/haywire_studio/
-│   ├── farmhand/bridge.py   # CLI (31)
-│   ├── cli/studiocmd.py     # CLI (32)
-│   └── agents.py            # CLI (33)
-├── pyproject.toml           # bridge (34)
-├── t3.json                  # T3 (35)
-├── CLAUDE.md                # agent (36)
-└── AGENTS.md                # agent (37)
+│   ├── farmhand/bridge.py   # CLI (32)
+│   ├── cli/studiocmd.py     # CLI (33)
+│   └── agents.py            # CLI (34)
+├── pyproject.toml           # bridge (35)
+├── t3.json                  # T3 (36)
+├── CLAUDE.md                # agent (37)
+└── AGENTS.md                # agent (38)
 ```
 
 1.  **② Harness config** · Starts the Farmhand bridge from core's own environment.
@@ -131,25 +132,26 @@ haywire-repo/
 16. **② Script** · The neutral part of *created*: starts the branch, links core beside a library worktree, `uv sync`, a studio port, the done marker. Run by T3 on worktree creation, by herdr's lead, or by hand.
 17. **② Script** · The neutral part of *merged*: frees the worktree and deletes the branch, only once its PR merged. Run by T3 when a thread settles, or by the task itself.
 18. **② Script** · The task view: worktrees, their PRs and, where a slot can tell, their sessions.
-19. **③ Hook** · T3's slot: where the agent runs, its how-to, and what the T3 setup still lacks; waits for the worktree setup.
-20. **③ Script** · T3's slot: checks your T3 settings against `t3.json` and adds what is missing.
-21. **③ Hook** · herdr's slot: the agent's address and how to reach the others.
-22. **③ Script** · herdr's slot: lists herdr's live sessions for `tasks.py`.
-23. **② Instructions** · The one starting point: an agent sets a person up, user or developer, from a machine with only a harness.
-24. **② Instructions** · The development workflow: branches, PRs, CI, live check, merge, finish, releases, lead and tasks. The gate wants it read.
-25. **② Instructions** · The rules for everyone who contributes, *In a library* included; `.github`'s `CONTRIBUTING.md` points here.
-26. **① ② ③ Instructions** · Setting up a library repository, step by step.
-27. **② Instructions** · Setting up another machine.
-28. **Reference** · This page.
-29. **③ Instructions** · How lead and tasks run in T3 Code.
-30. **③ Instructions** · How lead and tasks run in herdr.
-31. **② Connection** · `haywire farmhand bridge`: the stdio MCP server between a session and its project's studio; serves the instructions; sends the Farmhand principal's token itself.
-32. **② CLI** · `haywire studio start|stop|status`: the folder's studio in the background, on a port of its own.
-33. **② CLI** · The agent files: a project's harness configs (`haywire init`), an org library's files (`haywire init --org-files`); the one list of supported harnesses.
-34. **② Declaration** · `[tool.haywire.agents] developer-docs = "docs"`: the developer pages the bridge serves here.
-35. **③ Orchestrator file** · T3's scripts: worktree setup, finish on settle, the studio.
-36. **② Declaration** · Core's own always-in-context rules for agents (architecture, editing, traps); the process lives in the docs.
-37. **② Declaration** · For every other harness: read `CLAUDE.md`.
+19. **② Script** · Starts, stops or reports the folder's studio by one rule: the umbrella's `haywire-studio` (the full studio, every library) when it is on the `PATH`, else the checkout's own environment; says which. Run by agents, by T3's *Haywire studio*, by hand, in core and through core in a library.
+20. **③ Hook** · T3's slot: where the agent runs, its how-to, and what the T3 setup still lacks; waits for the worktree setup.
+21. **③ Script** · T3's slot: checks your T3 settings against `t3.json` and adds what is missing.
+22. **③ Hook** · herdr's slot: the agent's address and how to reach the others.
+23. **③ Script** · herdr's slot: lists herdr's live sessions for `tasks.py`.
+24. **② Instructions** · The one starting point: an agent sets a person up, user or developer, from a machine with only a harness.
+25. **② Instructions** · The development workflow: branches, PRs, CI, live check, merge, finish, releases, lead and tasks. The gate wants it read.
+26. **② Instructions** · The rules for everyone who contributes, *In a library* included; `.github`'s `CONTRIBUTING.md` points here.
+27. **① ② ③ Instructions** · Setting up a library repository, step by step.
+28. **② Instructions** · Setting up another machine.
+29. **Reference** · This page.
+30. **③ Instructions** · How lead and tasks run in T3 Code.
+31. **③ Instructions** · How lead and tasks run in herdr.
+32. **② Connection** · `haywire farmhand bridge`: the stdio MCP server between a session and its project's studio; serves the instructions; sends the Farmhand principal's token itself.
+33. **② CLI** · `haywire studio start|stop|status`: the folder's studio in the background, on a port of its own.
+34. **② CLI** · The agent files: a project's harness configs (`haywire init`), an org library's files (`haywire init --org-files`); the one list of supported harnesses.
+35. **② Declaration** · `[tool.haywire.agents] developer-docs = "docs"`: the developer pages the bridge serves here.
+36. **③ Orchestrator file** · T3's scripts: worktree setup, finish on settle, the studio.
+37. **② Declaration** · Core's own always-in-context rules for agents (architecture, editing, traps); the process lives in the docs.
+38. **② Declaration** · For every other harness: read `CLAUDE.md`.
 
 ## An org library: `going-haywire/haybale-<name>`
 
@@ -221,5 +223,5 @@ Only the workflow templates take part in a library's files.
 | Journey | Instructions | Hooks | Studio connection | Start a studio |
 |---|---|---|---|---|
 | A user, any harness | the bridge, from the project | — | the bridge | `uv run haywire studio start` |
-| A developer in core | the bridge and `CLAUDE.md` | `.claude/settings.json` | the bridge | `uv run haywire studio start` |
-| A developer in an org library or a worktree | the bridge, from core beside it | from core beside it | the bridge | `uv run haywire studio start` |
+| A developer in core, main folder or worktree | the bridge and `CLAUDE.md` | `.claude/settings.json` | the bridge | `python3 dev/scripts/studio.py start` |
+| A developer in an org library, main folder or worktree | the bridge, from core beside it | from core beside it | the bridge | `python3 ../haywire-repo/dev/scripts/studio.py start` |

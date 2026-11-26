@@ -103,7 +103,9 @@ Farmhand bridge serves it as `farmhand://dev/collaboration/workflow.md`
 (the file: `{CORE}/docs/collaboration/workflow.md`), and the hooks refuse a commit until
 this session has. This repository's committed files (`.mcp.json`, `.claude/settings.json`,
 `t3.json`) bring the workflow, its hooks and the bridge from core beside it, with nothing to
-install; `uv run haywire init --org-files` refreshes them.
+install; `uv run haywire init --org-files` refreshes them. Start this folder's studio with
+`python3 {CORE}/dev/scripts/studio.py start` (`stop`, `status`), never `uv run haywire studio
+start`, which runs without the libraries of the other org repositories.
 {_CLAUDE_END}
 """
 
@@ -170,7 +172,7 @@ def _t3_json(project: Path) -> list[Path]:
             {"name": "Finish merged task", "command": finish, "icon": "configure", "runOnSettle": True},
             {
                 "name": "Haywire studio",
-                "command": "uv run --frozen haywire studio start --browser",
+                "command": f"python3 {CORE}/dev/scripts/studio.py start --browser",
                 "icon": "play",
                 "runOnWorktreeCreate": False,
             },
