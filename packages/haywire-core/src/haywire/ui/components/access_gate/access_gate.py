@@ -10,11 +10,11 @@ from haywire.core.access import LevelMode
 class AccessGate(ui.element, component="access_gate.vue"):
     """Stop content the level mode in force does not satisfy from taking pointer input or keyboard focus.
 
-    The gate reads ``data-hw-requires`` (see ``stamp_requires``) in two scopes:
+    The gate reads the level-mode stamps ``stamp_requires`` writes, in two scopes:
 
     - Canvas cards: an element inside a card (``.ui-node-slot``) takes input
       while the canvas root's ``data-hw-level-mode`` satisfies every
-      ``data-hw-requires`` around it, so the strictest one decides; an
+      stamp around it, so the strictest one decides; an
       unstamped element counts as ``edit``.
     - Panels: inside ``[data-hw-mode-scope="session"]`` only stamped elements
       are gated, against the session mode written here to ``<html

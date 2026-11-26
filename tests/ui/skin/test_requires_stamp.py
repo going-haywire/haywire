@@ -1,4 +1,4 @@
-"""A widget with a route carries ``data-hw-requires``, derived from its model; a routeless one none."""
+"""A widget with a route carries a level-mode stamp, derived from its model; a routeless one none."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.edit_route import EditRoute
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.scheduler import SyncScheduler
-from haywire.ui.access_stamp import stamp_requires
+from haywire.ui.access_stamp import REQUIRES_CLASS, stamp_requires, stamped_mode
 from haywire.ui.panel.render_utils import render_settings
 from haywire.ui.skin.factory import SkinFactory
 from haywire.ui.skin.pin_render import add_pin_tooltip
@@ -60,13 +60,13 @@ def _requires(container: ui.element) -> dict[str, list[ui.element]]:
     """Each stamped mode, with its elements; pins and the docs icon (always ``view``) left out."""
     stamped: dict[str, list[ui.element]] = {}
     for element in container.descendants():
-        mode = element._props.get("data-hw-requires")
+        mode = stamped_mode(element)
         if (
             mode is not None
             and "data-pin-id" not in element._props
             and "data-hw-node-docs" not in element._props
         ):
-            stamped.setdefault(mode, []).append(element)
+            stamped.setdefault(mode.value, []).append(element)
     return stamped
 
 
@@ -115,8 +115,8 @@ def test_a_setting_widget_requires_its_rule(library_system, graph, route, nicegu
         skin._nodeids_routes.pop(wrapper.node_id, None)
     assert font is not None
     assert text is not None
-    assert font._props.get("data-hw-requires") == "operate"
-    assert text._props.get("data-hw-requires") == "edit"
+    assert stamped_mode(font) is LevelMode.OPERATE
+    assert stamped_mode(text) is LevelMode.EDIT
 
 
 def test_routeless_widget_is_not_stamped(library_system, graph, nicegui_slot_context) -> None:
@@ -139,9 +139,9 @@ def _field_cells(anchor: ui.element) -> list[ui.element]:
 def test_a_panel_settings_widget_requires_edit(graph, route) -> None:
     bag = cast(Any, make_node(graph, _SETTINGS_NODE).node).example
     anchor = _render_panel(bag, route)
-    stamped = [e for e in anchor.descendants() if "data-hw-requires" in e._props]
+    stamped = [e for e in anchor.descendants() if stamped_mode(e) is not None]
     assert stamped
-    assert {e._props["data-hw-requires"] for e in stamped} == {"edit"}
+    assert {stamped_mode(e) for e in stamped} == {LevelMode.EDIT}
     # The row menu's writers carry the stamp too (ADR 0060); everything else stamped is a field cell.
     row_menu_items = {
         item for e in anchor.descendants() if "data-row-menu" in e._props for item in e.descendants()
@@ -154,7 +154,7 @@ def test_a_panel_without_route_stamps_nothing(graph) -> None:
     bag = cast(Any, make_node(graph, _SETTINGS_NODE).node).example
     anchor = _render_panel(bag, None)
     assert _field_cells(anchor)
-    assert not any("data-hw-requires" in e._props for e in anchor.descendants())
+    assert not any(stamped_mode(e) is not None for e in anchor.descendants())
 
 
 def test_a_port_without_a_widget_renders_nothing(library_system, nicegui_slot_context) -> None:
@@ -168,26 +168,37 @@ def test_a_port_without_a_widget_renders_nothing(library_system, nicegui_slot_co
 def test_a_readable_pin_requires_view(nicegui_slot_context) -> None:
     pin_el = ui.element("i")
     add_pin_tooltip(pin_el, SimpleNamespace(label="Gain", description=""))  # type: ignore[arg-type]
-    assert pin_el._props.get("data-hw-requires") == "view"
+    assert stamped_mode(pin_el) is LevelMode.VIEW
 
 
 def test_a_stamp_requires_edit_by_default_and_writes_it(nicegui_slot_context) -> None:
     element = ui.element("div")
     stamp_requires(element)
-    assert element._props.get("data-hw-requires") == "edit"
+    assert stamped_mode(element) is LevelMode.EDIT
+    assert REQUIRES_CLASS in element.classes
+
+
+def test_a_second_stamp_replaces_the_first(nicegui_slot_context) -> None:
+    element = ui.element("div")
+    stamp_requires(element, LevelMode.VIEW)
+    stamp_requires(element, LevelMode.OPERATE)
+    assert [c for c in element.classes if c.startswith(REQUIRES_CLASS)] == [
+        REQUIRES_CLASS,
+        "hw-requires-operate",
+    ]
 
 
 def test_a_separate_tooltip_trigger_keeps_its_own_rule(nicegui_slot_context) -> None:
     host = ui.element("div")
     trigger = ui.element("div")
     add_pin_tooltip(host, SimpleNamespace(label="Gain", description=""), trigger_el=trigger)  # type: ignore[arg-type]
-    assert "data-hw-requires" not in host._props
-    assert "data-hw-requires" not in trigger._props
+    assert stamped_mode(host) is None
+    assert stamped_mode(trigger) is None
 
 
 def test_no_old_marker_remains() -> None:
     result = subprocess.run(
-        ["git", "grep", "-nE", "data-hw-(readable|operable)", "--", "packages", "barn", "tests"],
+        ["git", "grep", "-nE", "data-hw-(readable|operable|requires)", "--", "packages", "barn", "tests"],
         capture_output=True,
         cwd=_REPO,
     )

@@ -57,16 +57,16 @@ def _title(page: Page, card_id: str) -> Locator:
 
 def _badge_card(page: Page) -> str:
     """The id of the card drawing the comment and the diagnostics badge, once both are drawn."""
-    page.wait_for_selector("[data-hw-requires=view].q-btn")
+    page.wait_for_selector(".hw-requires-view.q-btn")
     return attr(page, '[data-testid="level-badge-id"]', "data-node")
 
 
 def _diagnostics_badge(page: Page, card_id: str) -> Locator:
-    return page.locator(f'[data-node-id="{card_id}"] .q-btn[data-hw-requires=view]:has(.q-badge)')
+    return page.locator(f'[data-node-id="{card_id}"] .q-btn.hw-requires-view:has(.q-badge)')
 
 
 def _comment_badge(page: Page, card_id: str) -> Locator:
-    return page.locator(f'[data-node-id="{card_id}"] .q-btn[data-hw-requires=view]:not(:has(.q-badge))')
+    return page.locator(f'[data-node-id="{card_id}"] .q-btn.hw-requires-view:not(:has(.q-badge))')
 
 
 def _log(page: Page) -> str:
@@ -87,9 +87,7 @@ def test_view_card_content_takes_no_pointer_input(page: Page, harness):
 
 def test_operate_widgets_take_pointer_input(page: Page, harness):
     card_id, _ = _open(page, harness, "operate")
-    assert _hit(
-        page, _widget(page, card_id), "number widget", "el.closest('[data-hw-requires=operate]') !== null"
-    )
+    assert _hit(page, _widget(page, card_id), "number widget", "el.closest('.hw-requires-operate') !== null")
 
 
 def test_operate_card_text_takes_no_pointer_input(page: Page, harness):
@@ -188,7 +186,7 @@ def test_operate_gate_leaves_widget_internals_alone(page: Page, harness):
         page,
         _widget(page, card_id),
         "number widget",
-        "el.closest('.number-drag__center') === null && el.closest('[data-hw-requires=operate]') !== null",
+        "el.closest('.number-drag__center') === null && el.closest('.hw-requires-operate') !== null",
     )
     assert _hit(page, _title(page, card_id), "card title", "!el.matches('.ui-node-slot *')")
 
@@ -196,7 +194,7 @@ def test_operate_gate_leaves_widget_internals_alone(page: Page, harness):
 def test_view_diagnostics_badge_opens_its_menu(page: Page, harness):
     _open(page, harness, "view")
     badge = _diagnostics_badge(page, _badge_card(page))
-    assert _hit(page, badge, "diagnostics badge", "el.closest('[data-hw-requires=view]') !== null")
+    assert _hit(page, badge, "diagnostics badge", "el.closest('.hw-requires-view') !== null")
 
     x, y = _centre(badge, "diagnostics badge")
     page.mouse.click(x, y)
@@ -207,7 +205,7 @@ def test_view_diagnostics_badge_opens_its_menu(page: Page, harness):
 def test_view_comment_badge_shows_its_comment(page: Page, harness):
     _open(page, harness, "view")
     comment = _comment_badge(page, _badge_card(page))
-    assert _hit(page, comment, "comment badge", "el.closest('[data-hw-requires=view]') !== null")
+    assert _hit(page, comment, "comment badge", "el.closest('.hw-requires-view') !== null")
 
     x, y = _centre(comment, "comment badge")
     page.mouse.move(x, y)
@@ -217,8 +215,8 @@ def test_view_comment_badge_shows_its_comment(page: Page, harness):
 
 def test_view_pin_shows_its_tooltip_and_starts_no_edge(page: Page, harness):
     _open(page, harness, "view")
-    pin = page.locator(f'[data-node-id="{_badge_card(page)}"] .connection-pin[data-hw-requires=view]').first
-    assert _hit(page, pin, "pin", "el.closest('[data-hw-requires=view]') !== null")
+    pin = page.locator(f'[data-node-id="{_badge_card(page)}"] .connection-pin.hw-requires-view').first
+    assert _hit(page, pin, "pin", "el.closest('.hw-requires-view') !== null")
 
     install_hover_tips(page)
     x, y = _centre(pin, "pin")
@@ -237,7 +235,7 @@ def test_view_pin_shows_its_tooltip_and_starts_no_edge(page: Page, harness):
 def test_a_pin_shows_the_crosshair_only_in_edit(page: Page, harness, mode: str, cursor: str):
     """Below edit a pin starts no edge, so it does not promise one."""
     _open(page, harness, mode)
-    pin = page.locator(f'[data-node-id="{_badge_card(page)}"] .connection-pin[data-hw-requires=view]').first
+    pin = page.locator(f'[data-node-id="{_badge_card(page)}"] .connection-pin.hw-requires-view').first
 
     assert pin.evaluate("el => getComputedStyle(el).cursor") == cursor
 

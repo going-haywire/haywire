@@ -12,6 +12,7 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.edit_route import EditRoute
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.scheduler import SyncScheduler
+from haywire.ui.access_stamp import stamped_mode
 from haywire.ui.skin.factory import SkinFactory
 
 pytestmark = [pytest.mark.integration]
@@ -45,7 +46,7 @@ def test_the_header_is_the_fold_widget(card) -> None:
     headers = _headers(card)
     assert {h._props["data-hw-fold-id"] for h in headers} == {"solver", "inputs", "advanced"}
     for header in headers:
-        assert header._props.get("data-hw-requires") == "operate"
+        assert stamped_mode(header) is LevelMode.OPERATE
         assert any(isinstance(e, ui.icon) for e in header.descendants())
     assert FoldWidget.__name__ == "FoldWidget"
 

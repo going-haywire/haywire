@@ -212,7 +212,7 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         A gesture starts only when ``mode`` reaches the level mode its event
         type needs (see ``set_gesture_requires``). Click, Shift-click and box
         select work in every mode. Card content takes no pointer input below
-        ``EDIT`` except elements whose ``data-hw-requires`` ``mode`` satisfies.
+        ``EDIT`` except elements whose stamp (``stamp_requires``) ``mode`` satisfies.
         A canvas that was never given a mode shows ``VIEW``.
         """
         self._props["levelMode"] = mode.value

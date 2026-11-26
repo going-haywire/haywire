@@ -7,6 +7,8 @@ from playwright.sync_api import Page, expect
 
 from haywire.ui import hover_tip
 from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
+from tests.ui.harness.test_access_gate import _card_select
+from tests.ui.harness.test_access_gate import _open as open_access_gate
 from tests.ui.harness.test_edge_style_menu import _PATH, _STYLED
 from tests.ui.harness.test_popup_outside_press import _empty_canvas_point
 
@@ -115,3 +117,16 @@ def test_no_pin_listens_for_hovers_on_the_server(page: Page, harness) -> None:
 
     assert hover_listeners["pins"] > 0
     assert hover_listeners["listening"] == 0
+
+
+def test_a_fields_tip_shows_anywhere_on_the_field(page: Page, harness) -> None:
+    # Quasar moves the tip's attributes from a field's root to its native element;
+    # the tip shows over the field's other parts too, here its dropdown arrow.
+    open_access_gate(page, harness, "edit")
+    install_hover_tips(page)
+    field = page.locator(_card_select(page, chips=False))
+    assert field.locator(".q-field__native[data-hw-tip]").get_attribute("data-hw-tip") == "Plain"
+
+    field.locator(".q-field__append").hover()
+
+    expect(page.locator(f"{_TIP} .text-weight-bold")).to_have_text("Plain")

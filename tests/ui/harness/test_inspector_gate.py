@@ -23,7 +23,7 @@ pytestmark = pytest.mark.ui
 
 def _open(page: Page, harness, mode: str) -> None:
     goto_ready(page, f"{harness}{_PATH}?mode={mode}")
-    page.wait_for_selector('[data-testid="panel-NodePortsPanel"] [data-hw-requires="edit"]')
+    page.wait_for_selector('[data-testid="panel-NodePortsPanel"] .hw-requires-edit')
     page.wait_for_function("(mode) => document.documentElement.dataset.hwSessionMode === mode", arg=mode)
 
 
@@ -56,8 +56,8 @@ def _takes_focus(page: Page, selector: str) -> bool:
     )
 
 
-_SETTINGS_WIDGET = f'{_panel("NodePropertiesPanel")} [data-field] [data-hw-requires="edit"]'
-_PORT_WRITERS = f'{_panel("NodePortsPanel")} [data-hw-requires="edit"]'
+_SETTINGS_WIDGET = f"{_panel('NodePropertiesPanel')} [data-field] .hw-requires-edit"
+_PORT_WRITERS = f"{_panel('NodePortsPanel')} .hw-requires-edit"
 
 
 @pytest.mark.parametrize("mode", ["view", "operate"])
@@ -107,7 +107,7 @@ def _open_row_menu(page: Page) -> None:
     page.wait_for_selector('[data-row-menu] .q-item:has-text("Develop")')
 
 
-_ROW_MENU_WRITERS = '[data-row-menu] [data-hw-requires="edit"]'
+_ROW_MENU_WRITERS = "[data-row-menu] .hw-requires-edit"
 
 
 def _gated(page: Page, selector: str) -> list[bool]:

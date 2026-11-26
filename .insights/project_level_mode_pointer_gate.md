@@ -1,11 +1,14 @@
 # The level-mode gate (ADR 0060): four traps
 
 `AccessGate` (`haywire/ui/components/access_gate/`, shell-mounted) owns the gate CSS for
-canvases and panels; `canvas.vue` owns none. Every element says what it needs with
-`data-hw-requires="view|operate|edit"` (`stamp_requires`, derived from `required_mode`).
+canvases and panels; `canvas.vue` owns none. Every element says what it needs with the
+classes `hw-requires hw-requires-view|operate|edit` (`stamp_requires`, derived from
+`required_mode`; read back with `stamped_mode`). A class, never an attribute: a Quasar field
+moves every attribute but `class` and `style` off its root
+([feedback_quasar_field_moves_attributes.md](feedback_quasar_field_moves_attributes.md)).
 
     canvas: [data-hw-level-mode] .ui-node-slot * : negative (unmarked = edit), pointer-events none !important
-    panel : [data-hw-mode-scope="session"] [data-hw-requires=...] : positive, opacity 0.5 + none
+    panel : [data-hw-mode-scope="session"] .hw-requires-<mode> : positive, opacity 0.5 + none
     :where(<exempt roots of the mode>) { pointer-events: auto }
 
 1. **Unmarked card content is `edit`.** A hand-made control on a card is dead below `edit`

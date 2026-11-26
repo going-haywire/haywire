@@ -1,6 +1,6 @@
 ---
 name: the-browser-projects-the-route
-description: The browser gates input from what the server declares, not from its own rules - one data-hw-requires stamp derived from the route's required_mode, gesture mode requirements taken from the handler table, one AccessGate owning the gate for canvases and panels
+description: The browser gates input from what the server declares, not from its own rules - one level-mode stamp derived from the route's required_mode, gesture mode requirements taken from the handler table, one AccessGate owning the gate for canvases and panels
 status: accepted
 see-also: ADR-0055, ADR-0051, ADR-0027
 supersedes: ADR-0055 (section "The browser layer")
@@ -56,3 +56,8 @@ level: framework
 
 - Where stamps nest, the strictest one around an element decides: an inner stamp can only tighten, never loosen, the one it sits in. The card CSS, `isGated`, the canvas's press check and the Inset rule all read it so; the panel rule already did. An unknown value counts as `edit` on a card and gates nothing in a panel. This closes the known gap above (follow-up #49).
 - On a card the nearer of a stamp and a `.drag-handle` decides whether a press stays with the element or drags the card, so a widget can hand a part of itself back to the card (`NoteTextWidget`'s shown text, follow-up #50).
+
+**Amendment (the stamp is a class, issue #253).**
+
+- The stamp is two classes, `hw-requires` and `hw-requires-view|operate|edit`, no longer the attribute `data-hw-requires`. A Quasar field (`ui.select`, `ui.input`, `ui.number`, ...) keeps only `class` and `style` on its root and moves every other attribute to its inner native element, so a stamp written as an attribute missed a press on the field's label, icons, chips and padding: an `operate` card field was half dead in `operate`, an `edit` panel field half live in `view`. `stamp_requires` keeps its signature and writes the classes, replacing any earlier stamp; `stamped_mode(el)` reads one back. The gate CSS, `isGated`, the canvas's press check and the Inset rule key on the classes. An element with `hw-requires` but no mode class is an unknown stamp, read as before.
+- The hover tip (`data-hw-tip*`) keeps its attributes, since they carry text. On a field they land on the native element, so the tip script treats a pointer anywhere on a `.q-field` as over the first tipped element inside it, and places the tip under the whole field.

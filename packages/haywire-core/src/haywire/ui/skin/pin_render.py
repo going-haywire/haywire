@@ -123,7 +123,7 @@ def add_pin_tooltip(pin_el: ui.element, pin: DataPort, trigger_el: ui.element | 
     writes the tip's second line on its root keeps it: ``LabelWidget`` shows its
     whole text there, under the port's label and type.
 
-    Without ``trigger_el`` the pin is stamped ``data-hw-requires="view"``, so its
+    Without ``trigger_el`` the pin is stamped ``view`` (``stamp_requires``), so its
     tooltip shows in every level mode. A separate trigger is left as it is: whether
     it takes pointer input is its own element's rule (a widget carries its own stamp).
 

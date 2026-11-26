@@ -178,8 +178,8 @@ class WidgetFactory(IWidgetFactory):
 
         Returns:
             IWidget instance or None if widget creation failed, and the widget's element.
-            The element is stamped ``data-hw-requires`` with the model's ``requires``
-            (see ``stamp_requires``) when that is not ``None``.
+            The element is stamped with the model's ``requires`` (see
+            ``stamp_requires``) when that is not ``None``.
         """
         widget_instance: IWidget | None = None
         widget_key = port.widget_key if isinstance(port, DataPort) else registry_key
