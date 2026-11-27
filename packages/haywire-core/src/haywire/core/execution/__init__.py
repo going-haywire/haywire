@@ -18,10 +18,10 @@ Usage:
     # Create interpreter
     interpreter = Interpreter()
 
-    # Load graph
+    # Load graph (assembles it; runs no node code)
     interpreter.load_graph(my_graph)
 
-    # Start execution (dispatches BEGIN_PLAY)
+    # Start execution (starts the groups' runners, dispatches BEGIN_PLAY)
     interpreter.start_execution()
 
     # ... execution runs until stopped ...
@@ -56,6 +56,7 @@ from haywire.core.execution.event_source import (
     Trigger,
 )
 from haywire.core.execution.callback_manager import CallbackManager
+from haywire.core.execution.delivery import BacklogFull, Delivery
 
 __all__ = [
     # Main interface
@@ -67,6 +68,8 @@ __all__ = [
     "FlowQueue",
     "ExecutionGroup",
     "QueueMode",
+    "Delivery",
+    "BacklogFull",
     "CallbackManager",
     # Flow meter
     "FlowMeterSampler",

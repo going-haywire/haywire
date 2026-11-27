@@ -124,6 +124,10 @@ class GraphEntry(GraphContainer):
     def compile(self) -> CompileResult:
         """Build the Interpreter and assemble the graph WITHOUT starting it.
 
+        Assembly runs no node code (``Interpreter.load_graph``), so a compile
+        on its own leaves nothing running. An interpreter from an earlier
+        compile that was never started is shut down and replaced.
+
         Returns a failed result for an entry whose :attr:`kind` is not
         executable, naming the reason: a macro document holds no EVENT node, so
         assembly would find nothing to run and the verdict would not say why.
@@ -150,6 +154,11 @@ class GraphEntry(GraphContainer):
                     "wait for it to finish or restart the studio"
                 ),
             )
+
+        if self.interpreter is not None:
+            # Compiled, never started: no runner or retain, but it holds the graph's execution hold.
+            self.interpreter.shutdown()
+            self.interpreter = None
 
         library_state_container = get_library_state_container()
         interpreter = Interpreter(

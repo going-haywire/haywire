@@ -20,6 +20,7 @@ Triggered for each image a connected image emitter delivers
 |---|---|---|---|
 | `queue_mode` | dispatch | `'Drop (realtime)'` | Drop keeps only the newest image (live preview). Block queues every image and back-pressures the emitter. |
 | `max_queue_size` | dispatch | `1` | How many pending images to hold. Drop mode needs 1 to guarantee newest-wins. |
+| `mode` | delivery | `'Every'` | Every runs this flow for every event. Pooled shares the events with the other pooled listeners of the same emitter: the next free one runs each event. |
 
 ## Notes
 
@@ -32,3 +33,7 @@ Outputs:
     frame_ready: Control flow when an image arrives
     image: The image
     timestamp / frame_number: Seconds since the emitter started, and the count
+
+Delivery: `Every` runs the flow for every image. `Pooled` shares the images with the emitter's
+other pooled listeners, the next free one taking each image; Queue Mode and Max Queue Size then
+have no effect.

@@ -202,6 +202,7 @@ class TestInterpreter:
 
         interpreter = Interpreter()
         interpreter.load_graph(graph)
+        interpreter.start_execution()  # dispatches BEGIN_PLAY once more
 
         # Test: Dispatch event multiple times
         triggered1 = interpreter.dispatch_system_event(SystemEventType.BEGIN_PLAY)

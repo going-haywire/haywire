@@ -21,6 +21,8 @@ Emits a silent audio block at a steady rate
 |---|---|---|---|
 | `sample_rate` | clock | `48000` | Samples per second of the blocks. |
 | `block_size` | clock | `256` | Samples per block. 256 at 48 kHz is a block every 5.3 ms. |
+| `size` | backlog | `16` | How many events wait while every pooled listener is busy. |
+| `full` | backlog | `'Drop oldest'` | Drop oldest makes room by losing the oldest waiting event. Wait holds the emitter up to 5 s for room, then loses the new event. |
 
 ## Notes
 

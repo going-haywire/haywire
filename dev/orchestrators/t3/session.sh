@@ -44,7 +44,7 @@ if [ -z "$dirs" ]; then
 elif [ "$git_dir" = "$(sed -n 2p <<<"$dirs")" ]; then
   echo "This is a main folder: you are a lead (a peer, if the user started you as one). Brief a task with the template \`$core/docs/collaboration/brief.md\` (\`farmhand://dev/collaboration/brief.md\`)."
 elif lead=$(sed -n 1p "$git_dir/haywire-lead" 2>/dev/null) && [ -n "$lead" ]; then
-  echo "You are a task of $lead; report to it with \`t3_thread_send\` before each turn ends, and pass on what the user tells you directly."
+  echo "You are a task of $lead. Report to it with \`t3_thread_send\` in one line, \`<Report>: <what> <PR URL>\`, with your link last, before each turn ends; *Decided* is the first tool call of its turn. Content stays in your thread (workflow, *Lead and tasks*)."
 else
   echo "No lead is recorded for this worktree. If your brief names your lead, record it: \`python3 $core/dev/scripts/worktree_setup.py --lead <link>\`. Otherwise ask the user once whether you are a task (and of whom) or a peer."
 fi

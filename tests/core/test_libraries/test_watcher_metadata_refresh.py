@@ -85,29 +85,18 @@ def _library(tmp_path: Path, body: str) -> _Lib:
 
 
 def _drain(lib: _Lib) -> None:
-    """Run every pending debounced event now, instead of waiting 0.5s for it.
+    """Run the pending debounced batch now, instead of waiting 0.5s for it.
 
-    Cancels the timers and calls the same `_process_debounced_event` they would
-    have called, so the dispatch under test is the real one — only the delay is
-    skipped. Sleeping instead would cost ~4s across this file and time out
-    under load.
+    Cancels the window's timer and calls the same `_process_debounced_events`
+    it would have called, so the dispatch under test is the real one — only the
+    delay is skipped. Sleeping instead would cost ~4s across this file and time
+    out under load.
     """
     handler = lib.file_watcher.handler
     with handler._lock:
-        for timer in handler.debounce_timers.values():
-            timer.cancel()
-        pending = list(handler.pending_events)
-
-    for event_key in pending:
-        _file_path, registry_id = event_key
-        registry = next(r for r in _fallback_registries(lib) if id(r) == registry_id)
-        handler._process_debounced_event(event_key, registry)
-
-
-def _fallback_registries(lib: _Lib):
-    """Every registry the library put on its root fallback."""
-    _identity, registries, _delay = lib.file_watcher.handler.root_fallbacks[lib.identity.folder_path]
-    return registries
+        if handler._debounce_timer is not None:
+            handler._debounce_timer.cancel()
+    handler._process_debounced_events()
 
 
 def _modified(path: Path) -> SimpleNamespace:

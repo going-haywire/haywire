@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 from haywire.core.assembly.flow_assembly_manager import FlowAssemblyManager
 from haywire.core.execution import gc_freeze, gil_switch
 from haywire.core.execution.callback_manager import CallbackManager
+from haywire.core.execution.delivery import Delivery
 from haywire.core.execution.event_source import (
     CallbackEvent,
     ExternalEvent,
@@ -59,7 +60,7 @@ class Interpreter:
         # Load and assemble graph
         interpreter.load_graph(graph)
 
-        # Start execution (dispatches BEGIN_PLAY)
+        # Start execution (starts the groups' runners, dispatches BEGIN_PLAY)
         interpreter.start_execution()
 
         # ... execution runs until stopped ...
@@ -125,7 +126,12 @@ class Interpreter:
         This:
         1. Assembles all flows in the graph
         2. Registers flows with event subscriptions, flow queues and callback listeners
-        3. Partitions the flows into execution groups and starts each group's runner
+        3. Partitions the flows into execution groups
+
+        Loading runs no node code: the groups' runners, and with them every
+        node's ``on_startup``, start in ``start_execution()``. A loaded graph
+        that is never started holds nothing, so loading serves as a compile
+        check.
 
         Args:
             graph: Graph to load
@@ -156,8 +162,6 @@ class Interpreter:
                 assert flow.queue is not None
                 flow.queue.group = group
             self.groups.append(group)
-        for group in self.groups:
-            group.start()
         graph.root_graph._validation.set_execution_hold(self)
         logger.info(f"Partitioned {len(flows)} flows into {len(self.groups)} execution groups")
 
@@ -173,8 +177,9 @@ class Interpreter:
         Start graph execution by dispatching BEGIN_PLAY.
 
         Call after load_graph(). Clears the runtime errors of every node in the
-        loaded flows, then dispatches the BEGIN_PLAY system event which triggers
-        BeginPlayEventNode flows.
+        loaded flows, starts each execution group's runner (which retains its
+        nodes, calling ``on_startup``), then dispatches the BEGIN_PLAY system
+        event which triggers BeginPlayEventNode flows.
         """
         if self._executing:
             return
@@ -189,6 +194,8 @@ class Interpreter:
         gc_freeze.freeze_for_run()
         gil_switch.shorten_for_run()
         self._holds_run_tuning = True
+        for group in self.groups:
+            group.start()
         self.dispatch_system_event(SystemEventType.BEGIN_PLAY)
         logger.info("Execution started")
 
@@ -303,9 +310,11 @@ class Interpreter:
             flow=flow, vm=self.vm, queue_mode=sub.queue_mode, max_queue_size=sub.max_queue_size
         )
 
-        # Register callback listeners
+        # Register callback listeners; a pooled one reports each trigger's end to its pools.
         if isinstance(flow.event_subscription, CallbackEvent):
             self.callback_manager.register_callback_listener(flow.event_subscription.event_name, flow)
+            if flow.event_subscription.delivery is Delivery.POOLED:
+                flow.queue.on_done = self.callback_manager.trigger_done
 
     def _cleanup_current_graph(self, print_stats: bool = False) -> None:
         """

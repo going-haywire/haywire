@@ -6,11 +6,13 @@ from haywire.api import (
     EXEC,
     FLOAT,
     STRING,
+    BacklogSettings,
     BaseNode,
     ExecutionContext,
     NodeType,
     TextWidget,
     ToggleWidget,
+    bag,
     node,
 )
 
@@ -33,7 +35,11 @@ class CallbackEmitNode(BaseNode):
 
     Outputs:
         exec: Control flow out
+
+    Listeners set to Pooled share each emit; Backlog Size emits wait while all are busy.
     """
+
+    backlog = bag(BacklogSettings)
 
     def init(self):
         from haybale_core.types import POOLED
@@ -100,8 +106,9 @@ class CallbackEmitNode(BaseNode):
                 self.callback_index = (self.callback_index + 1) % len(edge_callbacks)
                 context.emit_callback(event_name=edge_callback, payload=payload_dict)
             else:
-                # Non-sequential: emit to all callbacks
-                for edge_callback in edge_callbacks.values():
-                    context.emit_callback(event_name=edge_callback, payload=payload_dict)
+                # Non-sequential: one emit to all callbacks, so pooled listeners share it
+                context.emit_callback(
+                    event_name=list(edge_callbacks.values()), payload=payload_dict, backlog=self.backlog
+                )
 
         return "exec"

@@ -11,6 +11,12 @@ Test event node whose subscription is a dataclass callback value
 | `subscription` | outlet | `haybale-testing:type:TEST_RECORD_CALLBACK` | Test callback subscription carried as a dataclass |
 | `triggered` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 
+## Settings
+
+| name | bag | default | description |
+|---|---|---|---|
+| `mode` | delivery | `'Every'` | Every runs this flow for every event. Pooled shares the events with the other pooled listeners of the same emitter: the next free one runs each event. |
+
 ## Notes
 
 Test-only event node publishing a `TEST_RECORD_CALLBACK` subscription named after itself.

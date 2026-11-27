@@ -9,6 +9,7 @@ from haywire.api import (
     INT,
     BaseNode,
     CallbackEvent,
+    DeliverySettings,
     ExecutionContext,
     NodeSettings,
     NodeType,
@@ -64,9 +65,14 @@ class ImageEventNode(BaseNode):
         frame_ready: Control flow when an image arrives
         image: The image
         timestamp / frame_number: Seconds since the emitter started, and the count
+
+    Delivery: `Every` runs the flow for every image. `Pooled` shares the images with the emitter's
+    other pooled listeners, the next free one taking each image; Queue Mode and Max Queue Size then
+    have no effect.
     """
 
     dispatch = bag(DispatchSettings)
+    delivery = bag(DeliverySettings)
 
     def init(self) -> None:
         from haybale_image.types.callback import IMAGE_CALLBACK
@@ -83,10 +89,19 @@ class ImageEventNode(BaseNode):
 
         # A copy or a loaded graph restores the saved id; the listener publishes the id it listens on.
         self.out("listen_callback", IMAGE_CALLBACK(name=self.node_id))
+        self._subscribe()
+        self.delivery._subscribe_field("mode", self._on_delivery)
+
+    def _on_delivery(self, _value: object, _old: object) -> None:
+        self._subscribe()
+
+    def _subscribe(self) -> None:
+        # Delivery takes effect when the graph next starts.
         self.event_subscription = CallbackEvent(
             event_name=self.node_id,
             queue_mode=_QUEUE_MODES.get(str(self.dispatch.queue_mode), QueueMode.DROP),
             max_queue_size=int(self.dispatch.max_queue_size),
+            delivery=self.delivery.delivery,
         )
 
     def worker(self, context: ExecutionContext) -> str | None:

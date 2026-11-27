@@ -697,3 +697,133 @@ class TestAtomicWriteRaceCondition:
             f"Registry received CREATED event during atomic write — "
             f"_known_files should have downgraded it. Events: {event_types}"
         )
+
+
+# ---------------------------------------------------------------------------
+# One batch per debounce window, never two at once (#221)
+# ---------------------------------------------------------------------------
+
+
+class _OverlapRegistry(HotReloadRegistry):
+    """Records how many dispatches run at once.
+
+    A dispatch holds until ``release`` is set; with ``hold_until_overlap`` the
+    first one instead holds until a second dispatch enters (or a short timeout),
+    so two dispatches that can overlap always do.
+    """
+
+    def __init__(self, hold_until_overlap: bool = False):
+        self.events: list[FileChangeEvent] = []
+        self.active = 0
+        self.max_active = 0
+        self.entered = threading.Event()
+        self.release = threading.Event()
+        self._overlapped = threading.Event()
+        self._hold_until_overlap = hold_until_overlap
+        self._count_lock = threading.Lock()
+        if hold_until_overlap:
+            self.release.set()
+
+    def event_dispatcher(self, event: FileChangeEvent):
+        with self._count_lock:
+            self.active += 1
+            self.max_active = max(self.max_active, self.active)
+            if self.active > 1:
+                self._overlapped.set()
+            first = not self.entered.is_set()
+            self.entered.set()
+        if first and self._hold_until_overlap:
+            self._overlapped.wait(0.5)
+        self.release.wait(10.0)
+        self.events.append(event)
+        with self._count_lock:
+            self.active -= 1
+
+
+def _fire_on_threads(timers: _ManualTimers) -> list[threading.Thread]:
+    """Run out every open debounce window, each on its own thread, as real timers do."""
+    threads = []
+    for timer in timers.pending():
+        timer.fired = True
+        thread = threading.Thread(target=timer.function, args=timer.args)
+        thread.start()
+        threads.append(thread)
+    return threads
+
+
+@pytest.mark.unit
+@pytest.mark.core
+class TestBatchDispatch:
+    """A save of several files within one window is one batch, dispatched on one thread."""
+
+    def test_files_saved_together_never_dispatch_at_once(self, timers, wired_handler, identity):
+        """The race of #221: a helper and two node modules saved together reached one
+        registry on three timer threads at once."""
+        registry = _OverlapRegistry(hold_until_overlap=True)
+        wired_handler.add_folder_mapping(identity.folder_path, identity, registry, debounce_delay=0.05)
+        for name in ("helper.py", "node_a.py", "node_b.py"):
+            wired_handler.on_modified(FileModifiedEvent(f"{identity.folder_path}/{name}"))
+
+        for thread in _fire_on_threads(timers):
+            thread.join(10.0)
+
+        assert registry.max_active == 1
+        assert [e.file_path.rsplit("/", 1)[1] for e in registry.events] == [
+            "helper.py",
+            "node_a.py",
+            "node_b.py",
+        ]
+
+    def test_a_window_waits_for_the_batch_still_running(self, timers, handler, identity):
+        registry = _OverlapRegistry()
+        handler.add_folder_mapping(identity.folder_path, identity, registry, debounce_delay=0.05)
+
+        handler.on_modified(FileModifiedEvent(f"{identity.folder_path}/first.py"))
+        (first,) = _fire_on_threads(timers)
+        assert registry.entered.wait(10.0)
+
+        handler.on_modified(FileModifiedEvent(f"{identity.folder_path}/second.py"))
+        (second,) = _fire_on_threads(timers)
+        time.sleep(0.1)  # asserting that nothing happens: the second batch must not start
+        assert registry.max_active == 1
+
+        registry.release.set()
+        first.join(10.0)
+        second.join(10.0)
+        assert registry.max_active == 1
+        assert [e.file_path.rsplit("/", 1)[1] for e in registry.events] == ["first.py", "second.py"]
+
+    def test_one_window_for_every_file_and_registry(self, timers, handler, tmp_lib):
+        sub_dir = tmp_lib / "sub"
+        sub_dir.mkdir()
+        identity = _make_identity(folder=str(tmp_lib))
+        reg_a = RecordingRegistry()
+        reg_b = RecordingRegistry()
+        handler.add_folder_mapping(str(tmp_lib), identity, reg_a, debounce_delay=0.05)
+        handler.add_folder_mapping(str(sub_dir), identity, reg_b, debounce_delay=0.05)
+
+        handler.on_modified(FileModifiedEvent(f"{sub_dir}/one.py"))
+        handler.on_modified(FileModifiedEvent(f"{sub_dir}/two.py"))
+        assert len(timers.pending()) == 1
+        timers.fire()
+
+        assert [len(reg_a.events), len(reg_b.events)] == [2, 2]
+        # One registry's events share one set, so a module reloaded for one is
+        # skipped for the next; registries keep their own.
+        assert reg_a.events[0].reloaded_modules is reg_a.events[1].reloaded_modules
+        assert reg_b.events[0].reloaded_modules is reg_b.events[1].reloaded_modules
+        assert reg_a.events[0].reloaded_modules is not reg_b.events[0].reloaded_modules
+
+    def test_a_failing_registry_does_not_drop_the_rest_of_the_batch(self, timers, handler, identity):
+        class _Failing(HotReloadRegistry):
+            def event_dispatcher(self, event: FileChangeEvent):
+                raise RuntimeError("dispatch exploded")
+
+        healthy = RecordingRegistry()
+        handler.add_folder_mapping(identity.folder_path, identity, _Failing(), debounce_delay=0.05)
+        handler.add_folder_mapping(identity.folder_path + "/", identity, healthy, debounce_delay=0.05)
+
+        handler.on_modified(FileModifiedEvent(f"{identity.folder_path}/module.py"))
+        timers.fire()
+
+        assert len(healthy.events) == 1

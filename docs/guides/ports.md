@@ -312,7 +312,7 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/callback_emit_probe.
 `CallbackEmitProbeNode` shows how a pooled inlet is consumed in a worker: the value arrives as a `dict`, iterated to dispatch to multiple listeners. It also demonstrates `on_change` on a pooled inlet, `post_init()` for non-serializable state, and `fold()` for a collapsible config section:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/callback_emit_probe.py:1:87"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/callback_emit_probe.py:1:94"
 ```
 
 from: `CallbackEmitProbeNode` — registry_key: `haybale-testing:node:CallbackEmitProbeNode`
@@ -328,7 +328,8 @@ What this example covers for worker access:
 | `STRING.as_config(...)` inside a fold | `custom_callback_name` — panel-only, no canvas pin |
 | `post_init()` for non-serializable state | `self.callback_index = 0` |
 | Worker named parameter binding | `custom_name`, `sequential_mode`, `edge_callbacks`, etc. |
-| `context.emit_callback(event_name=..., payload=...)` | dispatches to all or one listener |
+| `context.emit_callback(event_name=..., payload=...)` | dispatches to one listener by name (custom name, sequential mode) |
+| `context.emit_callback(event_name=[...], payload=..., backlog=self.backlog)` | one emit to every listener, so pooled ones share it; the `BacklogSettings` bag holds what waits ([callbacks §2.5](../architecture/execution/callbacks/callbacks-arch.md#25-delivery-every-or-pooled)) |
 
 For declarative settings instead of config ports, see [components/settings](../components/settings/setting-canon.md). For the lifecycle hooks that surround `worker()` (`init`, `post_init`, `on_validate`, etc.), see [components/nodes](../components/nodes/node-canon.md). For the dynamic `rejig()` pattern that adds and removes ports based on a config value, see [components/nodes §7](../components/nodes/node-canon.md#7-changing-ports-at-runtime).
 

@@ -10,6 +10,7 @@ from haywire.api import (
     FILE_PATH,
     INT,
     STRING,
+    BacklogSettings,
     BaseNode,
     ExecutionContext,
     LabelWidget,
@@ -70,6 +71,7 @@ class FilePlayerNode(BaseNode):
     """
 
     playback = bag(PlayerSettings)
+    backlog = bag(BacklogSettings)
 
     def init(self) -> None:
         from haybale_audio.types.callback import AUDIO_CALLBACK
@@ -128,7 +130,7 @@ class FilePlayerNode(BaseNode):
         self.hb_pump = BlockPump(
             produce=reader.read_block,
             deliver=lambda block, number, seconds: deliver_to_subscribers(
-                context, self.value("callbacks"), block, number, seconds
+                context, self.value("callbacks"), block, number, seconds, backlog=self.backlog
             ),
             on_end=self.hb_on_end,
         )

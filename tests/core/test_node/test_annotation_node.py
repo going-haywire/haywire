@@ -7,7 +7,6 @@ from typing import Any
 import pytest
 
 from haywire.core.errors import Refusal
-from haywire.core.execution.event_source import SystemEventType
 from haywire.core.execution.interpreter import Interpreter
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
@@ -287,7 +286,7 @@ def test_a_note_in_a_control_chain_forwards_the_payload(graph_with_library_syste
     interpreter = Interpreter()
     interpreter.load_graph(graph)
     try:
-        interpreter.dispatch_system_event(SystemEventType.BEGIN_PLAY)
+        interpreter.start_execution()  # starts the runners, dispatches BEGIN_PLAY
         interpreter.wait_all(timeout=30.0)
     finally:
         interpreter.shutdown()

@@ -15,6 +15,13 @@ Emits tick callbacks at a configurable framerate
 | `started` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `stopped` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 
+## Settings
+
+| name | bag | default | description |
+|---|---|---|---|
+| `size` | backlog | `16` | How many events wait while every pooled listener is busy. |
+| `full` | backlog | `'Drop oldest'` | Drop oldest makes room by losing the oldest waiting event. Wait holds the emitter up to 5 s for room, then loses the new event. |
+
 ## Notes
 
 Emits tick callbacks at a configurable framerate from an internal thread.
@@ -31,3 +38,6 @@ Inputs:
 Outputs:
     started: Control flow after tick thread starts
     stopped: Control flow after tick thread stops
+
+Tick Events set to Pooled share the ticks: the next free one runs each tick, and
+Backlog Size ticks wait while all are busy (When Full decides the rest).

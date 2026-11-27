@@ -108,7 +108,7 @@ Two switches gate file watching at different scopes:
 - `@library(file_watcher=True)` — per-library decorator field. Off by default. Tells `LibraryRegistry` to attach a watcher when this library is loaded.
 - `enable_file_watching: bool` — system-level switch passed to `create_library_system_service(...)` / `create_haywire_injector(...)` (see §5). Defaults to `True`. When `False`, no library gets a watcher regardless of the per-library decorator.
 
-The debounce delay (how long the watcher waits after the last `.py` change before triggering a reload) is hardcoded to **0.5 s** in `provide_library_registry` and is not currently a tunable parameter of the public API. If you need a different debounce, call `LibraryRegistry.enable_file_watching(debounce_delay=X, force=True)` directly after constructing the injector.
+The debounce delay (how long the watcher waits after the library's last file change before reloading everything changed since, as one batch) is hardcoded to **0.5 s** in `provide_library_registry` and is not currently a tunable parameter of the public API. If you need a different debounce, call `LibraryRegistry.enable_file_watching(debounce_delay=X, force=True)` directly after constructing the injector.
 
 ### 2.6 `BaseLibrary` and `@library` (`haywire/core/library/base.py`, `decorator.py`)
 

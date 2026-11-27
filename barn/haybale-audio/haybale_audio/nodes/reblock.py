@@ -8,6 +8,7 @@ from haybale_audio.value import AudioBlock
 from haywire.api import (
     INT,
     STRING,
+    BacklogSettings,
     BaseNode,
     ExecutionContext,
     LabelWidget,
@@ -75,6 +76,7 @@ class ReblockNode(BaseNode):
     """
 
     reblock = bag(ReblockSettings)
+    backlog = bag(BacklogSettings)
 
     def init(self) -> None:
         from haybale_audio.types.audio import AUDIO
@@ -111,7 +113,12 @@ class ReblockNode(BaseNode):
         subscribers = self.value("callbacks")
         for block in self.hb_reblocker.push(audio):
             deliver_to_subscribers(
-                context, subscribers, block, self.hb_delivered, self.hb_delivered * block.duration
+                context,
+                subscribers,
+                block,
+                self.hb_delivered,
+                self.hb_delivered * block.duration,
+                backlog=self.backlog,
             )
             self.hb_delivered += 1
         set_status(self, f"{self.hb_delivered} blocks of {self.reblock.block_size}")

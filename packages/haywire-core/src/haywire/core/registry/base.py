@@ -513,11 +513,18 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
             f"changed module '{module_name}'..."
         )
 
-        # Get modules to exclude (already reloaded by upstream registries)
-        exclude_modules = event.reloaded_modules if event else set()
+        # The watcher's batch shares one set between this registry's events. A
+        # module in it was reloaded after its file was saved, and so was every
+        # module depending on it; otherwise everything depending on it is
+        # reloaded again, even what an earlier event of the batch reloaded.
+        if event and module_name in event.reloaded_modules:
+            self.logger.info(
+                f"Library '{library_identity.label}': '{module_name}' was already reloaded "
+                f"in this batch, with its dependents. Skipping."
+            )
+            return
 
-        # Get reload plan from dependency graph, excluding already-reloaded modules
-        reload_plan = self._dependency_graph.get_reload_plan(module_name, exclude_modules)
+        reload_plan = self._dependency_graph.get_reload_plan(module_name)
 
         self.logger.info(
             f"Library '{library_identity.label}': Reload plan: "
