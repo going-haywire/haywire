@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import pytest
@@ -95,3 +96,34 @@ def test_the_device_in_soak_graph_loads_with_every_edge_valid(graph_with_library
     edges = graph.list_edge_wrappers()
     assert len(edges) == 4
     assert all(e.state.is_valid() for e in edges)
+
+
+def test_a_graph_saved_with_pooled_audio_settings_loads_without_them(
+    graph_with_library_system, tmp_path, caplog
+):
+    """Saved while Audio Event had Delivery and the block emitters a Backlog (ADR 0097, before block
+    streams were never pooled): an Audio Event set to Pooled and a File Player with a Backlog whose
+    Size was promoted to a config port. Both load as valid nodes, the Audio Event takes every block,
+    the promoted port is gone, and a save drops the old settings."""
+    from haywire.api import Delivery
+
+    graph = graph_with_library_system
+    with caplog.at_level(logging.WARNING):
+        assert graph.load_from_file(str(FIXTURES / "pooled_audio_settings.haywire"))
+        graph.force_validation()
+    assert not [r for r in caplog.records if r.levelno >= logging.ERROR], "loads without an error"
+
+    nodes = {type(w.node).__name__: w.node for w in graph.list_node_wrappers()}
+    assert set(nodes) == {"FilePlayerNode", "AudioEventNode", "DeviceOutNode"}, "no stand-in nodes"
+    assert all(w.state.is_valid() for w in graph.list_node_wrappers())
+    assert nodes["AudioEventNode"].event_subscription.delivery is Delivery.EVERY
+    player = nodes["FilePlayerNode"]
+    assert not hasattr(player, "backlog")
+    assert "backlog.size" not in player.ports
+    assert all(e.state.is_valid() for e in graph.list_edge_wrappers())
+
+    path = tmp_path / "resaved.haywire"
+    assert graph.save_to_file(str(path))
+    text = path.read_text()
+    assert '"backlog"' not in text
+    assert '"delivery"' not in text

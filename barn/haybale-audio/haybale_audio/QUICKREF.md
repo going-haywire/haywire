@@ -4,6 +4,11 @@
 - `haybale-audio:node:AudioClockNode` — Audio Clock — Emits a silent audio block at a steady rate  _tags: audio, clock, tick, timer, master, pace, emit_
 - `haybale-audio:node:AudioEventNode` — Audio Event — Triggered for each audio block a connected audio emitter delivers  _tags: audio, block, event, callback, receive, stream, microphone_
 - `haybale-audio:node:AudioMixerNode` — Audio Mixer — Sums several audio sources into one block per clock tick  _tags: audio, mixer, mix, sum, gain, mute, combine, bus_
+- `haybale-audio:node:ClipEventNode` — Clip Event — Triggered for each audio clip a connected clip emitter delivers  _tags: audio, clip, event, callback, receive, speech, segment, pool_
+- `haybale-audio:node:ClipPlayerNode` — Clip Player — Plays an audio clip as audio blocks, in real time  _tags: audio, clip, play, speech, voice, emit_
+- `haybale-audio:node:ClipQueueNode` — Clip Queue — Holds audio clips until a flow takes them, one at a time  _tags: audio, clip, queue, playlist, buffer, speech, fifo_
+- `haybale-audio:node:ClipSegmenterNode` — Clip Segmenter — Cuts a live audio flow into clips at the pauses, such as one clip per sentence  _tags: audio, clip, speech, vad, voice, segment, split, pause, silence, live, microphone_
+- `haybale-audio:node:CollectClipNode` — Collect Clip — Gathers the audio blocks of a flow into one clip, sent on Stop  _tags: audio, clip, collect, gather, buffer, speech, record, segment_
 - `haybale-audio:node:DeviceInNode` — Device In — Records a sound device's input as audio blocks  _tags: audio, record, microphone, mic, input, device, sound, line in, emit_
 - `haybale-audio:node:DeviceOutNode` — Device Out — Plays audio blocks on a sound device  _tags: audio, play, speaker, output, device, sound_
 - `haybale-audio:node:FilePlayerNode` — File Player — Plays an audio file as audio blocks, in real time  _tags: audio, file, play, wav, flac, ogg, read, emit_
@@ -18,4 +23,6 @@
 ## type
 - `haybale-audio:type:AUDIO` — Audio — A block of audio samples. Never saved with the graph.
 - `haybale-audio:type:AUDIO_CALLBACK` — Audio Callback — Subscription for emitters that deliver audio blocks
+- `haybale-audio:type:AUDIO_CLIP` — Audio Clip — A whole audio clip, such as one utterance, as one block. Never saved with the graph.
 - `haybale-audio:type:AUDIO_EXEC` — Audio Execution Signal — Signal for sequencing the nodes of an audio flow
+- `haybale-audio:type:CLIP_CALLBACK` — Clip Callback — Subscription for emitters that deliver whole audio clips

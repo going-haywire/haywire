@@ -22,8 +22,6 @@ Plays an audio file as audio blocks, in real time
 |---|---|---|---|
 | `block_size` | playback | `256` | Samples per block. The file's own sample rate and channels are kept. |
 | `loop` | playback | `False` | Start again at the end of the file instead of stopping. |
-| `size` | backlog | `16` | How many events wait while every pooled listener is busy. |
-| `full` | backlog | `'Drop oldest'` | Drop oldest makes room by losing the oldest waiting event. Wait holds the emitter up to 5 s for room, then loses the new event. |
 
 ## Notes
 

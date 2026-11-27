@@ -9,7 +9,6 @@ from haywire.api import (
     CHOICES,
     INT,
     STRING,
-    BacklogSettings,
     BaseNode,
     ExecutionContext,
     LabelWidget,
@@ -89,7 +88,6 @@ class ResampleNode(BaseNode):
     """
 
     resample = bag(ResampleSettings)
-    backlog = bag(BacklogSettings)
 
     def init(self) -> None:
         from haybale_audio.types.audio import AUDIO
@@ -133,7 +131,6 @@ class ResampleNode(BaseNode):
                 converted,
                 self.hb_delivered,
                 self.hb_seconds,
-                backlog=self.backlog,
             )
             self.hb_delivered += 1
             self.hb_seconds += converted.duration
