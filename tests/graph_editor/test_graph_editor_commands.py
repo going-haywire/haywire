@@ -248,6 +248,35 @@ def test_save_refused_below_edit(monkeypatch):
     notify.assert_called_once()
 
 
+def _save_macro(monkeypatch, tier: Any) -> tuple[Any, MagicMock]:
+    """Save a macro document (``.hwm``) as a ``tier`` principal; returns ``(document, notify)``."""
+    notify = MagicMock()
+    monkeypatch.setattr(graph_editor_module.ui, "notify", notify)
+    editor, _, document = _editor(MagicMock())
+    document.path = Path("/lib/macros/gain.hwm")
+    editor._update_header = MagicMock()  # type: ignore[method-assign]
+    document.save = MagicMock(return_value=None)
+    ctx = _real_context(tier)
+    ctx.session = MagicMock()
+    editor._save_graph(ctx)
+    return document, notify
+
+
+def test_saving_a_macro_is_refused_below_admin(monkeypatch):
+    from haywire.core.access import AccessTier
+
+    document, notify = _save_macro(monkeypatch, AccessTier.EDIT)
+    document.save.assert_not_called()
+    assert "admin" in notify.call_args.args[0]
+
+
+def test_an_admin_saves_a_macro(monkeypatch):
+    from haywire.core.access import AccessTier
+
+    document, _ = _save_macro(monkeypatch, AccessTier.ADMIN)
+    document.save.assert_called_once_with()
+
+
 def test_a_refused_undo_publishes_nothing():
     manager = MagicMock()
     editor, context, document = _editor(manager)

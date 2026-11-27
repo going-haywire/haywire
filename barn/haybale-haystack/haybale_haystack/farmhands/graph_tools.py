@@ -12,6 +12,7 @@ from haywire.api.workbench import (
     farmhand,
     truncation_note,
 )
+from haywire.core.macro.promote import MACRO_SUFFIX
 
 _READ_ONLY = ToolAnnotations(read_only_hint=True)
 _MUTATING = ToolAnnotations()
@@ -151,7 +152,8 @@ class HaystackOpenGraphTool(Farmhand):
     instructions="Save an open graph (by binding_id) to its current path. Pass save_as=<path> "
     "(relative to the workspace root) to write to a new path instead — e.g. to save an untitled "
     "graph from haybale-haystack_create_graph for the first time. Raises graph_not_found for an unknown "
-    "binding_id, save_failed if the write itself fails.",
+    "binding_id, access_denied when the write is a macro document (.hwm) and the token is below "
+    "admin, save_failed if the write itself fails.",
     registry_id="save_graph",
     annotations=_MUTATING,
 )
@@ -159,6 +161,15 @@ class HaystackSaveGraphTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str, save_as: str | None = None) -> dict:
         entry = _entry(ctx, binding_id)
         target = (ctx.workspace_root() / save_as).resolve() if save_as else None
+        written = target or entry.path
+        if written is not None and written.suffix == MACRO_SUFFIX and not ctx.can_access(AccessTier.ADMIN):
+            # A macro document is a file in its library; writing into a library needs admin.
+            raise FarmhandError(
+                "access_denied",
+                f"Saving the macro document '{written.name}' needs admin access.",
+                ids={"binding_id": binding_id},
+                help="Ask an admin to save it, or use a token at the admin tier.",
+            )
         if target is not None:
             target.parent.mkdir(parents=True, exist_ok=True)
         ok = _state(ctx).save_graph(entry, target)

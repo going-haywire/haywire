@@ -55,6 +55,22 @@ def test_save_refused_below_edit(tier, monkeypatch):
     assert haystack_editor_module.ui.notify.call_count == 2  # type: ignore[attr-defined]
 
 
+def test_saving_a_macro_entry_is_refused_below_admin(monkeypatch):
+    editor, context, haystack, _ = _setup(AccessTier.EDIT, monkeypatch)
+    haystack.get_by_id.return_value.path = Path("/lib/macros/gain.hwm")
+    editor._on_entry_save("id", context)
+    haystack.save_graph.assert_not_called()
+    notify = cast(MagicMock, haystack_editor_module.ui.notify)
+    assert "admin" in notify.call_args.args[0]
+
+
+def test_an_admin_saves_a_macro_entry(monkeypatch):
+    editor, context, haystack, _ = _setup(AccessTier.ADMIN, monkeypatch)
+    haystack.get_by_id.return_value.path = Path("/lib/macros/gain.hwm")
+    editor._on_entry_save("id", context)
+    haystack.save_graph.assert_called_once()
+
+
 def _haystack_header_setup(tier: AccessTier, monkeypatch: pytest.MonkeyPatch) -> tuple[Any, Any, Any, Any]:
     """An editor with a loaded haystack named ``hs1``, and the modal Save As opens, mocked."""
     editor, context, haystack, _dialog = _setup(tier, monkeypatch)

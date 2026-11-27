@@ -63,6 +63,7 @@ from haywire.api.workbench import (
     react_on,
 )
 from haywire.core.graph.edit_route import EditRoute
+from haywire.core.macro.promote import MACRO_SUFFIX
 from haywire.core.node.layout import PATCH, STAGE
 from haywire.core.signals import SubgraphNavigation, ToggleLock, ToggleStageView
 from haywire.core.signals.keys import format_combo
@@ -1617,13 +1618,21 @@ class GraphEditor(BaseEditor):
         """Save this document; opens Save-As dialog if no path exists yet.
 
         Saving is a document operation at every level — a Group is written as
-        part of the file holding it.
+        part of the file holding it. A macro document (``.hwm``) is a file in its
+        library, so saving one needs admin, the tier writing into a library needs.
         """
         entry = self._document()
         if entry is None:
             return
         if not context.can_edit():
             ui.notify("Saving needs edit access", type="warning", position="top-right")
+            return
+        if (
+            entry.path is not None
+            and entry.path.suffix == MACRO_SUFFIX
+            and not context.can_access(AccessTier.ADMIN)
+        ):
+            ui.notify("Saving a macro needs admin access", type="warning", position="top-right")
             return
 
         if entry.path is not None:

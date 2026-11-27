@@ -36,6 +36,7 @@ from haywire.api.workbench import (
     redraw_on,
 )
 from haywire.core.execution.flow_metrics import FlowMeterSampler
+from haywire.core.macro.promote import MACRO_SUFFIX
 from haywire.core.session import IAppState
 from haywire.ui.components.popup import Popup
 from haywire.ui.modals import pick_modal, rename_modal
@@ -534,7 +535,11 @@ class HaystackEditor(BaseEditor):
         return entry
 
     def _on_entry_save(self, binding_id: str, context: SessionContext) -> None:
-        """Save a graph; opens save-as dialog if untitled."""
+        """Save a graph; opens save-as dialog if untitled.
+
+        A macro document (``.hwm``) is a file in its library, so saving one
+        needs admin, the tier writing into a library needs.
+        """
         if not context.can_edit():
             ui.notify("Saving needs edit access", type="warning", position="top-right")
             return
@@ -545,6 +550,9 @@ class HaystackEditor(BaseEditor):
         entry = self._resolve_entry(binding_id, context)
         if entry is None:
             return
+        if entry.path is not None and entry.path.suffix == MACRO_SUFFIX:
+            if _refused(context, AccessTier.ADMIN, "Saving a macro"):
+                return
 
         hs = context.app_data[HaystackState]
         if entry.path is not None:
