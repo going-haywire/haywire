@@ -1288,10 +1288,16 @@ class VisualLayerHandlers:
         """Open the New Node wizard, at its Source step or cloning the node on ``event.node_id``.
 
         Place puts the new node at the right-click point, or beside the
-        cloned node. The wizard writes nothing until its Create step.
+        cloned node. The wizard writes nothing until its Create step. Refused
+        below admin, the tier writing into a library needs: the level mode this
+        handler declares tops out at edit.
         """
         editor = self.route.editor()
         if editor is None:
+            return
+        if self.context is None or not self.context.can_access(AccessTier.ADMIN):
+            verb = "Cloning to a library" if event.node_id is not None else "A new node"
+            ui.notify(f"{verb} needs admin access", type="warning")
             return
         from haybale_graph_editor._new_node_flow import EditorNewNodeHost, new_node_flow, show_new_node_flow
         from haywire.core.authoring import is_clone_source
