@@ -227,3 +227,20 @@ def test_tick_without_a_triggering_audio_block_is_an_error(graph_with_library_sy
     mixer = _mixer(graph_with_library_system)
     with pytest.raises(ValueError, match="audio event"):
         mixer.node.worker(_pin("tick"))
+
+
+@pytest.mark.integration
+def test_tick_mixes_inputs_of_other_rates_and_channels(graph_with_library_system):
+    g = graph_with_library_system
+    mixer = _mixer(g)
+    clip, music = _sources(g, mixer, 2)
+    clock = _block(0.0)
+
+    for _ in range(20):
+        clip.out("audio", _block(0.25, channels=1, frames=128, rate=24000))
+        music.out("audio", _block(0.5, channels=2))
+        mixer.node.worker(_pin("tick", clock))
+
+    mixed = mixer.node.ports["mixed"].get_value()
+    assert (mixed.channels, mixed.frames, mixed.sample_rate) == (2, 256, 48000)
+    np.testing.assert_allclose(mixed.data, 0.75, atol=1e-2)

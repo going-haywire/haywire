@@ -12,7 +12,6 @@ from haywire.api import (
     EXEC,
     INT,
     STRING,
-    BacklogSettings,
     BaseNode,
     ExecutionContext,
     LabelWidget,
@@ -105,7 +104,6 @@ class DeviceInNode(BaseNode):
     """
 
     recording = bag(DeviceInSettings)
-    backlog = bag(BacklogSettings)
 
     def init(self) -> None:
         from haybale_audio.types.callback import AUDIO_CALLBACK
@@ -163,9 +161,7 @@ class DeviceInNode(BaseNode):
             raise
 
         def deliver(block: AudioBlock, number: int, seconds: float) -> None:
-            deliver_to_subscribers(
-                context, self.value("callbacks"), block, number, seconds, backlog=self.backlog
-            )
+            deliver_to_subscribers(context, self.value("callbacks"), block, number, seconds)
             self.hb_report(device)
 
         self.hb_pump = BlockPump(produce=device.read, deliver=deliver, on_end=self.hb_on_end, paced=False)

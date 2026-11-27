@@ -206,7 +206,7 @@ def test_node_delivers_device_blocks_to_its_subscribers_and_stops(graph_with_lib
 
     payloads = [c.kwargs["payload"] for c in ctx.emit_callback.call_args_list]
     assert ctx.emit_callback.call_args_list[0].kwargs["event_name"] == ["listener"]
-    assert ctx.emit_callback.call_args_list[0].kwargs["backlog"] is node.backlog
+    assert "backlog" not in ctx.emit_callback.call_args_list[0].kwargs, "a block stream is never pooled"
     assert [p["block_number"] for p in payloads] == [0, 1, 2]
     assert [round(float(p["audio"].data[0, 0]), 1) for p in payloads] == [0.1, 0.2, 0.3]
     assert all((p["audio"].sample_rate, p["audio"].channels) == (44100, 2) for p in payloads)

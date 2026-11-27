@@ -10,7 +10,6 @@ from haywire.api import (
     INT,
     BaseNode,
     CallbackEvent,
-    DeliverySettings,
     ExecutionContext,
     NodeSettings,
     NodeType,
@@ -72,9 +71,9 @@ class AudioEventNode(BaseNode):
     a control node. That node then runs inside the flow's pass, and its time counts against the block
     period. `Start` and `Stop` pins stay plain `EXEC`: the control world starts and stops audio nodes.
 
-    Delivery: `Every` runs the flow for every block. `Pooled` shares the blocks with the emitter's
-    other pooled listeners, the next free one taking each block; Queue Mode and Max Queue Size then
-    have no effect, and blocks no longer arrive in order across the listeners.
+    Every Audio Event takes every block: a block stream is never pooled (ADR 0097), since a flow
+    that got only some of the blocks would hear no continuous sound. To share clips between slow
+    flows, cut the stream into clips (Clip Segmenter) and pool Clip Events.
 
     Outputs:
         block_ready: Control flow when a block arrives
@@ -83,7 +82,6 @@ class AudioEventNode(BaseNode):
     """
 
     dispatch = bag(DispatchSettings)
-    delivery = bag(DeliverySettings)
 
     def init(self) -> None:
         from haybale_audio.types.audio import AUDIO
@@ -101,14 +99,6 @@ class AudioEventNode(BaseNode):
 
         # A copy or a loaded graph restores the saved id; the listener publishes the id it listens on.
         self.out("listen_callback", AUDIO_CALLBACK(name=self.node_id))
-        self._subscribe()
-        self.delivery._subscribe_field("mode", self._on_delivery)
-
-    def _on_delivery(self, _value: object, _old: object) -> None:
-        self._subscribe()
-
-    def _subscribe(self) -> None:
-        # Delivery takes effect when the graph next starts.
         queue_mode = _QUEUE_MODES.get(str(self.dispatch.queue_mode), QueueMode.BLOCK)
         if queue_mode is QueueMode.DROP:
             logger.warning(
@@ -118,7 +108,6 @@ class AudioEventNode(BaseNode):
             event_name=self.node_id,
             queue_mode=queue_mode,
             max_queue_size=int(self.dispatch.max_queue_size),
-            delivery=self.delivery.delivery,
         )
 
     def worker(self, context: ExecutionContext) -> str | None:

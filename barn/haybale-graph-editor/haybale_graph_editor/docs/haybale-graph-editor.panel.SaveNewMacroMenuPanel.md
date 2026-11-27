@@ -12,3 +12,5 @@ Save a Group as a new macro. Only visible when the right-clicked node is a Graph
 ## Notes
 
 Save a Group as a new macro. Only visible when the right-clicked node is a Graph-node.
+
+Needs admin, the tier every verb that writes into a library needs.
