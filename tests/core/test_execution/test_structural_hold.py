@@ -25,7 +25,7 @@ pytestmark = pytest.mark.integration
 
 
 class _Rig:
-    def __init__(self, graph: BaseGraph, timer: bool = True):
+    def __init__(self, graph: BaseGraph, timer: bool = True, start: bool = True):
         from haybale_testing.nodes.testbed.control_payload_probe import ControlPayloadProbeNode
         from haybale_testing.nodes.testbed.record_callback_probes import RecordEventProbeNode
 
@@ -53,6 +53,8 @@ class _Rig:
             graph._validation.adopt_scheduler(ThreadingTimerScheduler())
         self.interpreter = Interpreter()
         self.interpreter.load_graph(graph)
+        if start:
+            self.interpreter.start_execution()
 
     def trigger(self) -> None:
         self.interpreter.vm.emit_callback(self.a.node_id)
@@ -147,7 +149,7 @@ def test_stop_while_held_for_reassembly_skips_shutdown_grace(
     """A Shutdown flow cannot run on a stale assembly, so stop does not wait for it."""
     from haybale_core.nodes.events.shutdown_event import ShutdownEventNode
 
-    rig = _Rig(graph_with_library_system, timer=False)
+    rig = _Rig(graph_with_library_system, timer=False, start=False)
     make_node(rig.graph, ShutdownEventNode.class_identity.registry_key, position=(0, 300))
     rig.interpreter.load_graph(rig.graph)
     rig.graph._validation.adopt_scheduler(ThreadingTimerScheduler())

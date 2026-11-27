@@ -18,10 +18,10 @@ Usage:
     # Create interpreter
     interpreter = Interpreter()
 
-    # Load graph
+    # Load graph (assembles it; runs no node code)
     interpreter.load_graph(my_graph)
 
-    # Start execution (dispatches BEGIN_PLAY)
+    # Start execution (starts the groups' runners, dispatches BEGIN_PLAY)
     interpreter.start_execution()
 
     # ... execution runs until stopped ...

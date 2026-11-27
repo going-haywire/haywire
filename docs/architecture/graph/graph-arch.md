@@ -35,8 +35,12 @@ When migrating, draw from:
   `load_graph` (which assembles the graph; assembly raises `RuntimeError` on an
   invalid graph). The exception is caught and converted to a `CompileResult`
   verdict (`ok` + optional `error`); a failed compile leaves the entry
-  non-executing with `interpreter = None`.
-- `start()` — dispatches `BEGIN_PLAY` on the already-compiled interpreter.
+  non-executing with `interpreter = None`. Assembly runs no node code: a
+  compile on its own starts no runner and retains no node, and the next
+  compile or start shuts its interpreter down and replaces it.
+- `start()` — starts the execution groups' runners (each retains its nodes,
+  calling `on_startup`) and dispatches `BEGIN_PLAY` on the already-compiled
+  interpreter.
 - `start_execution() -> CompileResult` — compile then (if `ok`) start; the
   back-compatible combined entry point. Returns the verdict so callers (play
   button, haystack load, autorestart) surface assembly failure rather than
