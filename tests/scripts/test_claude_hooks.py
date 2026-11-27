@@ -411,7 +411,8 @@ def test_in_t3_a_main_folder_session_is_a_lead(tmp_path):
 
 def test_in_t3_a_worktree_with_a_lead_file_is_its_task(tmp_path):
     context = _t3_setup(tmp_path, lead=_LEAD)
-    assert f"You are a task of {_LEAD}; report to it with `t3_thread_send`" in context
+    assert f"You are a task of {_LEAD}. Report to it with `t3_thread_send`" in context
+    assert "*Decided* is the first tool call of its turn" in context
     assert "you are a lead" not in context
 
 
@@ -430,7 +431,8 @@ def test_in_herdr_a_main_folder_session_is_a_lead(tmp_path):
 
 def test_in_herdr_a_worktree_with_a_lead_file_is_its_task(tmp_path):
     context = _place(tmp_path, lead="lead / lead (t1)")
-    assert "You are a task of lead / lead (t1); report to it with `hc send`" in context
+    assert "You are a task of lead / lead (t1). Report to it with `hc send`" in context
+    assert "*Decided* is the first tool call of its turn" in context
 
 
 def test_in_herdr_a_worktree_without_a_lead_file_asks_once(tmp_path):

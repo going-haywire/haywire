@@ -52,7 +52,7 @@ if $main_folder; then
 elif [ -z "$git_dir" ]; then
   : # not a git folder: no role to tell
 elif lead=$(sed -n 1p "$git_dir/haywire-lead" 2>/dev/null) && [ -n "$lead" ]; then
-  context+=" You are a task of $lead; report to it with \`hc send\` before each turn ends, and pass on what the user tells you directly."
+  context+=" You are a task of $lead. Report to it with \`hc send\` in one line, \`<Report>: <what> <PR URL>\`, with your link last, before each turn ends; *Decided* is the first tool call of its turn. Content stays in your thread (workflow, *Lead and tasks*)."
 else
   context+=" No lead is recorded for this worktree. If your brief names your lead, record it: \`python3 $core/dev/scripts/worktree_setup.py --lead <address>\`. Otherwise ask the user once whether you are a task (and of whom) or a peer."
 fi

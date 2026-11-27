@@ -55,16 +55,14 @@ task's (*Parallel sessions* in the workflow).
 
 ## Messages
 
-A task reports with `t3_thread_send` to the lead's thread id, **before its turn ends**: T3
-may settle a thread at turn end, so a silent stop looks like done. The message arrives as
+A task reports with `t3_thread_send` to the lead's thread id, in the form *Lead and tasks*
+in the workflow gives, **before its turn ends** (*Decided* first): T3 may settle a thread at turn end, so a silent stop looks like done. The message arrives as
 the lead's next input, no polling. The lead links each task's PR to the task's thread with
 `link_pull_request`, so the thread shows it.
 
-**Needs a decision** (the workflow's four steps): the task ends its reply with the lead's
-link on its own line and sends the lead one line with its own link. The lead renames the
-task `? <title>` and marks it unread with `t3_thread_organize` (`mark_unread` works only
-once the task's turn has ended), then gives the user the line and the link. When the task
-sends "Decided", the lead drops the `? `.
+**Needs a decision** (the workflow's four steps): the lead renames the task `? <title>` and
+marks it unread with `t3_thread_organize` (`mark_unread` works only once the task's turn
+has ended).
 
 ## The view
 
