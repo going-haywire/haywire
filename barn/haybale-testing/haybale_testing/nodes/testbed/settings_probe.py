@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 
 from haybale_core.types import ARRAY
@@ -28,6 +29,8 @@ from haywire.api import (
     watch,
 )
 from haywire.core.settings import Vec2i, Vec3f, Vec4f
+
+logger = logging.getLogger(__name__)
 
 _found_sources: dict[str | None, list[str]] = {}  # Example Choices value -> what the last refresh found
 
@@ -267,11 +270,11 @@ class SettingsProbeNode(BaseNode):
         self.add(TEST_STRING.as_outlet("settings", label="Settings", default="default value"))
 
     def post_init(self):
-        print(f"Post-init: example_string = {self.example.example_string}")
-        print(f"Post-init: example_float = {self.example.example_float}")
-        print(f"Post-init: persistent = {self.example.persistent_value}")
-        print(f"Post-init: clamped_positive = {self.example.clamped_positive}")
-        print(f"Post-init: even_int = {self.example.even_int}")
+        logger.debug(f"Post-init: example_string = {self.example.example_string}")
+        logger.debug(f"Post-init: example_float = {self.example.example_float}")
+        logger.debug(f"Post-init: persistent = {self.example.persistent_value}")
+        logger.debug(f"Post-init: clamped_positive = {self.example.clamped_positive}")
+        logger.debug(f"Post-init: even_int = {self.example.even_int}")
 
     def worker(self, context: ExecutionContext) -> str | None:
         """Execute the node - display the input value"""
