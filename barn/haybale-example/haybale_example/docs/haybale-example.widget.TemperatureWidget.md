@@ -9,7 +9,9 @@ Temperature with unit conversion
 
 ## Notes
 
-Temperature widget demonstrating:
+Temperature widget demonstrating converters and bindings.
+
+Demonstrates:
 - Custom converter for unit conversion
 - Multiple UI elements with separate bindings
 - Read-only conversion display

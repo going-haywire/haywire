@@ -23,9 +23,11 @@ Converts audio blocks to another sample rate and delivers them to Audio Event no
 
 ## Notes
 
-Converts each block that reaches `Write` to `Sample Rate` and delivers it to every Audio Event
-listening. The filter keeps its state between blocks, so the joins are seamless. The first block
-after a start or a format change can come out shorter or not at all while the filter fills.
+Converts each block that reaches `Write` to `Sample Rate`.
+
+The converted block goes to every Audio Event listening. The filter keeps its state between
+blocks, so the joins are seamless. The first block after a start or a format change can come
+out shorter or not at all while the filter fills.
 
 Block sizes change with the rate (a 441-sample block at 44.1 kHz gives about 480 at 48 kHz); put a
 Reblock after it where a fixed size is needed.

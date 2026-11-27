@@ -25,7 +25,9 @@ Plays audio blocks on a sound device
 
 ## Notes
 
-Plays each block on an output device. The first block opens the device at its own sample rate;
+Plays each block on an output device.
+
+The first block opens the device at its own sample rate;
 blocks are converted to it, and a mono block plays on both speakers of a stereo device.
 
 Playback starts once the prefill is queued and restarts after a stall. A producer clock that

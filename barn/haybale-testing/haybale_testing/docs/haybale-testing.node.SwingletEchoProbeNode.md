@@ -12,5 +12,7 @@ Test-only: a data node whose float swinglet records an arrival and writes it plu
 
 ## Notes
 
-Data node with a float swinglet `s`. `on_change` records each arriving value in `changes`,
+Data node with a float swinglet `s`.
+
+`on_change` records each arriving value in `changes`,
 then writes that value plus one to `s`.

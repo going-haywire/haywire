@@ -22,7 +22,9 @@ Sums several audio sources into one block per clock tick
 
 ## Notes
 
-Mixes live sources that run on their own flows. Each source has its own input: connect its audio
+Mixes live sources that run on their own flows.
+
+Each source has its own input: connect its audio
 output to the open input at the bottom and it gets a `Gain` and a `Mute`; a new open input appears
 below. Removing an input from its pin menu removes its `Gain` and `Mute` with it.
 

@@ -24,8 +24,10 @@ Emits a silent audio block at a steady rate
 
 ## Notes
 
-Emits one silent single-channel block per period to every Audio Event listening. The blocks
-carry no sound: the clock is a metronome, and the Audio Event it feeds runs its flow once per beat.
+Emits one silent single-channel block per period to every Audio Event listening.
+
+The blocks carry no sound: the clock is a metronome, and the Audio Event it feeds runs its flow
+once per beat.
 
 `Sample Rate` and `Block Size` set the period. 256 samples at 48 kHz is a block every 5.3 ms;
 smaller blocks lower the delay and raise the number of events per second.
