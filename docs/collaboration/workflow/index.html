@@ -6081,11 +6081,14 @@ its turn ends, <em>Decided</em> excepted, and passes on what the user told it di
    <code>[title](t3-thread://…)</code>), and sends the lead <em>Needs a decision</em>.</li>
 <li>The lead puts <code>?</code> before the task's name, marks it unread, and gives the user the
    task's line with the task's link as the last line; it never restates the options.</li>
-<li>The user answers in the task. That is the user's word for that task, approvals
-   included.</li>
-<li>The first tool call of that turn sends the lead "Decided: … (approved: …)"; the lead
-   drops the <code>?</code>. A task that reports anything else while its name carries <code>?</code> has been
-   answered: the lead drops the <code>?</code> then and notes the missed <em>Decided</em>.</li>
+<li>The user answers in the task. Answers to decisions do not widen <em>Approved</em>; only "go"
+   (to a plan: implement, commit, push and a draft PR) or an answer naming an approval
+   ("approved: push and draft PR") does.</li>
+<li>The first tool call of that turn sends the lead "Decided: … (approved: …)", the
+   approval verbatim or "none"; the task acts only within it, and with "none" asks before
+   it pushes. The lead drops the <code>?</code>. A task that reports anything else while its name
+   carries <code>?</code> has been answered: the lead drops the <code>?</code> then and notes the missed
+   <em>Decided</em>.</li>
 </ol>
 <p><strong>The lead merges</strong> only on the user's word, watches <code>master</code>'s run (<em>Finishing as the
 maintainer</em>, step 4), warns the tasks whose PRs now conflict, and tells the task "merged";
