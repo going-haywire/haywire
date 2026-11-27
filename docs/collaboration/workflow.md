@@ -446,11 +446,14 @@ its turn ends, *Decided* excepted, and passes on what the user told it directly.
    `[title](t3-thread://…)`), and sends the lead *Needs a decision*.
 2. The lead puts `? ` before the task's name, marks it unread, and gives the user the
    task's line with the task's link as the last line; it never restates the options.
-3. The user answers in the task. That is the user's word for that task, approvals
-   included.
-4. The first tool call of that turn sends the lead "Decided: … (approved: …)"; the lead
-   drops the `? `. A task that reports anything else while its name carries `? ` has been
-   answered: the lead drops the `? ` then and notes the missed *Decided*.
+3. The user answers in the task. Answers to decisions do not widen *Approved*; only "go"
+   (to a plan: implement, commit, push and a draft PR) or an answer naming an approval
+   ("approved: push and draft PR") does.
+4. The first tool call of that turn sends the lead "Decided: … (approved: …)", the
+   approval verbatim or "none"; the task acts only within it, and with "none" asks before
+   it pushes. The lead drops the `? `. A task that reports anything else while its name
+   carries `? ` has been answered: the lead drops the `? ` then and notes the missed
+   *Decided*.
 
 **The lead merges** only on the user's word, watches `master`'s run (*Finishing as the
 maintainer*, step 4), warns the tasks whose PRs now conflict, and tells the task "merged";
