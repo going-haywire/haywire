@@ -329,7 +329,8 @@ except Exception:
 ```
 
 **Why**: a swallowed exception is the silent failure this codebase loses the most time to.
-**Enforced by**: review (ruff `S110`/`S112`, planned). **Scope**: repo.
+**Enforced by**: ruff `S110`/`S112` in `packages/` and `barn/` (a silent `pass` or
+`continue`); review for a silent `return`. **Scope**: repo.
 
 ### CS-E3 · Catch the narrowest exception the code expects
 

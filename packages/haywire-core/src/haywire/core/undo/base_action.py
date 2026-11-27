@@ -13,7 +13,7 @@ import uuid
 from abc import ABC
 from typing import Any
 
-from ..errors import Refusal
+from ..errors import Refusal, report_failure
 from .interfaces import IAction
 
 
@@ -260,9 +260,13 @@ class CompositeAction(ActionBase):
         for action in reversed(self._executed_actions):
             try:
                 action.undo()
-            except Exception:
-                # Log but don't re-raise to avoid masking the original error
-                pass
+            except Exception as exc:
+                # Reported, not raised: the original error is re-raised by the caller.
+                report_failure(
+                    exc,
+                    operation="Undo rollback",
+                    message=f"Rolling back {action.description} failed; the graph may be partly rolled back",
+                )
 
         self._executed_actions.clear()
 

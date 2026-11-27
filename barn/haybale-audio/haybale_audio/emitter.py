@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from collections.abc import Callable
@@ -9,6 +10,9 @@ from typing import Any
 
 from haybale_audio.value import AudioBlock
 from haywire.api import BacklogSettings, ExecutionContext
+
+logger = logging.getLogger(__name__)
+
 
 #: Seconds between status updates of a running node; one per block would flood the UI.
 STATUS_INTERVAL = 0.5
@@ -104,4 +108,5 @@ def set_status(node: Any, text: str) -> None:
     try:
         node.ports["status"].set_value(text)
     except Exception:
-        pass
+        # The node is going away and has no status port left; nothing to show.
+        logger.debug("status update for a closing node failed", exc_info=True)

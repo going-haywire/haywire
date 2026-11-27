@@ -11,6 +11,7 @@ core must never import from ui.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Collection
 
 from haywire.barn.builtin.types import CHOICES, STRING
@@ -26,6 +27,8 @@ from haywire.core.skin.tags import (
     SKIN_TAG_WIDGET_NODE,
 )
 from haywire.core.types.enums import LayoutDirection, NodeDetail
+
+logger = logging.getLogger(__name__)
 
 
 def _layout_direction_choices():
@@ -129,7 +132,8 @@ def _node_theme_choices():
 
         options.update({k: lbl for k, lbl in get_theme_registry().list_visible_node_themes()})
     except Exception:
-        pass
+        # No theme registry yet: offer only "Inherit".
+        logger.debug("listing node themes failed", exc_info=True)
     return options
 
 

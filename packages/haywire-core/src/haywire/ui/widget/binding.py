@@ -12,6 +12,7 @@ between data storage and binding logic.
 from __future__ import annotations
 
 import copy
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
@@ -25,6 +26,9 @@ from haywire.ui.widget.converters import (
 
 if TYPE_CHECKING:
     from haywire.ui.widget.base import BaseWidget
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -251,7 +255,8 @@ class PropertyBinding:
             if hasattr(ui_element, "off"):
                 ui_element.off(event, handler)
         except Exception:
-            pass
+            # Teardown: the element is going away with its handlers.
+            logger.debug("removing %s handler failed", event, exc_info=True)
 
     def deactivate(self) -> None:
         """Deactivate binding and cleanup resources"""
@@ -262,7 +267,8 @@ class PropertyBinding:
             try:
                 cleanup()
             except Exception:
-                pass
+                # Teardown: one failed cleanup must not skip the rest.
+                logger.debug("binding cleanup callback failed", exc_info=True)
 
         self._cleanup_callbacks.clear()
         self._is_active = False

@@ -23,6 +23,7 @@ ADR-0029, Redraw, for why subscribing it would buy nothing and cost a hazard
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -52,6 +53,9 @@ if TYPE_CHECKING:
     from haywire.core.graph.stacking import Restack
     from haywire.core.session.session import Session
     from haywire.ui.components.popup import Popup
+
+
+logger = logging.getLogger(__name__)
 
 
 class SelectionToolbarProvider:
@@ -180,7 +184,8 @@ class SelectionToolbarProvider:
             try:
                 self._toolbar_popup.close()
             except Exception:
-                pass
+                # Gesture hide: a popup already gone client-side has nothing left to hide.
+                logger.debug("selection toolbar hide failed", exc_info=True)
 
     def destroy(self) -> None:
         """Fully tear down the popup (real lifecycle cleanup, not gesture hide)."""
@@ -189,7 +194,8 @@ class SelectionToolbarProvider:
                 self._toolbar_popup.close()
                 self._toolbar_popup.delete()
             except Exception:
-                pass
+                # Teardown: a popup that fails to close goes with its client.
+                logger.debug("selection toolbar teardown failed", exc_info=True)
             self._toolbar_popup = None
 
     # ------------------------------------------------------------------

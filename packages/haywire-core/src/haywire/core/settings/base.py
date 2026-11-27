@@ -13,8 +13,11 @@ The one subclass is ``setting`` in :mod:`haywire.core.settings.descriptor`.
 
 from __future__ import annotations
 
+import logging
 import typing
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 class SettingDescriptor:
@@ -81,7 +84,8 @@ class SettingDescriptor:
                 self._stamp_widget()
                 return
         except Exception:
-            pass
+            # Unresolvable hints: fall back to the generic argument below.
+            logger.debug("type hints of %s unavailable", owner.__name__, exc_info=True)
         orig_class = getattr(self, "__orig_class__", None)
         if orig_class is not None:
             args = typing.get_args(orig_class)

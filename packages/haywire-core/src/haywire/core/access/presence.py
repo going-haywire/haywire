@@ -15,6 +15,7 @@ Two different liveness signals, deliberately not pretended to be the same:
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass
 
@@ -22,6 +23,9 @@ from haywire.core.access.resolver import resolve_tier
 from haywire.core.access.tier import AccessTier
 from haywire.core.farmhand.activity import get_activity_tracker
 from haywire.core.signals import AgentDisconnected
+
+logger = logging.getLogger(__name__)
+
 
 #: An agent quieter than this drops out of the presence row.
 AGENT_IDLE_TIMEOUT_SECONDS = 300.0
@@ -62,7 +66,8 @@ def _note_departure(name: str) -> None:
 
         get_signal_dispatcher().broadcast(AgentDisconnected(principal=name))
     except Exception:  # pragma: no cover - defensive; no dispatcher in unit tests
-        pass
+        # Presence is a read path: a failed broadcast must not stop it.
+        logger.debug("broadcasting AgentDisconnected failed", exc_info=True)
 
 
 @dataclass(frozen=True)

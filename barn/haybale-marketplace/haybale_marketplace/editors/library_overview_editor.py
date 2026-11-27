@@ -138,7 +138,8 @@ def deprecation_message(row: Haybale, *, installed: bool) -> str | None:
             if Version(row.version) < Version(deprecated.since):
                 message = f"You are on v{row.version}; this library was deprecated in v{deprecated.since}"
         except Exception:
-            pass
+            # An unparseable version keeps the generic deprecation message.
+            logger.debug("comparing %s with the deprecation version failed", row.version, exc_info=True)
     if deprecated.reason:
         message = f"{message} — {deprecated.reason}"
     return message
@@ -489,7 +490,8 @@ class LibraryOverviewEditor(BaseEditor):
 
                 update_available = Version(catalog_row.version) > Version(version)
             except Exception:
-                pass
+                # An unparseable version only hides the update badge.
+                logger.debug("comparing installed and catalog versions failed", exc_info=True)
 
         # Tab references — created in fixed section, used in scroll section
         tabs = t_overview = t_nodes = t_macros = t_catalog = t_widgets = None
@@ -1066,4 +1068,5 @@ class LibraryOverviewEditor(BaseEditor):
                             new_tab=True,
                         ).classes("text-xs hw-text-accent mt-1")
         except Exception:
-            pass  # editor was closed before fetch completed
+            # The editor was closed before the fetch completed; nothing to fill.
+            logger.debug("showing the fetched overview failed", exc_info=True)

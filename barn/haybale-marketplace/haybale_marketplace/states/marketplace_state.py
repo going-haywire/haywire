@@ -94,7 +94,8 @@ class MarketplaceState(AppState):
         try:
             self.refresh()
         except Exception:
-            pass
+            # The list stays empty until the user presses Refresh.
+            logger.warning("first marketplace refresh failed", exc_info=True)
 
     # ------------------------------------------------------------------
     # Path helpers

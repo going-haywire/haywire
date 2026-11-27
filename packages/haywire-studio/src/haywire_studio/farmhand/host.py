@@ -302,7 +302,8 @@ class FarmhandHost(SignalPeer):
                 try:
                     await session.send_log_message(level="info", data=message)
                 except Exception:
-                    pass
+                    # Progress is advisory: the client may have gone.
+                    logger.debug("sending progress to the MCP client failed", exc_info=True)
 
             principal = self._caller_principal()
             ctx = FarmhandContext(progress_reporter=reporter, principal=principal)
@@ -420,7 +421,8 @@ class FarmhandHost(SignalPeer):
         try:
             self._sessions.add(self._server.request_context.session)
         except Exception:
-            pass
+            # Outside a request context there is no session to track.
+            logger.debug("tracking the MCP session failed", exc_info=True)
         self._announce_principal()
 
     def _announce_principal(self) -> None:

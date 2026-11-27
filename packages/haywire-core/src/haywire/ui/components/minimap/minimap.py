@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from nicegui import ui
@@ -8,6 +9,9 @@ from haywire.ui.components.minimap.settings import MinimapSettings
 
 if TYPE_CHECKING:
     from haywire.ui.components.zoom.pan import ZoomPanContainer
+
+
+logger = logging.getLogger(__name__)
 
 
 class MinimapCanvas(ui.element, component="minimap.vue"):
@@ -109,4 +113,5 @@ class MinimapCanvas(ui.element, component="minimap.vue"):
         try:
             self._settings._unsubscribe(self._on_setting_changed)
         except Exception:
-            pass
+            # Teardown: a failed unsubscribe only keeps a dead listener.
+            logger.debug("minimap settings unsubscribe failed", exc_info=True)

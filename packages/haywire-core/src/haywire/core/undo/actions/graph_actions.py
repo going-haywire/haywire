@@ -2706,7 +2706,8 @@ class DetachPlacementFromMacroAction(CompositeAction):
         try:
             label = str(card.node.props.label or "") or label
         except Exception:
-            pass
+            # The definition's label stands in for the node's own.
+            logger.debug("reading the macro node label failed", exc_info=True)
 
         edges = [
             (edge.source_node_id, edge.outlet_port_id, edge.sink_node_id, edge.inlet_port_id)

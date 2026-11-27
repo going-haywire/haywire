@@ -59,8 +59,8 @@ class StdoutTee:
                 for sink in sinks:
                     try:
                         sink(line)
-                    except Exception:
-                        pass  # a broken sink never breaks print()
+                    except Exception:  # noqa: S110 - a broken sink never breaks print(); logging would re-enter the bridge
+                        pass
         finally:
             self._guard.busy = False
         return n
