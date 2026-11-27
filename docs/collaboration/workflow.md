@@ -352,7 +352,8 @@ commits yet; otherwise it reports how far behind it is); in a library it links c
 the worktree (`../haywire-repo`) when the worktree is not already beside it, so the
 library's development project and its hooks find core wherever the orchestrator put the
 worktree; it runs `uv sync`, gives the worktree's studio a port of its own in
-`.haywire/settings.json`, and last writes `haywire-setup-done` into the worktree's git folder. Each
+`.haywire/settings.json`, and last writes `haywire-setup-done` into the worktree's git folder.
+In a repository with no `pyproject.toml` (the umbrella) it skips the core link, environment and port, saying so. Each
 repository's `t3.json` names its own line, so T3 runs it on creation. A
 session started in the worktree still reads the main folder's memory; CodeGraph indexes
 only the main folder, so search with grep there.
