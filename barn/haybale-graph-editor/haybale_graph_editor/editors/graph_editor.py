@@ -34,6 +34,7 @@ from haybale_graph_editor.editors.graph_save_as import open_graph_save_as_dialog
 from haybale_graph_editor.protocols import GraphContainer, SubgraphContainer
 from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.states.graph_app_state import GraphAppState
+from haywire.api import MacroRegistry
 from haywire.api.workbench import (
     AccessTier,
     ActiveGraphMoved,
@@ -1617,13 +1618,21 @@ class GraphEditor(BaseEditor):
         """Save this document; opens Save-As dialog if no path exists yet.
 
         Saving is a document operation at every level — a Group is written as
-        part of the file holding it.
+        part of the file holding it. A macro document (``.hwm``) is a file in its
+        library, so saving one needs admin, the tier writing into a library needs.
         """
         entry = self._document()
         if entry is None:
             return
         if not context.can_edit():
             ui.notify("Saving needs edit access", type="warning", position="top-right")
+            return
+        if (
+            entry.path is not None
+            and entry.path.suffix == MacroRegistry.SUFFIX
+            and not context.can_access(AccessTier.ADMIN)
+        ):
+            ui.notify("Saving a macro needs admin access", type="warning", position="top-right")
             return
 
         if entry.path is not None:

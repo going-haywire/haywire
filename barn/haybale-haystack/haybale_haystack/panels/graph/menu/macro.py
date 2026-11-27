@@ -32,13 +32,15 @@ if TYPE_CHECKING:
     description="Open the document behind a macro placement, in its own editor tab.",
     icon=hui.icon.macro,
     order=10,
+    requires=AccessTier.ADMIN,
 )
 class EditMacroMenuPanel(BasePanel):
     """Open the document behind a macro placement, in its own editor tab.
 
     Only visible on a placement. Its interior is runtime state rebuilt from the
     template, so it cannot be edited in place; this row opens the document that
-    can.
+    can. Needs admin, the tier every verb that writes into a library needs:
+    saving that document writes the macro file in its library.
     """
 
     # Declared because ``SelectionMacroMenu.provides`` is isinstance-checked against
@@ -68,14 +70,19 @@ class EditMacroMenuPanel(BasePanel):
 def _open_macro(ctx: SessionContext, registry_key: str) -> None:
     """Open the macro behind ``registry_key`` and reveal its tab.
 
-    Refused with the reason when the library's files are not the ones on disk:
-    a read-only install cannot be edited in place, and saying so beats opening
-    an editor whose Save would go nowhere.
+    Refused with a notice below the admin tier, and with the reason when the
+    library's files are not the ones on disk: a read-only install cannot be
+    edited in place, and saying so beats opening an editor whose Save would go
+    nowhere.
     """
     from nicegui import ui
 
     from haywire.core.di.config import get_library_system
     from haywire.core.macro.source import macro_edit_refusal, macro_source_path
+
+    if not ctx.can_access(AccessTier.ADMIN):
+        ui.notify("Editing a macro needs admin access", type="warning")
+        return
 
     try:
         library_system = get_library_system()

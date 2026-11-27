@@ -62,6 +62,7 @@ VIEW_PANELS = {
 } | INSPECTOR_PANELS
 ADMIN_PANELS = {
     "CloneToLibraryMenuPanel",
+    "EditMacroMenuPanel",
     "NewNodeToolbarPanel",
     "OpenRosterPanel",
     "RotateSecretPanel",
@@ -123,7 +124,6 @@ EDIT_PANELS = {
     "EdgeWarningsMenuPanel",
     "EditEdgeMenuPanel",
     "EditInstanceMenuPanel",
-    "EditMacroMenuPanel",
     "EditSelectionMenuPanel",
     "EditingSettingsPanel",
     "EditorZoomPanSettingsPanel",
