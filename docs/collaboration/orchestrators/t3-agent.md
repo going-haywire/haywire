@@ -25,7 +25,8 @@ and `T3CODE_THREAD_ID`; the session-start hook then names this file. T3's tools
   own `<tag> ◆ lead`, a task's `<lead tag> › <branch>`, `? ` in front while it waits on the
   user. A task never renames itself.
 - **A link** to a thread is `t3-thread://v2/<environment>/<thread id>`; its last part is
-  the id `t3_thread_send` takes.
+  the id `t3_thread_send` takes. A reply or message writes it as `[title](t3-thread://…)`,
+  since T3 shows a bare one as unclickable text.
 
 ## Created
 

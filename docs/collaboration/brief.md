@@ -31,9 +31,9 @@ nothing applies; a missing section is something the task has to guess.
 **Reserved for the owner:** <anything the task asks about, never decides: an architecture
 choice, a public name, a new hook or script>
 
-**Lead link:** <t3-thread://v2/<environment>/<thread id> | herdr address>
-Record it first: `python3 <core>/dev/scripts/worktree_setup.py --lead <link>` (skip when
-the session-start hook already names it).
+**Lead link:** <[<tag> ◆ lead](t3-thread://v2/<environment>/<thread id>) | herdr address>
+Record it first: `python3 <core>/dev/scripts/worktree_setup.py --lead <link>`, the bare
+`t3-thread://…` URL or the herdr address (skip when the session-start hook already names it).
 
 **Read first:** docs/collaboration/workflow.md, the orchestrator's `<tool>-agent.md`,
 <the plan or the files to start from>
