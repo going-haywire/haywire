@@ -6610,7 +6610,8 @@ recorded as a failure in the ledger.
 </span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;watcher stop failed&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span></code></pre></div>
 <p><strong>Why</strong>: a swallowed exception is the silent failure this codebase loses the most time to.
-<strong>Enforced by</strong>: review (ruff <code>S110</code>/<code>S112</code>, planned). <strong>Scope</strong>: repo.</p>
+<strong>Enforced by</strong>: ruff <code>S110</code>/<code>S112</code> in <code>packages/</code> and <code>barn/</code> (a silent <code>pass</code> or
+<code>continue</code>); review for a silent <code>return</code>. <strong>Scope</strong>: repo.</p>
 <h3 id="cs-e3-catch-the-narrowest-exception-the-code-expects">CS-E3 · Catch the narrowest exception the code expects<a class="headerlink" href="#cs-e3-catch-the-narrowest-exception-the-code-expects" title="Permanent link">&para;</a></h3>
 <p>✗ <code>except Exception</code> around a dict lookup ✓ <code>except KeyError</code>.
 <strong>Why</strong>: a broad catch turns an unrelated bug into the expected fallback.
