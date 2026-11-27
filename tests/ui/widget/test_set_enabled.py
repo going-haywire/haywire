@@ -1,6 +1,5 @@
 # tests/ui/widget/test_set_enabled.py
-"""
-BaseWidget.set_enabled(bool):
+"""BaseWidget.set_enabled(bool):
 
 - root is a NiceGUI DisableableElement  -> Quasar :disable prop toggles
 - root is a plain container element     -> design-guide §2.11 CSS is

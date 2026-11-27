@@ -1,5 +1,4 @@
-"""
-Control Switch Node.
+"""Control Switch Node.
 
 Routes control flow to its True or False outlet by comparing two values.
 """
@@ -40,9 +39,7 @@ OPERATORS = {
     node_type=NodeType.CONTROL,
 )
 class ControlSwitchNode(BaseNode):
-    """
-    Triggered when execution is switching control flow based on condition.
-    """
+    """Triggered when execution is switching control flow based on condition."""
 
     def init(self):
         # Control output

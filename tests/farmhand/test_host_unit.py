@@ -272,7 +272,8 @@ def _bare_host(tmp_path) -> FarmhandHost:
 
 def test_mount_installs_no_bearer_middleware(tmp_path):
     """ADR 0028: the root AuthGateMiddleware is the only credential check; mount()
-    wires the bare ASGI app straight in, with nothing wrapping it."""
+    wires the bare ASGI app straight in, with nothing wrapping it.
+    """
     host = _bare_host(tmp_path)
     target = _FakeAppTarget()
     document = SecurityDocument()

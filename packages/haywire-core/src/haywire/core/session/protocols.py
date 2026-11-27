@@ -1,6 +1,5 @@
 # packages/haywire-core/src/haywire/core/session/protocols.py
-"""
-Structural protocols for the Haywire UI system.
+"""Structural protocols for the Haywire UI system.
 
 These protocols define the interface the framework expects from host application
 objects, avoiding circular imports while providing full IDE type resolution.
@@ -25,8 +24,7 @@ if TYPE_CHECKING:
 
 
 class IAppState(Protocol):
-    """
-    Structural interface the framework expects from the host application.
+    """Structural interface the framework expects from the host application.
 
     HaywireApp satisfies this protocol without inheriting from it.
     """

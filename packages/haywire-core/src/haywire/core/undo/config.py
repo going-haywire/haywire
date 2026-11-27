@@ -1,5 +1,4 @@
-"""
-Configuration for the Haywire undo system.
+"""Configuration for the Haywire undo system.
 
 Every field here is read by :class:`~haywire.core.undo.history_manager.HistoryManager`.
 Earlier revisions carried a wider set (memory caps, action compression, lazy
@@ -30,8 +29,7 @@ def _default_max_actions() -> int:
 
 @dataclass
 class UndoConfig:
-    """
-    Configuration for the undo system behavior.
+    """Configuration for the undo system behavior.
 
     Most fields are internal tuning. ``max_actions`` is the exception: it is
     the one knob users see, so it defaults to ``UndoSettings.max_actions``

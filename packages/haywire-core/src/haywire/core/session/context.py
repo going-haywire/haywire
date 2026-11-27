@@ -16,8 +16,9 @@ if TYPE_CHECKING:
 
 
 class SessionContext(SignalSource):
-    """Per-session context: holds signal fields that scoped editors and
-    panels subscribe to, plus typed proxies into the app's library state.
+    """Per-session context: holds signal fields that scoped editors and panels subscribe to.
+
+    It also holds typed proxies into the app's library state.
 
     Reading: bare attribute access — ``ctx.active_file``.
     Writing: bare attribute access — ``ctx.active_file = new_path``.

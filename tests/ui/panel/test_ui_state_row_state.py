@@ -1,6 +1,5 @@
 # tests/ui/panel/test_ui_state_row_state.py
-"""
-Reactive panel UiState: a row rendered by _render_reactive_field_row
+"""Reactive panel UiState: a row rendered by _render_reactive_field_row
 must reflect Settings.effective_ui_state() — the imperative state (delivered
 over the dedicated UI-state channel, NOT a cell event) composed with the
 enabled_when / visible_when metadata conventions (declarative, same-bag,
@@ -61,7 +60,8 @@ def _walk_skip_menus(element):
     independently of the row's *value-editing* chrome, which is what
     ``_widget_is_disabled`` means to probe. A pristine NORMAL row's
     permanently-listed, correctly-greyed Reset item must not read as "the
-    row is disabled"."""
+    row is disabled".
+    """
     yield element
     if type(element).__name__ == "ContextMenu":
         return
@@ -72,7 +72,8 @@ def _walk_skip_menus(element):
 def _widget_is_disabled(row) -> bool:
     """True if any element under *row* (outside its Setting-row menu) is
     disabled by EITHER mechanism: Quasar ``disable`` prop (DisableableElement
-    root) or the §2.11 CSS (container root / label fallback)."""
+    root) or the §2.11 CSS (container root / label fallback).
+    """
     for el in _walk_skip_menus(row):
         if getattr(el, "_props", {}).get("disable") is True:
             return True
@@ -154,7 +155,8 @@ class TestImperativeUiState:
 
     def test_live_toggle_fires_no_cell_event(self):
         """Toggling UiState while a panel is live must not echo through the
-        value channel."""
+        value channel.
+        """
         bag = ImperativeSettings()
         _render(bag)
         events: list[str] = []

@@ -62,7 +62,8 @@ def test_patches_module_shaped_telemetry_fields_end_to_end(tmp_path):
     apply_graphs, so library.module_name, library.folder_path, and
     identity.module — write-only telemetry the loader never reads, but
     worth keeping fresh — are rewritten by a real run, not just by
-    the unit-level patch_graph_tree call."""
+    the unit-level patch_graph_tree call.
+    """
     ws = _workspace(tmp_path)
     graph_path = ws / "flows" / "g.haywire"
     data = json.loads(graph_path.read_text())
@@ -166,7 +167,8 @@ def test_malformed_toml_returns_failure_not_exception(tmp_path):
 def test_whitespace_padded_target_normalized_end_to_end(tmp_path):
     """Finding 3: a padded target name must not leak literal whitespace into
     the resulting directory/module name — the rename must use the trimmed
-    name throughout, not the raw input."""
+    name throughout, not the raw input.
+    """
     ws = _workspace(tmp_path)
     ok, message = _run(ws, "hay-src", "  hay-dst  ")
 
@@ -181,7 +183,8 @@ def test_whitespace_padded_target_normalized_end_to_end(tmp_path):
 @pytest.mark.unit
 def test_python_outside_module_dir_does_not_crash(tmp_path):
     """Finding 1: a .py file under barn/<lib>/ but outside the module dir
-    (tests/, conftest.py, ...) must not raise ValueError out of execute_plan."""
+    (tests/, conftest.py, ...) must not raise ValueError out of execute_plan.
+    """
     ws = _workspace(tmp_path)
     tests_dir = ws / "barn" / "hay-src" / "tests"
     tests_dir.mkdir()
@@ -204,7 +207,8 @@ def test_python_outside_module_dir_does_not_crash(tmp_path):
 def test_graph_inside_library_dir_is_retargeted_and_patched(tmp_path):
     """Finding 2: a graph shipped inside barn/<lib>/<module>/ must be found
     at its NEW location after the phase-3 directory rename, not raise
-    FileNotFoundError."""
+    FileNotFoundError.
+    """
     ws = _workspace(tmp_path)
     examples_dir = ws / "barn" / "hay-src" / "hay_src" / "examples"
     examples_dir.mkdir()
@@ -230,7 +234,8 @@ def test_graph_inside_library_dir_is_retargeted_and_patched(tmp_path):
 def test_missing_entry_points_section_fails_cleanly(tmp_path):
     """Finding 4: a pyproject.toml missing [project.entry-points."haywire.libraries"]
     must fail loud (KeyError, caught), not silently drop the write while
-    reporting success."""
+    reporting success.
+    """
     from haywire_studio.packaging.rename.execute import execute_plan
     from haywire_studio.packaging.rename.planner import plan_rename
 
@@ -259,7 +264,8 @@ def test_missing_entry_points_section_fails_cleanly(tmp_path):
 def test_sibling_heap_linked_libraries_rewritten(tmp_path):
     """Finding 5: a SIBLING heap's linked_libraries entry naming the renamed
     library's old module must be rewritten too, not just the renamed
-    library's own heap name/path."""
+    library's own heap name/path.
+    """
     ws = _workspace(tmp_path)
 
     dep = ws / "barn" / "hay-dep" / "hay_dep"

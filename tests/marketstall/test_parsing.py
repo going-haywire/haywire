@@ -28,7 +28,8 @@ def test_parse_haybale_entry_install_spec_defaults_to_bare_name_unpinned() -> No
     constraints, including the already-installed one, so callers that need
     a specific version (e.g. the marketplace's "Update" button) must build a
     pinned spec themselves (LibraryManager.build_versioned_spec) rather than
-    pass this field through verbatim."""
+    pass this field through verbatim.
+    """
     from haywire.core.marketstall.parsing import _parse_haybale_entry
 
     h = _parse_haybale_entry({"name": "haybale-foo", "version": "0.2.0"})
@@ -414,7 +415,8 @@ def test_serialize_project_marketplace_roundtrip(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_parse_haybale_entry_requires_version():
     """`version` is required. Parsing to "" silently disables update reporting
-    (refresh skips entries with a falsy version), so absence must be loud."""
+    (refresh skips entries with a falsy version), so absence must be loud.
+    """
     from haywire.core.marketstall.errors import MalformedMarketplaceError
     from haywire.core.marketstall.parsing import _parse_haybale_entry
 
@@ -434,7 +436,8 @@ def test_parse_haybale_entry_rejects_empty_version():
 @pytest.mark.unit
 def test_parse_haybale_entry_no_longer_reads_min_version():
     """Hard rename, no back-compat alias: a legacy `min_version` key is not a
-    substitute for `version`."""
+    substitute for `version`.
+    """
     from haywire.core.marketstall.errors import MalformedMarketplaceError
     from haywire.core.marketstall.parsing import _parse_haybale_entry
 
@@ -453,7 +456,8 @@ def test_parse_haybale_entry_reads_requires_haywire():
 @pytest.mark.unit
 def test_requires_haywire_is_optional():
     """Unlike `version`, an absent framework requirement is legitimate — it
-    means the author declared none."""
+    means the author declared none.
+    """
     from haywire.core.marketstall.parsing import _parse_haybale_entry
 
     h = _parse_haybale_entry({"name": "haybale-foo", "version": "0.1.0"})

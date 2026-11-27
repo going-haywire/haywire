@@ -1,5 +1,4 @@
-"""
-Haywire Core Library
+"""Haywire Core Library
 
 Contains fundamental nodes, widgets, adapters, and data definitions
 that form the foundation of the Haywire system.
@@ -32,7 +31,6 @@ class Library(BaseLibrary):
 
     def register_components(self):
         """Register all core components with the global registries"""
-
         """Register nodes and custom types"""
         base_path = Path(__file__).parent
 

@@ -143,7 +143,8 @@ def _make_slot(session, *keys):
 
 def test_switch_to_calls_on_focus_on_new_active_binding():
     """Slot.switch_to must call on_focus(context) on the newly-activated instance
-    when it was already drawn (instance exists)."""
+    when it was already drawn (instance exists).
+    """
     session = _make_session()
     slot = _make_slot(session, "e1", "e2")
     b2 = slot.find_binding("e2")
@@ -181,7 +182,8 @@ def test_switch_to_does_not_call_on_focus_when_target_already_active():
 
 def test_add_binding_activate_true_calls_on_focus():
     """add_binding(activate=True) must fire on_focus on the newly-added binding
-    once its instance has been created by the subsequent draw."""
+    once its instance has been created by the subsequent draw.
+    """
     session = _make_session()
     reg = _FakeRegistry()
     slot = TabSlot(session=cast(Any, session), name=SlotName.EDIT, registry=cast(Any, reg))
@@ -199,7 +201,8 @@ def test_add_binding_activate_true_calls_on_focus():
 
 def test_on_focus_raising_is_captured_in_wrapper_state():
     """An exception from on_focus must be captured into the wrapper's error_runtime
-    and not propagate — the slot must remain stable after an on_focus failure."""
+    and not propagate — the slot must remain stable after an on_focus failure.
+    """
 
     class _RaisingEditor(_FakeEditor):
         def on_focus(self, context):
@@ -233,7 +236,8 @@ def test_on_focus_raising_is_captured_in_wrapper_state():
 
 def test_remove_binding_fires_on_focus_on_promoted_sibling():
     """remove_binding on the active binding must fire on_focus on the promoted sibling
-    when the sibling's instance already exists."""
+    when the sibling's instance already exists.
+    """
     session = _make_session()
     slot = _make_slot(session, "e1", "e2")
     b2 = slot.find_binding("e2")

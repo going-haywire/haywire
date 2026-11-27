@@ -29,8 +29,7 @@ logger = logging.getLogger(__name__)
     node_type=NodeType.CONTROL,
 )
 class CallbackEmitNode(BaseNode):
-    """
-    Emits a callback to trigger event nodes in other flows.
+    """Emits a callback to trigger event nodes in other flows.
 
     Inputs:
         execute: Control flow in

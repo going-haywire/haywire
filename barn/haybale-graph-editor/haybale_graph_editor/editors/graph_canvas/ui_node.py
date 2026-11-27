@@ -1,5 +1,4 @@
-"""
-UINode - Manager class for node UI lifecycle with reliable cleanup and hot reload support
+"""UINode - Manager class for node UI lifecycle with reliable cleanup and hot reload support
 
 This class manages the relationship between a HaywireNode and its UI representation,
 using a container-slot approach for reliable re-rendering and cleanup.
@@ -30,8 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class UINode:
-    """
-    Manages the lifecycle and rendering of a HaywireNode's UI representation.
+    """Manages the lifecycle and rendering of a HaywireNode's UI representation.
 
     This class:
     - Holds references to HaywireNode and SkinFactory
@@ -55,8 +53,7 @@ class UINode:
         route: EditRoute | None,
         channel: LayoutChannel = PATCH,
     ):
-        """
-        Initialize UINode with node, factory, and parent component.
+        """Initialize UINode with node, factory, and parent component.
 
         Args:
             wrapper: NodeWrapper for hot reload support
@@ -105,8 +102,7 @@ class UINode:
         self._position = value
 
     def set_position(self, position: tuple[float, float]):
-        """
-        Set the position of the UINode in the UI.
+        """Set the position of the UINode in the UI.
 
         Args:
             position: (x, y) tuple for node position
@@ -114,8 +110,7 @@ class UINode:
         self.position = position
 
     def register_sync_event_emitter(self, emitter: Callable[[Any], None]):
-        """
-        Register a synchronization event emitter for UI updates.
+        """Register a synchronization event emitter for UI updates.
 
         Args:
             emitter: Callable that emits sync events
@@ -123,21 +118,18 @@ class UINode:
         self.sync_event_emitter = emitter
 
     def refresh(self, reason: ChangeReason):
-        """
-        Refresh the UI representation of the node.
+        """Refresh the UI representation of the node.
+
         This forces a re-render using the current renderer.
         """
         self.render()  # Re-render with current renderer
 
     def _listen_on_factory_lifecycle_event(self) -> None:
-        """
-        Handle skin hot reload notifications from SkinFactory.
-        """
+        """Handle skin hot reload notifications from SkinFactory."""
         self.render()
 
     def render(self) -> bool:
-        """
-        Render the node using the factory.
+        """Render the node using the factory.
 
         This may be called from background threads (file watcher) or validation callbacks.
         We always use container.client context to ensure UI updates run correctly.
@@ -152,8 +144,7 @@ class UINode:
             return self._render()
 
     def _render(self) -> bool:
-        """
-        Render the node using the specified renderer.
+        """Render the node using the specified renderer.
 
         Note: Must be called within a valid NiceGUI client context.
         """
@@ -528,8 +519,8 @@ class UINode:
         self.container_slot.update()
 
     def _emit_sync_event_redraw(self):
-        """
-        Emit a redraw event after the node DOM has been rebuilt.
+        """Emit a redraw event after the node DOM has been rebuilt.
+
         Vue will re-attach the hover observer and redraw all connected edges,
         using the pending-set / MutationObserver pattern if the canvas is not
         currently the active panel.
@@ -540,8 +531,7 @@ class UINode:
             self.sync_event_emitter(sync_event)
 
     def get_widget_instance(self, element_id: str):
-        """
-        Get a widget instance by element ID.
+        """Get a widget instance by element ID.
 
         Args:
             element_id: ID of the widget element
@@ -554,8 +544,9 @@ class UINode:
         return None
 
     def delete(self):
-        """Tear down subscriptions and remove the node's DOM. For single-node
-        removal (``remove_node_visual``).
+        """Tear down subscriptions and remove the node's DOM.
+
+        For single-node removal (``remove_node_visual``).
         """
         self.teardown_subscriptions()
         self.delete_dom()
@@ -565,8 +556,9 @@ class UINode:
         self.teardown_subscriptions()
 
     def teardown_subscriptions(self):
-        """Detach this node's factory tracking, lifecycle subscriber, and widget
-        callbacks. Does NOT touch the DOM. Idempotent.
+        """Detach this node's factory tracking, lifecycle subscriber, and widget callbacks.
+
+        Does NOT touch the DOM. Idempotent.
         """
         logger.debug(f"🔌 Tearing down subscriptions for UINode {self._node_id} ..")
         self._unsubscribe_slot_fields()
@@ -579,7 +571,9 @@ class UINode:
         logger.debug(f".. Done 🔌 subscription teardown for UINode {self._node_id}.")
 
     def delete_dom(self):
-        """Remove this node's container DOM. For single-node deletion only;
+        """Remove this node's container DOM.
+
+        For single-node deletion only;
         the bulk close path relies on the container teardown instead.
         """
         if self.container_slot:

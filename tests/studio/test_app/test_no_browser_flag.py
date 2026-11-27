@@ -1,5 +1,6 @@
 """``--no-browser`` top-level CLI flag (Task 2c): argparse -> run_app ->
-HaywireApp.run -> ui.run(show=...)."""
+HaywireApp.run -> ui.run(show=...).
+"""
 
 from __future__ import annotations
 
@@ -38,7 +39,8 @@ def test_absence_of_flag_defaults_to_open_browser_true(monkeypatch):
 
 def test_no_browser_is_top_level_not_a_subcommand(monkeypatch):
     """--no-browser must parse alongside the no-subcommand launch path, not
-    require or conflict with a subcommand."""
+    require or conflict with a subcommand.
+    """
     monkeypatch.setattr("sys.argv", ["haywire", "--no-browser"])
 
     with patch("haywire_studio.app.run_app", return_value=0):

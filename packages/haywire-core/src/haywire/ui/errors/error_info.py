@@ -9,8 +9,7 @@ from haywire.ui.errors.haywire_exception import render_error_details
 
 
 def error_render_detail(error: HaywireException) -> ui.element:
-    """
-    Renders a compact error summary with a button to show detailed error information in a popup.
+    """Renders a compact error summary with a button to show detailed error information in a popup.
 
     Uses the custom Popup class with proper lifecycle management to ensure only one instance
     exists at a time and cleanup is handled correctly.

@@ -1,7 +1,5 @@
 # haywire/core/node/behavior.py
-"""
-Node behavior flags - immutable class-level characteristics.
-"""
+"""Node behavior flags - immutable class-level characteristics."""
 
 from __future__ import annotations
 

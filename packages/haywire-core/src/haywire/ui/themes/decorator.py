@@ -1,6 +1,5 @@
 # haywire/ui/themes/theme_decorators.py
-"""
-Decorator for registering BaseTheme subclasses.
+"""Decorator for registering BaseTheme subclasses.
 
 @theme(theme_type=..., ...) — marks a BaseTheme subclass for auto-discovery
 by ThemeRegistry when a library calls add_folder(). ``theme_type`` is
@@ -27,8 +26,7 @@ _VALID_THEME_TYPES = ("workbench", "node")
 
 
 def theme(*, theme_type: str, **kwargs: Any) -> Callable[[type[T]], type[T]]:
-    """
-    Decorator that registers a BaseTheme subclass.
+    """Decorator that registers a BaseTheme subclass.
 
     Always invoked with parentheses — `@theme(...)`. The bare `@theme` form
     (no parens) is not supported.

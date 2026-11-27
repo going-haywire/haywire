@@ -1,5 +1,4 @@
-"""
-Data Flow Builder - Builds localized data flows for control nodes.
+"""Data Flow Builder - Builds localized data flows for control nodes.
 
 For each control node, this builder:
 1. Backpropagates from data inlets
@@ -23,8 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class DataFlowBuilder:
-    """
-    Builds localized data flows for control nodes.
+    """Builds localized data flows for control nodes.
 
     Each control node gets its own data flow that determines which
     data nodes must be evaluated before the control node executes.
@@ -34,8 +32,7 @@ class DataFlowBuilder:
     def build_localized(
         control_node: BaseNode, control_graph: ControlFlowGraph, graph: BaseGraph
     ) -> LocalizedDataFlow:
-        """
-        Build localized data flow for a control node.
+        """Build localized data flow for a control node.
 
         Args:
             control_node: Control node to build data flow for
@@ -91,8 +88,7 @@ class DataFlowBuilder:
     def _backpropagate(
         start_node_id: str, inlet_id: str, graph: BaseGraph, control_graph: ControlFlowGraph
     ) -> set[str]:
-        """
-        Backpropagate from inlet to find all data dependencies.
+        """Backpropagate from inlet to find all data dependencies.
 
         Args:
             start_node_id: Node containing the inlet
@@ -149,8 +145,7 @@ class DataFlowBuilder:
 
     @staticmethod
     def _check_cycles(node_ids: set[str], graph: BaseGraph, control_graph: ControlFlowGraph):
-        """
-        Check for illegal cycles in data flow.
+        """Check for illegal cycles in data flow.
 
         Data cycles are not allowed unless they pass through a control node.
 
@@ -215,8 +210,7 @@ class DataFlowBuilder:
 
     @staticmethod
     def _topological_sort(node_ids: set[str], graph: BaseGraph) -> list[str]:
-        """
-        Topologically sort data nodes for execution order.
+        """Topologically sort data nodes for execution order.
 
         Args:
             node_ids: Set of node IDs to sort

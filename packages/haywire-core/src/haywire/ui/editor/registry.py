@@ -1,6 +1,5 @@
 # packages/haywire-core/src/haywire/ui/editor_framework/registry.py
-"""
-EditorRegistry for managing editor type registrations.
+"""EditorRegistry for managing editor type registrations.
 
 Extends BaseRegistry for hot-reload support, folder scanning, lifecycle
 events, dependency tracking, and snapshot rollback.
@@ -25,8 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class EditorRegistry(BaseRegistry[BaseEditor]):
-    """
-    Registry of editor types.
+    """Registry of editor types.
 
     Extends BaseRegistry for hot-reload support, folder scanning, lifecycle
     events, dependency tracking, and snapshot rollback. Provided as a DI

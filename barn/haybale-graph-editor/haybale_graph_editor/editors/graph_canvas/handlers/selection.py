@@ -1,5 +1,4 @@
-"""
-SelectionHandlers — selection state and clipboard (copy/paste) events.
+"""SelectionHandlers — selection state and clipboard (copy/paste) events.
 
 Owns: selected_nodes, selected_edges, clipboard.
 """
@@ -63,8 +62,7 @@ def remove_selection_event(nodes: Iterable[str], edges: Iterable[str]) -> UserRe
 
 
 class SelectionHandlers:
-    """
-    Handle selection and clipboard canvas events.
+    """Handle selection and clipboard canvas events.
 
     Owns the Python-side record of what is currently selected and what is
     held in the session clipboard.
@@ -256,8 +254,10 @@ class SelectionHandlers:
         return {n for n, p in props.items() if not p.locked and self.channel.includes(p)}
 
     def _replace_selection(self, nodes: set[str], edges: set[str] | None = None) -> None:
-        """Select exactly ``nodes`` and ``edges`` (none by default), with no active element,
-        here and in the browser."""
+        """Select exactly ``nodes`` and ``edges``, here and in the browser.
+
+        ``edges`` defaults to none; no element is left active.
+        """
         self.selected_nodes = nodes
         self.selected_edges = edges or set()
 

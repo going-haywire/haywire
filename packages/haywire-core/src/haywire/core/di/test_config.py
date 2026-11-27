@@ -1,6 +1,5 @@
 # haywire/core/di/test_config.py
-"""
-Test-specific DI configuration for Haywire.
+"""Test-specific DI configuration for Haywire.
 
 Provides lightweight configurations for different test scenarios.
 """
@@ -79,8 +78,7 @@ def create_test_injector(
     use_temp_settings: bool = True,
     workspace_settings_path: str | None = None,
 ) -> Injector:
-    """
-    Create a test-specific DI injector with minimal overhead.
+    """Create a test-specific DI injector with minimal overhead.
 
     ``use_temp_settings`` redirects BOTH settings tiers into a throwaway
     directory. The workspace tier matters most: it is the one the app writes
@@ -122,8 +120,7 @@ def create_test_library_system(
     use_temp_settings: bool = True,
     workspace_settings_path: str | None = None,
 ) -> LibrarySystemService:
-    """
-    Create library system for integration tests.
+    """Create library system for integration tests.
 
     Settings paths are temp-redirected by default — see ``create_test_injector``
     for why the workspace tier in particular must not be the real one.
@@ -152,8 +149,7 @@ def create_test_library_system(
 def create_test_settings_registry(
     predefined_settings: dict | None = None, register_builtins: bool = True
 ) -> SettingsRegistry:
-    """
-    Create an isolated settings registry for unit tests.
+    """Create an isolated settings registry for unit tests.
 
     Args:
         predefined_settings: Optional dict of {full_key: value} to pre-set.
@@ -191,8 +187,7 @@ def create_test_bag(
     predefined_local: dict[str, Any] | None = None,
     predefined_global: dict[str, Any] | None = None,
 ) -> tuple[SettingsRegistry, Any]:
-    """
-    Create an isolated registry + Settings instance for unit tests.
+    """Create an isolated registry + Settings instance for unit tests.
 
     The bag is returned as ``Any`` rather than ``Settings``: its fields come
     from ``bag_cls`` (or the default test bag) and are resolved through
@@ -236,8 +231,7 @@ def create_test_bag(
 
 
 class SettingsTestContext:
-    """
-    Context manager for temporarily modifying global settings in tests.
+    """Context manager for temporarily modifying global settings in tests.
 
     Automatically restores original values after the test.
 

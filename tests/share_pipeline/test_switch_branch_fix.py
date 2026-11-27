@@ -80,7 +80,8 @@ def test_requires_a_branch_kwarg(repo: Path) -> None:
 
 def test_reports_a_failed_switch_rather_than_raising_raw(repo: Path) -> None:
     """A nonexistent target is a ShareError with a hand-run remedy, not a
-    subprocess traceback."""
+    subprocess traceback.
+    """
     with pytest.raises(PreconditionsError) as caught:
         SharePipeline(repo).apply_precondition_fix("switch_branch", branch="no-such-branch")
 
@@ -133,7 +134,8 @@ def test_wrong_branch_offers_the_switch_when_nothing_is_unmerged(repo: Path) -> 
 
 def test_wrong_branch_offers_no_button_with_unmerged_commits(repo: Path) -> None:
     """Nothing is destroyed by switching here — the branch keeps its commits —
-    but moving someone off unmerged work is their decision, not the wizard's."""
+    but moving someone off unmerged work is their decision, not the wizard's.
+    """
     from haywire.core.publishing.pipeline.steps.preconditions import _wrong_branch_failure
 
     _git(repo, "switch", "-c", "feature")

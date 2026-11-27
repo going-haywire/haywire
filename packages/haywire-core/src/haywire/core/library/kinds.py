@@ -1,6 +1,8 @@
-"""Canonical component-kind maps: kind -> registry, kind -> source folder,
-kind -> canon-doc area. Single source shared by the studio farmhands, the
-docs generator, and the marketplace drill-down tools."""
+"""Canonical component-kind maps: kind -> registry, kind -> source folder, kind -> canon-doc area.
+
+Single source shared by the studio farmhands, the docs generator, and the marketplace
+drill-down tools.
+"""
 
 from __future__ import annotations
 

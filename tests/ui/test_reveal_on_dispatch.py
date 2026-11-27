@@ -153,8 +153,8 @@ def test_reveal_on_rejects_a_non_reveal_signal():
 
 def test_a_zero_instance_editor_is_revealed():
     """The case that motivates the decorator: no tab open, so no instance, so
-    an instance-level @react_on would have nobody subscribed."""
-
+    an instance-level @react_on would have nobody subscribed.
+    """
     cls = _editor_cls("Demo", lambda context, event: True)
     _shell, session, slot = _build_shell({cls.class_identity.registry_key: cls})
 
@@ -165,7 +165,8 @@ def test_a_zero_instance_editor_is_revealed():
 
 def test_the_hook_runs_before_the_reveal():
     """Session state written by the hook must be in place before the editor
-    draws, or the revealed tab renders the previous subject."""
+    draws, or the revealed tab renders the previous subject.
+    """
     order: list = []
 
     def _decide(context, event) -> bool:
@@ -197,8 +198,8 @@ def test_a_vetoing_hook_is_not_revealed():
 
 def test_only_the_claiming_class_among_several_is_revealed():
     """Two editors declare the same signal; each decides for itself, so a
-    signal can be routed by content rather than by a discriminator field."""
-
+    signal can be routed by content rather than by a discriminator field.
+    """
     py_cls = _editor_cls("Py", lambda context, event: event.binding_id.endswith(".py"))
     md_cls = _editor_cls("Md", lambda context, event: event.binding_id.endswith(".md"))
     _shell, session, slot = _build_shell(

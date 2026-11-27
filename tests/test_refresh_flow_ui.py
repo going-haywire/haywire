@@ -23,7 +23,7 @@ _BODY = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
 
 @pytest.fixture
 def anyio_backend() -> str:
-    """anyio's backend parametrization. The repo runs asyncio only."""
+    """`anyio`'s backend parametrization. The repo runs asyncio only."""
     return "asyncio"
 
 
@@ -325,7 +325,7 @@ async def test_collision_is_visible_before_the_write(tmp_path: Path) -> None:
 
 @pytest.mark.anyio
 async def test_preferring_the_other_source_flips_the_winner_in_place(tmp_path: Path) -> None:
-    """ "Use this one" re-resolves and stays on the step — no write, new winner."""
+    """Choosing "Use this one" re-resolves and stays on the step — no write, new winner."""
     flow = _colliding_flow(tmp_path)
     mock = _collision_reachable()
     try:
@@ -386,7 +386,8 @@ async def test_no_collision_leaves_the_list_empty(tmp_path: Path) -> None:
 
 class _ConflictingState(_CollidingState):
     """Both stalls offer haybale-foo, but the resolver calls them different
-    libraries — the marketplace's identity policy said so."""
+    libraries — the marketplace's identity policy said so.
+    """
 
     def __init__(self, root: Path) -> None:
         super().__init__(root)
@@ -494,7 +495,8 @@ async def test_blocking_a_claimant_resolves_the_conflict_in_place(tmp_path: Path
 @pytest.mark.anyio
 async def test_an_unsettled_conflict_cannot_be_skipped(tmp_path: Path) -> None:
     """Even with nothing installed: leaving it unsettled is what lets a
-    survivor win by attrition on some later refresh."""
+    survivor win by attrition on some later refresh.
+    """
     flow = _conflicting_flow(tmp_path)
     mock = _conflict_reachable()
     try:
@@ -599,7 +601,8 @@ async def test_continue_needs_exactly_one_unblocked_claimant(tmp_path: Path) -> 
 @pytest.mark.anyio
 async def test_an_installed_claimant_cannot_be_blocked(tmp_path: Path) -> None:
     """Blocking the copy you are running would offer another author's code
-    under the same name on the next install."""
+    under the same name on the next install.
+    """
     from haywire.core.library.haybale import Haybale
 
     flow = _conflicting_flow(tmp_path)

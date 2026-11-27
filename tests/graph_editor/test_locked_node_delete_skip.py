@@ -109,7 +109,8 @@ class TestLockedNodesAreSkipped:
 
     def test_edges_are_never_protected_by_a_locked_node(self):
         """A locked node's edges stay deletable — lock covers the node's own
-        geometry and existence, not its wiring."""
+        geometry and existence, not its wiring.
+        """
         handlers = _handlers(locked_ids={"a"})
         with patch("haybale_graph_editor.editors.graph_canvas.handlers.visual_layer.ui"):
             handlers.process_element_removal(UserRemoveEvent(nodes=["a"], edges=["e1", "e2"]))

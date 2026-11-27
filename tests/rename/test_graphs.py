@@ -166,7 +166,8 @@ def test_module_name_field_reported_as_drift_when_new_module_not_supplied():
     from the hyphenated distribution name the walker rewrites. Without
     new_module (the plan-preview case, before the target module name is
     known), it is left alone and reported as drift — the safety net must
-    not silently miss a known-stale field."""
+    not silently miss a known-stale field.
+    """
     from haywire_studio.packaging.rename.graphs import patch_graph_tree
 
     data: dict[str, Any] = {
@@ -193,7 +194,8 @@ def test_module_name_field_reported_as_drift_when_new_module_not_supplied():
 def test_module_shaped_fields_rewritten_when_new_module_supplied():
     """When both old_module and new_module are given, library.module_name,
     library.folder_path, and identity.module are rewritten too — the same
-    position-scoped, never-a-blind-substring treatment as library.name."""
+    position-scoped, never-a-blind-substring treatment as library.name.
+    """
     from haywire_studio.packaging.rename.graphs import patch_graph_tree
 
     data: dict[str, Any] = {
@@ -229,7 +231,8 @@ def test_lookalike_module_name_is_not_rewritten():
     """haybale_foo must not match haybale_foo_extras — same colon/word-
     boundary discipline as the registry-key grammar, applied to module-
     shaped fields. An unrewritten lookalike is still real drift: it is a
-    different library sharing a name prefix, worth surfacing."""
+    different library sharing a name prefix, worth surfacing.
+    """
     from haywire_studio.packaging.rename.graphs import patch_graph_tree
 
     data: dict[str, Any] = {
@@ -262,7 +265,8 @@ def test_folder_path_rewrite_is_scoped_to_its_own_tail():
     """Only the path's own /<old_dist>/<old_module> tail changes — the
     workspace-root prefix survives untouched, and a path that doesn't end
     in the expected tail (captured elsewhere, or already moved by
-    something else) is reported as drift rather than guessed at."""
+    something else) is reported as drift rather than guessed at.
+    """
     from haywire_studio.packaging.rename.graphs import patch_graph_tree
 
     matching: dict[str, Any] = {
@@ -302,7 +306,8 @@ def test_folder_path_rewrite_is_scoped_to_its_own_tail():
 def test_module_name_drift_not_reported_without_old_module():
     """Without old_module, drift scanning is unchanged (searches only the
     distribution name) — proves the widening is additive, not a behavior
-    change for existing callers."""
+    change for existing callers.
+    """
     from haywire_studio.packaging.rename.graphs import patch_graph_tree
 
     data: dict[str, Any] = {"nodes": {"n": {"node_data": {"library": {"module_name": "haybale_foo"}}}}}
@@ -319,7 +324,8 @@ def test_rewritten_field_is_not_reported_as_drift_when_new_contains_old():
     value still contain the old needle as a substring of its NEW value.
     Scanning the post-mutation tree for drift double-reports those fields
     as unpatched even though they were rewritten correctly — the drift scan
-    must run against a pre-mutation snapshot."""
+    must run against a pre-mutation snapshot.
+    """
     from haywire_studio.packaging.rename.graphs import patch_graph_tree
 
     data: dict[str, Any] = {

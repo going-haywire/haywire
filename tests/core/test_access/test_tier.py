@@ -88,7 +88,8 @@ def test_required_tier_handles_a_none_identity():
 
 def test_required_tier_coerces_a_raw_wire_string():
     """@panel(requires="admin") is an untyped decorator kwarg — no dataclass
-    validation stands between the author's string and this function."""
+    validation stands between the author's string and this function.
+    """
     from haywire.core.access import required_tier
 
     identity = type("Identity", (), {"requires": "admin"})()

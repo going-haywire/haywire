@@ -70,7 +70,8 @@ def test_session_has_no_shell_attr():
 
 def test_session_has_no_legacy_lifecycle_callback_slot():
     """The pre-merge ``_lifecycle_callback`` / ``set_lifecycle_orchestrator``
-    surface is gone — AppShell is a normal bus subscriber now."""
+    surface is gone — AppShell is a normal bus subscriber now.
+    """
     session = _make_session()
     assert not hasattr(session, "_lifecycle_callback")
     assert not hasattr(session, "set_lifecycle_orchestrator")

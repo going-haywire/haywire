@@ -1,6 +1,5 @@
 # packages/haywire-app/src/haywire_studio/editors/library_overview_editor.py
-"""
-LibraryOverviewEditor — full center-panel port from LibraryManagerPage.
+"""LibraryOverviewEditor — full center-panel port from LibraryManagerPage.
 
 Renders in the middle area and reacts to LIBRARY_STATE_CHANGED events.
 Receives the active library via context.active_library — always a LibraryInfo,
@@ -209,8 +208,7 @@ def collect_overview_links(pkg) -> list[tuple[str, str]]:
     description="Detailed information for the selected library.",
 )
 class LibraryOverviewEditor(BaseEditor):
-    """
-    Full center-panel port of LibraryManagerPage.
+    """Full center-panel port of LibraryManagerPage.
 
     Displays:
     - Fixed header: name, version, dist name, badges, action buttons, metadata
@@ -360,7 +358,9 @@ class LibraryOverviewEditor(BaseEditor):
         row: Haybale,
         context: SessionContext,
     ) -> tuple[Callable[[], None], str] | None:
-        """Clicking a local "Notes"  opened an editable in the
+        """Click target that opens a local "Notes" file in the studio's CodeEditor.
+
+        Clicking a local "Notes"  opened an editable in the
         studio's CodeEditor rather than linked out to a remote blob.
 
         The file need not exist yet: CodeEditor opens a nonexistent path in a new tab

@@ -1,5 +1,4 @@
-"""
-Tests for VisualLayerHandlers — the pure-Python parts that don't require NiceGUI.
+"""Tests for VisualLayerHandlers — the pure-Python parts that don't require NiceGUI.
 
 NiceGUI-dependent methods (add_node_visual, update_node_position, etc.) are
 exercised through the integration/harness tests. Here we verify:

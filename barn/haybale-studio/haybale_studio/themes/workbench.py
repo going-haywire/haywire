@@ -1,5 +1,4 @@
-"""
-Haywire built-in workbench themes — dark and light variants.
+"""Haywire built-in workbench themes — dark and light variants.
 
 These are the official Haywire themes shipped with haybale-core. They are
 hot-reloadable: edit this file in an editable install and the ThemeRegistry

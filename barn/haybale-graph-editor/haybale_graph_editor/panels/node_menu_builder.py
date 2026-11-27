@@ -20,9 +20,10 @@ _MACRO_ICON = "🧩"
 
 
 class NodeMenuBuilder:
-    """Builds organized, hierarchical menus using node identity information
-    from the NodeFactory, based on the menu paths defined in node decorators
-    (e.g., menu='core/basic').
+    """Builds organized, hierarchical menus from node identity information.
+
+    The identity information comes from the NodeFactory; the hierarchy follows
+    the menu paths defined in node decorators (e.g., menu='core/basic').
     """
 
     def __init__(
@@ -47,8 +48,7 @@ class NodeMenuBuilder:
         recent_nodes: list[str] | None = None,
         show_search: bool = True,
     ) -> ui.column:
-        """
-        Create a complete node menu with optional recent nodes and search.
+        """Create a complete node menu with optional recent nodes and search.
 
         Args:
             recent_nodes: List of recently used node registry keys to show at top

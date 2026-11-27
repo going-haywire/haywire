@@ -29,7 +29,8 @@ def _isolate_di_settings_registry():
     """BaseGraph.__init__ requires the DI context's settings registry to be
     configured (get_settings_registry(), no constructor override — matches
     NodeData.__init__). Snapshot/restore the module-global slot around each
-    test so set_settings_registry() here doesn't leak into other test files."""
+    test so set_settings_registry() here doesn't leak into other test files.
+    """
     from haywire.core.di import context as di_context
 
     saved = di_context._settings_registry
@@ -66,7 +67,8 @@ def _registry():
 def _make_chain():
     """Build a graph-attached chain. BaseGraph requires the DI context's
     registry (no constructor override), so set_settings_registry() runs
-    before construction."""
+    before construction.
+    """
     from haywire.core.di.context import set_settings_registry
 
     registry = _registry()
@@ -123,7 +125,8 @@ def test_detached_bag_holds_descriptor_default():
 
     Deliberate contract: no production path constructs a detached bag (a
     NodeWrapper's graph is a non-optional constructor arg); an honest
-    default surfaces the detachment instead of masking it."""
+    default surfaces the detachment instead of masking it.
+    """
     registry = _registry()
     registry.set_global(SKIN_KEY, "skin-fw")
     bag = ChainedBag(registry=registry, node=cast(Any, None))

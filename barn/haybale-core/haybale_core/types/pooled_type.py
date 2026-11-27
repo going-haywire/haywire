@@ -1,5 +1,4 @@
-"""
-Pooled Compound Type - Final Simplified Version
+"""Pooled Compound Type - Final Simplified Version
 
 Key changes:
 1. Uses hooks from IType (_validate_port_type, _configure_port)
@@ -30,8 +29,7 @@ T = TypeVar("T")
     default={"value": {}},
 )
 class POOLED(CompoundType[T]):
-    """
-    Pooled compound type for multi-source aggregation.
+    """Pooled compound type for multi-source aggregation.
 
     Pooled inlets accept connections from multiple upstream nodes
     and aggregate their values into a dictionary keyed by source ID.
@@ -47,7 +45,7 @@ class POOLED(CompoundType[T]):
 
     Its field keeps one value per source, so the inlet takes many edges (see `DataPort.takes_many_links`).
 
-    IMPORTANT:
+    Important:
         as_inlet() refuses a wire_type kwarg; the port travels on its element type's wire type.
 
     Storage: PooledField stores Dict[str, T] with unwrapped values
@@ -66,8 +64,7 @@ class POOLED(CompoundType[T]):
 
     @classmethod
     def _validate_port_type(cls, port_type: PortType) -> None:
-        """
-        Override: Pooled only supports inlets.
+        """Override: Pooled only supports inlets.
 
         Pooled fields aggregate multiple inputs - they can't be outputs.
         """
@@ -103,8 +100,7 @@ class POOLED(CompoundType[T]):
 
 @dataclass
 class PooledField(DataField):
-    """
-    Field implementation for POOLED.
+    """Field implementation for POOLED.
 
     Stores dict of source_id -> unwrapped value.
     Essential for multi-source aggregation where each source
@@ -148,8 +144,7 @@ class PooledField(DataField):
         self._element_holds_absence = create is not None and create().accepts_absence()
 
     def get_value(self) -> dict[str, Any]:
-        """
-        Get dict of all source values.
+        """Get dict of all source values.
 
         Returns:
             {"node1": 42.0, "node2": 15.0}  # Primitives unwrapped
@@ -159,8 +154,7 @@ class PooledField(DataField):
         return dict(self._sources)
 
     def set_value(self, value: Any, source_id: str | None = None) -> None:
-        """
-        Set value from a specific source.
+        """Set value from a specific source.
 
         Source tracking is ESSENTIAL for pooled fields:
         - Each upstream node has a unique source_id
@@ -237,8 +231,7 @@ class PooledField(DataField):
     # ========================================================================
 
     def remove_source(self, source_id: str) -> None:
-        """
-        Remove a disconnected source.
+        """Remove a disconnected source.
 
         Args:
             source_id: Node ID to remove
@@ -250,8 +243,7 @@ class PooledField(DataField):
             self.fire(dict(self._sources), old)
 
     def get_values_list(self) -> list[Any]:
-        """
-        Get values as list (for iteration).
+        """Get values as list (for iteration).
 
         Returns:
             [42.0, 15.0]
@@ -259,8 +251,7 @@ class PooledField(DataField):
         return list(self._sources.values())
 
     def get_source_ids(self) -> list[str]:
-        """
-        Get list of source node IDs.
+        """Get list of source node IDs.
 
         Returns:
             ["node1", "node2"]

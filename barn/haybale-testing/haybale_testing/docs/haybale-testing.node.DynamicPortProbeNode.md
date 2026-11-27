@@ -16,8 +16,9 @@
 
 ## Notes
 
-Node with dynamically configurable ports for testing
-the validation pipeline (push/pop, hot reload, edge survival).
+Node with dynamically configurable ports for testing the validation pipeline.
+
+Covers push/pop, hot reload and edge survival.
 
 Static ports (always present):
 - bool_inlet, bool_outlet

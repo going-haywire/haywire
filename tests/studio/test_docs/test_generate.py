@@ -101,7 +101,8 @@ def test_package_root_flat_layout(tmp_path):
 
 def test_package_root_none_for_baked_in_library(tmp_path):
     """A module with no pyproject at or above it (e.g. builtin inside core)
-    has no own package root — README is skipped, in-wheel docs still written."""
+    has no own package root — README is skipped, in-wheel docs still written.
+    """
     module = tmp_path / "pkg" / "sub" / "builtin"
     module.mkdir(parents=True)
     assert _package_root(module) is None
@@ -130,7 +131,8 @@ def test_pyproject_version_none_without_a_package_root(tmp_path):
 
 def test_pyproject_version_none_when_no_version_line(tmp_path):
     """No version line → None, leaving the caller on its existing fallback
-    rather than inventing one."""
+    rather than inventing one.
+    """
     lib = tmp_path / "haybale-x"
     module = lib / "haybale_x"
     module.mkdir(parents=True)
@@ -140,7 +142,8 @@ def test_pyproject_version_none_when_no_version_line(tmp_path):
 
 def test_pyproject_version_ignores_dependency_version_pins(tmp_path):
     """Only the top-level [project] version line counts — a `version` inside a
-    dependency spec or another table must not be mistaken for the library's."""
+    dependency spec or another table must not be mistaken for the library's.
+    """
     lib = tmp_path / "haybale-x"
     module = lib / "haybale_x"
     module.mkdir(parents=True)
@@ -170,7 +173,8 @@ def test_generate_renders_explicit_version_over_declared(clean_haybale_testing):
 @pytest.mark.integration
 def test_generate_prunes_orphan_component_docs(clean_haybale_testing):
     """A stale docs/<key>.md for a component that no longer exists is removed
-    on regeneration (renamed/deleted components must not leave orphans)."""
+    on regeneration (renamed/deleted components must not leave orphans).
+    """
     repo = Path(__file__).resolve().parents[3]
     lib_root = repo / "barn" / "haybale-testing"
     docs_dir = lib_root / "haybale_testing" / "docs"
@@ -198,7 +202,8 @@ def test_generate_all_docs_scoped_to_one_library(clean_haybale_testing):
 
 class _FakeLibrary:
     """Minimal stand-in — LibraryRegistry.get_library_identity only reads
-    `.class_identity` off whatever is stored in `_libraries`."""
+    `.class_identity` off whatever is stored in `_libraries`.
+    """
 
     def __init__(self, identity: LibraryIdentity):
         self.class_identity = identity
@@ -273,7 +278,8 @@ def test_library_id_for_path_raises_on_ambiguous_shared_parent(tmp_path):
 def test_library_id_for_path_resolves_unambiguous_exact_and_nested_paths(tmp_path):
     """Exact match and target-inside-folder must still resolve directly,
     without raising, even though they go through the same collect-all-matches
-    logic as the ambiguous case."""
+    logic as the ambiguous case.
+    """
     parent = tmp_path / "barn"
     lib_a_folder = parent / "haybale-a"
     lib_b_folder = parent / "haybale-b"

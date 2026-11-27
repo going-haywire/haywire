@@ -1,5 +1,4 @@
-"""
-Unit tests for NodeFactory.
+"""Unit tests for NodeFactory.
 
 These tests use DI fixtures but don't load full library system.
 """
@@ -30,7 +29,6 @@ class TestNodeFactory:
         library_system,  # Ensures global system is initialized
     ):
         """Test basic node creation with error handling."""
-
         # Get the GLOBAL registry that NodeWrapper will also use
         node_registry = library_system.get_node_registry()
 

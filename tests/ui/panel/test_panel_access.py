@@ -30,7 +30,8 @@ def _panel(name: str, access: AccessTier, *, visible: bool = True):
 
 def _panel_with_both_methods(name: str, access: AccessTier):
     """A panel implementing BOTH draw() and draw_disabled() — the asymmetry an
-    author denied by requires= will get wrong if only draw() is checked."""
+    author denied by requires= will get wrong if only draw() is checked.
+    """
 
     class _P(BasePanel):
         drew = False
@@ -150,7 +151,8 @@ def test_render_panel_refuses_a_denied_panel_disabled_path_too():
     """requires= denies BOTH draw() and draw_disabled() — a greyed entry would
     advertise what the principal may not have (ADR-0029). Confirmed real gap:
     the sibling test above only exercised the disabled=False (draw()) path;
-    this is the asymmetry an author denied by requires= would get wrong."""
+    this is the asymmetry an author denied by requires= would get wrong.
+    """
     panel = _panel_with_both_methods("AdminBoth", AccessTier.ADMIN)
     assert render_panel(panel, _ctx(AccessTier.VIEW), _layout(), disabled=True) is False
     assert panel.drew is False

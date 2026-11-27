@@ -1,6 +1,5 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/graph.py
-"""
-GraphInfoPanel — read-only facts about the active graph.
+"""GraphInfoPanel — read-only facts about the active graph.
 
 Node and edge counts, plus the framework-written metadata (filestem,
 created_at, modified_at). Those three live here rather than in the

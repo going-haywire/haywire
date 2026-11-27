@@ -1,6 +1,5 @@
 # packages/haywire-core/src/haywire/ui/app/shell.py
-"""
-AppShell renders the workspace layout for a single browser session.
+"""AppShell renders the workspace layout for a single browser session.
 
 It is a layout container that hosts four :class:`Slot` subclass instances
 (ACTION/CONTEXT as :class:`IconSlot`, EDIT/INFO as :class:`TabSlot`). The shell
@@ -658,8 +657,7 @@ STATIC_CSS += PATH_FIT_CSS
 
 
 class AppShell:
-    """
-    Renders the workspace layout for a single browser session.
+    """Renders the workspace layout for a single browser session.
 
     Structure:
         TopBar          → fixed top row
@@ -678,8 +676,7 @@ class AppShell:
     """
 
     def __init__(self, session: Session, editor_registry: EditorRegistry):
-        """
-        Create the AppShell.
+        """Create the AppShell.
 
         Args:
             session: The per-session Session object.
@@ -805,8 +802,7 @@ class AppShell:
             logging.getLogger(__name__).error(f"Failed to apply node theme '{registry_key}': {e}")
 
     def apply_workbench_theme(self, registry_key: str) -> None:
-        """
-        Dynamically switch the active workbench theme by updating CSS variables.
+        """Dynamically switch the active workbench theme by updating CSS variables.
 
         Uses JavaScript setProperty on :root for zero-flash switching.
         Also updates context.active_workbench_theme_key for persistence.

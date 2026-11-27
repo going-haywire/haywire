@@ -150,8 +150,10 @@ class LibraryStateContainer:
             self._instantiate_session_state(cls, bag, session_id)
 
     def attach_session_with_ref(self, session_id: str, session: Session) -> None:
-        """Same as `attach_session`, but also stamps `self.session = weakref.ref(session)`
-        on every SessionState instance before `on_enable` runs.
+        """Same as `attach_session`, but also stamps each SessionState instance with the session.
+
+        Stamps `self.session = weakref.ref(session)` on every SessionState instance
+        before `on_enable` runs.
 
         Called by `SessionManager.create_session`. Also stores the weakref so
         that SessionState classes added later (e.g. library re-enable) can have
@@ -331,8 +333,7 @@ class LibraryStateContainer:
                 self._call_on_enable(app_instance)
 
     def on_library_disabled(self, library: BaseLibrary) -> None:
-        """Drop *library*'s id from ``_enabled_library_ids`` after its
-        ``disable()`` completes.
+        """Drop *library*'s id from ``_enabled_library_ids`` after its ``disable()`` completes.
 
         Timing: the CLASS_REMOVED events fired during ``library.disable()``
         have already drained through ``on_lifecycle_events`` by the time
@@ -360,7 +361,9 @@ class LibraryStateContainer:
         self._enabled_library_ids.add(library_id)
 
     def _mark_library_disabled(self, library_id: str) -> None:
-        """Mirror of ``_mark_library_enabled``. Removes *library_id* from the
+        """Mirror of ``_mark_library_enabled``.
+
+        Removes *library_id* from the
         set so subsequent events for that library are dropped.
 
         Called by ``on_library_disabled`` for production use. Tests use this

@@ -1,5 +1,4 @@
-"""
-haywire.ui.elements.icons — Semantic icon registry for Haywire UI.
+"""haywire.ui.elements.icons — Semantic icon registry for Haywire UI.
 
 Usage via the hui module-level alias:
 
@@ -15,8 +14,7 @@ from typing import Final
 
 
 class AppIcon:
-    """
-    Semantic icon names for Haywire UI concepts.
+    """Semantic icon names for Haywire UI concepts.
 
     Each Material icon string appears at most once — one icon, one concept.
     Use via the module-level alias:  hui.icon.canvas, hui.icon.edge, etc.

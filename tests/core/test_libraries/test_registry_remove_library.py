@@ -1,5 +1,6 @@
 """Tests for LibraryRegistry.remove_library() sys.modules ejection
-and find_library_by_distribution_name()."""
+and find_library_by_distribution_name().
+"""
 
 from __future__ import annotations
 

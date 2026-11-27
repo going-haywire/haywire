@@ -1,6 +1,4 @@
-"""Lifecycle management for one Haywire node instance: creation, hot reload,
-serialization and cleanup.
-"""
+"""Lifecycle management for one Haywire node instance: creation, hot reload, serialization and cleanup."""
 
 from __future__ import annotations
 
@@ -71,8 +69,11 @@ class NodeWrapperState:
     affect is_valid()."""
 
     def is_valid(self) -> bool:
-        """True once every stage has passed: registered, imported, instantiated,
-        initialized, structurally valid and tested."""
+        """True once every stage has passed.
+
+        The stages: registered, imported, instantiated, initialized, structurally valid
+        and tested.
+        """
         return (
             self.is_registered
             and self.is_imported
@@ -83,8 +84,10 @@ class NodeWrapperState:
         )
 
     def get_errors(self) -> list[HaywireException] | None:
-        """Every error recorded on this node, or ``None`` if there are none. Carrying
-        an error does not necessarily make the node invalid."""
+        """Every error recorded on this node, or ``None`` if there are none.
+
+        Carrying an error does not necessarily make the node invalid.
+        """
         error: list[HaywireException] = []
         if self.error_import:
             error.append(self.error_import)
@@ -300,8 +303,10 @@ class NodeWrapper:
         return bool(getattr(identity, "_is_error", False)) and identity.registry_key != self.registry_key
 
     def _kept_save_data(self, include_data: bool = True) -> dict[str, Any]:
-        """The kept node data with the props the user can change on the card;
-        without ``include_data``, the ports' values are left out as ``Port.to_dict`` does."""
+        """The kept node data with the props the user can change on the card.
+
+        Without ``include_data``, the ports' values are left out as ``Port.to_dict`` does.
+        """
         assert self._kept_data is not None and self._node_instance is not None
         data = copy.deepcopy(self._kept_data)
         # Only the props: a node that failed to load may not serialize as a whole.
@@ -369,8 +374,10 @@ class NodeWrapper:
     # =========================================================================
 
     def _import_node_cls(self):
-        """Resolve the node class for ``registry_key``, recording any import error
-        and, when it fails, the alternate registry keys to offer instead."""
+        """Resolve the node class for ``registry_key``, recording any import error.
+
+        When it fails, the alternate registry keys to offer instead are recorded too.
+        """
         self._node_cls, self._state.error_import = self._node_factory.get_node(self.registry_key)
         if self._state.error_import:
             self._state.is_imported = False
@@ -566,8 +573,9 @@ class NodeWrapper:
     def _initialize(
         self, node_info: dict[str, Any] | None = None, declared: dict[str, Any] | None = None
     ) -> bool:
-        """Bring the node to its initial state — from *node_info* if given, else
-        through its ``init()`` — and run ``post_init()`` last.
+        """Bring the node to its initial state and run ``post_init()`` last.
+
+        The initial state comes from *node_info* if given, else through its ``init()``.
 
         Returns whether it succeeded; a failure lands in ``state.error_initialize``.
         """
@@ -642,8 +650,9 @@ class NodeWrapper:
             logger.warning(f"Node {self._node_id}: saved props not restored", exc_info=True)
 
     def _structural_validation(self) -> bool:
-        """Check the node against the graph's structural validator — event-node
-        constraints, control-flow topology, and the like.
+        """Check the node against the graph's structural validator.
+
+        The validator covers event-node constraints, control-flow topology, and the like.
 
         Returns whether it passed; a failure lands in ``state.error_structural``.
         """
@@ -696,7 +705,6 @@ class NodeWrapper:
 
         Returns whether the test passed; a failure lands in ``state.error_test``.
         """
-
         try:
             if self._node_instance:
                 start_time = time.perf_counter()
@@ -1012,8 +1020,7 @@ class NodeWrapper:
     # =========================================================================
 
     def serialize(self, include_data: bool = True) -> dict[str, Any]:
-        """Return the wrapper and node state for a graph save, calling the node's
-        ``on_saved()`` first.
+        """Return the wrapper and node state for a graph save, calling the node's ``on_saved()`` first.
 
         Args:
             include_data: When True, port field values are included.

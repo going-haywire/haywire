@@ -25,8 +25,7 @@ from haywire.api import (
     node_type=NodeType.CONTROL,
 )
 class TickEmitNode(BaseNode):
-    """
-    Emits tick callbacks at a configurable framerate from an internal thread.
+    """Emits tick callbacks at a configurable framerate from an internal thread.
 
     Wire from BeginPlayEventNode to start ticking. Connect TickEventNodes via
     the callback inlet to receive ticks.

@@ -1,5 +1,7 @@
-"""Compatibility Warnings — advisory, author-declared notices that a graph
-saved by an older library version may not reflect a later behavioural change.
+"""Compatibility Warnings — advisory, author-declared notices of later behavioural changes.
+
+Each notice says that a graph saved by an older library version may not reflect a
+later behavioural change.
 
 This module is pure logic: the dataclass an author writes, semver parsing,
 and the CompatibilityChecker that decides which warnings fire for a saved

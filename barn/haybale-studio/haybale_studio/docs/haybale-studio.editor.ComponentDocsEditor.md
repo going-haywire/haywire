@@ -13,4 +13,5 @@ Detailed documentation for the selected component.
 ## Notes
 
 Displays documentation and port information for the selected component.
+
 Rebuilds on ACTIVE_COMPONENT_CHANGED context events.

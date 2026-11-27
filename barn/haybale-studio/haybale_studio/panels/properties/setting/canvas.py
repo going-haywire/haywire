@@ -1,6 +1,5 @@
 # haybale_studio/panels/properties/setting/canvas.py
-"""
-Canvas & node appearance panels, on the ``CanvasSettingsSurface`` surface.
+"""Canvas & node appearance panels, on the ``CanvasSettingsSurface`` surface.
 
 ``CanvasSettings`` here is the settings bag one of these panels renders
 (``haywire.ui.components.graph.settings``).

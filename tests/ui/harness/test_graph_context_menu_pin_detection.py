@@ -38,7 +38,8 @@ def _pin_center(page: Page, id_fragment: str) -> dict:
 
 def _node_body_center(page: Page, id_fragment: str) -> dict:
     """Screen-space center of a node's own card body (not a pin) — the safe
-    right-click target for asserting the pin branch does not swallow nodes."""
+    right-click target for asserting the pin branch does not swallow nodes.
+    """
     return page.evaluate(
         """(frag) => {
             const node = [...document.querySelectorAll('[data-node-id]')]
@@ -73,7 +74,8 @@ def _wait_for_text(page: Page, text: str, *, exact: bool) -> None:
 def test_right_click_on_a_pin_opens_the_pin_menu(page: Page, harness):
     """A right-click on an element carrying data-pin-id (and no
     data-hw-menu-surface-id) opens PinMenu — proven by ``PinEditMenuPanel``'s
-    "Edit Source" row, which is only ever drawn on that surface."""
+    "Edit Source" row, which is only ever drawn on that surface.
+    """
     _open(page, harness)
     pos = _pin_center(page, "exec@BeginPlayProbe")
 
@@ -96,7 +98,8 @@ def test_right_click_on_a_pin_opens_the_pin_menu(page: Page, harness):
 def test_right_click_on_a_node_body_still_opens_the_selection_menu(page: Page, harness):
     """A right-click on the node body (not a pin) still opens the selection
     menu — the pin branch (checked first, since a pin sits inside a node)
-    must not swallow the node case."""
+    must not swallow the node case.
+    """
     _open(page, harness)
     pos = _node_body_center(page, "BeginPlayProbe")
 

@@ -1,5 +1,8 @@
-"""Class identity for Farmhand (MCP tool) components — extends BaseIdentity
-like every sibling identity (NodeIdentity, EditorIdentity, LibraryStateClassIdentity)."""
+"""Class identity for Farmhand (MCP tool) components.
+
+Extends BaseIdentity like every sibling identity (NodeIdentity, EditorIdentity,
+LibraryStateClassIdentity).
+"""
 
 from __future__ import annotations
 
@@ -29,7 +32,9 @@ class ToolAnnotations:
 
 @dataclass
 class FarmhandIdentity(BaseIdentity):
-    """Inherits registry_id/registry_key/label/description/deprecation_warning/
+    """Farmhand identity: BaseIdentity plus MCP consent annotations and agent-facing instructions.
+
+    Inherits registry_id/registry_key/label/description/deprecation_warning/
     hidden/class_name/module from BaseIdentity; adds MCP consent annotations
     and agent-facing instructions.
 

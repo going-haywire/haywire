@@ -88,7 +88,8 @@ def test_panel_sits_on_the_account_menu():
 def test_panel_is_view_access():
     """The flag decides whether an affordance is DRAWN, never whether it may be
     used — the editors it reveals enforce their own access — so gating the
-    toggle higher would hide a read-only view and buy no safety."""
+    toggle higher would hide a read-only view and buy no safety.
+    """
     from haybale_studio.panels.account.account import DeveloperModePanel
 
     assert DeveloperModePanel.class_identity.requires is AccessTier.VIEW
@@ -125,7 +126,8 @@ def test_row_shows_checked_icon_when_on():
 
 def test_the_two_state_icons_differ():
     """A pair that collapsed to one string would render an unreadable toggle
-    while every other assertion here still passed."""
+    while every other assertion here still passed.
+    """
     assert hui.icon.checked != hui.icon.unchecked
 
 
@@ -143,7 +145,8 @@ def test_click_turns_developer_mode_on():
 
 def test_click_turns_developer_mode_off_again():
     """The handler must write the NEGATION of the state it drew, not a
-    constant True — otherwise the row is a one-way latch."""
+    constant True — otherwise the row is a one-way latch.
+    """
     ctx = _make_ctx()
     ctx.developer_mode = True
     _click_the_row(_draw(ctx))
@@ -187,7 +190,8 @@ def test_clicking_twice_returns_the_icon_to_unchecked():
 def test_the_icon_follows_the_context_not_a_captured_snapshot():
     """The second click must read ctx, not the value draw() captured — a
     handler closing over the draw-time bool flips between two constants and
-    desyncs from the flag it is meant to show."""
+    desyncs from the flag it is meant to show.
+    """
     ctx = _make_ctx()
     anchor = _draw(ctx)
 

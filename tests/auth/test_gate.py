@@ -151,7 +151,8 @@ async def test_cookie_signed_with_another_secret_is_rejected(enabled_roster):
 async def test_session_cookie_is_found_across_multiple_cookie_headers(enabled_roster):
     """HTTP/2 (RFC 9113 §8.2.3) and some proxies may split Cookie across
     several header lines; a single-header read would silently drop the
-    session cookie whenever it isn't first."""
+    session cookie whenever it isn't first.
+    """
     inner = _Recorder()
     cookie = f"{COOKIE_NAME}={sign_session('alice', secret=SECRET, days=30)}"
     headers = [(b"cookie", b"unrelated=1"), (b"cookie", cookie.encode())]
@@ -213,7 +214,8 @@ async def test_unscoped_agent_works_in_any_workspace(enabled_roster, tmp_path):
 @pytest.mark.anyio
 async def test_bad_bearer_token_falls_back_to_a_valid_cookie(enabled_roster):
     """An explicit-but-wrong bearer token must not shadow a valid cookie —
-    only a bad credential with nothing else to fall back on is a hard reject."""
+    only a bad credential with nothing else to fall back on is a hard reject.
+    """
     inner = _Recorder()
     cookie = f"{COOKIE_NAME}={sign_session('alice', secret=SECRET, days=30)}"
     headers = [(b"authorization", b"Bearer nope"), (b"cookie", cookie.encode())]

@@ -23,8 +23,7 @@ T = TypeVar("T")
     default={"value": []},
 )
 class STRING_MAP(CompoundType[T]):
-    """
-    Maps string keyed typed array compound type.
+    """Maps string keyed typed array compound type.
 
     Arrays store lists of elements of a specific type.
     All elements must be the same type (or compatible via adapters).
@@ -62,8 +61,7 @@ class STRING_MAP(CompoundType[T]):
 
 @dataclass
 class MapsStringField(DataField):
-    """
-    Field implementation for STRING_MAP.
+    """Field implementation for STRING_MAP.
 
     Stores map of unwrapped values with element type tracking.
 

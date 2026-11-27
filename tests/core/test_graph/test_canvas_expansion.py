@@ -1,5 +1,4 @@
-"""
-Unit tests for the auto-expanding canvas feature.
+"""Unit tests for the auto-expanding canvas feature.
 
 Covers:
 - BaseGraph initial canvas state

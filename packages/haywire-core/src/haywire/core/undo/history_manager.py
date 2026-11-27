@@ -1,5 +1,4 @@
-"""
-Core history manager implementation for the Haywire undo system.
+"""Core history manager implementation for the Haywire undo system.
 
 This module provides the main HistoryManager class that implements
 the IHistoryManager interface with support for fencing, grouping,
@@ -27,8 +26,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Fence:
-    """
-    A fence marks a boundary in the action history.
+    """A fence marks a boundary in the action history.
 
     Fences group related actions together so that undo/redo operations
     treat multiple actions as a single logical operation.
@@ -44,8 +42,7 @@ class Fence:
 
 @dataclass
 class ActionGroup:
-    """
-    A group of actions that should be treated as a single operation.
+    """A group of actions that should be treated as a single operation.
 
     Action groups are created automatically based on fencing and can
     contain both individual actions and nested groups.
@@ -88,8 +85,7 @@ class ActionGroup:
 
 
 class HistoryManager(IHistoryManager):
-    """
-    Main implementation of the history manager for undo/redo functionality.
+    """Main implementation of the history manager for undo/redo functionality.
 
     This class maintains the chronological sequence of actions and provides
     the core undo/redo functionality with support for fencing, grouping,
@@ -97,8 +93,7 @@ class HistoryManager(IHistoryManager):
     """
 
     def __init__(self, config: UndoConfig | None = None, *, error_context: dict[str, Any] | None = None):
-        """
-        Initialize the history manager.
+        """Initialize the history manager.
 
         Args:
             config: Configuration for undo system behavior
@@ -144,8 +139,7 @@ class HistoryManager(IHistoryManager):
         return self._undo_redo_count
 
     def add_action(self, action: IAction, *, origin: StepOrigin | None = None) -> bool:
-        """
-        Execute ``action`` and add it to the history.
+        """Execute ``action`` and add it to the history.
 
         This method handles action merging, grouping, and history maintenance
         based on the current configuration. A step merged into the one before it
@@ -193,8 +187,7 @@ class HistoryManager(IHistoryManager):
         *,
         origin: StepOrigin | None = None,
     ) -> bool:
-        """
-        Execute a value write and record it, amending the run's step while a merge run lasts.
+        """Execute a value write and record it, amending the run's step while a merge run lasts.
 
         A write that changed nothing records nothing and leaves the redo branch and the merge run
         alone. Otherwise the write amends the step this method last recorded or amended, while
@@ -322,8 +315,7 @@ class HistoryManager(IHistoryManager):
         return True
 
     def add_fence(self) -> None:
-        """
-        Add a fence to group related actions together.
+        """Add a fence to group related actions together.
 
         This forces any pending actions to be flushed and creates
         a boundary for future grouping operations.
@@ -349,8 +341,7 @@ class HistoryManager(IHistoryManager):
         self._notify()
 
     def undo(self, *, origin: StepOrigin | None = None) -> bool:
-        """
-        Undo the most recent action or action group.
+        """Undo the most recent action or action group.
 
         Args:
             origin: Who undoes; a successful undo becomes ``last_move()``.
@@ -399,8 +390,7 @@ class HistoryManager(IHistoryManager):
             return False
 
     def redo(self, *, origin: StepOrigin | None = None) -> bool:
-        """
-        Redo the most recently undone action or action group.
+        """Redo the most recently undone action or action group.
 
         Args:
             origin: Who redoes; a successful redo becomes ``last_move()``.
@@ -779,8 +769,7 @@ class HistoryManager(IHistoryManager):
             logger.info(f"Notification: {message}")
 
     def _cleanup_item(self, item: IAction | ActionGroup | Fence) -> None:
-        """
-        Clean up a history item.
+        """Clean up a history item.
 
         Calls cleanup() on actions and recursively on action groups.
         Fences have no cleanup needed.

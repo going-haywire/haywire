@@ -63,7 +63,8 @@ def test_rewrites_semicolon_joined_import_statements():
 @pytest.mark.unit
 def test_does_not_rewrite_lookalike_module_in_comma_joined_import():
     """Regression guard: word-boundary matching must not false-positive on a
-    longer identifier sharing the prefix, even alongside other rewritable names."""
+    longer identifier sharing the prefix, even alongside other rewritable names.
+    """
     src = "import haybale_foobar, haybale_foo\n"
     out, n = _rw(src)
     assert out == "import haybale_foobar, hay_bar\n"
@@ -132,7 +133,8 @@ def test_preserves_comments_and_blank_lines():
 def test_comma_joined_import_excluded_from_prose_because_actually_rewritten():
     """A line the AST detects as an import must not vanish from both the rewrite
     output AND the prose report — verify it's excluded because it WAS rewritten,
-    not merely because the AST proved it's an import."""
+    not merely because the AST proved it's an import.
+    """
     from haywire_studio.packaging.rename.pysource import scan_prose
 
     src = "import haybale_foo, os\n"

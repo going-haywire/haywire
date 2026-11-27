@@ -1,6 +1,5 @@
 # haywire/core/di/context.py
-"""
-Ambient context for app-scoped singletons.
+"""Ambient context for app-scoped singletons.
 
 Set once at startup by DI providers; read by deep entity constructors that cannot
 receive these via constructor injection::

@@ -61,7 +61,8 @@ def test_update_library_identity_writes_haybale_toml(tmp_path):
 def test_update_library_identity_rejects_fields_it_does_not_own(tmp_path):
     """version/origin belong to the share wizard, name is changed only by
     `haywire rename`. Passing one is a caller bug, so it fails loudly rather
-    than being dropped."""
+    than being dropped.
+    """
     from unittest.mock import MagicMock
 
     from haybale_marketplace.library_manager import LibraryManager

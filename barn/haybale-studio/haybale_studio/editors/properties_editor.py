@@ -39,8 +39,7 @@ logger = logging.getLogger(__name__)
     requires=AccessTier.VIEW,
 )
 class PropertiesEditor(BaseEditor):
-    """
-    Surface-driven properties editor.
+    """Surface-driven properties editor.
 
     The left SurfaceToolbar shows one icon button per **root surface that
     declares a ``presentation``** — surfaces named by some registered panel's

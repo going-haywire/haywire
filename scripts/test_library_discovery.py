@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Test script to verify library discovery system
+"""Test script to verify library discovery system
 
 Tests all loading priorities:
 1. Core libraries

@@ -11,7 +11,8 @@ import pytest
 
 def _link_and_push(node, pid, value):
     """Drive an upstream value onto a promoted inlet: stamp a linked edge so
-    ``is_linked()`` is True, then push the value through the port's field."""
+    ``is_linked()`` is True, then push the value through the port's field.
+    """
     port = node.ports[pid]
     port.incoming.linked["fake_edge"] = object()  # is_linked() only checks length
     port.set_value(value, edge_id="fake_edge")
@@ -57,7 +58,8 @@ def test_disconnected_promoted_inlet_falls_back_to_setting(make_node_with_settin
 @pytest.mark.integration
 def test_unpromoted_read_does_not_touch_ports(make_node_with_setting):
     """The unpromoted read path must never consult ``node.ports`` — there is no
-    per-read promotion lookup on the hot path (the setting is oblivious to ports)."""
+    per-read promotion lookup on the hot path (the setting is oblivious to ports).
+    """
     node = make_node_with_setting(accessor="filter", field="threshold")
 
     class _RaiseOnGet(dict):
@@ -85,7 +87,8 @@ def test_promoted_config_and_setting_share_one_cell(make_node_with_setting):
 @pytest.mark.integration
 def test_promoted_config_has_no_edge_and_reads_setting_value(make_node_with_setting):
     """A CONFIG port is pinless — there is no edge to drive it. Writing the
-    setting directly (its only write path) is reflected on the shared cell."""
+    setting directly (its only write path) is reflected on the shared cell.
+    """
     node = make_node_with_setting(accessor="filter", field="threshold")
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType

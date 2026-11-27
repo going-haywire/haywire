@@ -1,6 +1,4 @@
-"""
-EditorIdentity dataclass for the Haywire editor type system.
-"""
+"""EditorIdentity dataclass for the Haywire editor type system."""
 
 from __future__ import annotations
 
@@ -60,8 +58,7 @@ class OpenBehavior(Enum):
 
 @dataclass
 class EditorIdentity(BaseIdentity):
-    """
-    Metadata attached to an editor class by the @editor decorator.
+    """Metadata attached to an editor class by the @editor decorator.
 
     Set once at class-definition time; survives hot-reload.
 

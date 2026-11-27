@@ -193,7 +193,7 @@ class TestProjectPyproject:
             assert f"{library}{_release_pin()}" in deps
 
     def test_project_is_pinned_to_python_3_12(self, scaffold_project):
-        """uv sync/run stay on 3.12 even when the machine default is newer."""
+        """`uv` sync/run stay on 3.12 even when the machine default is newer."""
         assert (scaffold_project / ".python-version").read_text().strip() == "3.12"
 
     def test_workspace_members(self, scaffold_project):
@@ -248,7 +248,8 @@ class TestLibraryHaybaleToml:
 
     def test_version_matches_pyproject(self, scaffold_project):
         """The two files must agree from the first write — nothing else
-        reconciles them until the author's first version bump."""
+        reconciles them until the author's first version bump.
+        """
         pyproject = toml.loads(
             (scaffold_project / "barn" / "hay-test-project" / "pyproject.toml").read_text()
         )
@@ -374,7 +375,8 @@ class TestDevMode:
 
 class TestLibBasename:
     """_lib_basename lowercases and strips a leading hay-/haybale- prefix so
-    library names aren't doubled and everything under barn/ is lowercase."""
+    library names aren't doubled and everything under barn/ is lowercase.
+    """
 
     def test_strips_hay_hyphen_prefix(self):
         from haywire_studio.init import _lib_basename
@@ -448,7 +450,8 @@ class TestResolveDistname:
 
     def test_override_bypasses_hay_automatism_entirely(self):
         """--distname is the author's escape hatch — even haybale-* is allowed
-        through verbatim, on purpose."""
+        through verbatim, on purpose.
+        """
         from haywire_studio.init import _resolve_distname
 
         assert _resolve_distname("weather", "haybale-weather") == "haybale-weather"
@@ -503,7 +506,8 @@ class TestValidateSlug:
 
 class TestValidateProjectName:
     """Eased relative to _validate_slug: uppercase is allowed in the project
-    name (it's a directory/display name, not a pip distribution name)."""
+    name (it's a directory/display name, not a pip distribution name).
+    """
 
     def test_accepts_simple_slug(self):
         from haywire_studio.init import _validate_project_name
@@ -619,7 +623,8 @@ class TestDistnameOverride:
 
     def test_root_project_name_kept_verbatim(self, overridden_project):
         """The root project name is driven by projectname, never by --distname,
-        unless they happen to collide."""
+        unless they happen to collide.
+        """
         data = toml.loads((overridden_project / "pyproject.toml").read_text())
         assert data["project"]["name"] == "my-app"
 
@@ -669,7 +674,8 @@ class TestNameSanitization:
 
 class TestUppercaseProjectName:
     """The project name may carry uppercase letters; the scaffolded library
-    identity (barn/ dir, dist name, module name) is always lowercase."""
+    identity (barn/ dir, dist name, module name) is always lowercase.
+    """
 
     @pytest.fixture
     def cased_project(self, tmp_path, monkeypatch, fake_home):
@@ -812,7 +818,8 @@ class TestDevModeProjectRegistration:
 
 def test_scaffold_pin_has_no_ceiling():
     """A floor restricts consumers; a ceiling stamped at scaffold time becomes
-    a lie the moment the excluded version ships. Authors who want one type it."""
+    a lie the moment the excluded version ships. Authors who want one type it.
+    """
     from haywire_studio.init import _release_pin
 
     pin = _release_pin()

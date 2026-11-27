@@ -17,7 +17,9 @@ _PREFIX = "in_"
     node_type=NodeType.DATA,
 )
 class MergeChannelsNode(BaseNode):
-    """Joins the blocks on its inputs, in order, into one block. A single-channel input adds one
+    """Joins the blocks on its inputs, in order, into one block.
+
+    A single-channel input adds one
     channel; a multichannel input adds all of its channels.
 
     Connect an audio output to the open input at the bottom: it becomes an input of its own and a
@@ -33,7 +35,6 @@ class MergeChannelsNode(BaseNode):
 
     def hb_resolve(self, port, edge_wrapper) -> None:
         """Turn the open input into an audio input and add a new open one below it."""
-
         from haybale_audio.types.audio import AUDIO
 
         if port.type_cls is None or not issubclass(port.type_cls, ADD):

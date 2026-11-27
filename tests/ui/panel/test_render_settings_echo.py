@@ -1,5 +1,4 @@
-"""
-Echo-discipline regression for render_settings external sync.
+"""Echo-discipline regression for render_settings external sync.
 
 The cross-tab update path (subscription -> apply -> widget.value -> widget
 on_change -> setattr(model)) is only safe because writing a value the model

@@ -25,9 +25,10 @@ Plays an audio file as audio blocks, in real time
 
 ## Notes
 
-Reads an audio file from a volume and delivers it, paced at the file's sample rate, to every
-Audio Event listening. The file's own sample rate and channel count are kept: a node that needs
-another format converts it (Reblock/Resample).
+Reads an audio file from a volume and delivers it to every Audio Event listening.
+
+Delivery is paced at the file's sample rate. The file's own sample rate and channel count are
+kept: a node that needs another format converts it (Reblock/Resample).
 
 Inputs:
     start / stop: Begin or end playback

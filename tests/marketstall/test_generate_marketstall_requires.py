@@ -75,5 +75,6 @@ def test_requirement_specifier_splits_the_token(token, expected):
 
 def test_field_order_carries_require():
     """emit_stall_toml() skips any key absent from _ENTRY_FIELD_ORDER, so a
-    field missing here is silently dropped from the published feed."""
+    field missing here is silently dropped from the published feed.
+    """
     assert "require" in _ENTRY_FIELD_ORDER

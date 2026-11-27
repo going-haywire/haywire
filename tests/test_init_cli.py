@@ -31,7 +31,8 @@ def scaffold_dir(tmp_path, monkeypatch, fake_home):
 @pytest.fixture
 def fake_home(tmp_path, monkeypatch):
     """Minimal version of test_init_scaffolding's fixture, scoped to what
-    init_project() touches on the happy path."""
+    init_project() touches on the happy path.
+    """
     fake = tmp_path / "fake-home"
     fake.mkdir()
     monkeypatch.setenv("HOME", str(fake))
@@ -71,7 +72,8 @@ class TestArgParsing:
 
 class TestValidationExitsCleanly:
     """Invalid names are rejected before any prompt or scaffold, with a
-    process exit code — not a raised exception bubbling out of _run."""
+    process exit code — not a raised exception bubbling out of _run.
+    """
 
     def test_invalid_project_name_returns_nonzero(self, scaffold_dir, capsys):
         from haywire_studio.cli.init import _run
@@ -108,7 +110,8 @@ class TestValidationExitsCleanly:
 
 class TestUppercaseProjectNameAccepted:
     """Uppercase is allowed in the project name (eased gate); the scaffolded
-    library identity is still lowercased."""
+    library identity is still lowercased.
+    """
 
     def test_uppercase_project_name_scaffolds(self, scaffold_dir):
         from haywire_studio.cli.init import _run

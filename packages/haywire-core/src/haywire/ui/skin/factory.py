@@ -1,5 +1,4 @@
-"""
-SkinFactory - Factory for creating UINodeCard instances using NodeSkin classes
+"""SkinFactory - Factory for creating UINodeCard instances using NodeSkin classes
 
 This factory manages cached NodeSkin instances and provides the render method
 that looks up skins from the skin registry.
@@ -31,8 +30,7 @@ NO_SKIN_DEFINED: str = "no.skin.defined"
 
 
 class SkinFactory:
-    """
-    Factory class for creating UINodeCard instances using NodeSkin classes.
+    """Factory class for creating UINodeCard instances using NodeSkin classes.
 
     This factory:
     - Has access to both skin registry and widgets registry
@@ -42,8 +40,7 @@ class SkinFactory:
     """
 
     def __init__(self, skin_registry: SkinRegistry, widget_factory: WidgetFactory):
-        """
-        Initialize the factory with registries.
+        """Initialize the factory with registries.
 
         Args:
             skin_registry: Registry for NodeSkin classes
@@ -172,8 +169,8 @@ class SkinFactory:
         return ui_nodeCard
 
     def get_skin_instance(self, registry_key: str) -> BaseSkin:
-        """
-        Get a skin instance for the given element using the skin registry.
+        """Get a skin instance for the given element using the skin registry.
+
         Args:
             registry_key: The registry key to get the skin for
         Returns:
@@ -181,7 +178,6 @@ class SkinFactory:
         Raises:
             HaywireException: If the skin is not found or fails to instantiate
         """
-
         lc_event = self._skin_registry.get_skin_event(registry_key)
 
         skin_cls: type[BaseSkin] | None = lc_event.affected_class
@@ -222,8 +218,7 @@ class SkinFactory:
     def add_factory_lifecycle_subscriber(
         self, node_id: str, skin_registry_key: str, callback: FactoryEventCallback
     ) -> None:
-        """
-        Register a customer callback for factory event notifications.
+        """Register a customer callback for factory event notifications.
 
         Callbacks are invoked when either
         - a skin is hot-reloaded, added, or removed.
@@ -250,8 +245,7 @@ class SkinFactory:
             self._skin_regkey_to_node_id.setdefault(reg_key, set()).add(node_id)
 
     def remove_factory_lifecycle_subscriber(self, node_id: str, callback: FactoryEventCallback) -> None:
-        """
-        Release one card: unregister its callback and the skin it draws with.
+        """Release one card: unregister its callback and the skin it draws with.
 
         The node's other cards keep hearing reloads. The node's widget tracking
         ends with its last card.
@@ -274,9 +268,9 @@ class SkinFactory:
         self._reindex_node(node_id)
 
     def _notify_factory_subscribers(self, node_id: str) -> None:
-        """
-        Notify all subscribers about lifecycle events affected
-        by changes of skin and widgets the factory has detected.
+        """Notify all subscribers about lifecycle events affected by skin and widget changes.
+
+        The changes are those of skin and widgets the factory has detected.
 
         Args:
             node_id: The ID of the node affected by the lifecycle event
@@ -287,10 +281,9 @@ class SkinFactory:
                 callback()
 
     def _listen_on_skin_lifecycle_event(self, batch: list[LifeCycleEvent]) -> None:
-        """
-        Listener for skin hot reload events is called by the SkinRegistry
-        when a skin class is reloaded, added, or removed.
-        It clears the cache for affected skins.
+        """Listener for skin hot reload events; clears the cache for affected skins.
+
+        Called by the SkinRegistry when a skin class is reloaded, added, or removed.
 
         Args:
             batch: List of lifecycle events with complete context
@@ -322,8 +315,7 @@ class SkinFactory:
                     self._notify_factory_subscribers(node_id)
 
     def _listen_on_widget_lifecycle_events(self, node_ids: set[str]):
-        """
-        Listener for widget lifecycle events emitted by the widget factory
+        """Listener for widget lifecycle events emitted by the widget factory
 
         it directly forwards the affected node IDs to the factory subscribers.
 

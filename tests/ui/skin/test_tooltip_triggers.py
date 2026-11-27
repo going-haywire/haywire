@@ -42,7 +42,8 @@ def _graph():
 
 def _node(graph):
     """A node with widget-bearing inlets AND a config port, so both tooltip
-    call sites in the studio skin are exercised by one render."""
+    call sites in the studio skin are exercised by one render.
+    """
     from haybale_testing.nodes.testbed.performance_probe import PerformanceProbeNode
 
     wrapper = graph.create_node_wrapper(PerformanceProbeNode.class_identity.registry_key, position=(0, 0))
@@ -54,7 +55,8 @@ def _node(graph):
 
 def _fold_node(graph):
     """A node whose ports sit in folds, so the fold header's tooltip — hosted
-    on the header row, triggered by its triangle — is exercised too."""
+    on the header row, triggered by its triangle — is exercised too.
+    """
     from haybale_testing.nodes.testbed.fold_probe import FoldProbeNode
 
     wrapper = graph.create_node_wrapper(FoldProbeNode.class_identity.registry_key, position=(0, 0))
@@ -64,7 +66,8 @@ def _fold_node(graph):
 
 def _label_node(graph):
     """A node whose config port shows its value with ``LabelWidget``, which adds its
-    text to the port's tip rather than drawing a tip of its own."""
+    text to the port's tip rather than drawing a tip of its own.
+    """
     from haybale_testing.nodes.testbed.chip_field_probes import LongLabelProbeNode
 
     wrapper = graph.create_node_wrapper(LongLabelProbeNode.class_identity.registry_key, position=(0, 0))
@@ -101,7 +104,8 @@ def _is_ancestor(candidate: ui.element, element: ui.element) -> bool:
 
 def test_a_card_still_has_tooltip_triggers(rendered) -> None:
     """Guard the guards: deleting every tooltip would satisfy the two tests
-    below trivially, and would look like a performance win."""
+    below trivially, and would look like a performance win.
+    """
     assert _triggers(rendered), "the card carries no tooltip triggers at all"
 
 

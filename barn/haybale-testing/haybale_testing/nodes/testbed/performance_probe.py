@@ -1,5 +1,4 @@
-"""
-Shutdown Event Node.
+"""Shutdown Event Node.
 
 Triggered when the interpreter is shutting down, allowing for cleanup operations.
 """
@@ -17,9 +16,7 @@ from haywire.api import EXEC, FLOAT, INT, BaseNode, ExecutionContext, NodeType, 
     node_type=NodeType.CONTROL,
 )
 class PerformanceProbeNode(BaseNode):
-    """
-    Triggered when execution is switching control flow based on condition.
-    """
+    """Triggered when execution is switching control flow based on condition."""
 
     def init(self):
         # Control output

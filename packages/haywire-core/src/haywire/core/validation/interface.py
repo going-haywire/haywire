@@ -12,16 +12,14 @@ if TYPE_CHECKING:
 
 
 class IStructuralValidator(ABC):
-    """
-    Interface for structural validators.
+    """Interface for structural validators.
 
     Defines methods for validating nodes, edges, and entire graphs
     against structural constraints.
     """
 
     def __init__(self, graph: BaseGraph):
-        """
-        Initialize structural validator.
+        """Initialize structural validator.
 
         Args:
             graph: The graph to validate
@@ -30,8 +28,7 @@ class IStructuralValidator(ABC):
 
     @abstractmethod
     def validate_node(self, wrapper: NodeWrapper) -> tuple[bool, str | None, list[str]]:
-        """
-        Validate structural constraints for a single node.
+        """Validate structural constraints for a single node.
 
         Returns:
             Tuple of (is_valid, error_message, suggestions).
@@ -42,8 +39,7 @@ class IStructuralValidator(ABC):
 
     @abstractmethod
     def validate_subgraph_contents(self, wrappers: list[NodeWrapper]) -> tuple[bool, str | None, list[str]]:
-        """
-        Validate the node set of one Subgraph.
+        """Validate the node set of one Subgraph.
 
         Args:
             wrappers: Every node wrapper the Subgraph contains.

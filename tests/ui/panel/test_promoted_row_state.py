@@ -85,7 +85,8 @@ def _find_promoted_label(row):
 def _menu_item_text(item) -> str:
     """A ``MenuItem`` carries no ``.text`` of its own — it holds an ``ItemSection``
     child (``TextElement``) that does. Headless equivalent of what a browser
-    renders as the item's label."""
+    renders as the item's label.
+    """
     for child in item.default_slot.children:
         text = getattr(child, "text", None)
         if text is not None:
@@ -109,7 +110,8 @@ def _reset_enabled(row) -> bool:
 
 def _has_editable_widget(row) -> bool:
     """An editable widget renders inside a ``sf-widget`` div WITHOUT a
-    ``data-value`` prop (the read-only label fallback carries ``data-value``)."""
+    ``data-value`` prop (the read-only label fallback carries ``data-value``).
+    """
     for el in _walk(row):
         classes = getattr(el, "_classes", [])
         if "sf-widget" in classes:
@@ -168,7 +170,8 @@ def test_promoted_outlet_row_stays_editable(make_node_with_setting):
 def test_promoted_outlet_keeps_reset_when_locally_set(make_node_with_setting):
     """Outlet keeps the setting as source of truth: its menu Reset stays enabled,
     but the • dirty glyph is suppressed for any promotion direction (noise on a
-    row the user can't act on the same way as an unpromoted field)."""
+    row the user can't act on the same way as an unpromoted field).
+    """
     node = make_node_with_setting(accessor="filter", field="threshold")
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
@@ -283,7 +286,8 @@ def test_reset_click_clears_chrome_in_place_without_cell_event(make_node_with_se
     """For a locally-set field whose value already equals the default, clicking
     reset fires NO cell event (old == new), so the ONLY thing that clears the
     • / reset item is the handler refreshing its own row. Render once, click
-    the reset menu item in place, assert the same elements clear — no re-render."""
+    the reset menu item in place, assert the same elements clear — no re-render.
+    """
     node = make_node_with_setting(accessor="filter", field="threshold")
 
     # Locally set, and back at the default value: the "inert reset" case.
@@ -418,7 +422,8 @@ def test_label_glyph_grammar(make_node_with_setting):
     direction — a promoted row (inlet or outlet) isn't something the plain
     "locally overridden, click Reset" affordance applies to in the same way,
     so the glyph would just be noise. The → promotion arrow alone conveys
-    the row's special status."""
+    the row's special status.
+    """
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
 
@@ -453,7 +458,8 @@ def test_label_glyph_grammar(make_node_with_setting):
 def test_promoted_config_row_stays_editable(make_node_with_setting):
     """A CONFIG port has no edge — the setting stays the source of truth, so the
     panel row keeps its editable widget (same as an OUTLET). Promoting to config
-    ADDS the port's own live widget on the node; it does not move the panel's."""
+    ADDS the port's own live widget on the node; it does not move the panel's.
+    """
     node = make_node_with_setting(accessor="filter", field="threshold")
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
@@ -471,7 +477,8 @@ def test_promoted_config_row_stays_editable(make_node_with_setting):
 def test_promoted_config_keeps_reset_when_locally_set(make_node_with_setting):
     """Same as a promoted outlet: the row stays editable, so Reset stays
     actionable when the field carries a local opinion (the • dirty glyph is
-    still suppressed for any promotion direction)."""
+    still suppressed for any promotion direction).
+    """
     node = make_node_with_setting(accessor="filter", field="threshold")
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType

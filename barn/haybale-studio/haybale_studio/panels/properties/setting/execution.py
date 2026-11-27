@@ -1,6 +1,5 @@
 # haybale_studio/panels/properties/setting/execution.py
-"""
-Execution settings panels, on the ``ExecutionInspectorSurface`` surface.
+"""Execution settings panels, on the ``ExecutionInspectorSurface`` surface.
 
 ExecutionSettingsPanel — auto-execute, timeouts, parallelism, caching, error handling
 

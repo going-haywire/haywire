@@ -78,7 +78,8 @@ def test_a_hostless_remote_falls_back_to_the_guide() -> None:
 
 def test_a_configured_self_hosted_host_gets_its_providers_docs(monkeypatch, tmp_path) -> None:
     """The payoff of routing through resolve_host: a [[hosts]] entry naming
-    gitlab makes a self-hosted instance link GitLab's own docs."""
+    gitlab makes a self-hosted instance link GitLab's own docs.
+    """
     config = tmp_path / "config.toml"
     config.write_text('[[hosts]]\nhostname = "git.acme.dev"\nprovider = "gitlab"\n')
     monkeypatch.setattr("haywire.core.marketstall.host_providers.config._user_config_path", lambda: config)
@@ -91,7 +92,8 @@ def test_a_configured_self_hosted_host_gets_its_providers_docs(monkeypatch, tmp_
 
 def test_the_link_label_uses_the_brands_own_capitalization() -> None:
     """`"github".title()` is "Github", which is not how the brand is written —
-    so providers carry a `label` and the remedy uses it."""
+    so providers carry a `label` and the remedy uses it.
+    """
     failure = _unreachable_failure("git@github.com:o/r.git", "github.com", "denied")
     assert "GitHub's" in failure.doc_label
 
@@ -101,7 +103,8 @@ def test_the_link_label_uses_the_brands_own_capitalization() -> None:
 
 def test_the_url_travels_as_data_not_inside_the_remedy_prose() -> None:
     """The UI renders `doc_url` as a real anchor; a URL buried in `remedy`
-    would be dead text in that pre-wrapped label."""
+    would be dead text in that pre-wrapped label.
+    """
     failure = _unreachable_failure("git@github.com:o/r.git", "github.com", "denied")
 
     assert failure.doc_url.startswith("https://")

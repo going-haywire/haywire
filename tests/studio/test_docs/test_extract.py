@@ -146,7 +146,8 @@ class _SubclassWithOwnDocstring(_BaseWithDocstring):
 def test_record_from_class_does_not_inherit_ancestor_docstring():
     """A subclass with no docstring of its own must not silently pick up
     an ancestor's docstring via MRO (inspect.getdoc's behavior) — that
-    would fabricate documentation that was never actually written for it."""
+    would fabricate documentation that was never actually written for it.
+    """
     rec = _record_from_class("node", "lib:node:sub", _SubclassWithoutDocstring)
     assert rec.docstring == ""
 

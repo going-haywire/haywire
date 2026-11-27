@@ -38,7 +38,8 @@ def _build_split_action(graph, **overrides):
 
 def test_split_action_resolves_outlet_type_and_builds_children():
     """Construction resolves the outlet IType and builds the 5 child actions in
-    order: remove edge -> add node -> add ports -> two add-edges."""
+    order: remove edge -> add node -> add ports -> two add-edges.
+    """
     from haywire.core.undo.actions.graph_actions import (
         AddEdgeAction,
         AddNodeAction,

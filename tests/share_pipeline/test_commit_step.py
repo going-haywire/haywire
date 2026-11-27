@@ -116,7 +116,8 @@ def test_apply_marketstall_translates_manifest_read_error(project: Path) -> None
 def test_apply_marketstall_pins_install_spec_to_the_pending_tag(project: Path) -> None:
     """Step 3 already resolved and reserved the version before step 5 runs —
     the marketstall entry's install_spec must use that same tag, not the
-    branch, so it agrees with the tag apply() creates moments later."""
+    branch, so it agrees with the tag apply() creates moments later.
+    """
     import toml
 
     pipeline = _ready(project, version="0.3.2")
@@ -157,7 +158,8 @@ def test_plan_commit_includes_a_diffstat(project: Path) -> None:
 def test_plan_commit_diffstat_labels_a_deleted_doc(project: Path) -> None:
     """docs_write_set legitimately returns paths the generator deleted (orphaned
     per-component docs on a rename). The preview must call that out as a
-    deletion, not mislabel it "(new file)"."""
+    deletion, not mislabel it "(new file)".
+    """
     pipeline = _ready(project)
     doomed = project / "barn" / "haybale-alpha" / "haybale_alpha" / "docs" / "old.md"
     doomed.parent.mkdir(parents=True)
@@ -183,7 +185,8 @@ def test_plan_commit_diffstat_labels_new_file_that_is_a_text_prefix_of_another_l
     of "barn/haybale-alpha/NOTES.md.bak"'s line (tracked, modified) — the old
     substring check read that as "already covered" and silently dropped the
     "(new file)" label entirely, even though the diffstat never actually
-    mentioned NOTES.md."""
+    mentioned NOTES.md.
+    """
     pipeline = _ready(project)
     bak = project / "barn" / "haybale-alpha" / "NOTES.md.bak"
     bak.write_text("a\n")
@@ -212,7 +215,8 @@ def test_plan_commit_without_a_version_raises(project: Path) -> None:
 
 def test_apply_commit_stages_only_the_planned_files(project: Path) -> None:
     """Never -a/-A: a checkpoint-style sweep would drag the user's unrelated
-    work-in-progress into a wizard-authored commit."""
+    work-in-progress into a wizard-authored commit.
+    """
     pipeline = _ready(project)
     (project / "unrelated.txt").write_text("wip\n")
     (project / "barn" / "haybale-alpha" / "stray.py").write_text("# stray\n")
@@ -240,7 +244,8 @@ def test_apply_commit_creates_the_tag_on_that_commit(project: Path) -> None:
 def test_apply_commit_stages_a_barn_file_the_pipeline_recorded(project: Path) -> None:
     """A barn asset the pipeline itself wrote (e.g. a docs step) is staged like
     any other write-set member — no separate opt-in mechanism exists now that
-    the clean-working-tree precondition means nothing else can be dirty."""
+    the clean-working-tree precondition means nothing else can be dirty.
+    """
     pipeline = _ready(project)
     asset = project / "barn" / "haybale-alpha" / "haybale_alpha" / "icon.png"
     asset.write_bytes(b"\x89PNG")
@@ -255,7 +260,8 @@ def test_apply_commit_stages_a_barn_file_the_pipeline_recorded(project: Path) ->
 
 def test_apply_commit_stages_deletions(project: Path) -> None:
     """Renamed components leave orphan docs the generator deletes; a deletion
-    left unstaged ships the stale file."""
+    left unstaged ships the stale file.
+    """
     pipeline = _ready(project)
     doomed = project / "barn" / "haybale-alpha" / "haybale_alpha" / "docs" / "old.md"
     doomed.parent.mkdir(parents=True)
@@ -356,7 +362,8 @@ def test_current_branch_is_none_on_detached_head(project: Path) -> None:
 def test_push_command_raises_on_detached_head(project: Path) -> None:
     """Defensive: check_preconditions() already rejects detached HEAD before any
     caller reaches push_command(), but the guard here must fail loud rather than
-    silently build a `HEAD:None`-shaped refspec if it's ever reached anyway."""
+    silently build a `HEAD:None`-shaped refspec if it's ever reached anyway.
+    """
     from haywire.core.publishing.pipeline import PipelineStateError
 
     sha = _git(project, "rev-parse", "HEAD").strip()

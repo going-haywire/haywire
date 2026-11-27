@@ -74,7 +74,8 @@ async def test_does_not_shut_down_on_render(user: User, monkeypatch: pytest.Monk
 @pytest.mark.anyio
 async def test_click_triggers_graceful_shutdown(user: User, monkeypatch: pytest.MonkeyPatch) -> None:
     """Clicking routes through ``app.shutdown()`` — the graceful path that lets
-    lifespan handlers run, matching the framework update dialog."""
+    lifespan handlers run, matching the framework update dialog.
+    """
     calls: list[int] = []
     monkeypatch.setattr(restart_module.app, "shutdown", lambda: calls.append(1))
 

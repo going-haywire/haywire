@@ -109,7 +109,8 @@ def test_skin_row_uses_the_nodes_own_skin_when_set():
 def test_skin_row_falls_back_to_the_registry_default():
     """props.skin is None on every node that never overrode it — which is
     most of them — and the registry default is what actually draws the card,
-    so the row must not vanish there."""
+    so the row must not vanish there.
+    """
     ctx = _ctx(nodes={"a"}, active_node=_wrapper(skin=None), default_skin="core:skin:Default")
     assert NodeSkinMenuPanel._skin_key(ctx) == "core:skin:Default"
     assert NodeSkinMenuPanel.poll(ctx) is True
@@ -134,7 +135,8 @@ def test_theme_row_reads_the_resolved_node_theme():
 def test_theme_row_declines_with_no_node_theme():
     """An empty node_theme means the card takes its colours from the
     workbench theme — there is no node theme to open, unlike skin, which has
-    a registry default standing behind it."""
+    a registry default standing behind it.
+    """
     ctx = _ctx(nodes={"a"}, active_node=_wrapper(node_theme=None))
     assert NodeThemeMenuPanel.poll(ctx) is False
 

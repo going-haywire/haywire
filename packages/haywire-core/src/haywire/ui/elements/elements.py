@@ -1,5 +1,4 @@
-"""
-haywire.ui.elements — Haywire Design System component wrappers.
+"""haywire.ui.elements — Haywire Design System component wrappers.
 
 Thin wrappers around NiceGUI / Quasar elements, pre-configured with the
 Haywire visual language: correct CSS token usage, spacing, typography, and
@@ -60,9 +59,9 @@ _LIST_HOVER_CLASS = "hw-list-item-hover"
 
 @contextmanager
 def panel_header(title: str, *, icon: str | None = None, is_dirty: bool = False):
-    """
-    A slim bar at the top of a panel with title, optional icon, and space for
-    action buttons.  Use as a context manager — place action buttons inside.
+    """A slim bar at the top of a panel with title, optional icon, and space for action buttons.
+
+    Use as a context manager — place action buttons inside.
 
     Anatomy::
 
@@ -164,8 +163,7 @@ def info_bar(
     badge_color: str = "blue-grey",
     suffix: str | None = None,
 ) -> ui.row:
-    """
-    A contextual metadata bar (e.g. showing the open file name + language + size).
+    """A contextual metadata bar (e.g. showing the open file name + language + size).
 
     Visual rules:
     - Height: ``min-height: 28px``
@@ -207,8 +205,7 @@ def empty_state(
     hint: str | None = None,
     icon_size: str = "40px",
 ) -> ui.column:
-    """
-    Centered placeholder for panels with no content.
+    """Centered placeholder for panels with no content.
 
     Visual rules:
     - Centred vertically and horizontally
@@ -245,8 +242,7 @@ def list_item(
     dot_color: str | None = None,
     on_click: Callable | None = None,
 ) -> ui.row:
-    """
-    An interactive row for browsers and selection lists.
+    """An interactive row for browsers and selection lists.
 
     Visual rules:
     - Padding: ``px-2 py-1.5``
@@ -288,8 +284,7 @@ def list_item(
 
 
 def label(text: str) -> ui.label:
-    """
-    A body-tier text label.
+    """A body-tier text label.
 
     Visual rules:
     - Text: ``text-sm hw-text-body``
@@ -314,8 +309,7 @@ def heading(text: str) -> ui.label:
 
 
 def section_label(text: str) -> ui.label:
-    """
-    An uppercase tracking label that separates groups within a list or panel.
+    """An uppercase tracking label that separates groups within a list or panel.
 
     Visual rules:
     - ``.hw-section-label``: ``text-xs`` bold, tracking, uppercase, ``hw-text-dim``
@@ -434,8 +428,7 @@ def info_row(
     label_width: str = "w-16",
     copyable: bool = True,
 ) -> ui.row:
-    """
-    A key-value metadata row with optional copy-to-clipboard button.
+    """A key-value metadata row with optional copy-to-clipboard button.
 
     Visual rules:
     - Row: ``w-full items-center gap-1 py-0.5``
@@ -479,8 +472,7 @@ def code_snippet(
     label: str | None = None,
     copyable: bool = True,
 ) -> ui.column:
-    """
-    A read-only code snippet with optional label and copy button.
+    """A read-only code snippet with optional label and copy button.
 
     Visual rules:
     - Outer column: ``w-full gap-0.5 py-1``
@@ -756,8 +748,7 @@ def icon_action(
     command: type[EditorCommand] | None = None,
     closes: bool = True,
 ) -> ui.button:
-    """
-    A minimal icon-only button for inline actions (refresh, close, copy).
+    """A minimal icon-only button for inline actions (refresh, close, copy).
 
     Visual rules:
     - Props: ``flat round dense size={size}``
@@ -805,8 +796,7 @@ def toolbar_button(
     tooltip: str | None = None,
     on_click: Callable | None = None,
 ) -> ui.button:
-    """
-    An icon button for the activity bar or context bar.
+    """An icon button for the activity bar or context bar.
 
     Visual rules:
     - Size: ``w-10 h-10`` (40×40px)
@@ -845,8 +835,7 @@ def surface_button(
     tooltip: str | None = None,
     on_click: Callable | None = None,
 ) -> ui.button:
-    """
-    A square button for the properties editor's SurfaceToolbar.
+    """A square button for the properties editor's SurfaceToolbar.
 
     Visual rules:
     - Size: ``36×36px``
@@ -892,8 +881,7 @@ def expansion_section(
     state: dict[str, bool] | None = None,
     panel_key: str | None = None,
 ):
-    """
-    A collapsible section for grouped content in property panels.
+    """A collapsible section for grouped content in property panels.
 
     If ``state`` and ``panel_key`` are provided, the expansion state is
     persisted in the caller-owned ``state`` dict across rebuilds. The
@@ -915,7 +903,6 @@ def expansion_section(
                                    state=self._expansion, panel_key="node:props"):
             # panel content
     """
-
     is_open = default_open
     if state is not None and panel_key:
         is_open = state.get(panel_key, default_open)
@@ -943,8 +930,7 @@ def expansion_section(
 
 
 def error_label(text: str) -> ui.label:
-    """
-    An error message label using ``--hw-danger``.
+    """An error message label using ``--hw-danger``.
 
     Visual rules: ``text-sm p-4``, ``color: var(--hw-danger)``.
     Never use ``text-red-400`` — it is theme-unaware.
@@ -953,8 +939,7 @@ def error_label(text: str) -> ui.label:
 
 
 def warning_label(text: str) -> ui.label:
-    """
-    A warning message label using ``--hw-warning``.
+    """A warning message label using ``--hw-warning``.
 
     Visual rules: ``text-sm p-4``, ``color: var(--hw-warning)``.
     Never use ``text-yellow-400`` — it is theme-unaware.
@@ -963,8 +948,7 @@ def warning_label(text: str) -> ui.label:
 
 
 def success_label(text: str) -> ui.label:
-    """
-    A success message label using ``--hw-success``.
+    """A success message label using ``--hw-success``.
 
     Visual rules: ``text-sm p-4``, ``color: var(--hw-success)``.
     """
@@ -972,8 +956,7 @@ def success_label(text: str) -> ui.label:
 
 
 def info_label(text: str) -> ui.label:
-    """
-    An informational label using ``--hw-info``.
+    """An informational label using ``--hw-info``.
 
     Visual rules: ``text-sm p-4``, ``color: var(--hw-info)``.
     """
@@ -986,8 +969,7 @@ def info_label(text: str) -> ui.label:
 
 
 def tag(text: str, *, color: str = "grey") -> ui.badge:
-    """
-    A small metadata tag / badge.
+    """A small metadata tag / badge.
 
     Visual rules:
     - Quasar badge with ``outline`` prop and ``.text-xs``
@@ -1050,8 +1032,7 @@ def input_field(
     on_change: Callable | None = None,
     **kwargs: Any,
 ) -> ui.input:
-    """
-    A standard text input, pre-configured for panel use.
+    """A standard text input, pre-configured for panel use.
 
     Visual rules:
     - Props: ``dense`` (standard variant — no ``outlined`` or ``filled``)
@@ -1101,8 +1082,7 @@ def number_field(
     value: float = 0,
     **kwargs: Any,
 ) -> ui.number:
-    """
-    A standard number input, pre-configured for panel use.
+    """A standard number input, pre-configured for panel use.
 
     Visual rules: same as ``hui.input_field`` — ``dense`` (standard variant), ``w-full``.
 
@@ -1130,8 +1110,7 @@ def select_field(
     on_change: Callable | None = None,
     **kwargs: Any,
 ) -> ui.select:
-    """
-    A standard dropdown select, pre-configured for panel use.
+    """A standard dropdown select, pre-configured for panel use.
 
     Visual rules:
     - Props: ``dense`` (standard variant — no ``outlined`` or ``filled``)
@@ -1172,8 +1151,7 @@ def tabs(
     *tab_defs: tuple[str, str] | tuple[str, str, str],
     dense: bool = True,
 ) -> tuple[ui.tabs, list[ui.tab]]:
-    """
-    A tab bar, pre-configured with ``hw-tabs`` styling.
+    """A tab bar, pre-configured with ``hw-tabs`` styling.
 
     Each ``tab_def`` is a tuple of ``(label, icon)`` or ``(name, label, icon)``.
 
@@ -1219,8 +1197,7 @@ def tabs(
 
 
 def separator(*, vertical: bool = False) -> ui.separator:
-    """
-    A plain themed rule, coloured by ``--hw-separator``.
+    """A plain themed rule, coloured by ``--hw-separator``.
 
     Use when you need a divider without a label and without the top margin
     added by ``hui.section_divider()``. Prefer ``hui.section_divider()`` in
@@ -1243,8 +1220,7 @@ def separator(*, vertical: bool = False) -> ui.separator:
 
 
 def section_divider(text: str | None = None):
-    """
-    A visual break between sections.
+    """A visual break between sections.
 
     If ``text`` is given, renders a ``hui.section_label`` (uppercase tracking label).
     Otherwise renders a plain ``ui.separator`` with ``mt-3`` top margin.
@@ -1267,9 +1243,7 @@ def section_divider(text: str | None = None):
 
 @contextmanager
 def category_group(label: str, *, default_open: bool = True):
-    """
-    A collapsible category header for settings field groups inside a
-    ``compact-fields`` container.
+    """A collapsible category header for settings field groups inside a ``compact-fields`` container.
 
     This is distinct from ``hui.expansion_section`` (which is for property
     panel scopes with state persistence). Use this for settings field grouping
@@ -1316,8 +1290,7 @@ def category_group(label: str, *, default_open: bool = True):
 
 @contextmanager
 def dialog_card(width: str | None = None):
-    """
-    A themed modal card for use inside ``ui.dialog()``.
+    """A themed modal card for use inside ``ui.dialog()``.
 
     Applies the correct dialog chrome: elevated background, strong border,
     md border-radius, and popup shadow — all via ``--hw-*`` tokens so the card
@@ -1363,8 +1336,7 @@ def dialog_actions(
     confirm_label: str = "OK",
     cancel_label: str = "Cancel",
 ) -> ui.button:
-    """
-    A standardised action row for modal dialogs; returns the confirm button.
+    """A standardised action row for modal dialogs; returns the confirm button.
 
     Renders a right-aligned row with a Cancel button and a confirm button.
     The confirm button is styled with ``var(--hw-positive)`` for theme-aware

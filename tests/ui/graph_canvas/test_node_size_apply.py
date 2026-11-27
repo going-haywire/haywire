@@ -119,7 +119,8 @@ def test_locked_is_wired_to_the_container_not_the_slot():
     """The guard on the distinction above: `locked` and `detail` must not be
     routed through the slot-style handler, which would stamp the attribute
     where canvas.vue cannot see it (custom attributes do not inherit down
-    from an ancestor)."""
+    from an ancestor).
+    """
     n = _ui_node_with_props("auto", 200.0, 200.0)
     n.wrapper.node.props._subscribe_field = MagicMock()  # type: ignore[method-assign]
     n._subscribe_slot_fields()
@@ -152,7 +153,8 @@ def test_empty_color_override_writes_nothing():
 
 def test_clearing_a_colour_clears_its_var():
     """replace= is what makes this work: the write is authoritative, so a
-    cleared field leaves no stale declaration behind."""
+    cleared field leaves no stale declaration behind.
+    """
     n = _ui_node_with_props("auto", 200.0, 200.0, color_override="#ff0000ff")
     n._apply_slot_style()
     assert "--hw-node-bg" in _style_str(n)
@@ -165,7 +167,8 @@ def test_clearing_a_colour_clears_its_var():
 def test_node_theme_equal_to_graph_writes_nothing():
     """The divergence rule: identical values produce identical CSS, so the
     node contributes nothing and the graph tier shows through. This is what
-    keeps a 200-node graph from writing 200 identical declaration sets."""
+    keeps a 200-node graph from writing 200 identical declaration sets.
+    """
     n = _ui_node_with_props("auto", 200.0, 200.0, node_theme="some:theme:key")
     n.wrapper.graph.props.node_theme = "some:theme:key"
     n._apply_slot_style()
@@ -174,7 +177,8 @@ def test_node_theme_equal_to_graph_writes_nothing():
 
 def test_unresolvable_node_theme_degrades_to_nothing():
     """A bad key must not take the node's render down — the tier above shows
-    through instead."""
+    through instead.
+    """
     n = _ui_node_with_props("auto", 200.0, 200.0, node_theme="no:such:theme")
     n._apply_slot_style()
     assert "--hw-node" not in _style_str(n)

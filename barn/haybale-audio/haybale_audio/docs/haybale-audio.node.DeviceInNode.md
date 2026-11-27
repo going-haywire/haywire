@@ -26,8 +26,9 @@ Records a sound device's input as audio blocks
 
 ## Notes
 
-Records from an input device (a microphone, an audio interface) and delivers each block to
-every Audio Event listening, at the pace of the device's own clock.
+Records from an input device and delivers its blocks to every Audio Event listening.
+
+The device is a microphone or an audio interface; the blocks come at the pace of its own clock.
 
 The status shows what the device really delivers: channels, sample rate, block size and its
 input latency. A device can impose its own block size: the status then shows the size asked

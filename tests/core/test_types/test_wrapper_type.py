@@ -1,6 +1,5 @@
 # tests/core/test_types/test_wrapper_type.py
-"""
-WrapperType — the fourth IType family: exactly one value of another IType, or absence.
+"""WrapperType — the fourth IType family: exactly one value of another IType, or absence.
 
 The load-bearing claim is what it is NOT. ``issubclass(x, CompoundType)`` means
 "a container of N elements", and ``AdapterFactory`` and ``pin_render`` dispatch

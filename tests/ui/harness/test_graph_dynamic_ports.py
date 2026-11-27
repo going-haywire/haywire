@@ -91,7 +91,8 @@ def _edge_starts_at(page: Page, pin_prefix: str) -> bool:
 
 def test_edge_falls_back_to_ghost_pin_then_reattaches(page: Page, harness):
     """Dropping the linked dynamic outlet moves the edge to the ghost outlet;
-    restoring the port moves it back onto the real pin."""
+    restoring the port moves it back onto the real pin.
+    """
     goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("#connection-svg path[data-edge-id]")
     wait_until(page, lambda: _edge_starts_at(page, "dynamic_outlet_0"))

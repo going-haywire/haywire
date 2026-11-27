@@ -1,6 +1,5 @@
 # tests/ui/widget/test_widget_config_serializable.py
-"""
-Plain (non-promoted) ports reject a non-serializable widget_config at
+"""Plain (non-promoted) ports reject a non-serializable widget_config at
 construction time:
 
 - a callable (bound method / lambda) in widget_config on a PLAIN port raises

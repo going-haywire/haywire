@@ -1,6 +1,5 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py
-"""
-Pin context-menu panels — the surface ``PinMenu``.
+"""Pin context-menu panels — the surface ``PinMenu``.
 
 Reached structurally now: the canvas detects a pin from ``data-pin-id``,
 which ``render_pin`` emits on every pin from every skin, so every skin gains
@@ -44,7 +43,6 @@ def _widget_identity(ctx: SessionContext) -> Any | None:
     does a port with no widget at all (an outlet, or an inlet whose type
     carries no editor).
     """
-
     port = ctx.data[EditState].active_port
     if port is None or not port.widget_key:
         return None
@@ -397,8 +395,7 @@ class HidePinMenuPanel(BasePanel):
     order=10,
 )
 class PortShowWidgetStrategyPanel(BasePanel):
-    """One row per ``ShowWidgetStrategy``, radio-marked with the port's current
-    choice.
+    """One row per ``ShowWidgetStrategy``, radio-marked with the port's current choice.
 
     The rows are mutually exclusive, hence ``radio_checked``/``radio_unchecked``
     rather than the checkbox pair.

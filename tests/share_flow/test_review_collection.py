@@ -83,7 +83,8 @@ def test_pin_modes_build_the_right_specifier() -> None:
 
 def test_skipping_an_undeclared_import_records_the_acknowledgement() -> None:
     """The one decision with no safe default, so it is recorded rather than
-    silently allowed."""
+    silently allowed.
+    """
     decisions = _collect(
         _controls(additions=[(ALPHA, "numpy", "1.26.0", _Control("skip"), _Control(""))]),
         None,

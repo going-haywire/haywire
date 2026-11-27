@@ -104,7 +104,8 @@ async def test_install_success_new_lib_refresh_propagates():
 @pytest.mark.unit
 async def test_install_failure_with_evicted_restart_lib_returns_restart_hint():
     """Per Q12.A: if eviction removed a RESTART library and then pip failed, the
-    restart is still owed — the library is gone from the registry either way."""
+    restart is still owed — the library is gone from the registry either way.
+    """
     evicted = _identity("haybale_ext", on_reload=LibraryReloadAction.RESTART)
     mgr, _ = _make_manager(
         libraries_before={"haybale_ext": evicted}, libraries_after={"haybale_ext": evicted}
@@ -123,7 +124,8 @@ async def test_install_failure_with_evicted_restart_lib_returns_restart_hint():
 @pytest.mark.unit
 async def test_install_upgrade_takes_the_heavier_of_new_and_evicted():
     """An upgrade combines the outgoing and incoming declarations; the heavier
-    wins, because the old version's code is what is currently loaded."""
+    wins, because the old version's code is what is currently loaded.
+    """
     old_v = _identity("haybale_x", on_reload=LibraryReloadAction.RESTART)
     new_v = _identity("haybale_x", on_reload=LibraryReloadAction.REFRESH)
     mgr, _ = _make_manager(libraries_before={"haybale_x": old_v}, libraries_after={"haybale_x": new_v})
@@ -165,7 +167,8 @@ async def test_eviction_alone_demands_nothing():
 @pytest.mark.unit
 async def test_install_unions_across_transitively_imported_libraries():
     """One install can import several libraries — the named package plus the
-    haybale dependencies it pulls in. Any of them may escalate."""
+    haybale dependencies it pulls in. Any of them may escalate.
+    """
     named = _identity("haybale_named")
     pulled = _identity("haybale_dep", on_reload=LibraryReloadAction.RESTART)
     mgr, _ = _make_manager(

@@ -63,8 +63,7 @@ def render_error_details(
     *,
     on_open_in_studio: Callable[[str, int | None], None] | None = None,
 ) -> Any:
-    """
-    Render detailed error information for a HaywireException.
+    """Render detailed error information for a HaywireException.
 
     This is a reusable function that can be called from ErrorWidget or any other UI component.
     Can be used to render error details on-demand (lazy rendering).

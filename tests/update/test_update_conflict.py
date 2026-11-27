@@ -66,7 +66,8 @@ def test_unsatisfiable_pin_is_reported_as_a_conflict(tmp_path):
 
 def test_a_clean_resolution_never_promises_a_successful_launch(tmp_path):
     """Resolution is not installation: the real sync happens later inside
-    `uv run`, unsupervised, after all our UI is gone."""
+    `uv run`, unsupervised, after all our UI is gone.
+    """
     from haywire.core.update.conflict import check_pin_conflict
 
     root = _project(tmp_path)
@@ -82,7 +83,8 @@ def test_a_clean_resolution_never_promises_a_successful_launch(tmp_path):
 def test_the_original_pyproject_is_restored_after_the_check(tmp_path):
     """Write-resolve-restore: a temp-dir copy would resolve DIFFERENTLY —
     [tool.uv.sources] carries {workspace = true} and absolute dev paths — so
-    the check runs against the real workspace and must put it back."""
+    the check runs against the real workspace and must put it back.
+    """
     from haywire.core.update.conflict import check_pin_conflict
 
     root = _project(tmp_path)

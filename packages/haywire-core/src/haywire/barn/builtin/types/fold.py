@@ -38,8 +38,9 @@ class FOLD(BOOL):
 
     @classmethod
     def _configure_port(cls, port: DataPort, **context: Any) -> None:
-        """Give the port the fold header widget, labelled and described like the port, and
-        redraw its node card whenever the fold opens or closes.
+        """Give the port the fold header widget and redraw its node card when the fold toggles.
+
+        The header is labelled and described like the port.
 
         Applies to a port loaded from a saved graph too, whatever widget it was saved with.
         """

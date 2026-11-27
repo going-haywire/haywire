@@ -27,8 +27,9 @@ Plays an audio clip as audio blocks, in real time
 
 ## Notes
 
-Cuts an audio clip, such as a spoken sentence, into blocks and delivers them, paced at the
-clip's sample rate, to every Audio Event listening. The clip's own sample rate and channel count
+Plays an audio clip as blocks, paced at its sample rate, to every Audio Event listening.
+
+The clip, such as a spoken sentence, is cut into blocks. Its own sample rate and channel count
 are kept: Device Out and the Audio Mixer convert it, and Resample does for any other node.
 
 `On Finish` runs the Tick Events wired to it when a clip has played to its end (with

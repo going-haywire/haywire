@@ -34,7 +34,8 @@ def flow(tmp_path: Path) -> ShareFlow:
 
 def test_preflight_failure_never_reverts(flow: ShareFlow) -> None:
     """Preflight mutates nothing, so a revert there is a guaranteed no-op that
-    still costs a git subprocess."""
+    still costs a git subprocess.
+    """
     flow.step = "preflight"
     failure = PreconditionFailure(message="No 'origin' remote is configured.", kind="act")
 
@@ -75,7 +76,8 @@ def test_push_failure_after_a_commit_does_not_claim_a_revert(flow: ShareFlow) ->
 
 def test_committed_unpushed_exposes_the_retry_command(flow: ShareFlow) -> None:
     """The user is holding an unpushed release; the panel must be able to say
-    exactly how to finish it."""
+    exactly how to finish it.
+    """
     flow.commit_result = CommitResult(sha="4a3f1e9", tag="v0.3.2", files=[])
     flow.fail(PushError(stderr="rejected", manual_command="git push origin main --tags"))
 
@@ -89,7 +91,8 @@ def test_retry_command_is_none_when_nothing_was_committed(flow: ShareFlow) -> No
 
 def test_a_precondition_error_raised_late_does_not_revert(flow: ShareFlow) -> None:
     """verify_push_allowed() raises PreconditionsError from the publish step.
-    Rolling back on it would be wrong — it is a remediable check, not damage."""
+    Rolling back on it would be wrong — it is a remediable check, not damage.
+    """
     flow.step = "publish"
 
     with patch.object(SharePipeline, "rollback") as rollback:

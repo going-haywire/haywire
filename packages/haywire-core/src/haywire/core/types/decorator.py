@@ -1,5 +1,4 @@
-"""
-Type Decorators - Decorators for defining Haywire data types.
+"""Type Decorators - Decorators for defining Haywire data types.
 
 This module provides decorators for creating Haywire data types:
 - @primitive_type: For primitive type wrappers (FLOAT, INT, etc.) and their variants (TEMPERATURE)
@@ -24,8 +23,7 @@ T = TypeVar("T")
 
 
 def type(**kwargs) -> Callable[[builtins.type[T]], builtins.type[T]]:
-    """
-    Decorator for all Haywire data types (both primitive and complex).
+    """Decorator for all Haywire data types (both primitive and complex).
 
     Use this for:
     - Base primitive types that wrap Python built-ins (FLOAT wraps float, INT wraps int)

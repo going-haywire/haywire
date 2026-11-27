@@ -1,5 +1,4 @@
-"""
-VisualLayerHandlers — node/edge visual registry and graph-sync events.
+"""VisualLayerHandlers — node/edge visual registry and graph-sync events.
 
 Owns: node_panels, edge_states.
 Responsible for:
@@ -118,8 +117,7 @@ def summarize_compatibility(node_warning_count: int, library_messages: list[str]
 
 
 class VisualLayerHandlers:
-    """
-    Manage the Python-side visual registry for the graph canvas.
+    """Manage the Python-side visual registry for the graph canvas.
 
     Owns node_panels and edge_states, and keeps them in sync with the graph
     by processing ValidationResult objects from the graph's validation callback.
@@ -191,8 +189,7 @@ class VisualLayerHandlers:
     # -------------------------------------------------------------------------
 
     def on_validated(self, result: ValidationResult):
-        """
-        Handle validation results and update visual layer accordingly.
+        """Handle validation results and update visual layer accordingly.
 
         Processes node and edge change reasons, delegating to the appropriate
         add/remove/refresh methods.
@@ -1458,9 +1455,9 @@ class VisualLayerHandlers:
         return card_cls, input_cls, output_cls
 
     def _try_auto_wire(self, wrapper, pending: dict) -> None:
-        """
-        After node creation from a mid-drag context menu, auto-wire the new
-        node to a compatible port on the dragged-from pin's side.
+        """Auto-wire a node created from a mid-drag context menu to a compatible port.
+
+        The port is on the dragged-from pin's side.
 
         ``pending`` carries the dragged-from pin's metadata (pin_id, node_id,
         pin_dir, wire, data_type) — see NodeCreateRequestEvent.

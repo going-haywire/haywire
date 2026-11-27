@@ -1,5 +1,4 @@
-"""
-Data Port Identity - Unified identity for all data types.
+"""Data Port Identity - Unified identity for all data types.
 
 This module provides the DataPortIdentity class which combines registry identity
 with type specification for all data that can flow through ports.
@@ -21,8 +20,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class DataTypeIdentity(BaseIdentity):
-    """
-    Unified identity for all data types that can flow through ports.
+    """Unified identity for all data types that can flow through ports.
 
     Combines:
     - Registry identity (registry_id, registry_key, label, description)
@@ -86,7 +84,6 @@ class DataTypeIdentity(BaseIdentity):
 
     def __post_init__(self):
         """Auto-generate defaults and parse widget config."""
-
         # Auto-generate label from registry_id
         if not self.label and self.registry_id:
             self.label = self.registry_id.replace("_", " ").title()

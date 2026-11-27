@@ -1,5 +1,4 @@
-"""
-ComponentDocsEditor — shows detail info for the selected component.
+"""ComponentDocsEditor — shows detail info for the selected component.
 
 Renders in the right area and reacts to ACTIVE_COMPONENT_CHANGED events.
 Displays identifiers with copy buttons, usage snippets, and a Docs tab (markdown).
@@ -46,8 +45,8 @@ class _WidgetPreviewPort:
     requires=AccessTier.VIEW,
 )
 class ComponentDocsEditor(BaseEditor):
-    """
-    Displays documentation and port information for the selected component.
+    """Displays documentation and port information for the selected component.
+
     Rebuilds on ACTIVE_COMPONENT_CHANGED context events.
     """
 

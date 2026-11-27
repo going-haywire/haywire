@@ -18,7 +18,9 @@ Writes audio blocks to a file
 
 ## Notes
 
-Appends each block to a file. The first block opens it and fixes its channel count and sample
+Appends each block to a file.
+
+The first block opens it and fixes its channel count and sample
 rate; a later block that differs is an error. WAV files are written as 32-bit float.
 
 Inputs:

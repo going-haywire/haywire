@@ -74,7 +74,8 @@ async def test_align_and_direction_are_independent_axes(user: User, align: str, 
     """Every combination is composed from the two tables, so a placement can
     never exist in one direction and be missing in the other. ``align`` moves
     only the horizontal word of the Quasar point, ``direction`` only the
-    vertical one."""
+    vertical one.
+    """
     captured: dict[str, object] = {}
 
     @ui.page("/")
@@ -113,7 +114,8 @@ async def test_the_six_placements_spell_out_their_quasar_points(
 ) -> None:
     """The composed strings, written out once rather than derived, so a change
     to the tables has to be meant. "up" is the mirror of "down": the panel's
-    BOTTOM edge meets the icon's TOP."""
+    BOTTOM edge meets the icon's TOP.
+    """
     assert dropdown_props(align=align, direction=direction) == (  # type: ignore[arg-type]
         f'anchor="{anchor}" self="{self_point}"'
     )
@@ -132,7 +134,8 @@ async def test_an_unknown_placement_fails_at_construction(
     user: User, kwargs: dict, expected: tuple[str, ...]
 ) -> None:
     """An author-time typo, caught where it is written rather than showing up
-    as a panel that opens in a surprising place."""
+    as a panel that opens in a surprising place.
+    """
     captured: dict[str, object] = {}
 
     @ui.page("/")
@@ -175,7 +178,8 @@ async def test_flyout_still_opens_beside_and_keeps_auto_close(user: User) -> Non
 @pytest.mark.anyio
 async def test_dropdown_joins_the_sibling_group(user: User) -> None:
     """Opening one closes the others: a dropdown and a flyout in one toolbar are
-    one open path, not two independent popups."""
+    one open path, not two independent popups.
+    """
     captured: dict[str, object] = {}
 
     @ui.page("/")
@@ -220,7 +224,8 @@ async def test_popups_spawned_inside_a_dropdown_are_lifted_above_it(user: User) 
     own at z-6000 — behind the dropdown that spawned them. They teleport to
     <body>, so no CSS rule can reach them; the dropdown stamps the lift on its
     whole body instead of asking content to opt in (content is usually built by
-    the widget factory, where no caller could pass a flag)."""
+    the widget factory, where no caller could pass a flag).
+    """
     captured: dict[str, object] = {}
 
     @ui.page("/")
@@ -244,7 +249,8 @@ async def test_popups_spawned_inside_a_dropdown_are_lifted_above_it(user: User) 
 async def test_a_flyout_does_not_lift_nested_popups(user: User) -> None:
     """The lift is the dropdown's bargain only. A command flyout holds menu
     rows, and lifting there would let a panel's dropdown escape to <body> and
-    float above overlays it should sit under (design-guide.md §2.9)."""
+    float above overlays it should sit under (design-guide.md §2.9).
+    """
     captured: dict[str, object] = {}
 
     @ui.page("/")

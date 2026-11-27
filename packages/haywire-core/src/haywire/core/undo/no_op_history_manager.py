@@ -1,5 +1,4 @@
-"""
-No-op implementation of IHistoryManager for when undo/redo is not needed.
+"""No-op implementation of IHistoryManager for when undo/redo is not needed.
 
 This provides a null object pattern implementation that satisfies the interface
 but performs no actual operations.
@@ -14,8 +13,7 @@ from .origin import HistoryEntry, HistoryMove, StepOrigin
 
 
 class NoOpHistoryManager(IHistoryManager):
-    """
-    No-op implementation of history manager.
+    """No-op implementation of history manager.
 
     This implementation satisfies the IHistoryManager interface but performs
     no actual undo/redo operations. Useful for contexts where undo/redo is

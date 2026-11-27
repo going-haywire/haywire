@@ -1,6 +1,5 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/appearance.py
-"""
-The toolbar's Appearance dropdown — the surface ``NodeAppearance``.
+"""The toolbar's Appearance dropdown — the surface ``NodeAppearance``.
 
 Two panels, one per side of the nesting: ``AppearanceToolbarPanel`` is the
 icon on ``SelectionToolbar`` that hosts the surface, and

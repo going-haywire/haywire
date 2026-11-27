@@ -19,7 +19,8 @@ pytestmark = pytest.mark.unit
 def test_root_only_patterns_are_anchored(pattern: str) -> None:
     """An unanchored pattern matches at EVERY depth — including inside
     barn/<lib>/<module>/, where it silently excludes library content.
-    Ignored ⇒ never committed ⇒ absent from the clone consumers install from."""
+    Ignored ⇒ never committed ⇒ absent from the clone consumers install from.
+    """
     assert pattern in _generate_gitignore()
 
 
@@ -92,9 +93,10 @@ def test_gitattributes_normalizes_text_eol() -> None:
 
 
 def test_gitattributes_arms_no_lfs_filter() -> None:
-    """git stores a ~130-byte pointer; a consumer without git-lfs receives THAT
+    """`git` stores a ~130-byte pointer; a consumer without git-lfs receives THAT
     instead of the asset. The install succeeds and the library breaks at runtime,
-    and *.png is exactly what a node library's icons and skins match."""
+    and *.png is exactly what a node library's icons and skins match.
+    """
     content = _generate_gitattributes()
     assert "filter=lfs" not in content
     assert "lfs install" not in content
@@ -129,7 +131,8 @@ def test_init_writes_both_files(tmp_path: Path, monkeypatch) -> None:
 
 def test_scaffolded_project_commits_its_gitattributes(tmp_path: Path, monkeypatch) -> None:
     """It must be in the initial commit, or a consumer's clone applies no
-    normalization at all."""
+    normalization at all.
+    """
     from haywire_studio.init import init_project
 
     monkeypatch.chdir(tmp_path)

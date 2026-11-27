@@ -1,5 +1,4 @@
-"""
-Registry for managing all data types.
+"""Registry for managing all data types.
 
 This module provides the TypeRegistry class which handles registration,
 validation, and retrieval of all data types (type variants and custom compound types).
@@ -24,8 +23,7 @@ def _is_value_type(cls: type) -> bool:
 
 
 class TypeRegistry(BaseRegistry[IType]):
-    """
-    Universal registry for all data types.
+    """Universal registry for all data types.
 
     Handles both:
     - Type variants: Primitive type wrappers (FLOAT, INT, TEMPERATURE)
@@ -41,8 +39,7 @@ class TypeRegistry(BaseRegistry[IType]):
         super().__init__()
 
     def _class_filter(self, cls) -> bool:
-        """
-        Check if a class is a valid type (variant or custom).
+        """Check if a class is a valid type (variant or custom).
 
         A valid type must:
         - Be a class
@@ -82,8 +79,7 @@ class TypeRegistry(BaseRegistry[IType]):
     def _register_class(
         self, cls: type[IType], library_identity: LibraryIdentity | None = None
     ) -> str | None:
-        """
-        Register a type class with library metadata.
+        """Register a type class with library metadata.
 
         Args:
             cls: The type class to register
@@ -102,8 +98,7 @@ class TypeRegistry(BaseRegistry[IType]):
         return super()._register(registry_key, cls, library_identity)
 
     def _unregister_class(self, registry_key: str) -> type[IType] | None:
-        """
-        Unregister a type by its registry_key.
+        """Unregister a type by its registry_key.
 
         Args:
             registry_key: The registry_key of the type to unregister
@@ -118,8 +113,7 @@ class TypeRegistry(BaseRegistry[IType]):
         return [key for key in self.list_visible_names() if _is_value_type(self._classes[key])]
 
     def get_type_class(self, key: str) -> type[IType] | None:
-        """
-        Get type class by registry key.
+        """Get type class by registry key.
 
         Args:
             key: Registry key in format "library_id:type_name"
@@ -160,8 +154,7 @@ class TypeRegistry(BaseRegistry[IType]):
         return min(matches, key=rank)
 
     def get_identity(self, key: str) -> DataTypeIdentity | None:
-        """
-        Get the DataPortIdentity for a registered type.
+        """Get the DataPortIdentity for a registered type.
 
         Args:
             key: Registry key of the type
@@ -175,8 +168,7 @@ class TypeRegistry(BaseRegistry[IType]):
         return None
 
     def validate_instance(self, key: str, instance: Any) -> bool:
-        """
-        Check if an instance is of a registered type.
+        """Check if an instance is of a registered type.
 
         For type variants: checks against the primitive cls (int, float, etc.)
         For custom types: checks isinstance() of the custom class
@@ -198,8 +190,7 @@ class TypeRegistry(BaseRegistry[IType]):
         return isinstance(instance, type_cls)
 
     def resolve_type_from_spec(self, spec: dict) -> type[IType]:
-        """
-        Resolve a type spec to a fully parameterized type class.
+        """Resolve a type spec to a fully parameterized type class.
 
         Handles nested compound types like POOLED[ARRAY[STRING]].
 

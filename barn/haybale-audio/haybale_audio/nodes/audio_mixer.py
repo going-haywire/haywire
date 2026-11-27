@@ -59,7 +59,9 @@ class MixerSettings(NodeSettings):
     node_type=NodeType.CONTROL,
 )
 class AudioMixerNode(BaseNode):
-    """Mixes live sources that run on their own flows. Each source has its own input: connect its audio
+    """Mixes live sources that run on their own flows.
+
+    Each source has its own input: connect its audio
     output to the open input at the bottom and it gets a `Gain` and a `Mute`; a new open input appears
     below. Removing an input from its pin menu removes its `Gain` and `Mute` with it.
 
@@ -110,7 +112,6 @@ class AudioMixerNode(BaseNode):
 
     def hb_resolve(self, port, edge_wrapper) -> None:
         """Turn the open input into an audio input with its pins and add a new open one below it."""
-
         from haybale_audio.types.audio import AUDIO
 
         if port.type_cls is None or not issubclass(port.type_cls, ADD):

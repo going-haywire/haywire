@@ -1,5 +1,4 @@
-"""
-Tees process stdout to the real stream and any number of registered line sinks.
+"""Tees process stdout to the real stream and any number of registered line sinks.
 
 Installed once, process-wide, before ui.run(), so every print() fans out to
 whichever UI panels choose to listen. This module stays UI-framework-agnostic —
@@ -139,8 +138,7 @@ def get_stdout_tee() -> StdoutTee:
 
 
 def console_print(*args, **kwargs) -> None:
-    """
-    Print to the studio log panel (thread-safe).
+    """Print to the studio log panel (thread-safe).
 
     Can be called from any thread, including node execution threads.
 

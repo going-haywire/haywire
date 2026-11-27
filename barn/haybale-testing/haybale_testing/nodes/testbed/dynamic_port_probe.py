@@ -1,5 +1,4 @@
-"""
-Dynamic port test node for validation pipeline testing.
+"""Dynamic port test node for validation pipeline testing.
 
 Uses push/pop via on_change callback to dynamically add/remove
 ports based on a config value. Designed for testing edge survival
@@ -18,9 +17,9 @@ from haywire.api import BaseNode, ExecutionContext, NodeType, node
     node_type=NodeType.DATA,
 )
 class DynamicPortProbeNode(BaseNode):
-    """
-    Node with dynamically configurable ports for testing
-    the validation pipeline (push/pop, hot reload, edge survival).
+    """Node with dynamically configurable ports for testing the validation pipeline.
+
+    Covers push/pop, hot reload and edge survival.
 
     Static ports (always present):
     - bool_inlet, bool_outlet

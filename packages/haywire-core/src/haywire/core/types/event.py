@@ -9,26 +9,23 @@ H = Callable[[T], None]
 
 
 class Event[T]:
-    """
-    A generic event class that allows you to register and trigger event handlers,
-    and also provides a way to wait for the next event to be fired.
+    """A generic event: register and trigger handlers, and wait for the next one to fire.
 
     Attributes:
         _handlers (List[H]): A list to store event handlers.
     """
 
     def __init__(self):
-        """
-        Initialize the Event instance with an empty list of handlers
-        and a threading event to allow waiting for events.
+        """Initialize the Event instance with an empty list of handlers and a threading event.
+
+        The threading event allows waiting for events.
         """
         self._handlers: list[H] = []
         self._latest_value: T | None = None
         self._event_trigger = threading.Event()
 
     def append(self, handler: H) -> None:
-        """
-        Append an event handler to the list of handlers.
+        """Append an event handler to the list of handlers.
 
         Args:
             handler (H): The event handler function to add.
@@ -36,8 +33,7 @@ class Event[T]:
         self._handlers.append(handler)
 
     def remove(self, handler: H) -> None:
-        """
-        Remove an event handler from the list of handlers.
+        """Remove an event handler from the list of handlers.
 
         Args:
             handler (H): The event handler function to remove.
@@ -45,8 +41,7 @@ class Event[T]:
         self._handlers.remove(handler)
 
     def contains(self, handler: H) -> bool:
-        """
-        Check if a specific event handler is already registered.
+        """Check if a specific event handler is already registered.
 
         Args:
             handler (H): The event handler function to check for.
@@ -57,8 +52,8 @@ class Event[T]:
         return handler in self._handlers
 
     def invoke(self, value: T) -> None:
-        """
-        Invoke all registered event handlers with the provided value.
+        """Invoke all registered event handlers with the provided value.
+
         Also set the threading event to allow waiting mechanisms to proceed.
 
         Args:
@@ -72,8 +67,7 @@ class Event[T]:
         self._event_trigger.set()
 
     def invoke_latest(self, value: T) -> None:
-        """
-        Invoke the most recently added event handler with the provided value.
+        """Invoke the most recently added event handler with the provided value.
 
         If no event handlers are registered, this method does nothing.
 
@@ -85,18 +79,17 @@ class Event[T]:
         self._handlers[-1](value)
 
     def clear(self) -> None:
-        """
-        Clear all registered event handlers, removing them from the list.
-        """
+        """Clear all registered event handlers, removing them from the list."""
         self._handlers.clear()
 
     def register(self, handler: H) -> H:
-        """
-        Append an event handler to the list of handlers and return it.
+        """Append an event handler to the list of handlers and return it.
+
         This method should be used as decorator.
 
         Args:
             handler (H): The event handler function to add.
+
         Returns:
             H: Returns the handler given as argument.
         """
@@ -105,8 +98,7 @@ class Event[T]:
 
     @property
     def handler_size(self) -> int:
-        """
-        Get the number of registered event handlers.
+        """Get the number of registered event handlers.
 
         Returns:
             int: The number of event handlers currently registered.
@@ -114,8 +106,7 @@ class Event[T]:
         return len(self._handlers)
 
     def has_observers(self) -> bool:
-        """
-        Fast check if there are any registered event handlers.
+        """Fast check if there are any registered event handlers.
 
         Returns:
             bool: True if there are observers, False otherwise.
@@ -123,8 +114,7 @@ class Event[T]:
         return bool(self._handlers)
 
     def __iadd__(self, other):
-        """
-        Allow the use of '+=' to add an event handler.
+        """Allow the use of '+=' to add an event handler.
 
         Args:
             other (H): The event handler function to add.
@@ -136,8 +126,7 @@ class Event[T]:
         return self
 
     def __isub__(self, other):
-        """
-        Allow the use of '-=' to remove an event handler.
+        """Allow the use of '-=' to remove an event handler.
 
         Args:
             other (H): The event handler function to remove.
@@ -149,8 +138,7 @@ class Event[T]:
         return self
 
     def __contains__(self, item) -> bool:
-        """
-        Check if a specific event handler is already registered using 'in' operator.
+        """Check if a specific event handler is already registered using 'in' operator.
 
         Args:
             item (H): The event handler function to check for.
@@ -161,8 +149,7 @@ class Event[T]:
         return self.contains(item)
 
     def __call__(self, value: T):
-        """
-        Allow the instance to be called as a function, invoking all event handlers.
+        """Allow the instance to be called as a function, invoking all event handlers.
 
         Args:
             value (T): The value to pass to the event handlers.
@@ -170,8 +157,7 @@ class Event[T]:
         self.invoke(value)
 
     def wait(self, timeout: float | None = None) -> T | None:
-        """
-        Wait for the next event to be fired, with an optional timeout.
+        """Wait for the next event to be fired, with an optional timeout.
 
         Args:
             timeout (Optional[float]): The maximum time (in seconds) to wait.
@@ -192,8 +178,7 @@ class Event[T]:
             return None
 
     def stream(self, timeout: float | None = None) -> Iterator[T | None]:
-        """
-        Continuously yield the value whenever the event is triggered, with an optional timeout.
+        """Continuously yield the value whenever the event is triggered, with an optional timeout.
 
         Args:
             timeout (Optional[float]): The maximum time (in seconds) to wait
@@ -207,16 +192,12 @@ class Event[T]:
             yield self.wait(timeout)
 
     def __getstate__(self):
-        """
-        Custom method to remove the _event_trigger from the state when pickling.
-        """
+        """Custom method to remove the _event_trigger from the state when pickling."""
         state = self.__dict__.copy()
         state["_event_trigger"] = None  # Exclude the event trigger from pickling
         return state
 
     def __setstate__(self, state):
-        """
-        Custom method to restore the _event_trigger after unpickling.
-        """
+        """Custom method to restore the _event_trigger after unpickling."""
         self.__dict__.update(state)
         self._event_trigger = threading.Event()  # Reinitialize the event

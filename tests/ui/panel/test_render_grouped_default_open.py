@@ -37,7 +37,8 @@ def _walk(element):
 
 def _expansion_open_by_category(anchor) -> dict[str, bool]:
     """Map category -> the ui.expansion.value found inside that category's
-    data-category-group wrapper."""
+    data-category-group wrapper.
+    """
     result: dict[str, bool] = {}
     for el in _walk(anchor):
         props = getattr(el, "_props", {})

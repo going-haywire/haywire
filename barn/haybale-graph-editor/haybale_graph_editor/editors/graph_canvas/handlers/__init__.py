@@ -1,5 +1,4 @@
-"""
-Canvas event handler objects for GraphCanvasManager.
+"""Canvas event handler objects for GraphCanvasManager.
 
 Each module provides a focused handler class that owns the state and
 dependencies relevant to one concern:

@@ -48,14 +48,17 @@ class NodeFactory:
         self.macro_registry.add_batch_event_subscriber(self._listen_on_lifecycle_event)
 
     def get_alternate_node_registry_keys(self, registry_key: str) -> list[str]:
-        """The registry keys of same-named nodes from other libraries. See
-        ``NodeRegistry.get_alternate_node_registry_keys``."""
+        """The registry keys of same-named nodes from other libraries.
+
+        See ``NodeRegistry.get_alternate_node_registry_keys``.
+        """
         alternates = self.node_registry.get_alternate_node_registry_keys(registry_key)
         return alternates
 
     def get_node(self, registry_key: str) -> tuple[type[BaseNode], HaywireException | None]:
-        """Return the class to instantiate for ``registry_key``, and any error explaining
-        why it is not the requested one.
+        """Return the class to instantiate for ``registry_key``, and any error about it.
+
+        The error, if any, explains why the class is not the requested one.
 
         Falls back to the registered error node when the key is unknown or its
         last registry event failed.
@@ -150,8 +153,11 @@ class NodeFactory:
         return macro_cls, error
 
     def _listen_on_lifecycle_event(self, batch: list[LifeCycleEvent]) -> None:
-        """Relay a batch of registry lifecycle events to the batch listeners, then each
-        event to the subscribers of its registry key."""
+        """Relay a batch of registry lifecycle events to batch listeners and per-key subscribers.
+
+        The batch goes to the batch listeners first, then each event to the subscribers
+        of its registry key.
+        """
         for listener in self._lifecycle_batch_subscribers[:]:
             listener(batch)
 
@@ -229,23 +235,31 @@ class NodeFactory:
         return keys
 
     def get_reroute_node(self) -> type[BaseNode] | None:
-        """Return the reroute provider class (node registered with _is_reroute),
-        or None if no loaded library provides one."""
+        """Return the reroute provider class, or None if no loaded library provides one.
+
+        The reroute provider is the node registered with _is_reroute.
+        """
         return self.node_registry._get_reroute_node()
 
     def get_subgraph_input_node(self) -> type[BaseNode] | None:
-        """Return the Subgraph Input boundary class (node registered with
-        _is_subgraph_input), or None if no loaded library provides one."""
+        """Return the Subgraph Input boundary class, or None if no loaded library provides one.
+
+        The Subgraph Input boundary is the node registered with _is_subgraph_input.
+        """
         return self.node_registry._get_subgraph_input_node()
 
     def get_subgraph_output_node(self) -> type[BaseNode] | None:
-        """Return the Subgraph Output boundary class (node registered with
-        _is_subgraph_output), or None if no loaded library provides one."""
+        """Return the Subgraph Output boundary class, or None if no loaded library provides one.
+
+        The Subgraph Output boundary is the node registered with _is_subgraph_output.
+        """
         return self.node_registry._get_subgraph_output_node()
 
     def get_graph_node(self) -> type[BaseNode] | None:
-        """Return the Graph-node class (node registered with _is_graph_node),
-        or None if no loaded library provides one."""
+        """Return the Graph-node class, or None if no loaded library provides one.
+
+        The Graph node is the node registered with _is_graph_node.
+        """
         return self.node_registry._get_graph_node()
 
     def get_menu_structure(self) -> dict[str, list[NodeInfo]]:
@@ -271,8 +285,10 @@ class NodeFactory:
         return menu
 
     def search_nodes(self, query: str) -> list[NodeInfo]:
-        """Return the visible nodes whose label, description or search tags contain
-        *query*, matched case-insensitively."""
+        """Return the visible nodes whose label, description or search tags contain *query*.
+
+        The match is case-insensitive.
+        """
         results: list[NodeInfo] = []
 
         for key in self._visible_keys():
@@ -305,5 +321,4 @@ class NodeFactory:
 
     def get_node_info(self, registry_key: str) -> NodeInfo | None:
         """The node's ``NodeInfo``, or ``None`` if the key is not registered."""
-
         return self._build_node_info(registry_key)

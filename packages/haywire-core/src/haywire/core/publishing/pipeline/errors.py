@@ -17,8 +17,9 @@ class ShareError(RuntimeError):
 
 
 class PreconditionsError(ShareError):
-    """The (single) step-1 precondition failure. See PreconditionFailure.kind
-    for the two ways the wizard's remedy modal presents it.
+    """The (single) step-1 precondition failure.
+
+    See PreconditionFailure.kind for the two ways the wizard's remedy modal presents it.
 
     ``failures`` stays list-typed (kept as ``PreconditionsReport.failures`` is)
     for callers not yet migrated; ``check()`` never populates more than one

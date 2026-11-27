@@ -22,7 +22,8 @@ def _restore_resolver():
     """``_install_auth`` calls ``install_resolver``, which sets the module-level
     global resolver — same leak this pattern guards against in
     tests/auth/test_live.py, tests/core/test_access/test_resolver.py, and
-    tests/core/test_session/test_context_access.py."""
+    tests/core/test_session/test_context_access.py.
+    """
     previous = access_resolver()
     yield
     set_access_resolver(previous)
@@ -168,7 +169,8 @@ def test_no_admin_disables_auth_instead_of_exiting(tmp_path, monkeypatch):
 def test_unreadable_security_document_exits_loudly_at_startup(tmp_path, monkeypatch):
     """The first-ever read must fail startup, unlike RosterCache.roster()'s
     later swallow-and-keep-last-good behaviour (live.py) which is correct
-    only once a good copy already exists."""
+    only once a good copy already exists.
+    """
     _isolated_home(tmp_path, monkeypatch)
     from haywire_studio.security.document import security_path
 

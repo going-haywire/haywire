@@ -76,6 +76,7 @@ def test_visibility_fields_left_this_bag_for_node_detail(gone):
     because a tooltip is the only thing identifying a port below FULL.
 
     Re-adding either would give the card two authorities over the same
-    element, with the settings-panel one winning silently."""
+    element, with the settings-panel one winning silently.
+    """
     assert gone not in _declared_fields()
     assert gone not in _fields_read_by_skins()

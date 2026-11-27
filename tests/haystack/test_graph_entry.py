@@ -132,7 +132,8 @@ def test_graph_entry_save_delegates_to_haystack():
 
 def test_graph_entry_save_propagates_new_binding_id():
     """When _save_entry returns a new binding_id (rename case),
-    entry.save() returns it untouched."""
+    entry.save() returns it untouched.
+    """
     from haybale_haystack.graph_entry import GraphEntry
 
     class _FakeHaystack:

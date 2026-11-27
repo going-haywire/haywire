@@ -1,6 +1,4 @@
-"""
-InstallType enum for library installation classification.
-"""
+"""InstallType enum for library installation classification."""
 
 from __future__ import annotations
 

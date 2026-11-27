@@ -104,7 +104,6 @@ def render_settings(
         render_settings(ctx, node.props, route=route_for(ctx))  # a graph level's bag
         render_settings(ctx, entry.run_settings, route=None)  # a bag no level owns
     """
-
     fields = type(obj)._settings_descriptors()
     if categories is None:
         visible_fields = dict(fields)
@@ -589,7 +588,6 @@ def _render_reactive_field_row(
     and override chrome IN PLACE (no element rebuild), so external changes to the
     model (other tab / worker / mirror) are reflected.
     """
-
     is_mirrored = defn.is_mirror or defn.is_graph_mirror
     # A promoted field is driven by a DATA port (see haywire.core.node.promotion).
     # The row is marked so the panel doesn't silently present an editable widget for
@@ -1113,7 +1111,8 @@ def _registry_on_edit(registry: SettingsRegistry, key: str, error_container) -> 
 
     Surfaces failures instead of swallowing them: set_global raises
     ValueError on validator rejection and KeyError on a dropped definition
-    (hot-reload race)."""
+    (hot-reload race).
+    """
 
     def on_edit(value: Any) -> None:
         try:

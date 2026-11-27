@@ -1,6 +1,5 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py
-"""
-Floating-toolbar panels for the graph canvas — the surface ``SelectionToolbar``.
+"""Floating-toolbar panels for the graph canvas — the surface ``SelectionToolbar``.
 
 Each panel contributes a single icon-only button; the provider owns the
 ``ui.row`` container.

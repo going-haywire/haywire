@@ -1,5 +1,4 @@
-"""
-PropertyBinding - Updated with property update logic
+"""PropertyBinding - Updated with property update logic
 
 This module provides the PropertyBinding class that handles declarative
 bindings between DataPort properties and UI element properties.
@@ -33,8 +32,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class PropertyBinding:
-    """
-    Declarative binding between DataPort property and UI element property.
+    """Declarative binding between DataPort property and UI element property.
 
     With the new architecture:
     - DataField handles data storage (primitives, instances, containers)
@@ -72,8 +70,7 @@ class PropertyBinding:
             self.converter = PrimitiveUnwrappingConverter()
 
     def activate(self, element: WidgetModel, ui_element: Any, subscribe_model_to_view: bool = True) -> None:
-        """
-        Activate binding between DataPort and UI element.
+        """Activate binding between DataPort and UI element.
 
         Args:
             element: DataPort to bind
@@ -207,8 +204,7 @@ class PropertyBinding:
     # ========================================================================
 
     def _navigate_path(self, obj: Any, path: str) -> Any:
-        """
-        Navigate property path and return value.
+        """Navigate property path and return value.
 
         Args:
             obj: Object to navigate (BaseType instance)

@@ -206,7 +206,8 @@ async def test_dry_run_resolver_error_raises():
 @pytest.mark.unit
 def test_framework_constraints_pins_installed_versions():
     """The constraint set is exactly core/studio/nicegui, pinned == to what is
-    installed — never to a declared Requires-Dist, which can itself be stale."""
+    installed — never to a declared Requires-Dist, which can itself be stale.
+    """
     from haybale_marketplace.library_manager import FRAMEWORK_PACKAGES
 
     mgr = _make_manager()
@@ -224,7 +225,8 @@ def test_framework_constraints_pins_installed_versions():
 @pytest.mark.unit
 def test_framework_constraints_skips_missing_packages():
     """A package that isn't installed contributes no constraint — pinning a
-    version we don't have would make every install unsatisfiable."""
+    version we don't have would make every install unsatisfiable.
+    """
     import importlib.metadata as _meta
 
     mgr = _make_manager()
@@ -243,7 +245,8 @@ def test_framework_constraints_skips_missing_packages():
 @pytest.mark.unit
 async def test_dry_run_passes_constraints_file():
     """dry_run() must pass -c <file> so a haybale that needs a different core
-    version fails at the resolver instead of silently moving the framework."""
+    version fails at the resolver instead of silently moving the framework.
+    """
     mgr = _make_manager()
     captured: dict[str, list[str]] = {}
 
@@ -264,7 +267,8 @@ async def test_dry_run_passes_constraints_file():
 @pytest.mark.unit
 async def test_install_passes_identical_flags_to_dry_run():
     """install() and dry_run() must agree on every resolver-affecting flag, or
-    the pre-eviction set and the actual install diverge."""
+    the pre-eviction set and the actual install diverge.
+    """
     mgr = _make_manager()
     seen: list[list[str]] = []
 
@@ -342,9 +346,10 @@ async def test_dry_run_unproven_failure_does_not_blame_the_framework():
 
 @pytest.mark.unit
 async def test_dry_run_refreshes_the_index_for_the_target_package():
-    """uv does not revalidate a cached index page on a resolution miss, so a
+    """`uv` does not revalidate a cached index page on a resolution miss, so a
     just-published version reads as nonexistent until the TTL expires. The
-    install path must refresh the one package it is acting on."""
+    install path must refresh the one package it is acting on.
+    """
     mgr = _make_manager()
     captured: dict[str, list[str]] = {}
 
@@ -466,7 +471,7 @@ async def test_empty_known_removals_is_not_treated_as_absent():
 
 @pytest.mark.unit
 async def test_streaming_emits_carriage_return_progress_updates():
-    """uv renders download progress with \\r and no newline.
+    """`uv` renders download progress with \\r and no newline.
 
     A line-oriented reader emits nothing until the bar finishes — for a large
     package that is 30+ seconds of a log that looks hung. Each \\r-terminated

@@ -84,8 +84,8 @@ async def test_two_sibling_rows_on_one_surface_opening_one_closes_the_other(user
     are registered independently (neither imports or references the other) —
     exactly the shape a per-panel sibling group would silently break, since
     both rows land in the popup's one ambient group only because the HOST
-    pushed it, not because either panel coordinated with its neighbour."""
-
+    pushed it, not because either panel coordinated with its neighbour.
+    """
     captured: dict[str, SubmenuRow] = {}
 
     @panel(surface=_OneSurface, label="RowA", order=10, registry_id="sibling_test_row_a")
@@ -161,8 +161,8 @@ async def test_two_rows_on_different_surfaces_in_the_same_popup_are_siblings(use
     GraphContext into the one popup). A row on each must still share ONE
     sibling group — the group belongs to the container (the popup), not to
     either surface — or opening one region's row would leave the other's
-    open."""
-
+    open.
+    """
     captured: dict[str, SubmenuRow] = {}
 
     @panel(surface=_RegionOneSurface, label="RegionOneRow", registry_id="sibling_test_region_one_row")

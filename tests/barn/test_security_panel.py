@@ -22,7 +22,8 @@ def test_network_settings_panel_is_gone():
 
 def test_panel_renders_no_security_schema():
     """render_schema on NetworkSettings would put 'port' in front of an admin —
-    fine — but any other bag here would be a writable security control."""
+    fine — but any other bag here would be a writable security control.
+    """
     from haybale_studio.panels.properties.setting.app import SecurityPanel
 
     source = inspect.getsource(SecurityPanel)

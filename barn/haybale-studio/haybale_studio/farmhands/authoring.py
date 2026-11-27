@@ -1,4 +1,6 @@
-"""haybale-studio_scaffold_component / haybale-studio_read_component_source /
+"""Farmhand tools to scaffold, read, write and verify a component's source.
+
+haybale-studio_scaffold_component / haybale-studio_read_component_source /
 haybale-studio_write_component_source / haybale-studio_verify_component.
 
 Authoring is self-contained through Farmhand (no client filesystem access

@@ -46,7 +46,8 @@ def test_mdns_name_derived_from_short_hostname():
 
 def test_link_local_addresses_are_excluded():
     """fe80:: addresses are not a useful way to reach a studio, and they are
-    the ones that carry %zone suffixes."""
+    the ones that carry %zone suffixes.
+    """
     fake = _addr_map({"en0": ["10.0.0.5", "fe80::c60:ad73:7442:c127%en0"]})
     with patch("haywire_studio.network.names.psutil.net_if_addrs", return_value=fake):
         names = local_names()
@@ -71,7 +72,7 @@ def test_routable_ipv6_is_kept():
 
 
 def test_unparseable_address_is_skipped_not_raised():
-    """psutil reports MAC addresses and other families; none may crash this."""
+    """`psutil` reports MAC addresses and other families; none may crash this."""
     fake = _addr_map({"en0": ["not-an-ip", "10.0.0.5"]})
     with patch("haywire_studio.network.names.psutil.net_if_addrs", return_value=fake):
         names = local_names()

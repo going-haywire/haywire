@@ -1,5 +1,4 @@
-"""
-Hot Reload Event System - Unified event class for hot reload notifications
+"""Hot Reload Event System - Unified event class for hot reload notifications
 
 This module provides a unified event class that flows through the entire
 hot reload notification chain: Registry → Factory → Wrapper → UINode
@@ -33,8 +32,7 @@ class LifeCycleEventType(Enum):
 
 @dataclass
 class LifeCycleEvent:
-    """
-    Unified hot life cycle event carrying complete reload information.
+    """Unified hot life cycle event carrying complete reload information.
 
     This event is passed through the entire notification chain:
     Registry → Factory → Wrapper → UINode
@@ -159,8 +157,7 @@ class LifeCycleEvent:
         return self.affected_class is not None
 
     def get_class(self) -> type[Any]:
-        """
-        Get the affected class, raising error if not available.
+        """Get the affected class, raising error if not available.
 
         Use has_class_available() first to check safely.
         """
@@ -175,16 +172,14 @@ class LifeCycleEvent:
     # ============================================================================
 
     def should_notify_customers(self) -> bool:
-        """
-        Check if this event should be passed to customer callbacks.
+        """Check if this event should be passed to customer callbacks.
 
         Typically all events are passed down, but layers can filter.
         """
         return True  # By default, notify all
 
     def create_derived_event(self, **overrides) -> LifeCycleEvent:
-        """
-        Create a new event with some fields overridden.
+        """Create a new event with some fields overridden.
 
         Useful when propagating events with additional context.
         """
@@ -200,9 +195,7 @@ class LifeCycleEvent:
         return LifeCycleEvent(**data)
 
     def clone(self) -> LifeCycleEvent:
-        """
-        Create a deep copy of this LifeCycleEvent instance.
-        """
+        """Create a deep copy of this LifeCycleEvent instance."""
         return LifeCycleEvent(
             registry_key=self.registry_key,
             event_type=self.event_type,

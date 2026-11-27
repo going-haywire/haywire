@@ -7,8 +7,7 @@ from typing import Any
 
 
 class PanelLayout:
-    """
-    Container handle passed to panel ``draw()`` methods.
+    """Container handle passed to panel ``draw()`` methods.
 
     ``PanelLayout`` is **not** a façade over ``hui``. It is the panel's
     container bound as a context manager. Panels activate it and call

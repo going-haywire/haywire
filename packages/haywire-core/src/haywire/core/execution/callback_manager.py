@@ -1,5 +1,4 @@
-"""
-Callback Manager - Manages inter-flow communication via callbacks.
+"""Callback Manager - Manages inter-flow communication via callbacks.
 
 The CallbackManager enables control nodes to emit callbacks that
 trigger event nodes in other flows within the same graph. Each listener
@@ -65,8 +64,7 @@ class _Pool:
 
 
 class CallbackManager:
-    """
-    Manages callback-based inter-flow communication.
+    """Manages callback-based inter-flow communication.
 
     Responsibilities:
     - Register flows that listen for callbacks
@@ -103,8 +101,7 @@ class CallbackManager:
         logger.debug("CallbackManager initialized")
 
     def register_callback_listener(self, event_name: str, flow: Flow) -> None:
-        """
-        Register a flow as listener for a callback event.
+        """Register a flow as listener for a callback event.
 
         Args:
             event_name: Name of callback event to listen for
@@ -118,8 +115,7 @@ class CallbackManager:
             logger.debug(f"Flow {flow.flow_id} registered for callback '{event_name}'")
 
     def unregister_callback_listener(self, event_name: str, flow: Flow) -> None:
-        """
-        Unregister a flow from callback event.
+        """Unregister a flow from callback event.
 
         Args:
             event_name: Callback event name
@@ -136,8 +132,7 @@ class CallbackManager:
         payload: dict[str, Any] | None = None,
         backlog: BacklogSettings | None = None,
     ) -> None:
-        """
-        Emit a callback event to trigger listening flows.
+        """Emit a callback event to trigger listening flows.
 
         Every ``EVERY`` listener of each name gets the callback in its own flow
         queue, in name order. The ``POOLED`` listeners of all the names form one
@@ -309,8 +304,7 @@ class CallbackManager:
         return False
 
     def get_listeners(self, event_name: str) -> list[Flow]:
-        """
-        Get all flows listening for a callback event.
+        """Get all flows listening for a callback event.
 
         Args:
             event_name: Callback event name
@@ -332,8 +326,7 @@ class CallbackManager:
         logger.debug("All callback registrations cleared")
 
     def get_statistics(self) -> dict[str, Any]:
-        """
-        Get callback statistics.
+        """Get callback statistics.
 
         Returns:
             Dictionary with callback stats; ``pools`` lists each pool's members

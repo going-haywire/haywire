@@ -50,7 +50,8 @@ def test_lenient_read_returns_empty_on_malformed(tmp_path: Path) -> None:
 
 def test_lenient_read_returns_empty_on_unreadable(tmp_path: Path) -> None:
     """No pyproject.toml at all — read_text() raises FileNotFoundError (an
-    OSError), which the lenient reader must also absorb."""
+    OSError), which the lenient reader must also absorb.
+    """
     lib_dir = _make_lib(tmp_path, pyproject_text=None)
     assert read_manifest_lenient(lib_dir) == {}
 
@@ -69,7 +70,8 @@ def test_strict_read_raises_on_unreadable(tmp_path: Path) -> None:
 
 def test_strict_read_raises_on_undeclarable_os_value(tmp_path: Path) -> None:
     """read_manifest absorbs `os` validation: InvalidOsDeclarationError
-    is a ManifestReadError subclass, so strict callers see one error family."""
+    is a ManifestReadError subclass, so strict callers see one error family.
+    """
     lib_dir = _make_lib(
         tmp_path,
         pyproject_text='[project]\nname = "haybale-foo"\nversion = "0.1.0"\n',

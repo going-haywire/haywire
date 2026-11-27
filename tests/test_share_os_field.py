@@ -200,7 +200,8 @@ def test_strip_preserves_comments_and_key_order(tmp_path: Path) -> None:
 def test_strip_dedups_near_miss_preceding_its_declarable_target(tmp_path: Path) -> None:
     """Order shouldn't matter: a near-miss listed BEFORE the already-declarable
     value it maps to must not produce a duplicate (regression for a bug where
-    dedup only checked the running prefix, not the final result)."""
+    dedup only checked the running prefix, not the final result).
+    """
     from haywire.core.publishing import strip_undeclarable_os_values
 
     lib_dir = _make_lib(tmp_path, os_decl=["osx", "macos"])

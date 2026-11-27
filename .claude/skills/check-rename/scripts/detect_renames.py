@@ -194,7 +194,9 @@ def _extract_params(func: ast.FunctionDef | ast.AsyncFunctionDef, parent_qual: s
 
 
 def extract_symbols(src: str) -> set[Symbol]:
-    """Extract:
+    """Extract the named symbols of a module.
+
+    Extracts:
     - top-level functions/classes (function, class)
     - methods on top-level classes (method)
     - class-body annotated/plain assignments (attribute)
@@ -263,7 +265,8 @@ def pair_renames(removed: set[Symbol], added: set[Symbol]) -> list[tuple[Symbol,
          remaining additions of the same kind, with a same-parent bonus.
          Parameters require same parent (cross-function param pairing is hopeless).
 
-    A removed symbol may end up unpaired (returns None partner)."""
+    A removed symbol may end up unpaired (returns None partner).
+    """
     pairs: list[tuple[Symbol, Symbol | None, float]] = []
     candidates = list(added)
 

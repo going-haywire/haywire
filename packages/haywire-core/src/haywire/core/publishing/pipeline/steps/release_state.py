@@ -70,8 +70,11 @@ def read_marker(repo_root: Path) -> dict[str, str] | None:
 
 
 def write_marker(repo_root: Path, *, tag: str, sha: str, phase: str) -> None:
-    """Record an unpushed release commit. Best effort: a read-only ``.git``
-    must not turn a good release into a failure -- git facts still cover it."""
+    """Record an unpushed release commit.
+
+    Best effort: a read-only ``.git`` must not turn a good release into a failure --
+    git facts still cover it.
+    """
     try:
         marker_path(repo_root).write_text(json.dumps({"tag": tag, "sha": sha, "phase": phase}))
     except OSError:

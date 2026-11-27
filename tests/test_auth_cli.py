@@ -89,7 +89,8 @@ def test_enable_refuses_while_a_studio_is_running(monkeypatch, path):
 
 def _ready_and_exposed(path, tmp_path):
     """Auth on with an admin, TLS configured, and exposed — the one state in
-    which 'auth disable' must be refused."""
+    which 'auth disable' must be refused.
+    """
     from haywire.core.access import AccessTier
     from haywire_studio.auth.passwords import hash_password
     from haywire_studio.security.document import (

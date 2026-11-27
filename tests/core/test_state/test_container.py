@@ -66,7 +66,8 @@ class TestLibraryStateContainer:
 
     def test_on_library_enabled_calls_on_enable_on_existing_instance(self):
         """on_library_enabled is the second phase: it calls on_enable on the
-        already-instantiated instance."""
+        already-instantiated instance.
+        """
         calls: list[str] = []
 
         class MyState(AppState):
@@ -179,7 +180,8 @@ class TestLibraryStateContainer:
     def test_class_reloaded_event_swaps_instance_with_disable_then_enable(self):
         """Hot-reload = disable old + enable new. Old class's on_disable fires
         before the new class is instantiated. CLASS_RELOADED calls on_enable
-        immediately because the library is already fully enabled."""
+        immediately because the library is already fully enabled.
+        """
         calls: list[str] = []
 
         class V1(AppState):
@@ -251,11 +253,13 @@ class TestEnabledLibraryIdsFilter:
     CLASS_ADDED always instantiates (instance reachable immediately via
     ctx.app_data). on_enable fires in on_library_enabled, and only then
     does the library id enter _enabled_library_ids — so CLASS_REMOVED /
-    CLASS_RELOADED events for not-yet-fully-enabled libraries are dropped."""
+    CLASS_RELOADED events for not-yet-fully-enabled libraries are dropped.
+    """
 
     def test_class_added_for_unknown_library_still_instantiates(self):
         """CLASS_ADDED instantiates regardless of _enabled_library_ids —
-        the instance must be reachable before on_library_enabled fires."""
+        the instance must be reachable before on_library_enabled fires.
+        """
         calls: list[str] = []
 
         class MyState(AppState):
@@ -301,7 +305,8 @@ class TestEnabledLibraryIdsFilter:
 
     def test_class_removed_for_unknown_library_is_dropped(self):
         """CLASS_REMOVED for a library not in _enabled_library_ids is ignored —
-        there is nothing to tear down for a not-yet-enabled library."""
+        there is nothing to tear down for a not-yet-enabled library.
+        """
         calls: list[str] = []
 
         class MyState(AppState):
@@ -325,7 +330,8 @@ class TestEnabledLibraryIdsFilter:
 
     def test_class_added_from_two_libraries_both_instantiate(self):
         """CLASS_ADDED from both a marked and an unmarked library both create
-        instances — instantiation is unconditional."""
+        instances — instantiation is unconditional.
+        """
         calls: list[str] = []
 
         class MarkedState(AppState):
@@ -368,7 +374,8 @@ class TestEnabledLibraryIdsFilter:
 class TestOnLibraryEnabledCatchUp:
     """on_library_enabled calls on_enable on already-instantiated state
     instances and marks the library id so CLASS_REMOVED / CLASS_RELOADED
-    events for it pass the filter in on_lifecycle_events."""
+    events for it pass the filter in on_lifecycle_events.
+    """
 
     def test_on_library_enabled_enables_instantiated_classes(self):
         """Two-phase: CLASS_ADDED instantiates, on_library_enabled enables."""
@@ -426,7 +433,8 @@ class TestOnLibraryEnabledCatchUp:
 
     def test_on_library_enabled_with_no_classes_still_marks_library(self):
         """A library with no state classes still gets its id added to
-        _enabled_library_ids so future CLASS_RELOADED events pass the filter."""
+        _enabled_library_ids so future CLASS_RELOADED events pass the filter.
+        """
         reg = StateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity("stateless")
@@ -500,7 +508,8 @@ class TestOnLibraryEnabledCatchUp:
 class TestOnLibraryDisabled:
     """on_library_disabled drops the library id from _enabled_library_ids
     so CLASS_REMOVED / CLASS_RELOADED events for the library are subsequently
-    filtered out."""
+    filtered out.
+    """
 
     def test_disabled_library_id_is_dropped_from_filter_set(self):
         reg = StateRegistry()
@@ -520,7 +529,8 @@ class TestOnLibraryDisabled:
     def test_class_removed_after_disable_is_dropped(self):
         """CLASS_REMOVED after on_library_disabled is filtered — nothing to tear
         down for a disabled library (instances already removed by the CLASS_REMOVED
-        that fired before on_library_disabled)."""
+        that fired before on_library_disabled).
+        """
         calls: list[str] = []
 
         class MyState(AppState):
@@ -604,7 +614,8 @@ class TestOnLibraryDisabled:
 
     def test_disable_of_unknown_library_is_a_noop(self):
         """on_library_disabled is idempotent — calling with an id not in
-        the set is a no-op rather than an error."""
+        the set is a no-op rather than an error.
+        """
         reg = StateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity("never-enabled")
@@ -623,7 +634,8 @@ class TestSubscribeToLifecycleEvents:
     channel on the state registry. It is intentionally separate from
     subscribe_to_library_callbacks so the orchestrator can time phase 1
     (instantiate-on-CLASS_ADDED) before enable_all_libraries() and phase 2
-    (on_enable via the library-enabled callback) after it."""
+    (on_enable via the library-enabled callback) after it.
+    """
 
     def test_subscribes_to_state_registry_batch_events(self):
         reg = StateRegistry()
@@ -649,7 +661,8 @@ class TestSubscribeToLifecycleEvents:
 class TestSubscribeToLibraryCallbacks:
     """subscribe_to_library_callbacks wires the per-library enabled/disabled
     callbacks. Tests use mock library_registries because the real
-    LibraryRegistry needs a full DI environment."""
+    LibraryRegistry needs a full DI environment.
+    """
 
     def test_registers_library_enabled_callback(self):
         reg = StateRegistry()

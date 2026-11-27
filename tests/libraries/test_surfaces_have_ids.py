@@ -16,7 +16,8 @@ def test_node_inspector_has_id():
 
 def test_edge_split_keeps_edge_for_the_inspector():
     """The *menu* took the new id, so DOM attributes and docs on ``edge`` still
-    point at the properties tab."""
+    point at the properties tab.
+    """
     from haybale_graph_editor.surfaces import EdgeInspector, EdgeMenu
 
     assert EdgeInspector.id == "edge"
@@ -32,7 +33,8 @@ def test_edge_split_get_panels_are_disjoint_and_neither_is_empty():
     splitting EdgeFocus in two is defeated. Registers the real, in-tree panel
     classes for both surfaces (not synthetic test doubles) and checks
     get_panels() against a fresh registry, since @panel does not
-    self-register."""
+    self-register.
+    """
     from haybale_graph_editor.panels.graph.menu.edge.edge import (
         DeleteEdgeMenuPanel,
         EdgeErrorsMenuPanel,

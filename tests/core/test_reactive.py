@@ -1,6 +1,5 @@
 # tests/core/test_reactive.py
-"""
-Unit tests for haywire.core.settings — setting() descriptor + Settings base class.
+"""Unit tests for haywire.core.settings — setting() descriptor + Settings base class.
 
 Coverage:
 - setting() default values, class-level returns descriptor, instance-level returns value

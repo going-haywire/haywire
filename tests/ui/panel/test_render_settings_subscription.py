@@ -1,5 +1,4 @@
-"""
-Subscription-lifecycle regression for render_settings external sync.
+"""Subscription-lifecycle regression for render_settings external sync.
 
 render_settings subscribes the panel to the model and tears the subscription
 down via the column's _handle_delete anchor. A panel redraw (content.clear()

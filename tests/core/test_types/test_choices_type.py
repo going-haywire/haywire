@@ -22,7 +22,8 @@ def test_choices_default_widget_is_select():
 def test_string_to_choices_needs_an_explicit_adapter(library_system):
     """A promoted CHOICES inlet fed by a STRING outlet needs StringToChoicesAdapter:
     CHOICES is the descendant, and per adapter-canon.md an ancestor->descendant
-    conversion is never a free passthrough (not every string is a valid choice)."""
+    conversion is never a free passthrough (not every string is a valid choice).
+    """
     reg = library_system.get_adapter_registry()
 
     fwd = reg.get_adapter("haywire-core:type:STRING", "haywire-core:type:CHOICES")
@@ -33,7 +34,8 @@ def test_string_to_choices_needs_an_explicit_adapter(library_system):
 def test_choices_to_string_needs_no_adapter(library_system):
     """CHOICES(STRING) -> STRING is a free child->parent passthrough (AdapterFactory's
     issubclass check) — no adapter should be registered for this direction, since one
-    was already found to be dead code (registry lookup for this pair is never reached)."""
+    was already found to be dead code (registry lookup for this pair is never reached).
+    """
     from haywire.barn.builtin.types import CHOICES, STRING
     from haywire.core.adapter.factory import AdapterFactory
 

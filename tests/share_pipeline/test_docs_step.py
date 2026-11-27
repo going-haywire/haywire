@@ -37,7 +37,8 @@ def project(tmp_path: Path) -> Path:
 def test_docs_command_shells_out_with_all_and_json(project: Path) -> None:
     """In-process generation would repoint the live app's global injector and
     instantiate every node (hardware grabs) — see
-    .insights/project_docs_gen_reentrancy.md."""
+    .insights/project_docs_gen_reentrancy.md.
+    """
     cmd = SharePipeline(project).docs_command()
     assert cmd[:2] == ["haywire", "docs"] or cmd[:4] == ["uv", "run", "haywire", "docs"]
     assert "--all" in cmd
@@ -46,7 +47,8 @@ def test_docs_command_shells_out_with_all_and_json(project: Path) -> None:
 
 def test_docs_command_never_names_a_single_library(project: Path) -> None:
     """--all is one library-system load for the whole barn, and its
-    root-relative filter excludes site-packages and --dev out-of-tree libs."""
+    root-relative filter excludes site-packages and --dev out-of-tree libs.
+    """
     cmd = SharePipeline(project).docs_command()
     assert "haybale-alpha" not in " ".join(cmd)
 
@@ -68,7 +70,8 @@ def test_docs_command_passes_the_bumped_version(project: Path) -> None:
 
 def test_docs_command_omits_version_before_the_bump(project: Path) -> None:
     """No bump yet → no --version, leaving the generator on its pyproject
-    fallback rather than passing a bare '--version' with nothing after it."""
+    fallback rather than passing a bare '--version' with nothing after it.
+    """
     cmd = SharePipeline(project).docs_command()
     assert "--version" not in cmd
 
@@ -128,7 +131,8 @@ async def test_apply_docs_raises_on_a_crash(project: Path) -> None:
 @pytest.mark.anyio
 async def test_apply_docs_records_modified_and_deleted_docs(project: Path) -> None:
     """Renamed components leave orphan docs that the generator DELETES
-    (generate.py:87). A deletion must reach the commit, or the stale file ships."""
+    (generate.py:87). A deletion must reach the commit, or the stale file ships.
+    """
     from haywire.core.publishing import git as gitcmd
 
     module = project / "barn" / "haybale-alpha" / "haybale_alpha"

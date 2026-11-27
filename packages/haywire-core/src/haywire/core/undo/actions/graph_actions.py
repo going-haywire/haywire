@@ -1,5 +1,4 @@
-"""
-Graph-specific actions for the Haywire undo system.
+"""Graph-specific actions for the Haywire undo system.
 
 This module contains actions that operate on the graph structure,
 including node and edge manipulation, positioning, and selection.
@@ -108,8 +107,7 @@ class AddNodeAction(ActionBase):
         props: Mapping[str, Any] | None = None,
         on_top: bool = True,
     ):
-        """
-        Initialize the add node action.
+        """Initialize the add node action.
 
         Args:
             graph: The graph to add the node to
@@ -172,8 +170,7 @@ class AddNodeAction(ActionBase):
             self.undo_wrapper = self.graph.remove_node_wrapper(self.wrapper)
 
     def cleanup(self) -> None:
-        """
-        Clean up all undone elements when action is discarded.
+        """Clean up all undone elements when action is discarded.
 
         This is called when the action is removed from history and
         can no longer be undone. We now permanently cleanup all
@@ -197,8 +194,7 @@ class AddEdgeAction(ActionBase):
         style: Mapping[str, Any] | None = None,
         description: str | None = None,
     ):
-        """
-        Initialize the add edge action.
+        """Initialize the add edge action.
 
         Args:
             graph: The graph to add the edge to
@@ -289,8 +285,7 @@ class AddEdgeAction(ActionBase):
                     self._released[node_id] = released
 
     def cleanup(self) -> None:
-        """
-        Clean up all undone elements when action is discarded.
+        """Clean up all undone elements when action is discarded.
 
         This is called when the action is removed from history and
         can no longer be undone. We now permanently cleanup all
@@ -320,8 +315,7 @@ class MoveNodesAction(ActionBase):
         channel: LayoutChannel = PATCH,
         description: str | None = None,
     ):
-        """
-        Initialize the move nodes action.
+        """Initialize the move nodes action.
 
         Args:
             graph: The graph containing the nodes
@@ -581,10 +575,7 @@ class RestackNodesAction(ActionBase):
 
 
 class RemoveElementsAction(ActionBase):
-    """
-    Action for removing multiple nodes and connections in a single
-    operation.
-    """
+    """Action for removing multiple nodes and connections in a single operation."""
 
     def __init__(
         self,
@@ -594,8 +585,7 @@ class RemoveElementsAction(ActionBase):
         description: str | None = None,
         release_pins: bool = False,
     ):
-        """
-        Initialize the remove elements action.
+        """Initialize the remove elements action.
 
         Args:
             graph: The graph to remove elements from
@@ -704,8 +694,7 @@ class RemoveElementsAction(ActionBase):
         self.node_connected_edge_wrappers.clear()
 
     def cleanup(self) -> None:
-        """
-        Clean up all removed elements when action is discarded.
+        """Clean up all removed elements when action is discarded.
 
         This is called when the action is removed from history and
         can no longer be undone. We now permanently cleanup all
@@ -731,8 +720,7 @@ class RemoveElementsAction(ActionBase):
 
 @dataclass
 class SelectionState:
-    """
-    Snapshot of a selection (node IDs + edge UUIDs).
+    """Snapshot of a selection (node IDs + edge UUIDs).
 
     Not used in the undo stack — selection is per-session and non-undoable.
     Kept as a plain data-transfer object for copy/paste, context panels, and
@@ -754,8 +742,7 @@ class DuplicateNodeAction(CompositeAction):
         offset_x: float = 50.0,
         offset_y: float = 50.0,
     ):
-        """
-        Initialize the duplicate node action.
+        """Initialize the duplicate node action.
 
         Args:
             graph: The graph
@@ -834,8 +821,7 @@ class PasteClipboardAction(CompositeAction):
         patch_fallback: tuple[float, float] | None = None,
         stage_anchor: tuple[float, float] | None = None,
     ):
-        """
-        Initialize the paste clipboard action.
+        """Initialize the paste clipboard action.
 
         Args:
             graph: The graph to paste into
@@ -1575,7 +1561,8 @@ class ReorderPortsAction(ActionBase):
     """
 
     def __init__(self, graph: BaseGraph, node_id: str, ordered_ids: list[str]):
-        """
+        """Initialize the action.
+
         Args:
             ordered_ids: Port ids of the group, in the order they should display.
         """
@@ -1719,7 +1706,8 @@ class SetPortMetadataAction(ActionBase):
         description_: str | None = None,
         **changes: Any,
     ):
-        """
+        """Initialize the action.
+
         Args:
             port_id: The port to edit, on ``node_id``.
             description_: Optional override for the undo entry's own text, kept
@@ -1917,7 +1905,8 @@ class PromoteSettingAction(ActionBase):
     """
 
     def __init__(self, graph: BaseGraph, node_id: str, accessor: str, field: str, direction: Any):
-        """
+        """Initialize the action.
+
         Args:
             accessor: The settings bag's handle on the node (``bag_accessor()``).
             field: The setting's attribute name in that bag.
@@ -3030,7 +3019,8 @@ class RebuildNodesAction(ActionBase):
         description: str,
         after: Mapping[str, dict[str, Any] | None] | None = None,
     ):
-        """
+        """Initialize the action.
+
         Args:
             before: Each node's ``serialize()["node_data"]`` from before the rebuild, by node id.
             after: The node data each node is rebuilt from, by node id; a node missing

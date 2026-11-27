@@ -22,8 +22,7 @@ class FolderScanMixin:
     def folder_scan_for_pyfiles(
         self, library_path: str, exclude_patterns: list[str] | None = None
     ) -> list[Path]:
-        """
-        Scan a library directory for Python files, returning filepaths.
+        """Scan a library directory for Python files, returning filepaths.
 
         Args:
             library_path: Path to the library directory to scan
@@ -53,8 +52,7 @@ class FolderScanMixin:
     def folder_scan_for_modules(
         self, library_path: str, exclude_patterns: list[str] | None = None
     ) -> list[str]:
-        """
-        Scan a library directory for Python files, returning module names.
+        """Scan a library directory for Python files, returning module names.
 
         Args:
             library_path: Path to the library directory to scan
@@ -109,8 +107,7 @@ class FolderScanMixin:
         class_filter: Callable[[type], bool],
         force_reload: bool = False,
     ) -> tuple[list[type], ModuleType]:
-        """
-        Automatically discover classes in a module based on a filter function.
+        """Automatically discover classes in a module based on a filter function.
 
         Args:
             module_name: Name of the module to scan
@@ -160,8 +157,7 @@ class FolderScanMixin:
         library_root: str | None = None,
         module_prefix: str | None = None,
     ) -> str | None:
-        """
-        Resolve module name from file path relative to library root.
+        """Resolve module name from file path relative to library root.
 
         Args:
             file_path: Path to the Python file

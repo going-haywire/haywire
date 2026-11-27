@@ -141,7 +141,8 @@ class TestSimpleModeCharacterization:
     def test_set_to_default_value_still_marks_locally_set(self):
         """Setting a field to a value EQUAL to its default is a no-op (echo guard):
         the value never changes, so no override is recorded. The cell always
-        holds *a* value, so set-ness can't be inferred from value != default."""
+        holds *a* value, so set-ness can't be inferred from value != default.
+        """
         bag = SimpleBag()
         bag.strength = 0.5  # equal to default → echo-guarded no-op
         assert not bag._is_locally_set("strength")
@@ -260,7 +261,8 @@ class TestCellFor:
     def test_object_typed_field_raises(self):
         """Settings are IType-only: an un-IType (``object``-typed) field has no
         cell and no fallback store. ``__set_name__`` rejects it at class-definition
-        time; a descriptor that bypassed enforcement fails loudly in ``_cell_for``."""
+        time; a descriptor that bypassed enforcement fails loudly in ``_cell_for``.
+        """
         bag = SimpleBag()
         # Build a bare descriptor with _type=object WITHOUT running __set_name__
         # (which would reject a non-IType).
@@ -287,7 +289,8 @@ class TestCellBackedSerialization:
 
     def test_to_dict_wire_shape_is_bare_value(self):
         """The graph settings block stores the BARE value, not the IType
-        {"value": ...} dict — this matches NodeBase._to_dict → bag.to_dict()."""
+        {"value": ...} dict — this matches NodeBase._to_dict → bag.to_dict().
+        """
         bag = SimpleBag()
         bag.strength = 0.9
         assert bag._to_dict() == {"values": {"strength": 0.9}, "promoted": {}}
@@ -325,7 +328,8 @@ class TestCellBackedSerialization:
 
     def test_dict_value_stores_are_gone(self):
         """The per-field cell is the ONLY local value store — no _local_store,
-        no _plain object-typed fallback."""
+        no _plain object-typed fallback.
+        """
         bag = SimpleBag()
         assert not hasattr(bag, "_local_store")
         assert not hasattr(bag, "_plain")

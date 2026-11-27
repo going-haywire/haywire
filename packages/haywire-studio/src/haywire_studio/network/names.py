@@ -76,8 +76,10 @@ class LocalNames:
         return LocalNames(dns=tuple(dns), ip=tuple(ip))
 
     def covers(self, address: str) -> bool:
-        """True when *address* would be accepted by a certificate over these
-        names. Compared as parsed addresses so ``::1`` and ``0:0:...:1`` agree."""
+        """True when *address* would be accepted by a certificate over these names.
+
+        Compared as parsed addresses so ``::1`` and ``0:0:...:1`` agree.
+        """
         parsed = _parse_address(address)
         if parsed is None:
             return address in self.dns
@@ -162,8 +164,11 @@ def _interface_addresses() -> list[str]:
 
 
 def _parse_address(value: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
-    """Parse an address, tolerating a ``%zone`` suffix. ``None`` when *value*
-    is not an address at all (a DNS name, a MAC, anything else psutil hands us)."""
+    """Parse an address, tolerating a ``%zone`` suffix.
+
+    ``None`` when *value* is not an address at all (a DNS name, a MAC,
+    anything else psutil hands us).
+    """
     try:
         return ipaddress.ip_address(value.split("%")[0])
     except ValueError:
@@ -183,8 +188,11 @@ def _strip_port(entry: str) -> str:
 
 
 def _append_unique(target: list[str], value: str) -> None:
-    """Append preserving order. Interfaces routinely report duplicates — on
-    macOS ``llw0`` and ``awdl0`` mirror each other — and a SAN list with
-    repeats is merely untidy, but the dedup keeps output readable."""
+    """Append preserving order.
+
+    Interfaces routinely report duplicates — on macOS ``llw0`` and ``awdl0``
+    mirror each other — and a SAN list with repeats is merely untidy, but the
+    dedup keeps output readable.
+    """
     if value not in target:
         target.append(value)

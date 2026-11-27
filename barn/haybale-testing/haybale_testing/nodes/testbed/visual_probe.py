@@ -13,8 +13,10 @@ from haywire.api import FLOAT, BaseNode, ExecutionContext, NodeType, node
     node_type=NodeType.DATA,
 )
 class VisualProbeNode(BaseNode):
-    """Data node with `TEST_VISUAL` pins `note_in` and `note_out`, a `TEST_VISUAL_COUNT` inlet `count_in`,
-    and a float outlet `value`."""
+    """Data node with `TEST_VISUAL` pins, a `TEST_VISUAL_COUNT` inlet and a float outlet.
+
+    The pins are `note_in` and `note_out`, the inlet `count_in` and the outlet `value`.
+    """
 
     def init(self):
         from haybale_testing.types import TEST_VISUAL, TEST_VISUAL_COUNT

@@ -1,5 +1,4 @@
-"""
-Code generation system for Vue event constants and creators.
+"""Code generation system for Vue event constants and creators.
 
 This module generates TypeScript/JavaScript code from Python event definitions,
 ensuring consistency between frontend and backend event handling.
@@ -18,7 +17,6 @@ class VueEventGenerator:
     @staticmethod
     def generate_event_constants() -> str:
         """Generate Vue/JavaScript constants and creators from Python event registry"""
-
         # Separate events by category
         user_events = {}
         sync_events = {}
@@ -172,8 +170,10 @@ export interface {interface_name} {{"""
 
 
 def generate_arrow_heads() -> str:
-    """Return the arrow-head table as a JavaScript module that sets ``window.HwArrowHeads``
-    and the size steps as ``window.HwArrowHeadSizes``.
+    """Return the arrow-head table and its size steps as a JavaScript module.
+
+    The module sets the table as ``window.HwArrowHeads`` and the size steps as
+    ``window.HwArrowHeadSizes``.
 
     canvas.vue builds one ``<marker>`` per head and size from them. Shipped as a file rather than a
     prop, so it is not re-sent with every canvas update.

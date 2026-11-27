@@ -1,6 +1,4 @@
-"""
-Basic widget implementations for common data types
-"""
+"""Basic widget implementations for common data types"""
 
 from __future__ import annotations
 
@@ -25,8 +23,7 @@ log = logging.getLogger(__name__)
 
 @widget(description="Fast number input widget")
 class NumberWidget(BaseWidget):
-    """
-    Blender-style number input widget for float and int ports.
+    """Blender-style number input widget for float and int ports.
 
     Drag horizontally to change the value, click to type, or use
     the arrow buttons that appear on hover.
@@ -73,8 +70,7 @@ class NumberWidget(BaseWidget):
 
 @widget(description="Fast text input widget")
 class TextWidget(BaseWidget):
-    """
-    Text input widget for string ports.
+    """Text input widget for string ports.
 
     An inline single-line input plus an expand-to-modal button: the button pops
     out a full-size ``autogrow`` textarea (``text_modal``) for editing long or
@@ -145,7 +141,8 @@ class TextWidget(BaseWidget):
         """Open the full-size text editor, seeded from the current value.
 
         Confirm writes through ``set_value`` (the port cell); the inline input
-        re-syncs via the widget's own model→view dispatch — no mirror state."""
+        re-syncs via the widget's own model→view dispatch — no mirror state.
+        """
         value = self.get_value()
         text_modal(
             title=self._label or "Edit text",
@@ -157,8 +154,7 @@ class TextWidget(BaseWidget):
 
 @widget(description="checkbox widget")
 class CheckboxWidget(BaseWidget):
-    """
-    Checkbox widget for boolean ports.
+    """Checkbox widget for boolean ports.
 
     Config options (via ``CheckboxWidget.config(properties={...})``):
 
@@ -179,8 +175,7 @@ class CheckboxWidget(BaseWidget):
 
 @widget(description="toggle widget")
 class ToggleWidget(BaseWidget):
-    """
-    Toggle switch widget for boolean ports.
+    """Toggle switch widget for boolean ports.
 
     Config options (via ``ToggleWidget.config(properties={...})``):
 
@@ -201,8 +196,7 @@ class ToggleWidget(BaseWidget):
 
 @widget(description="button widget")
 class ButtonWidget(BaseWidget):
-    """
-    Push button for boolean ports: a click sets the port to ``True``.
+    """Push button for boolean ports: a click sets the port to ``True``.
 
     The button shows as pending while the port is ``True``; whatever consumes
     the press sets it back to ``False``. A click the port refuses changes nothing.
@@ -236,8 +230,7 @@ class ButtonWidget(BaseWidget):
 
 @widget(description="slider widget")
 class SliderWidget(BaseWidget):
-    """
-    Horizontal slider widget for numeric ports.
+    """Horizontal slider widget for numeric ports.
 
     Config options (via ``SliderWidget.config(properties={...})``):
 
@@ -272,8 +265,7 @@ class SliderWidget(BaseWidget):
 
 @widget(description="menu widget")
 class MenuWidget(BaseWidget):
-    """
-    Dropdown select widget for int and string ports.
+    """Dropdown select widget for int and string ports.
 
     Config options (via ``MenuWidget.config(properties={...})``):
 
@@ -406,8 +398,7 @@ WRAPPED_LABEL_MAX_HEIGHT = 80
 
 @widget(description="Label for display only", min_width=120)
 class LabelWidget(BaseWidget):
-    """
-    Read-only label widget that displays the port value as text.
+    """Read-only label widget that displays the port value as text.
 
     Text and numbers show as they are; any other value, such as a path, shows in
     its text form (`scans:in/a.png`). The text never sets the node's width. On a

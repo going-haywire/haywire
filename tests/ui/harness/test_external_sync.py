@@ -1,5 +1,4 @@
-"""
-External-sync tests: a value changed on the Settings model from outside the
+"""External-sync tests: a value changed on the Settings model from outside the
 panel (another tab / worker / mirror) must update the rendered widget in place,
 without a panel rebuild.
 """
@@ -18,7 +17,8 @@ pytestmark = pytest.mark.ui
 
 def test_external_mirror_change_shows_dot_and_reset(page: Page, harness):
     """External local override of a mirror field adds • and enables the row menu's
-    Reset item (right-click the label cell to open it)."""
+    Reset item (right-click the label cell to open it).
+    """
     goto_ready(page, f"{harness}{_LIVE_PATH}")
     page.wait_for_selector("[data-field]")
 

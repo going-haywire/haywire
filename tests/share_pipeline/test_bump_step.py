@@ -126,7 +126,8 @@ def test_check_tag_available_passes_for_a_free_tag(project: Path) -> None:
 
 def test_unreachable_remote_does_not_block_the_tag_check(project: Path) -> None:
     """A remote we can't query is step 1's problem. Here it must not become a
-    false collision — that would block a legitimate publish."""
+    false collision — that would block a legitimate publish.
+    """
     from haywire.core.publishing import git as gitcmd
 
     def _unreachable(*_a, **_kw):
@@ -161,7 +162,8 @@ def test_refreshed_lockfile_joins_the_write_set(project: Path) -> None:
 
 def test_stale_lockfile_stays_out_of_the_write_set(project: Path) -> None:
     """A failed lock left the file untouched — staging it would commit nothing
-    useful and muddy the commit preview."""
+    useful and muddy the commit preview.
+    """
     (project / "uv.lock").write_text("")
     pipeline = SharePipeline(project)
 
@@ -173,7 +175,8 @@ def test_stale_lockfile_stays_out_of_the_write_set(project: Path) -> None:
 
 def test_disagreeing_versions_reject_a_keyword_bump(tmp_path: Path) -> None:
     """No silent resolution — a 'first barn library' heuristic would
-    downgrade the higher-versioned sibling."""
+    downgrade the higher-versioned sibling.
+    """
     repo = tmp_path / "mixed"
     subprocess.run(["git", "init", str(repo)], check=True, capture_output=True)
     for name, version in (("haybale-alpha", "0.3.1"), ("haybale-beta", "0.9.0")):

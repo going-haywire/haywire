@@ -1,7 +1,5 @@
 # tests/ui/test_editor_registry.py
-"""
-Tests for the EditorRegistry and @editor decorator.
-"""
+"""Tests for the EditorRegistry and @editor decorator."""
 
 from __future__ import annotations
 

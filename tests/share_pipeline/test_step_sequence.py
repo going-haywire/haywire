@@ -71,7 +71,8 @@ def test_every_screen_maps_to_a_real_step_module() -> None:
 def test_every_dependency_decision_has_an_applier() -> None:
     """The real guarantee: a decision the UI can express must have somewhere to
     write. A ShareDecisions field wired to a missing applier would fail only
-    when a user actually made that choice."""
+    when a user actually made that choice.
+    """
     for method in ("apply_framework", "apply_removals", "apply_additions", "apply_floors"):
         assert callable(getattr(SharePipeline, method, None)), f"SharePipeline.{method} is missing"
 
@@ -79,7 +80,8 @@ def test_every_dependency_decision_has_an_applier() -> None:
 def test_apply_all_covers_every_share_decisions_field() -> None:
     """Adding a decision field without teaching apply_all to write it would
     silently drop the author's answer — the collect-then-apply-once shape makes
-    that failure invisible, since nothing writes until the single apply."""
+    that failure invisible, since nothing writes until the single apply.
+    """
     import dataclasses
 
     from haywire.core.publishing.pipeline import ShareDecisions
@@ -94,7 +96,8 @@ def test_apply_all_covers_every_share_decisions_field() -> None:
 
 def test_detect_step_writes_nothing() -> None:
     """Detect is pure — it has consumers beyond the wizard (``haywire deps
-    check``), and a reporting path that mutates would surprise every one."""
+    check``), and a reporting path that mutates would surprise every one.
+    """
     from haywire.core.publishing.pipeline.steps import detect
 
     source = inspect.getsource(detect)
@@ -125,7 +128,8 @@ def test_share_flow_screens_are_backed_or_ui_only() -> None:
 
 def test_preflight_precedes_every_writing_screen() -> None:
     """Preflight's clean-tree check is what makes the mid-pipeline revert safe:
-    anything dirty after it is provably this run's own writes."""
+    anything dirty after it is provably this run's own writes.
+    """
     from haybale_share._flow.copy import STEPS
 
     assert STEPS.index("preflight") < STEPS.index("review") < STEPS.index("publish")

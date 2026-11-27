@@ -1,6 +1,5 @@
 # tests/core/node/test_promoted_show_widget.py
-"""
-Per-instance widget visibility on a promoted port.
+"""Per-instance widget visibility on a promoted port.
 
 A promoted port's ``show_widget`` is user-settable (the pin menu), unlike an
 author-declared port's, whose strategy stays the author's decision (ADR 0003).
@@ -54,7 +53,8 @@ class TestDirectionDefaults:
     ):
         """The helper is the single source of truth for the per-direction
         defaults; if it drifts from the as_* factories, saved graphs start
-        omitting the wrong strategy."""
+        omitting the wrong strategy.
+        """
         for direction in (PortType.INLET, PortType.OUTLET, PortType.CONFIG):
             node = _make(graph_with_library_system)
             promote_setting(node, "example", "example_float", direction)
@@ -81,7 +81,8 @@ class TestSetStrategy:
 
     def test_set_on_an_unpromoted_port_is_a_noop(self, graph_with_library_system, library_system):
         """An author-declared port keeps ADR 0003's contract — this never
-        touches one."""
+        touches one.
+        """
         node = _make(graph_with_library_system)
         author_ports = [p for p in node.ports.values() if not p.promoted]
         assert author_ports, "fixture node must have at least one author-declared port"
@@ -132,7 +133,8 @@ class TestRoundTrip:
     def test_demote_discards_the_choice(self, graph_with_library_system, library_system):
         """The record IS the storage, so demoting drops it. Freeze-on-disconnect
         protects values, not view preferences — re-promoting starts from the
-        direction default again."""
+        direction default again.
+        """
         node = _make(graph_with_library_system)
         promote_setting(node, "example", "example_float", PortType.OUTLET)
         pid = _pid(node)

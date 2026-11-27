@@ -31,7 +31,9 @@ _EXTENSIONS = [".wav", ".flac", ".ogg", ".mp3"]
     node_type=NodeType.CONTROL,
 )
 class RecorderNode(BaseNode):
-    """Appends each block to a file. The first block opens it and fixes its channel count and sample
+    """Appends each block to a file.
+
+    The first block opens it and fixes its channel count and sample
     rate; a later block that differs is an error. WAV files are written as 32-bit float.
 
     Inputs:

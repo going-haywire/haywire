@@ -107,7 +107,8 @@ def test_the_appearance_surface_declares_no_contract():
 
 def test_it_polls_for_a_node_not_merely_a_selection():
     """SelectionToolbar.poll is "something is selected", which an edges-only
-    selection satisfies — there is nothing to style without a node."""
+    selection satisfies — there is nothing to style without a node.
+    """
     assert AppearanceToolbarPanel.poll(_ctx(with_node=True)) is True
     assert AppearanceToolbarPanel.poll(_ctx(edges=["e1"])) is False
     assert NodeAppearancePanel.poll(_ctx(edges=["e1"])) is False
@@ -165,7 +166,8 @@ async def test_the_dropdown_renders_the_appearance_slice_and_stays_live(user: Us
 @pytest.mark.anyio
 async def test_nothing_renders_without_a_node(user: User) -> None:
     """An edges-only selection is cross-kind for Appearance: the icon is not
-    there at all, not even greyed."""
+    there at all, not even greyed.
+    """
     captured: dict[str, object] = {}
 
     @ui.page("/")

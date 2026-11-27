@@ -308,7 +308,8 @@ def test_node_write_without_a_block_is_an_error(graph_with_library_system):
 @pytest.mark.parametrize("ppm", [100, -100, 500], ids=["input fast", "input slow", "input 500 ppm fast"])
 def test_output_absorbs_an_input_device_clock_offset(ppm):
     """An input device's blocks played by an output device on its own clock, as spike S9: the
-    queue stays bounded, with no stall once playing, by the drift controller alone."""
+    queue stays bounded, with no stall once playing, by the drift controller alone.
+    """
     n, rate, prefill = 256, 48000, 8
     out = _output(FakeBackend(rate=rate), prefill_blocks=prefill)
     input_clock, primed = 0.0, False

@@ -1,5 +1,4 @@
-"""
-AdapterFactory - Creates adapter chains and manages hot reload.
+"""AdapterFactory - Creates adapter chains and manages hot reload.
 
 This factory:
 - Creates linked adapter chains from type compatibility queries
@@ -25,8 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class AdapterFactory:
-    """
-    Factory for creating and managing adapter chains.
+    """Factory for creating and managing adapter chains.
 
     Handles three cases:
     1. Scalar → Scalar: Uses registry to find adapters
@@ -37,8 +35,7 @@ class AdapterFactory:
     """
 
     def __init__(self, adapter_registry: AdapterRegistry):
-        """
-        Initialize adapter factory.
+        """Initialize adapter factory.
 
         Args:
             adapter_registry: Registry containing adapter class definitions
@@ -62,8 +59,7 @@ class AdapterFactory:
     def create_chain(
         self, source_type: type[IType], sink_type: type[IType], edge_id: str, max_depth: int = 3
     ) -> tuple[IAdapter | None, str | None]:
-        """
-        Create adapter chain, handling scalar and compound types.
+        """Create adapter chain, handling scalar and compound types.
 
         Three cases:
 
@@ -174,8 +170,7 @@ class AdapterFactory:
         return (first_adapter, error)
 
     def _get_base_type(self, type_cls: type[IType]) -> type[IType]:
-        """
-        Get base type from potentially parameterized compound type.
+        """Get base type from potentially parameterized compound type.
 
         Parameterized compound types are created dynamically via
         __class_getitem__ (e.g., ARRAY[FLOAT]). This extracts
@@ -213,8 +208,7 @@ class AdapterFactory:
     def _create_scalar_chain(
         self, source_type: type[IType], sink_type: type[IType], max_depth: int
     ) -> tuple[IAdapter | None, str | None]:
-        """
-        Case 1: Create chain for scalar types.
+        """Case 1: Create chain for scalar types.
 
         Example: FLOAT → STRING
         Result: FloatToStringAdapter (linked to ReturnAdapter)
@@ -253,8 +247,7 @@ class AdapterFactory:
     def _find_chain_with_ancestors(
         self, source_type: type[IType], sink_key: str, max_depth: int
     ) -> list[type[BaseAdapter]] | None:
-        """
-        Find adapter chain, falling back to source type's ancestors.
+        """Find adapter chain, falling back to source type's ancestors.
 
         Walks source_type.__mro__ to find the most specific ancestor
         that has a registered adapter chain to the target. The first
@@ -292,8 +285,7 @@ class AdapterFactory:
         sink_element: type[IType],
         max_depth: int,
     ) -> tuple[IAdapter | None, str | None]:
-        """
-        Case 2: Same structure compound types.
+        """Case 2: Same structure compound types.
 
         Requires registered container adapter (e.g., ArrayArrayAdapter).
         Factory finds element chain and injects it.
@@ -304,7 +296,6 @@ class AdapterFactory:
         3. Inject into ArrayArrayAdapter
         Result: ArrayArrayAdapter(FloatToStringAdapter)
         """
-
         if source_element is None or sink_element is None:
             return (None, "Compound types missing element_type_cls")
 
@@ -364,8 +355,7 @@ class AdapterFactory:
     def _create_structural_chain(
         self, source_type: type[CompoundType], sink_type: type[CompoundType], max_depth: int
     ) -> tuple[IAdapter | None, str | None]:
-        """
-        Case 3: Structural transformation.
+        """Case 3: Structural transformation.
 
         Uses StructuralAdapter (core system component).
         Wraps structural adapter + element chain (which may include
@@ -489,8 +479,7 @@ class AdapterFactory:
             del self._edge_to_adapters[edge_id]
 
     def _on_adapter_lifecycle_event(self, batch: list[LifeCycleEvent]):
-        """
-        Handle adapter hot reload events from registry.
+        """Handle adapter hot reload events from registry.
 
         Notifies affected EdgeWrappers when their adapters change.
         Each EdgeWrapper receives only events for adapters it depends on.

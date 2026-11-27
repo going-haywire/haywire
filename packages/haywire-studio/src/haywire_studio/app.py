@@ -504,8 +504,9 @@ class HaywireApp:
 
     @staticmethod
     def _install_ip_allowlist(network) -> None:
-        """Install IPAllowlistMiddleware on the root ASGI app (only called when
-        the document says exposed — see run()).
+        """Install IPAllowlistMiddleware on the root ASGI app.
+
+        Only called when the document says exposed — see run().
 
         Uses ``nicegui.app.add_middleware`` (nicegui.app is a FastAPI instance):
         Starlette's middleware stack wraps the whole ASGI callable, including

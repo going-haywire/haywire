@@ -47,7 +47,8 @@ def test_attr_updates_when_detail_changes():
 
 def test_unrecognised_value_degrades_to_full():
     """coerce() is used, not a raw pass-through — an old 3-rank saved value
-    must not reach the DOM as a wire string canvas.vue has no CSS rule for."""
+    must not reach the DOM as a wire string canvas.vue has no CSS rule for.
+    """
     n = _ui_node_with_detail("compact")
     n._apply_detail_attr()
     assert cast(Any, n.container)._props["data-node-props-detail"] == NodeDetail.FULL.value

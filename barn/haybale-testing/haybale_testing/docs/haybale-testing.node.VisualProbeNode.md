@@ -15,5 +15,6 @@ Test-only: a data node with pins on a drawn-only wire.
 
 ## Notes
 
-Data node with `TEST_VISUAL` pins `note_in` and `note_out`, a `TEST_VISUAL_COUNT` inlet `count_in`,
-and a float outlet `value`.
+Data node with `TEST_VISUAL` pins, a `TEST_VISUAL_COUNT` inlet and a float outlet.
+
+The pins are `note_in` and `note_out`, the inlet `count_in` and the outlet `value`.

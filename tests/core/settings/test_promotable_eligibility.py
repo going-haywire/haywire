@@ -1,6 +1,5 @@
 # tests/core/settings/test_promotable_eligibility.py
-"""
-promotable= eligibility:
+"""promotable= eligibility:
 
 - Promotable Flag enum semantics and the setting() kwarg (this task)
 - eligible_promotion_directions() matrix, promote_setting guard, and the

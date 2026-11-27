@@ -1,5 +1,4 @@
-"""
-Structural tests: verify that the correct fields and widget types
+"""Structural tests: verify that the correct fields and widget types
 render for SettingsProbeNode.example and TestingSettings.
 """
 
@@ -49,7 +48,8 @@ def test_node_fields_present(page: Page, harness):
 
 def test_watch_field_renders_disabled_widget(page: Page, harness):
     """watch() fields render a real (disabled) widget now — ui_state=DISABLED
-    is the general chrome mechanism, not a bespoke label-only path."""
+    is the general chrome mechanism, not a bespoke label-only path.
+    """
     goto_ready(page, f"{harness}{_NODE_PATH}")
     page.wait_for_selector("[data-field]")
     row = page.locator('[data-field="intensity_ro"]')

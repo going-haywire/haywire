@@ -27,7 +27,8 @@ All of these are session-local: a personal navigation click must only affect
 the session that clicked it, never a peer session that happens to have the same
 graph or component open. All are fire-and-forget — nothing reports back whether
 an editor claimed the signal, and with no editor installed to answer, nothing
-happening is a working configuration rather than an error."""
+happening is a working configuration rather than an error.
+"""
 
 from __future__ import annotations
 
@@ -40,11 +41,11 @@ if TYPE_CHECKING:
 
 
 def open_component(error: HaywireException, context: SessionContext) -> bool:
-    """Point the CONTEXT-slot component source viewer at this error's component
-    and force it into view.
+    """Point the CONTEXT-slot component source viewer at this error's component and force it into view.
 
     The HaywireException-keyed form of :func:`open_component_source`; see it for
-    the routing. Returns False if the error has no registry_key."""
+    the routing. Returns False if the error has no registry_key.
+    """
     if not error.can_open_component():
         return False
 
@@ -82,7 +83,8 @@ def open_file_in_studio(filepath: str, line_number: int | None, context: Session
     Publishes ``RevealSource``, so CodeEditor's hook decides whether the path is
     one it can edit — a file it vetoes opens nothing rather than landing in
     CodeMirror. ``line_number`` is accepted for a future goto; the CodeEditor
-    binds by path today."""
+    binds by path today.
+    """
     from haywire.api.workbench import RevealSource
 
     path = Path(filepath)
@@ -90,15 +92,15 @@ def open_file_in_studio(filepath: str, line_number: int | None, context: Session
 
 
 def reveal_instance(error: HaywireException, context: SessionContext) -> None:
-    """Ask every open GraphEditor in THIS session to reveal+select this
-    error's instance, if it's theirs.
+    """Ask every open GraphEditor in THIS session to reveal+select this error's instance, if it's theirs.
 
     Publishes RevealGraphInstance (session-local — see its docstring for
     why) and returns immediately — there is no synchronous way to know
     whether any GraphEditor in this session claimed it (fire-and-forget).
     No-op if the error doesn't carry enough locator fields to reveal
     anything (no user-visible feedback either way; see RevealGraphInstance's
-    docstring for the rationale)."""
+    docstring for the rationale).
+    """
     if not error.can_reveal_instance():
         return
 

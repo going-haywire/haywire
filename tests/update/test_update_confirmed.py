@@ -55,7 +55,7 @@ def test_the_banner_names_both_versions_and_the_relaunch_command():
 
 
 def test_confirming_twice_registers_one_banner():
-    """atexit handlers are additive; a double-confirm must not print twice."""
+    """`atexit` handlers are additive; a double-confirm must not print twice."""
     from haywire.core.update import confirmed
 
     registered: list[object] = []

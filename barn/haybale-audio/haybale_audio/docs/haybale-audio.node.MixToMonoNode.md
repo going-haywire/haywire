@@ -13,5 +13,6 @@ Averages all channels of an audio block into one
 
 ## Notes
 
-Outputs one channel that is the average of the input's channels, which keeps the level of a
-stereo pair that carries the same signal on both sides.
+Outputs one channel that is the average of the input's channels.
+
+Averaging keeps the level of a stereo pair that carries the same signal on both sides.

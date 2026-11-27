@@ -20,7 +20,8 @@ pytestmark = pytest.mark.integration
 
 def _link_and_push(node, pid, value):
     """Simulate an upstream-driven value on a promoted inlet: stamp a linked edge
-    so ``is_linked()`` is True, then push the value onto the port's field."""
+    so ``is_linked()`` is True, then push the value onto the port's field.
+    """
     port = node.ports[pid]
     port.incoming.linked["fake_edge"] = object()  # is_linked() only checks length
     port.set_value(value, edge_id="fake_edge")
@@ -67,7 +68,8 @@ def test_watch_default_direction_rejected_shadow_default_ok(library_system):
     defaults to the inlet direction and is rejected (outlet-only by
     declaration, not by a separate read_only structural check); a
     ``shadow()`` field promotes to the default inlet fine. Per-direction
-    coverage lives in the Task 3 tests below."""
+    coverage lives in the Task 3 tests below.
+    """
     from haywire.core.node.promotion import promote_setting
 
     node = _make_mixed_bag_node(library_system)
@@ -108,7 +110,8 @@ def _descriptor_of(node, accessor, field):
 
 def test_promoted_inlet_shares_the_setting_cell_by_reference(make_node_with_setting):
     """After promote, the port's ``_data`` IS the setting's P4 cell (identity),
-    and a write through the setting is observed by the port with no copy step."""
+    and a write through the setting is observed by the port with no copy step.
+    """
     node = make_node_with_setting(accessor="filter", field="threshold")
     from haywire.core.node.promotion import promote_setting
 
@@ -274,7 +277,8 @@ def test_promoted_outlet_keeps_tracking_global_until_actually_written(library_sy
     locally-set — an outlet has no write path of its own (still written
     through the normal panel/registry path, same as if it weren't promoted),
     so it must keep tracking its mirrored global exactly like an unpromoted,
-    unedited shadow field."""
+    unedited shadow field.
+    """
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
 

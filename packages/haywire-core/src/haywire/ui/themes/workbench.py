@@ -1,6 +1,5 @@
 # haywire/ui/themes/workbench.py
-"""
-BaseTheme — CSS variable definitions for the app shell, the canvas, and node cards.
+"""BaseTheme — CSS variable definitions for the app shell, the canvas, and node cards.
 
 Fields are plain Color string class attributes (NOT field() descriptors).
 BaseTheme.__init_subclass__ auto-wraps them into minimal objects so that
@@ -27,8 +26,7 @@ class _FieldProxy:
 
 
 class BaseTheme:
-    """
-    Base class for every theme — workbench and node alike.
+    """Base class for every theme — workbench and node alike.
 
     One class, one token vocabulary (``_CSS_TOKEN_MAP``, in full). What
     distinguishes a "workbench theme" from a "node theme" is
@@ -205,8 +203,7 @@ class BaseTheme:
                 cls._fields[name] = proxy
 
     def to_css_vars(self) -> dict[str, str]:
-        """
-        Build {css_variable: value} dict for all known CSS tokens.
+        """Build {css_variable: value} dict for all known CSS tokens.
 
         Walks _CSS_TOKEN_MAP and reads the corresponding _fields entry.
         Fields not in the map are silently ignored.

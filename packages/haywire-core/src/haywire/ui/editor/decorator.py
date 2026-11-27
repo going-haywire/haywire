@@ -1,6 +1,5 @@
 # packages/haywire-core/src/haywire/ui/editor_framework/decorator.py
-"""
-@editor decorator for marking classes as Haywire editor types.
+"""@editor decorator for marking classes as Haywire editor types.
 
 Sets class_identity on the class. Does NOT register the class —
 registration happens when the library calls add_folder() in
@@ -22,8 +21,7 @@ from .identity import EditorIdentity, OpenBehavior, SlotName
 
 
 def editor(**kwargs: Any):
-    """
-    Decorator to mark a class as an editor type.
+    """Decorator to mark a class as an editor type.
 
     Always invoked with parentheses — `@editor(...)` or `@editor()`. The
     bare `@editor` form (no parens) is not supported.

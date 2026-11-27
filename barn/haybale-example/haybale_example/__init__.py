@@ -1,5 +1,4 @@
-"""
-Test Library for Haywire
+"""Test Library for Haywire
 
 Minimal test library to demonstrate multi-library support.
 Contains one node, one widget, one adapter, and one data struct.
@@ -29,7 +28,6 @@ class Library(BaseLibrary):
 
     def register_components(self):
         """Register all test components with the global registries"""
-
         """Register nodes and types"""
         base_path = Path(__file__).parent
 

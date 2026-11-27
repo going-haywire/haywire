@@ -1,5 +1,4 @@
-"""
-Array Compound Type - Final Simplified Version
+"""Array Compound Type - Final Simplified Version
 
 Key changes:
 1. Uses hooks from IType (_validate_port_type, _configure_port)
@@ -37,8 +36,7 @@ T = TypeVar("T")
     default={"value": []},
 )
 class ARRAY(CompoundType[T]):
-    """
-    Homogeneous typed array compound type.
+    """Homogeneous typed array compound type.
 
     Arrays store lists of elements of a specific type.
     All elements must be the same type (or compatible via adapters).
@@ -53,9 +51,9 @@ class ARRAY(CompoundType[T]):
     Storage: ArrayField stores List[T] with unwrapped elements
     Transfer: List of unwrapped values (primitives or instances)
 
-    IMPORTANT:
-    ARRAY declares no wire type, so it travels on its element type's; a declared one would take
-    precedence (see wire_type_of).
+    Important:
+        ARRAY declares no wire type, so it travels on its element type's; a declared one would take
+        precedence (see wire_type_of).
 
     Hooks: Uses default implementations from IType
     - _validate_port_type: Allows all port types (inlet, outlet, config)
@@ -86,8 +84,7 @@ class ARRAY(CompoundType[T]):
 
 @dataclass
 class ArrayField(DataField):
-    """
-    Field implementation for ARRAY.
+    """Field implementation for ARRAY.
 
     Stores list of unwrapped values with element type tracking.
 

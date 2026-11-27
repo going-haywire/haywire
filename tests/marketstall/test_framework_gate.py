@@ -16,7 +16,8 @@ from haywire.core.marketstall.framework_gate import installed_core_version
 @pytest.mark.unit
 def test_conflict_names_both_sides():
     """The message must name the requirement AND what is running — a bare
-    "needs a different version" is the complaint this gate exists to fix."""
+    "needs a different version" is the complaint this gate exists to fix.
+    """
     verdict = check_require("haywire-core~=0.0.37", installed="0.0.36")
 
     assert verdict.ok is False

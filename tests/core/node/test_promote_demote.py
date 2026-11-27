@@ -42,7 +42,8 @@ def test_promote_is_idempotent(make_node_with_setting):
 @pytest.mark.integration
 def test_promote_binding_is_the_port_id(make_node_with_setting):
     """The port id + DataPort.promoted are the whole binding signal — there is
-    no descriptor flag."""
+    no descriptor flag.
+    """
     node = make_node_with_setting(accessor="filter", field="threshold")
     from haywire.core.node.promotion import (
         is_field_promoted,
@@ -61,7 +62,8 @@ def test_promoted_port_carries_the_settings_widget_config(library_system):
     """The promoted port's inline canvas widget (ui/skin/base.py, keyed off
     port.widget_key/widget_config) must render with the setting's own stamped
     widget contract — a CHOICES field's options, or a numeric field's min/max —
-    not the IType's bare identity default with an empty widget_config."""
+    not the IType's bare identity default with an empty widget_config.
+    """
     from unittest.mock import MagicMock
 
     from haywire.barn.builtin import widget_keys

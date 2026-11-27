@@ -62,7 +62,8 @@ class _RejigFromSettingNode(BaseNode):
 class _StubWrapper:
     """`rejig` is NodeData port machinery and needs no graph — the only thing
     a port rebuild reaches for through the wrapper is the dirty-marking, which
-    is counted here so the tests can assert the rebuild was announced."""
+    is counted here so the tests can assert the rebuild was announced.
+    """
 
     graph = None
     state = None

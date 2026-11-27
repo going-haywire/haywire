@@ -1,5 +1,6 @@
 """watch() fields render as disabled (greyed) widgets, not label-only rows.
-ui_state=DISABLED is the general chrome mechanism, applied uniformly."""
+ui_state=DISABLED is the general chrome mechanism, applied uniformly.
+"""
 
 from __future__ import annotations
 
@@ -34,7 +35,8 @@ def _find_field_row(root, attr_name: str):
 def _menu_item_text(item) -> str:
     """A ``MenuItem`` carries no ``.text`` of its own — it holds an ``ItemSection``
     child (``TextElement``) that does. Headless equivalent of what a browser
-    renders as the item's label."""
+    renders as the item's label.
+    """
     for child in item.default_slot.children:
         text = getattr(child, "text", None)
         if text is not None:
@@ -87,7 +89,8 @@ def test_watch_row_suppresses_dirty_glyph_while_disabled(make_node_with_setting)
     """watch() fields are writable now — a local write marks them locally-set
     like any other mirror field (Reset lights up) — but watch() also seeds
     ui_state=DISABLED, and the • glyph is suppressed on any non-NORMAL row, so
-    a greyed watch() field never shows the dirty marker."""
+    a greyed watch() field never shows the dirty marker.
+    """
     node = make_node_with_setting(accessor="filter", field="threshold", with_watch=True)
     node.filter.threshold_watched = 0.9
     anchor = _render(node)
@@ -99,7 +102,8 @@ def test_watch_row_suppresses_dirty_glyph_while_disabled(make_node_with_setting)
 
 def test_unpromotable_watch_row_menu_has_reset_only(make_node_with_setting):
     """Reset is offered for every field regardless of promotability; an
-    unpromotable watch() row still gets a menu, just with no promote entries."""
+    unpromotable watch() row still gets a menu, just with no promote entries.
+    """
     from haywire.core.settings.descriptor import Promotable
 
     node = make_node_with_setting(accessor="filter", field="threshold", with_watch=True)

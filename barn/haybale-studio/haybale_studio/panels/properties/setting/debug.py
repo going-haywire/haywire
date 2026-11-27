@@ -1,6 +1,5 @@
 # haybale_studio/panels/properties/setting/debug.py
-"""
-Debug settings panels, on the ``DebugSurface`` surface.
+"""Debug settings panels, on the ``DebugSurface`` surface.
 
 DebugSettingsPanel        — log levels (global baseline, per-group, per-library)
 DebugOverlaySettingsPanel — debug HUD visibility and position

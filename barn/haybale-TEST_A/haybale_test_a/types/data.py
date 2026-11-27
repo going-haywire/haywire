@@ -1,5 +1,4 @@
-"""
-Test custom type: Simple test data structure.
+"""Test custom type: Simple test data structure.
 
 This demonstrates a custom type from test_a library that can be used
 by nodes in other libraries (like test_b).
@@ -25,8 +24,7 @@ from haywire.api.workbench import hui
 )
 @dataclass
 class TEST_DATA(BaseType):
-    """
-    A simple test data structure.
+    """A simple test data structure.
 
     Demonstrates a custom type that can be passed between nodes
     across different libraries.
@@ -42,8 +40,7 @@ class TEST_DATA(BaseType):
     metadata: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
-        """
-        Serialize test data to dictionary format.
+        """Serialize test data to dictionary format.
 
         Returns:
             Dictionary containing all data
@@ -52,8 +49,7 @@ class TEST_DATA(BaseType):
 
     @classmethod
     def from_dict(cls, data: dict) -> TEST_DATA:
-        """
-        Deserialize test data from dictionary format.
+        """Deserialize test data from dictionary format.
 
         Args:
             data: Dictionary containing test data
@@ -64,8 +60,7 @@ class TEST_DATA(BaseType):
         return cls(**data)
 
     def add_metadata(self, key: str, value: Any) -> None:
-        """
-        Add metadata to the test data.
+        """Add metadata to the test data.
 
         Args:
             key: Metadata key
@@ -74,8 +69,7 @@ class TEST_DATA(BaseType):
         self.metadata[key] = value
 
     def get_metadata(self, key: str, default: Any = None) -> Any:
-        """
-        Get metadata value.
+        """Get metadata value.
 
         Args:
             key: Metadata key

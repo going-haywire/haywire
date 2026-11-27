@@ -134,7 +134,8 @@ async def test_disabled_menu_row_keeps_pointer_events_so_a_tooltip_works(user: U
 def test_the_hover_rule_excludes_the_disabled_state() -> None:
     """The hover background must opt out by selector, not by blinding the row —
     reintroducing ``pointer-events: none`` here is what silently kills tooltips
-    on every greyed command in the app."""
+    on every greyed command in the app.
+    """
     assert ".hw-menu-row:not(.hw-disabled):hover" in STATIC_CSS
     assert "pointer-events: none" not in _menu_row_disabled_block()
 
@@ -190,7 +191,8 @@ async def test_menu_row_without_a_command_shows_no_shortcut(user: User) -> None:
 @pytest.mark.anyio
 async def test_submenu_row_anchor_is_a_menu_row(user: User) -> None:
     """The anti-drift guarantee: the row that expands and the rows beside it
-    are the same element, so styling one styles the other."""
+    are the same element, so styling one styles the other.
+    """
     captured: dict[str, object] = {}
 
     @ui.page("/")
@@ -230,7 +232,8 @@ def test_the_menu_row_block_exists_once_and_is_token_driven():
 
 def test_every_menu_row_token_is_settable_from_a_theme():
     """A token used by the CSS but absent from the theme map could never be
-    themed — the whole point of routing the look through tokens."""
+    themed — the whole point of routing the look through tokens.
+    """
     used = set(re.findall(r"var\((--hw-menu-row-[a-z-]+)", STATIC_CSS))
     mapped = set(BaseTheme._CSS_TOKEN_MAP.values())
     assert used, "the menu-row block should read --hw-menu-row-* tokens"

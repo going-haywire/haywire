@@ -40,7 +40,8 @@ def test_resolve_block_target_returns_market_for_direct_market(tmp_path: Path) -
 @pytest.mark.unit
 def test_resolve_block_target_falls_back_to_aggregator_for_transitive(tmp_path: Path) -> None:
     """Transitive: via is a discovered stall, not a direct subscription.
-    Fallback to the aggregator's [[markets]] URL (the only one the user controls)."""
+    Fallback to the aggregator's [[markets]] URL (the only one the user controls).
+    """
     from haywire.core.marketstall import (
         add_market_subscription_to_global,
         resolve_block_target,

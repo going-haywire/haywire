@@ -512,7 +512,8 @@ def test_on_focus_no_op_without_instance():
 def test_on_focus_lazy_instantiates_when_instance_missing():
     """on_focus must lazy-instantiate so editors can update session context
     on first activation (e.g. GraphEditor.on_focus sets
-    ``ctx.data[EditState].active_graph``)."""
+    ``ctx.data[EditState].active_graph``).
+    """
     reg = EditorRegistry()
     session = _make_session()
     w = _wrapper(
@@ -764,7 +765,8 @@ def test_request_close_returns_true_when_no_instance():
 
 class _ConsentingEditorCls:
     """Stub editor that records handle_close_request calls and returns a
-    configurable value."""
+    configurable value.
+    """
 
     class_identity = SimpleNamespace(
         registry_key="consent:editor:1",
@@ -813,7 +815,8 @@ def test_request_close_returns_false_when_editor_vetoes():
 
 def test_request_close_allows_when_handle_close_request_raises():
     """A buggy handle_close_request must not strand the user with an
-    unclosable tab. Allow close on exception."""
+    unclosable tab. Allow close on exception.
+    """
 
     class _RaisingConsentCls:
         class_identity = SimpleNamespace(
@@ -952,7 +955,8 @@ def test_repayload_with_slot_delegates_to_slot_repayload():
 
 def test_repayload_without_slot_just_updates_field():
     """Detached wrapper (no slot) — repayload still updates binding_id field
-    so unit tests can verify identity changes without a slot."""
+    so unit tests can verify identity changes without a slot.
+    """
     reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
@@ -987,7 +991,8 @@ def test_repayload_label_is_optional():
 
 def test_lifecycle_class_reloaded_clears_is_dirty():
     """Hot-reload replaces the instance; in-memory unsaved state is gone
-    along with it, so the dirty flag must clear."""
+    along with it, so the dirty flag must clear.
+    """
     reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",

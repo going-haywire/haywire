@@ -118,7 +118,8 @@ def test_workspace_set_marks_row_dirty_and_enables_reset(registry: SettingsRegis
 
 def test_global_tier_alone_is_not_dirty(registry: SettingsRegistry):
     """The global tier is the user's own default, not an override the UI made —
-    it must not read as dirty, and reset must stay greyed."""
+    it must not read as dirty, and reset must stay greyed.
+    """
     registry.set_global(KEY, "strawberry", tier="global")
 
     row = _render(registry)
@@ -129,7 +130,8 @@ def test_global_tier_alone_is_not_dirty(registry: SettingsRegistry):
 
 def test_reset_wording_follows_the_fallback(registry: SettingsRegistry):
     """Wording must name where a reset actually lands: the global tier when set,
-    the descriptor default otherwise."""
+    the descriptor default otherwise.
+    """
     registry.set_global(KEY, "chocolate", tier="workspace")
     row = _render(registry)
     assert "Reset to default" in _menu_items(row)
@@ -141,7 +143,8 @@ def test_reset_wording_follows_the_fallback(registry: SettingsRegistry):
 
 def test_reset_click_falls_back_to_global_tier(registry: SettingsRegistry):
     """With both tiers set, reset clears ONLY the workspace tier and the value
-    lands on the global one — the app never writes the hand-edited global tier."""
+    lands on the global one — the app never writes the hand-edited global tier.
+    """
     registry.set_global(KEY, "strawberry", tier="global")
     registry.set_global(KEY, "chocolate", tier="workspace")
     assert registry.cell_for(KEY).get_value() == "chocolate"
@@ -179,7 +182,8 @@ def test_reset_click_clears_chrome_in_place(registry: SettingsRegistry):
 
 def test_reset_click_clears_chrome_when_value_does_not_move(registry: SettingsRegistry):
     """A workspace value EQUAL to the default fires no cell event on reset (old ==
-    new), so only the handler refreshing its own row can clear the chrome."""
+    new), so only the handler refreshing its own row can clear the chrome.
+    """
     registry.set_global(KEY, "vanilla", tier="workspace")  # == descriptor default
     row = _render(registry)
     assert _dirty_label(row), "workspace-set is dirty even at the default value"
@@ -194,7 +198,8 @@ def test_reset_click_clears_chrome_when_value_does_not_move(registry: SettingsRe
 def test_external_workspace_write_updates_chrome_live(registry: SettingsRegistry):
     """The row subscribes to its key, so another tab / a JSON reload setting the
     workspace tier lights the • and enables Reset without a redraw. The registry
-    holds subscriptions as weakrefs — this also pins the closure's lifetime."""
+    holds subscriptions as weakrefs — this also pins the closure's lifetime.
+    """
     row = _render(registry)
     assert not _dirty_label(row)
 

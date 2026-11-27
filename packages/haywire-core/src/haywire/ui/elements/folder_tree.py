@@ -1,5 +1,4 @@
-"""
-Eager-then-lazy folder tree.
+"""Eager-then-lazy folder tree.
 
 ``FolderTreeModel`` walks a folder ``batch_depth`` levels deep up front (three
 by default) and plants a "Click to load children" sentinel under every folder

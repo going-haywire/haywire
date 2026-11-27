@@ -1,7 +1,5 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py
-"""
-Node introspection panels — identity info, instance properties, status, and errors.
-"""
+"""Node introspection panels — identity info, instance properties, status, and errors."""
 
 from __future__ import annotations
 

@@ -38,8 +38,9 @@ class ValidatedNumberWidget(BaseWidget):
 
 @widget(description="Temperature with unit conversion")
 class TemperatureWidget(BaseWidget):
-    """
-    Temperature widget demonstrating:
+    """Temperature widget demonstrating converters and bindings.
+
+    Demonstrates:
     - Custom converter for unit conversion
     - Multiple UI elements with separate bindings
     - Read-only conversion display

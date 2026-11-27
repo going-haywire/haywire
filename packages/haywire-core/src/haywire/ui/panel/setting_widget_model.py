@@ -40,7 +40,8 @@ class SettingWidgetModel:
         wrapper: Any = None,
         settings: Any = None,
     ) -> None:
-        """
+        """Initialize the model.
+
         Args:
             on_edit: Called with each raw value the widget produces. Returns ``False`` to
                 refuse the write; any other result counts as accepted.

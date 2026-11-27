@@ -69,9 +69,12 @@ class NetworkPolicy:
 
     @property
     def tls_configured(self) -> bool:
-        """Both halves set. Sequential rather than ``and`` so each is separately
-        readable — exactly one of the pair is the half-configured state that
-        :func:`validate` rejects, so the two are not interchangeable."""
+        """Both halves set.
+
+        Sequential rather than ``and`` so each is separately readable —
+        exactly one of the pair is the half-configured state that
+        :func:`validate` rejects, so the two are not interchangeable.
+        """
         if not self.tls_certfile:
             return False
         if not self.tls_keyfile:

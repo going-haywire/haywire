@@ -1,5 +1,4 @@
-"""The canvas right-click menu: its root surface, its two regions, and the
-flyout behind the "…".
+"""The canvas right-click menu: its root surface, its two regions, and the flyout behind the "…".
 
 ``GraphContext`` is the root — what ``on_canvas_context`` opens. The panel
 sitting on it owns the arrangement and renders the two region surfaces into

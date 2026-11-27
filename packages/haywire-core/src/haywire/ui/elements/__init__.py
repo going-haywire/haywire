@@ -1,5 +1,4 @@
-"""
-haywire.ui.elements — Haywire Design System component wrappers.
+"""haywire.ui.elements — Haywire Design System component wrappers.
 
 Import as:
 

@@ -1,5 +1,4 @@
-"""
-Event definitions for the enhanced graph canvas event system - CONSOLIDATED VERSION
+"""Event definitions for the enhanced graph canvas event system - CONSOLIDATED VERSION
 
 This module provides:
 - Class-based event definitions using dataclasses

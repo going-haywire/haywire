@@ -31,8 +31,7 @@ class Viewport:
 
 
 class ZoomPanContainer(ui.element, component="pan.vue"):
-    """
-    A Vue-based zoom and pan container for NiceGUI.
+    """A Vue-based zoom and pan container for NiceGUI.
 
     Features:
     - Mouse wheel zoom in/out
@@ -53,8 +52,7 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
         initial_zoom: float = 1.0,
         **kwargs,
     ) -> None:
-        """
-        Initialize the ZoomPanContainer.
+        """Initialize the ZoomPanContainer.
 
         Args:
             initial_zoom: Initial zoom level (default: 1.0)
@@ -255,6 +253,7 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
 
     def center_on(self, content_x: float, content_y: float) -> None:
         """Pan so that the given content-space point is centered in the viewport.
+
         Must be called after the Vue component is mounted (_on_ready or later).
         Does nothing while the container is not on screen (it measures zero).
         """

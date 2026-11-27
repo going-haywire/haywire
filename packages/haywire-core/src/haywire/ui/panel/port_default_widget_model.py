@@ -41,7 +41,8 @@ class PortDefaultWidgetModel:
     """
 
     def __init__(self, port: DataPort, on_edit: Callable[[Any], None]) -> None:
-        """
+        """Initialize the model.
+
         Args:
             port: The port whose default is being edited. Read for its id, its
                 widget config and its type; never written.

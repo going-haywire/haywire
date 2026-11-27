@@ -109,7 +109,8 @@ def test_a_config_fold_s_children_still_render(ctx) -> None:
 def test_a_fold_header_sits_at_or_past_the_card_padding(ctx) -> None:
     """A fold header is pinless, so it indents like a config row. Measured
     against CONTENT_GAP (negative, to overlap the pin gutter) a header is
-    pulled left of the card padding."""
+    pulled left of the card padding.
+    """
     from haybale_testing.nodes.testbed.fold_probe import FoldProbeNode
 
     _skin_factory, graph, _skin_key = ctx

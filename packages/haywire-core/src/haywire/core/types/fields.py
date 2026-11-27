@@ -1,5 +1,4 @@
-"""
-DataField Classes - Storage and management for node port data
+"""DataField Classes - Storage and management for node port data
 
 This module provides the complete DataField hierarchy for storing and managing
 data in node ports. Each field type handles a specific storage pattern with
@@ -55,8 +54,7 @@ class Drained(list):
 
 @dataclass
 class DataField[T](ABC):
-    """
-    Abstract base class for all data field types.
+    """Abstract base class for all data field types.
 
     DataFields store data in their natural form and provide uniform
     access patterns for different use cases:
@@ -189,8 +187,7 @@ class DataField[T](ABC):
         """
 
     def get_stored_type(self) -> type[IType]:
-        """
-        Return the type stored in this field — the WIRE type.
+        """Return the type stored in this field — the WIRE type.
 
         This method allows fields to declare what type they store
         because in some cases this differs from the type the field is
@@ -290,8 +287,11 @@ class DataField[T](ABC):
         self.on_changed.remove(callback)
 
     def fire(self, value: Any, old: Any = None) -> None:
-        """Notify observers of change. ``old`` is the replaced value — pass it
-        wherever it is knowable; ``None`` marks an in-place/unknowable change."""
+        """Notify observers of change.
+
+        ``old`` is the replaced value — pass it
+        wherever it is knowable; ``None`` marks an in-place/unknowable change.
+        """
         self.on_changed(FieldChange(value, old, self.field_id))
 
     def mark_clean(self) -> None:
@@ -368,8 +368,7 @@ def element_from_dict(element_type: type[IType], data: dict | None) -> Any:
 
 @dataclass
 class PrimitiveField(DataField[T]):
-    """
-    Stores unwrapped primitive value for maximum performance.
+    """Stores unwrapped primitive value for maximum performance.
 
     Storage: T (unwrapped primitive - 42.0 not FLOAT(42.0))
     Worker Access: T (unwrapped primitive)
@@ -442,8 +441,7 @@ class PrimitiveField(DataField[T]):
 
 @dataclass
 class BaseField(DataField[BaseType]):
-    """
-    Stores BaseType instance.
+    """Stores BaseType instance.
 
     Storage: BaseType instance (MeshData(...))
     Worker Access: BaseType instance

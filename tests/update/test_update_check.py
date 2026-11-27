@@ -53,8 +53,11 @@ def test_no_update_when_installed_matches_latest():
 
 
 def test_offline_is_reported_as_unreachable_not_as_up_to_date():
-    """ "Couldn't reach PyPI" and "you're up to date" are different answers —
-    collapsing them would tell the user a comforting lie."""
+    """An unreachable PyPI is reported as such, never as "you're up to date".
+
+    "Couldn't reach PyPI" and "you're up to date" are different answers —
+    collapsing them would tell the user a comforting lie.
+    """
     from haywire.core.update.check import check_for_update
 
     with patch("haywire.core.update.check._installed_version", return_value="0.0.34"):
@@ -83,7 +86,8 @@ def test_rewrite_pins_moves_every_lockstep_dist(tmp_path):
 
 def test_rewrite_pins_does_not_write_the_file(tmp_path):
     """The conflict check needs write-resolve-restore, so the rewrite must be a
-    pure text transform the caller controls."""
+    pure text transform the caller controls.
+    """
     from haywire.core.update.pin import rewrite_pins
 
     path = _root_pyproject(tmp_path)
@@ -112,7 +116,8 @@ def test_rewrite_pins_normalizes_lockstep_dists_to_a_floor(tmp_path):
 
 def test_startup_mismatch_fires_when_the_pin_is_ahead_of_the_installed(tmp_path):
     """Derived, not stored: pin-vs-installed IS the condition and is always
-    current, whereas a stored marker goes stale on a hand-edited pin."""
+    current, whereas a stored marker goes stale on a hand-edited pin.
+    """
     from haywire.core.update.pin import startup_mismatch
 
     path = _root_pyproject(tmp_path, pin=">=0.0.35")

@@ -184,7 +184,7 @@ def _prefer_button(
     name: str,
     source_url: str,
 ) -> None:
-    """ "Use this one" — names *this* source the winner, then re-resolves.
+    """\"Use this one" — names *this* source the winner, then re-resolves.
 
     One click settles it whatever the source count, because `preference` is
     exclusive — nothing has to be clicked down a list. Only the global file

@@ -1,6 +1,5 @@
 # packages/haywire-core/src/haywire/core/signals/vocabulary.py
-"""
-Concrete hand-authored signals dispatched through the per-session SignalBus.
+"""Concrete hand-authored signals dispatched through the per-session SignalBus.
 
 Two flavours coexist, expressed as inheritance:
 
@@ -59,8 +58,7 @@ class ActiveGraphMoved(Signal):
 # --8<-- [start:selection_moved]
 @dataclass(frozen=True)
 class SelectionMoved(Signal):
-    """
-    Node/edge selection moved on the canvas.
+    """Node/edge selection moved on the canvas.
 
     Carries no binding_id: subscribers read the selection from the library's
     SessionState (e.g. ``ctx.data[MyLibState].selected_nodes`` /
@@ -73,8 +71,7 @@ class SelectionMoved(Signal):
 
 @dataclass(frozen=True, kw_only=True)
 class RevealGraphInstance(Signal):
-    """Ask every open Subscriber in THIS session: "is this graph yours? If
-    so, select this node/edge."
+    """Ask every open Subscriber in THIS session: "is this graph yours? If so, select this node/edge."
 
     graph_id compares against BaseGraph.graph_id directly
     """
@@ -86,8 +83,10 @@ class RevealGraphInstance(Signal):
 
 @dataclass(frozen=True)
 class SubgraphNavigation(Signal):
-    """Ask every open Subscriber in THIS session: "is this graph yours? If so,
-    open the Subgraph on this node."
+    """Ask this session's Subscribers to open the Subgraph on this node, if the graph is theirs.
+
+    Asks every open Subscriber in THIS session: "is this graph yours? If so, open the Subgraph on
+    this node."
 
     Emitted by the canvas, which knows the node but not which tab is showing the
     graph; answered by the editor whose canvas holds ``graph_id``, which compares
@@ -169,9 +168,9 @@ class GraphHistoryChanged(Signal):
 # --8<-- [start:library_catalog_changed]
 @dataclass(frozen=True)
 class LibraryCatalogChanged(Signal):
-    """
-    The set / state of installed libraries changed (install, uninstall,
-    enable, disable). Cross-session — peer sessions need to refresh their
+    """The set / state of installed libraries changed (install, uninstall, enable, disable).
+
+    Cross-session — peer sessions need to refresh their
     library views.
 
     Distinct from per-session active-library selection which lives as a

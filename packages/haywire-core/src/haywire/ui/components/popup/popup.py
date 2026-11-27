@@ -7,8 +7,7 @@ from nicegui import ui
 
 
 class Popup(ui.element, component="popup.vue"):
-    """
-    A draggable, positionable popup built as a Vue SFC.
+    """A draggable, positionable popup built as a Vue SFC.
 
     Usage (context-manager):
         popup = Popup(title="My Popup", closable=True, position_x=200, position_y=150)

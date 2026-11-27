@@ -1,5 +1,4 @@
-"""
-EditorWrapper — complete lifecycle management for Haywire editors.
+"""EditorWrapper — complete lifecycle management for Haywire editors.
 
 Mirrors NodeWrapper's philosophy: the wrapper owns the editor instance,
 captures errors per phase into EditorWrapperState, self-subscribes to the
@@ -93,8 +92,11 @@ class EditorWrapperState:
         return errors if errors else None
 
     def _clear_errors(self) -> None:
-        """Clear runtime and instantiate errors. error_import is preserved
-        and only cleared explicitly on successful hot-reload."""
+        """Clear runtime and instantiate errors.
+
+        error_import is preserved
+        and only cleared explicitly on successful hot-reload.
+        """
         self.error_instantiate = None
         self.error_runtime = None
 
@@ -123,7 +125,8 @@ class EditorWrapper:
         label: str = "",
         slot: Slot | None = None,
     ):
-        """
+        """Initialize the wrapper.
+
         Args:
             editor_key: Registry key of the editor class.
             editor_cls: The editor class.
@@ -185,8 +188,11 @@ class EditorWrapper:
 
     @property
     def editor_binding_id(self) -> str:
-        """Stable composite identity. ``editor_key`` for single-instance wrappers;
-        ``editor_key::_binding_id`` when a ``_binding_id`` disambiguator is present."""
+        """Stable composite identity.
+
+        ``editor_key`` for single-instance wrappers;
+        ``editor_key::_binding_id`` when a ``_binding_id`` disambiguator is present.
+        """
         return f"{self.editor_key}::{self._binding_id}" if self._binding_id else self.editor_key
 
     @staticmethod

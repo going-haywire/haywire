@@ -7,8 +7,7 @@ from haywire.core.types import PrimitiveField
 
 
 def graph_to_python_script(graph: BaseGraph) -> str:
-    """
-    Convert a graph to executable Python script that reconstructs it.
+    """Convert a graph to executable Python script that reconstructs it.
 
     Generates code using class references instead of string literals for better
     IDE support and refactoring safety. Imports are placed inside the function.
@@ -19,7 +18,6 @@ def graph_to_python_script(graph: BaseGraph) -> str:
     Returns:
         String containing the complete Python script with imports inside function
     """
-
     lines = []
 
     # Generate function name from the graph's filename stem — a stem is

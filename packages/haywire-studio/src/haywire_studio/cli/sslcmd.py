@@ -194,8 +194,11 @@ def _names(covered) -> str:
 
 
 def _print_off_loopback(result: TlsStatus) -> None:
-    """A correct configuration. No warning wording, no fix command — saying
-    otherwise trains users to ignore this command (D7)."""
+    """A correct configuration.
+
+    No warning wording, no fix command — saying
+    otherwise trains users to ignore this command (D7).
+    """
     print("TLS is not configured — the studio serves plain HTTP.\n")
     print("  Reachable at: 127.0.0.1 (loopback only)\n")
     print("That is fine for local use. Traffic never leaves this machine,")

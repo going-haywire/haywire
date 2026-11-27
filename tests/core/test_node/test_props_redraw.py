@@ -52,7 +52,8 @@ class TestRedrawFieldsSchema:
     def test_style_write_fields_exist_and_are_excluded(self):
         """Guards the exclusion against a rename: if one of these props is ever
         renamed, this fails rather than silently letting it rejoin the redraw
-        path via the set-difference above."""
+        path via the set-difference above.
+        """
         fields = NodeProperties._settings_descriptors()
         for name in STYLE_WRITE_FIELDS:
             assert name in fields, f"'{name}' is gone — update STYLE_WRITE_FIELDS"
@@ -105,7 +106,8 @@ class TestPropsChangeTriggersRedraw:
     def test_detail_change_does_not_redraw(self, graph_with_library_system):
         """NodeDetail stopped being a redraw field (2026-09 CSS-filter
         redesign) — a rank change is a class-attribute flip
-        (UINode._apply_detail_attr), not a card rebuild."""
+        (UINode._apply_detail_attr), not a card rebuild.
+        """
         graph_obj = graph_with_library_system
         wrapper = _add_node(graph_obj)
 
@@ -123,7 +125,8 @@ class TestPropsChangeTriggersRedraw:
     def test_style_write_props_do_not_redraw(self, graph_with_library_system):
         """A colour or node-theme change restyles the host slot; it must not
         rebuild the card. This is the property that lets the properties panel
-        keep focus while a colour is being edited."""
+        keep focus while a colour is being edited.
+        """
         graph_obj = graph_with_library_system
         wrapper = _add_node(graph_obj)
 
@@ -186,7 +189,8 @@ class TestPropsChangeTriggersRedraw:
     def test_resubscribe_on_same_instance_is_idempotent(self, graph_with_library_system):
         """An import-error rebuild keeps the old instance (build's _instantiate
         bails before swapping it), so _subscribe_props_redraw can run twice
-        against the same bag. The bound-method callback must dedup."""
+        against the same bag. The bound-method callback must dedup.
+        """
         graph_obj = graph_with_library_system
         wrapper = _add_node(graph_obj)
 

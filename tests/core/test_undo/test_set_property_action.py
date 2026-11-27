@@ -72,7 +72,8 @@ def test_set_settings_field_and_undo(graph_and_editor):
 def test_prefer_setting_beats_port_name_collision(graph_and_editor):
     """A port named like a settings field (e.g. a 'width' outlet colliding with
     props.width) must not swallow a prefer_setting write — regression: the
-    resize commit didn't stick on nodes with width/height outlets."""
+    resize commit didn't stick on nodes with width/height outlets.
+    """
     from haywire.barn.builtin.types import FLOAT
 
     graph, editor = graph_and_editor

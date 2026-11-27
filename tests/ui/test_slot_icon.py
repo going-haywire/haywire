@@ -390,7 +390,8 @@ def test_icon_slot_collapsed_click_other_icon_expands_and_switches(monkeypatch):
 
 def test_icon_slot_reveal_into_collapsed_slot_auto_expands(monkeypatch):
     """A programmatic reveal into a collapsed icon slot pops it open, even
-    when the revealed editor is already the active one."""
+    when the revealed editor is already the active one.
+    """
     created = _install_ui_fakes(monkeypatch)
     a = _editor_cls("a")
     reg = _FakeRegistry()

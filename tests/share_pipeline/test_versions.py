@@ -109,7 +109,8 @@ def test_read_barn_versions_reports_none_for_unversioned(tmp_path: Path) -> None
 def test_read_barn_versions_reports_none_for_invalid_os_declaration(tmp_path: Path) -> None:
     """An invalid `os` value causes version to be None, just as if the manifest
     were malformed — the reader refuses to report a version it cannot vouch
-    for."""
+    for.
+    """
     repo = tmp_path / "repo"
     lib = repo / "barn" / "haybale-y"
     module = lib / "haybale_y"
@@ -151,7 +152,8 @@ def test_write_barn_versions_writes_every_library(repo_disagreeing: Path) -> Non
 
 def test_write_barn_versions_leaves_the_root_pyproject_untouched(repo_agreeing: Path) -> None:
     """The workspace root sits at a fixed version and depends on the library
-    unversioned — nothing reads it, so it must not be bumped."""
+    unversioned — nothing reads it, so it must not be bumped.
+    """
     root = repo_agreeing / "pyproject.toml"
     before = root.read_text()
     written = write_barn_versions(repo_agreeing, "0.4.0")
@@ -182,7 +184,7 @@ def test_refresh_lockfile_noop_without_a_lockfile(repo_agreeing: Path) -> None:
 
 
 def test_refresh_lockfile_warns_but_never_raises(repo_agreeing: Path, monkeypatch) -> None:
-    """uv lock failing is a warning, not a blocker."""
+    """`uv` lock failing is a warning, not a blocker."""
     (repo_agreeing / "uv.lock").write_text("")
 
     def _fail(*_a, **_kw):

@@ -66,7 +66,6 @@ def reveal_component(ctx: SessionContext, registry_key: str) -> None:
     Fire-and-forget, like every other reveal: with no source viewer installed
     nothing answers, which is a working configuration rather than an error.
     """
-
     ctx.session.publish(RevealComponentSource(registry_key=registry_key))
 
 

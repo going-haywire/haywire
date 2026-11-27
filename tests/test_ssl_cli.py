@@ -126,7 +126,8 @@ def test_update_without_a_certificate_points_at_setup(env, path, capsys):
 
 def test_update_warns_that_trust_must_be_redone(env, path, capsys):
     """Trust stores pin the certificate; silence here sends the user back to
-    the interstitial believing the command failed."""
+    the interstitial believing the command failed.
+    """
     _run(["ssl", "setup"], env, path)
     capsys.readouterr()
     assert _run(["ssl", "update", "--add", "10.9.9.9"], env, path) == 0
@@ -166,7 +167,8 @@ def test_update_refuses_while_the_studio_runs(env, path, capsys, monkeypatch):
 
 def test_status_loopback_reads_as_a_non_problem(env, path, capsys):
     """OFF_LOOPBACK is a correct configuration. Presenting it as a problem
-    trains users to ignore the command (D7)."""
+    trains users to ignore the command (D7).
+    """
     save_document(SecurityDocument(), path)
     assert _run(["ssl", "status"], env, path) == 0
     out = capsys.readouterr().out
@@ -178,7 +180,8 @@ def test_status_exposed_names_only_real_consequences(env, path, capsys, tmp_path
     """No secure-context symptom belongs here. The clipboard is fixed (the copy
     helper falls back to execCommand) and camera/mic never applied (capture is
     server-side Python). The one true consequence is readable traffic — a
-    finding the user can disprove, or that cannot occur, costs credibility."""
+    finding the user can disprove, or that cannot occur, costs credibility.
+    """
     from haywire.core.access import AccessTier
     from haywire_studio.auth.passwords import hash_password
     from haywire_studio.security.operations import expose
@@ -256,7 +259,7 @@ def test_status_reports_a_missing_file(env, path, capsys):
 
 
 def test_status_exits_zero_in_every_state(env, path, capsys):
-    """status reports; it does not judge."""
+    """`status` reports; it does not judge."""
     assert _run(["ssl", "status"], env, path) == 0
     _run(["ssl", "setup"], env, path)
     assert _run(["ssl", "status"], env, path) == 0

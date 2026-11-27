@@ -14,8 +14,7 @@ from haywire.api import BaseAdapter, adapter
     priority=0,
 )
 class ArrayArrayAdapter(BaseAdapter):
-    """
-    Transforms ARRAY[X] → ARRAY[Y].
+    """Transforms ARRAY[X] → ARRAY[Y].
 
     Uses internal adapter chain for element transformation.
     Always skips None values to prevent chain failures.
@@ -35,8 +34,7 @@ class ArrayArrayAdapter(BaseAdapter):
 
     @override
     def convert(self, value: list[Any]) -> list[Any]:
-        """
-        Transform each element or pass through.
+        """Transform each element or pass through.
 
         Args:
             value: List of source elements

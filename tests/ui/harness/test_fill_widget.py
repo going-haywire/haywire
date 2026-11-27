@@ -28,7 +28,8 @@ def _echo(page: Page):
 
 def _swatch(page: Page, index: int = 0):
     """Stop *index*'s colour button. The swatch IS the control — it shows the
-    colour and opens the picker; there is no separate hex field."""
+    colour and opens the picker; there is no separate hex field.
+    """
     return page.locator(f'[data-fill-stop-color="{index}"]').first
 
 
@@ -93,7 +94,8 @@ def test_switching_to_radial_produces_a_radial_gradient(page: Page, harness):
 
 def test_the_angle_row_belongs_to_linear_alone(page: Page, harness):
     """Angle is meaningless for solid and radial, so it is hidden — not
-    redrawn, which would drop focus from the control that switched kind."""
+    redrawn, which would drop focus from the control that switched kind.
+    """
     goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-field]")
 
@@ -187,7 +189,8 @@ def test_the_swatch_shrinks_with_a_narrow_panel(page: Page, harness):
 def test_number_fields_carry_no_native_spinner(page: Page, harness):
     """The up/down arrows belong to the browser's `type=number` control, and
     Quasar's hide-spin-buttons never reaches them from NiceGUI — the props go
-    onto the <input> as plain attributes. A text input has none to hide."""
+    onto the <input> as plain attributes. A text input has none to hide.
+    """
     goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-field]")
     _set_kind(page, "Linear")

@@ -44,7 +44,8 @@ def _click(page: Page, selector: str, *, shift: bool = False) -> None:
 
 def _style_state(page: Page) -> str:
     """'live', 'greyed' or 'absent': the Style icon is a button whose glyph reads "style",
-    greyed inside a ``hw-disabled`` wrapper."""
+    greyed inside a ``hw-disabled`` wrapper.
+    """
     toolbar = page.locator(_TOOLBAR)
     if toolbar.locator(".hw-disabled").filter(has_text="style").count():
         return "greyed"

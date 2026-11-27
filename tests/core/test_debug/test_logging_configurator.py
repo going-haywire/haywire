@@ -56,7 +56,8 @@ class TestInitialApplication:
     def test_group_logger_outside_haywire_tree_inherits_global_baseline(self):
         """Regression: namespaces like 'mcp' aren't descendants of 'haywire', so
         Python's own logger-tree inheritance can't carry the baseline to them —
-        the configurator must set their level explicitly."""
+        the configurator must set their level explicitly.
+        """
         registry = _make_registry()
         registry.set_global("debug.log_level", "ERROR")
         _make_configurator(registry)
@@ -110,7 +111,8 @@ class TestReactiveUpdates:
     def test_root_level_change_propagates_to_inherited_groups(self):
         """Regression: changing the global baseline after construction must
         update every namespace still set to inherit — including ones outside
-        the 'haywire' logger tree, which Python's own inheritance can't reach."""
+        the 'haywire' logger tree, which Python's own inheritance can't reach.
+        """
         registry = _make_registry()
         _, debug = _make_configurator(registry)
         assert logging.getLogger("mcp").level == logging.WARNING

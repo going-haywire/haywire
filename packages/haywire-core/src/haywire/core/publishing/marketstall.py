@@ -1,5 +1,4 @@
-"""
-Generate a marketplace.toml snippet for sharing a haybale library.
+"""Generate a marketplace.toml snippet for sharing a haybale library.
 
 Reads metadata from the library's pyproject.toml and detects the git
 remote URL to produce a ready-to-paste TOML block.

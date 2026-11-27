@@ -1,5 +1,4 @@
-"""
-Tests for build_event_handler_map — the standalone routing utility that scans
+"""Tests for build_event_handler_map — the standalone routing utility that scans
 handler sources for @handles_event-decorated methods.
 
 These tests exercise the mechanism that allows GraphCanvasManager to delegate

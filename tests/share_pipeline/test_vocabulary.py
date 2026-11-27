@@ -77,7 +77,8 @@ def test_preconditions_report_ok_iff_no_failures() -> None:
 def test_precondition_failure_kind_defaults_to_inform_and_accepts_act() -> None:
     """``kind`` is what selects the wizard's modal shape, so its default
     matters: every failure that does not opt in must present as inform-only,
-    never accidentally offering a fix button it has no handler for."""
+    never accidentally offering a fix button it has no handler for.
+    """
     assert PreconditionFailure(message="x").kind == "inform"
     assert PreconditionFailure(message="x", kind="act", fix_id="add_origin").kind == "act"
 
@@ -192,7 +193,8 @@ def test_drift_report_linked_registrations_reads_every_library() -> None:
 @pytest.mark.unit
 def test_drift_report_linked_registrations_omits_libraries_with_none() -> None:
     """A library with nothing to register must not appear as an empty entry —
-    callers treat a present key as "there is a write to make"."""
+    callers treat a present key as "there is a write to make".
+    """
     from haywire.core.publishing.pipeline import DepDrift, DriftReport
 
     clean = DepDrift(lib_dir=Path("barn/haybale-alpha"), unused_declarations=["requests"])

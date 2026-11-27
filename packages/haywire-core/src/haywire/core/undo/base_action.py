@@ -1,5 +1,4 @@
-"""
-Base action class for the Haywire undo system.
+"""Base action class for the Haywire undo system.
 
 This module provides the base ActionBase class that implements common
 functionality for all actions, including timing, validation, and
@@ -18,8 +17,7 @@ from .interfaces import IAction
 
 
 class ActionBase(IAction, ABC):
-    """
-    Abstract base class for all undoable actions.
+    """Abstract base class for all undoable actions.
 
     This class provides common functionality including:
     - Unique action identification
@@ -29,8 +27,7 @@ class ActionBase(IAction, ABC):
     """
 
     def __init__(self, description: str | None = None):
-        """
-        Initialize the base action.
+        """Initialize the base action.
 
         Args:
             description: Human-readable description of the action
@@ -43,8 +40,7 @@ class ActionBase(IAction, ABC):
 
     @property
     def description(self) -> str:
-        """
-        Human-readable description of the action.
+        """Human-readable description of the action.
 
         Returns the provided description or generates one from the class name.
         """
@@ -62,8 +58,7 @@ class ActionBase(IAction, ABC):
         return re.sub(r"([A-Z])", r" \1", class_name).strip()
 
     def execute(self) -> None:
-        """
-        Execute the action with error handling and validation.
+        """Execute the action with error handling and validation.
 
         This method wraps the actual execution logic with common
         validation and error handling. A ``Refusal`` propagates unchanged; any
@@ -81,8 +76,7 @@ class ActionBase(IAction, ABC):
             raise RuntimeError(f"Failed to execute action {self.description}: {e}") from e
 
     def undo(self) -> None:
-        """
-        Undo the action with error handling and validation.
+        """Undo the action with error handling and validation.
 
         This method wraps the actual undo logic with common
         validation and error handling. A ``Refusal`` propagates unchanged; any
@@ -100,8 +94,7 @@ class ActionBase(IAction, ABC):
             raise RuntimeError(f"Failed to undo action {self.description}: {e}") from e
 
     def mark_executed(self) -> None:
-        """
-        Mark this action as already applied, without running it.
+        """Mark this action as already applied, without running it.
 
         A merged action stands for work its operands have *already* performed
         on the graph, so it enters history in the executed state: undo must
@@ -112,8 +105,7 @@ class ActionBase(IAction, ABC):
         self._executed = True
 
     def _execute_impl(self) -> None:
-        """
-        Implement the actual execution logic.
+        """Implement the actual execution logic.
 
         Subclasses must override this method to provide the specific
         implementation for their action type.
@@ -121,8 +113,7 @@ class ActionBase(IAction, ABC):
         raise NotImplementedError("Subclasses must implement _execute_impl")
 
     def _undo_impl(self) -> None:
-        """
-        Implement the actual undo logic.
+        """Implement the actual undo logic.
 
         Subclasses must override this method to provide the specific
         undo implementation for their action type.
@@ -130,8 +121,7 @@ class ActionBase(IAction, ABC):
         raise NotImplementedError("Subclasses must implement _undo_impl")
 
     def can_merge(self, other: IAction) -> bool:
-        """
-        Basic merge compatibility check.
+        """Basic merge compatibility check.
 
         By default, actions can only merge with actions of the same type
         that happened within a short time window.
@@ -144,16 +134,14 @@ class ActionBase(IAction, ABC):
         return time_diff < 0.1
 
     def merge(self, other: IAction) -> IAction | None:
-        """
-        Base merge implementation.
+        """Base merge implementation.
 
         Subclasses should override this to provide specific merge logic.
         """
         return None
 
     def cleanup(self) -> None:
-        """
-        Clean up resources held by this action.
+        """Clean up resources held by this action.
 
         Default implementation does nothing. Subclasses that hold
         references to removed graph elements should override this
@@ -162,8 +150,7 @@ class ActionBase(IAction, ABC):
         pass
 
     def set_metadata(self, key: str, value: Any) -> None:
-        """
-        Set metadata for the action.
+        """Set metadata for the action.
 
         Args:
             key: Metadata key
@@ -172,8 +159,7 @@ class ActionBase(IAction, ABC):
         self._metadata[key] = value
 
     def get_metadata(self, key: str, default: Any = None) -> Any:
-        """
-        Get metadata for the action.
+        """Get metadata for the action.
 
         Args:
             key: Metadata key
@@ -185,8 +171,7 @@ class ActionBase(IAction, ABC):
         return self._metadata.get(key, default)
 
     def to_dict(self) -> dict[str, Any]:
-        """
-        Serialize the action to a dictionary.
+        """Serialize the action to a dictionary.
 
         This can be used for debugging, logging, or persistence.
         """
@@ -215,16 +200,14 @@ class ActionBase(IAction, ABC):
 
 
 class CompositeAction(ActionBase):
-    """
-    An action that contains multiple sub-actions.
+    """An action that contains multiple sub-actions.
 
     This is useful for complex operations that need to execute
     multiple atomic actions as a single logical operation.
     """
 
     def __init__(self, actions: list[IAction], description: str | None = None):
-        """
-        Initialize the composite action.
+        """Initialize the composite action.
 
         Args:
             actions: List of sub-actions to execute

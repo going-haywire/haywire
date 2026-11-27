@@ -96,8 +96,11 @@ class SwingletVisualProbeNode(BaseNode):
     node_type=NodeType.DATA,
 )
 class SwingletEchoProbeNode(BaseNode):
-    """Data node with a float swinglet `s`. `on_change` records each arriving value in `changes`,
-    then writes that value plus one to `s`."""
+    """Data node with a float swinglet `s`.
+
+    `on_change` records each arriving value in `changes`,
+    then writes that value plus one to `s`.
+    """
 
     def init(self) -> None:
         self.add(FLOAT.as_swinglet("s", default=0.0, on_change="hb_s"))

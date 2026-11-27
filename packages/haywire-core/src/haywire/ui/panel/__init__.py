@@ -1,6 +1,5 @@
 # packages/haywire-core/src/haywire/ui/panel/__init__.py
-"""
-Panel system for the Haywire UI framework.
+"""Panel system for the Haywire UI framework.
 
 A Panel names one :class:`~haywire.ui.surface.Surface` via ``@panel(surface=…)``,
 adds its own ``poll()``, and draws. A Panel may also *host* surfaces of its

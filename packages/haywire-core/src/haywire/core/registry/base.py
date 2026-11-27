@@ -1,6 +1,4 @@
-"""
-Base classes for the Haywire library system
-"""
+"""Base classes for the Haywire library system"""
 
 from __future__ import annotations
 
@@ -38,8 +36,7 @@ __all__ = [
 
 
 class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
-    """
-    Abstract base class for all class registries.
+    """Abstract base class for all class registries.
 
     Generic over ``T``, the element type each concrete registry stores
     (e.g. ``NodeRegistry(BaseRegistry[BaseNode])``). Subclasses bind ``T``
@@ -81,8 +78,8 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
     def _register(
         self, registry_key: str, cls: type[T], library_identity: LibraryIdentity | None = None
     ) -> str | None:
-        """
-        Register a class with its name and optional metadata
+        """Register a class with its name and optional metadata.
+
         Args:
             registry_key (str): The haywire registry_key of the class to register
             cls (Any): The class to register
@@ -127,14 +124,13 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
         return registry_key
 
     def _unregister(self, registry_key: str) -> type[T] | None:
-        """
-        Remove a class from the registry
+        """Remove a class from the registry.
+
         Args:
             registry_key (str): The haywire registry_key of the class to unregister
         Returns:
             type[Any] | None: The unregistered class, or None if not found
         """
-
         if registry_key in self._regkey_to_class_name:
             del self._regkey_to_class_name[registry_key]
 
@@ -162,9 +158,9 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
         library_identity: LibraryIdentity,
         exclude_patterns: list[str] | None = None,
     ):
-        """
-        Initial scan of the folder for classes matching the registry's class filter
-        and add them to this registry.
+        """Add the folder's classes matching the registry's class filter to this registry.
+
+        This is the initial scan of the folder.
 
         This method is called by the library when it is enabled.
 
@@ -236,8 +232,8 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
         library_identity: LibraryIdentity,
         exclude_patterns: list[str] | None = None,
     ):
-        """
-        Remove all classes associated with a library_identity from this registry.
+        """Remove all classes associated with a library_identity from this registry.
+
         This method is called by the library when it is disabled.
 
         Args:
@@ -285,8 +281,7 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
     # ============================================================================
 
     def event_dispatcher(self, event: FileChangeEvent):
-        """
-        Dispatch file change events to the appropriate handlers based on event type.
+        """Dispatch file change events to the appropriate handlers based on event type.
 
         This method is called by the file watcher when a file change is detected.
 
@@ -445,13 +440,15 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
         library_identity: LibraryIdentity,
         file_event: FileChangeEvent | None = None,
     ):
-        """called when a new module is created / loaded
+        """Called when a new module is created / loaded.
+
         Args:
             module (str): The module name that has been created.
             file_event: The originating FileChangeEvent, if any. When present,
                 registry subscribers are notified so dependent modules in other
                 libraries (e.g. HaystackState depending on GraphAppState) are
                 cascaded after a re-enable.
+
         Returns:
             list: List of relevant classes that are in this module
         """
@@ -493,14 +490,15 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
     def _on_change(
         self, module_name: str, library_identity: LibraryIdentity, event: FileChangeEvent | None = None
     ):
-        """
-        re-registering existing classes within the module
-        and returning the classes that need to be
-        additionally registered / unregistered
+        """Re-register the existing classes within the module.
+
+        Returns the classes that need to be additionally registered / unregistered.
+
         Args:
             module_name (str): The module name that has changed.
             event (Optional[FileChangeEvent]): The file change event
                 (used to track reloaded modules)
+
         Returns:
             [list,list]: [(List of classes to be registered),
                          (List of haywire class names to be unregistered)]
@@ -561,8 +559,8 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
     def _reload_unmanaged_module(
         self, module_name: str, library_identity: LibraryIdentity, event: FileChangeEvent | None = None
     ):
-        """
-        Reload a single unmanaged module without registry-specific handling.
+        """Reload a single unmanaged module without registry-specific handling.
+
         Catches ModuleNotFoundError to log dependency errors.
         Called by the _on_change method.
         """
@@ -642,11 +640,10 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
                     self._dependency_module_lifecycle_events[key] = lc_event
 
     def _reload_managed_module(self, module_name: str, library_identity: LibraryIdentity):
-        """
-        Reload a single managed module with registry-specific handling.
+        """Reload a single managed module with registry-specific handling.
+
         Called by the _on_change method.
         """
-
         # Create snapshot before reload
         snapshot = self._create_rollback_snapshot(module_name)
 
@@ -790,6 +787,7 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
 
     def _on_delete(self, module_name: str, library_identity: LibraryIdentity):
         """Called when a module is deleted or unloaded.
+
         Args:
             module (str): The module name that has been deleted.
         """
@@ -863,8 +861,7 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
     # ============================================================================
 
     def _get_tracking_scopes(self, library_identity: LibraryIdentity) -> list[str]:
-        """
-        Get all scope prefixes this module should track dependencies for.
+        """Get all scope prefixes this module should track dependencies for.
 
         Returns scopes based on:
         1. Own library module name (always tracked)

@@ -21,8 +21,7 @@ from haywire.core.skin.settings import (
 
 
 class NodeProperties(NodeSettings):
-    """
-    Framework-provided props available on every node instance.
+    """Framework-provided props available on every node instance.
 
     Accessed as ``node.props`` (e.g. ``self.props.locked``).
     Serialized under ``'props'`` key in the graph JSON.

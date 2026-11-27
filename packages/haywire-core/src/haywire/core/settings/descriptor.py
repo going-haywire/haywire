@@ -1,6 +1,5 @@
 # haywire/core/settings/descriptor.py
-"""
-setting — reactive property descriptor for Settings subclasses.
+"""setting — reactive property descriptor for Settings subclasses.
 
 ``__get__`` reads the field's ``DataField`` cell; ``__set__`` writes that cell
 and records the local opinion in ``_set_keys``, and the cell's own
@@ -353,12 +352,14 @@ class setting[T: IType](SettingDescriptor):
 
     @property
     def is_graph_mirror(self) -> bool:
-        """True for a field declared via the ``graph()`` factory — a mirror
-        of a field on the owning graph's settings bag (GraphSettings).
+        """True for a field declared via the ``graph()`` factory.
+
+        Such a field is a mirror of a field on the owning graph's settings bag (GraphSettings).
 
         These are wired cell-to-cell against the graph bag's live cell, not
         through the registry-key channel, so ``is_mirror`` is False for them:
-        the source has no ``_setting_key``."""
+        the source has no ``_setting_key``.
+        """
         return self._graph_mirror
 
     def validate(self, value: Any) -> bool:
@@ -368,8 +369,10 @@ class setting[T: IType](SettingDescriptor):
         return bool(self._validator(value))
 
     def _stamp_widget(self) -> None:
-        """Compute the field's widget contract: an explicit ``widget=`` wins,
-        else the field IType's declared default."""
+        """Compute the field's widget contract.
+
+        An explicit ``widget=`` wins, else the field IType's declared default.
+        """
         identity = getattr(self._type, "class_identity", None)
         spec = self._widget_spec or {}
         self.widget_key: str = spec.get("key") or (getattr(identity, "widget_key", None) or "")

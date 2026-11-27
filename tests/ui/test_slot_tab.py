@@ -391,7 +391,8 @@ def _dirty_icon_calls(created):
 def test_dirty_wrapper_renders_slot_owned_dirty_marker(monkeypatch):
     """When state.is_dirty is True, the slot draws a 'circle' dirty marker
     around the editor's tab interior so the user sees unsaved work — and the
-    label text itself is never mutated (no '• ' prefix)."""
+    label text itself is never mutated (no '• ' prefix).
+    """
     created = _install_ui_fakes(monkeypatch)
     cls = _editor_cls("a", label="MyEditor")
     reg = _FakeRegistry()

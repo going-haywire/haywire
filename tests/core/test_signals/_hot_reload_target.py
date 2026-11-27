@@ -1,7 +1,8 @@
 """Module reloaded by test_hot_reload_roundtrip.py.
 
 Holds a minimal SignalSource so the test can exercise the reload path
-without setting up a full Session/Container."""
+without setting up a full Session/Container.
+"""
 
 from __future__ import annotations
 

@@ -26,7 +26,8 @@ logger = logging.getLogger(__name__)
 
 @state(label="Haystack State", description="In-memory registry of open graphs, one entry per file path.")
 class HaystackState(AppState):
-    """In-memory registry of open graphs (one entry per file path)
+    """In-memory registry of open graphs (one entry per file path).
+
     Validation broadcast goes directly via ``SignalDispatcher``.
     Haystack file load/dump live in ``persistence.py``
     """
@@ -104,7 +105,6 @@ class HaystackState(AppState):
         signal binding_id is the source of truth for the teardown set.
 
         """
-
         entry_ids = tuple(self._entries.keys())
 
         dispatcher = self._dispatcher()

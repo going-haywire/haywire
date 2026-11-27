@@ -62,7 +62,7 @@ class TestSessionContextSessionData:
         assert ctx.data._session_id == "s1"
 
     def test_session_context_no_longer_has_metadata(self):
-        """metadata field removed in v1; this is the regression test."""
+        """`metadata` field removed in v1; this is the regression test."""
         container = LibraryStateContainer(StateRegistry())
         app = FakeApp(container)
         ctx = SessionContext(session_id="s1", app=app)  # type: ignore[arg-type]

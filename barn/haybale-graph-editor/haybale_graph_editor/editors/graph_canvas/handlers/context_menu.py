@@ -1,5 +1,4 @@
-"""
-ContextMenuHandlers, IContextMenuProvider, and SessionContextMenuProvider.
+"""ContextMenuHandlers, IContextMenuProvider, and SessionContextMenuProvider.
 
 ContextMenuHandlers translates canvas context-menu events into provider intent
 calls.  The provider decides how to surface the menu.
@@ -63,8 +62,7 @@ logger = logging.getLogger(__name__)
 
 
 class IContextMenuProvider:
-    """
-    Intent-based interface for surfacing context menus.
+    """Intent-based interface for surfacing context menus.
 
     Implementors receive *what* the user wants and decide *how* to show it.
     The method signatures use plain positional tuples for positions so
@@ -164,8 +162,7 @@ class _OpenMenuContext:
 
 
 class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
-    """
-    Panel-driven IContextMenuProvider implementation.
+    """Panel-driven IContextMenuProvider implementation.
 
     On each intent call this provider:
     1. Updates SessionContext (active_node/edge/port).
@@ -930,8 +927,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
 
 class ContextMenuHandlers:
-    """
-    Handle context-menu canvas events.
+    """Handle context-menu canvas events.
 
     Reads edge data from VisualLayerHandlers (via the get_edge accessor) and
     delegates all menu-surface decisions to an IContextMenuProvider.

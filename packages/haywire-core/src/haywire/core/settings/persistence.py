@@ -1,6 +1,5 @@
 # haywire/core/settings/persistence.py
-"""
-File persistence for SettingsRegistry — JSON in/out + watching.
+"""File persistence for SettingsRegistry — JSON in/out + watching.
 
 The store reads files into flat {dot.key: entry} dicts and writes them back;
 all interpretation (rehydration, auto-define, tiers) stays in the registry.
@@ -85,8 +84,7 @@ class SettingsFileStore:
     # =========================================================================
 
     def _flatten(self, data: dict, prefix: str = "") -> dict[str, Any]:
-        """
-        Flatten nested JSON to dot-notation keys.
+        """Flatten nested JSON to dot-notation keys.
 
         A dict is a *setting entry* (rather than a namespace) when it holds a
         ``value``, or when it holds only entry metadata and no nested tables.

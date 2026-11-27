@@ -188,7 +188,8 @@ def test_publish_broadcasts_for_cross_session_true_signal():
 
 def test_publish_broadcasts_for_cross_session_true_command():
     """A BroadcastClose flows through SessionManager.broadcast, just like
-    cross-session observation signals."""
+    cross-session observation signals.
+    """
     sm = MagicMock()
     session = _make_session(dispatcher=sm)
     handler = MagicMock()
@@ -226,7 +227,8 @@ def test_publish_no_handler_is_noop():
 def test_subscribing_to_close_does_not_receive_broadcast_close():
     """The bus matches by exact type. A subscriber to ``Close`` does not
     fire for ``BroadcastClose`` — handlers that want both must subscribe
-    to both classes (which is how AppShell wires itself)."""
+    to both classes (which is how AppShell wires itself).
+    """
     session = _make_session()
     close_handler = MagicMock()
     session.subscribe(Close, close_handler)
@@ -257,7 +259,8 @@ def test_subscribing_to_broadcast_close_receives_only_broadcast_close():
 
 def test_observation_runs_before_command_when_published_in_order():
     """Authors publish an observation signal and then a command; the
-    observation handler completes before the command handler starts."""
+    observation handler completes before the command handler starts.
+    """
     session = _make_session()
 
     call_order: list[str] = []
@@ -277,7 +280,8 @@ def test_observation_runs_before_command_when_published_in_order():
 
 def test_broadcast_delivers_to_every_session_including_origin():
     """Every registered session — including the origin — receives the
-    signal exactly once."""
+    signal exactly once.
+    """
     dispatcher = SignalDispatcher()
     sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(StateRegistry()))
     origin = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
@@ -318,7 +322,8 @@ def test_broadcast_swallows_per_peer_exceptions():
 
 def test_publish_end_to_end_with_session_manager():
     """A cross_session=True signal published via Session.publish() reaches
-    every peer's bus subscribers."""
+    every peer's bus subscribers.
+    """
     dispatcher = SignalDispatcher()
     sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(StateRegistry()))
     origin = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
@@ -338,7 +343,8 @@ def test_publish_end_to_end_with_session_manager():
 
 def test_broadcast_close_end_to_end_with_session_manager():
     """A BroadcastClose published on one session reaches every session's
-    BroadcastClose subscribers."""
+    BroadcastClose subscribers.
+    """
     dispatcher = SignalDispatcher()
     sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(StateRegistry()))
     origin = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())

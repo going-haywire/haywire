@@ -1,5 +1,4 @@
-"""
-Pytest fixtures for the settings UI harness tests.
+"""Pytest fixtures for the settings UI harness tests.
 
 harness (session-scoped):
     Starts HarnessApp as a subprocess, polls /status until ready, yields base URL.
@@ -64,8 +63,7 @@ def harness():
 
 @pytest.fixture
 def reset_setting(harness):
-    """
-    Fixture that provides a callable to reset a registry key after a test.
+    """Fixture that provides a callable to reset a registry key after a test.
 
     Usage in a test:
         def test_something(page, harness, reset_setting):

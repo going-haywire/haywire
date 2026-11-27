@@ -1,5 +1,4 @@
-"""
-Unit tests for BaseNode.
+"""Unit tests for BaseNode.
 
 Tests the core node functionality.
 """
@@ -52,8 +51,7 @@ class TestBaseNodeWithLibraries:
     def test_create_node_from_library(
         self, graph_with_library_system: BaseGraph, integration_node_factory: NodeFactory
     ):
-        """
-        Example: Test creating actual nodes from libraries.
+        """Example: Test creating actual nodes from libraries.
 
         This shows how to use graph_with_library_system fixture
         for integration tests that need NodeFactory.

@@ -1,5 +1,4 @@
-"""
-Tests for ShowWidgetStrategy — per-port widget visibility vs. link state.
+"""Tests for ShowWidgetStrategy — per-port widget visibility vs. link state.
 
 Covers:
 - Per-direction defaults injected by as_inlet/as_outlet/as_config.
@@ -114,8 +113,7 @@ class TestShowWidgetStrategySerialization:
 
 @pytest.mark.integration
 class TestLinkChangeRequestsEndpointRedraw:
-    """
-    Linking/unlinking marks both endpoint nodes for redraw, so widget visibility
+    """Linking/unlinking marks both endpoint nodes for redraw, so widget visibility
     re-resolves in the UI. The redraw is emitted by EdgeWrapper through the
     validator's dirty-mark pipeline.
     """
@@ -172,8 +170,7 @@ class TestLinkChangeRequestsEndpointRedraw:
     def test_redraw_does_not_downgrade_stronger_reason(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """
-        The endpoint redraw goes through mark_node_dirty → _set_reason, which is
+        """The endpoint redraw goes through mark_node_dirty → _set_reason, which is
         priority-respecting: a stronger reason already pending for a node (e.g.
         NODE_ADDED on paste, NODE_REMOVED on clear) is NOT downgraded to
         NODE_REDRAW_REQUESTED. This guarantees the redraw is safe to emit during a

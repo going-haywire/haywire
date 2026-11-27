@@ -1,6 +1,5 @@
 # haywire/core/graph/structural_validator.py
-"""
-Structural validation for Haywire graphs.
+"""Structural validation for Haywire graphs.
 
 Validates domain-specific structural rules that go beyond formal validity:
 - Event node constraints
@@ -32,8 +31,7 @@ def _executing(ports: list) -> list:
 
 
 class StructuralValidator(IStructuralValidator):
-    """
-    Validates structural constraints for Haywire graphs.
+    """Validates structural constraints for Haywire graphs.
 
     This validator enforces domain-specific rules that define
     valid graph structures for execution. It can be subclassed
@@ -49,8 +47,7 @@ class StructuralValidator(IStructuralValidator):
     """
 
     def __init__(self, graph: BaseGraph):
-        """
-        Initialize structural validator.
+        """Initialize structural validator.
 
         Args:
             graph: The graph to validate
@@ -62,8 +59,7 @@ class StructuralValidator(IStructuralValidator):
     # ========================================================================
 
     def validate_node(self, wrapper: NodeWrapper) -> tuple[bool, str | None, list[str]]:
-        """
-        Validate structural constraints for a single node.
+        """Validate structural constraints for a single node.
 
         This is called after node initialization but before adding to graph.
 
@@ -111,8 +107,7 @@ class StructuralValidator(IStructuralValidator):
         return (True, None, [])
 
     def _validate_event_node(self, wrapper: NodeWrapper) -> tuple[bool, str | None, list[str]]:
-        """
-        Validate event node structural constraints.
+        """Validate event node structural constraints.
 
         Rules:
         - No control inlets allowed (events are entry points)
@@ -161,8 +156,7 @@ class StructuralValidator(IStructuralValidator):
         return (True, None, [])
 
     def _validate_data_node(self, wrapper: NodeWrapper) -> tuple[bool, str | None, list[str]]:
-        """
-        Validate data node structural constraints.
+        """Validate data node structural constraints.
 
         Rules:
         - No control inlets and outlets allowed
@@ -203,8 +197,7 @@ class StructuralValidator(IStructuralValidator):
         return (True, None, [])
 
     def _validate_reroute_node(self, wrapper: NodeWrapper) -> tuple[bool, str | None, list[str]]:
-        """
-        Validate reroute node structural constraints.
+        """Validate reroute node structural constraints.
 
         A reroute is a pass-through node used to split an edge. It ships port-less;
         the split action adds a typed inlet/outlet after creation. Supports DATA,
@@ -251,8 +244,7 @@ class StructuralValidator(IStructuralValidator):
         return (True, None, [])
 
     def _validate_boundary_node(self, wrapper: NodeWrapper) -> tuple[bool, str | None, list[str]]:
-        """
-        Validate boundary node structural constraints.
+        """Validate boundary node structural constraints.
 
         A boundary node is the Subgraph Input or Subgraph Output that defines a
         Subgraph's interface. It ships port-less; the collapse action stamps the
@@ -301,8 +293,7 @@ class StructuralValidator(IStructuralValidator):
         return (True, None, [])
 
     def _validate_graph_node(self, wrapper: NodeWrapper) -> tuple[bool, str | None, list[str]]:
-        """
-        Validate that a Graph-node's Subgraph is present.
+        """Validate that a Graph-node's Subgraph is present.
 
         A card stands for the Subgraph stored under its ``subgraph_key``. When
         that key names nothing — a graph saved by a version that had the
@@ -342,8 +333,7 @@ class StructuralValidator(IStructuralValidator):
         return (True, None, [])
 
     def validate_subgraph_contents(self, wrappers: list[NodeWrapper]) -> tuple[bool, str | None, list[str]]:
-        """
-        Validate the node set of one Subgraph.
+        """Validate the node set of one Subgraph.
 
         Rules:
         - Exactly one Subgraph Input and exactly one Subgraph Output.
@@ -400,8 +390,7 @@ class StructuralValidator(IStructuralValidator):
         return (True, None, [])
 
     def _validate_loopback_node(self, wrapper: NodeWrapper) -> tuple[bool, str | None, list[str]]:
-        """
-        Validate loopback node structural constraints.
+        """Validate loopback node structural constraints.
 
         Loopback nodes (ForLoop, WhileLoop, Sequence, etc.) must have:
         - At least one control outlet with is_loopback_outlet=True (loop body)
@@ -486,8 +475,7 @@ class StructuralValidator(IStructuralValidator):
     # ========================================================================
 
     def validate_graph(self) -> list[str]:
-        """
-        Validate all structural constraints across the graph.
+        """Validate all structural constraints across the graph.
 
         Returns:
             List of error messages (empty if valid)

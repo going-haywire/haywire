@@ -5,7 +5,8 @@ signal must receive emits.
 
 This codifies the Q15 decision: synthetic signal classes participate as
 first-class Signal subclasses with no special reload handling. The
-existing editor teardown/recreate path is the recovery mechanism."""
+existing editor teardown/recreate path is the recovery mechanism.
+"""
 
 from __future__ import annotations
 
@@ -30,7 +31,8 @@ def _isolate_hot_reload_target():
 def test_hot_reload_creates_fresh_signal_class():
     """Reloading the module that defines a SessionState produces a new
     class object and a new synthetic signal class. Subscribers to the
-    old class's signal do NOT receive emits through the new class."""
+    old class's signal do NOT receive emits through the new class.
+    """
     # Use a dedicated module for this test (added in step 6.2).
     import tests.core.test_signals._hot_reload_target as target
 
@@ -56,7 +58,8 @@ def test_old_class_subscribers_do_not_receive_new_class_emits():
     """A handler subscribed via the bus to OldSignal does NOT fire when
     a NewState instance writes its field — and a fresh handler subscribed
     to NewSignal DOES fire. This is the end-to-end Q15 contract: hot-reload
-    produces fresh subscription targets that compose normally with the bus."""
+    produces fresh subscription targets that compose normally with the bus.
+    """
     import tests.core.test_signals._hot_reload_target as target
     from haywire.core.signals import SignalBus
 

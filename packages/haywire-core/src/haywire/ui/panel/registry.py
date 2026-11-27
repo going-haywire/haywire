@@ -1,6 +1,5 @@
 # packages/haywire-core/src/haywire/ui/panel/registry.py
-"""
-PanelRegistry for managing panel registrations.
+"""PanelRegistry for managing panel registrations.
 
 Extends BaseRegistry. Three query surfaces, all routing on ``Surface.id``:
   - get_panels(surface): the panels on one surface, sorted by order.

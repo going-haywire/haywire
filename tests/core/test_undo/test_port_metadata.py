@@ -210,7 +210,8 @@ class TestTheEditIsPublished:
     ):
         """The wrapper's mark_as_structuraly_dirty no-ops while the node's own
         flag is still set from an earlier rejig — and that flag is cleared by
-        the very housekeeping pass this call is trying to cause."""
+        the very housekeeping pass this call is trying to cause.
+        """
         graph, wrapper = node_with_a_resolved_port
         # A rejig whose pass has not run yet, as on the studio's debounced scheduler.
         wrapper._is_dirty_structural = True

@@ -13,7 +13,8 @@ from haywire.core.state.base import SessionState
 
 def test_container_stamps_session_weakref_on_session_state():
     """When the container instantiates a SessionState for a session, it must
-    stamp `self.session = weakref.ref(session)` before on_enable runs."""
+    stamp `self.session = weakref.ref(session)` before on_enable runs.
+    """
     from haywire.core.library.identity import LibraryIdentity
     from haywire.core.state.container import LibraryStateContainer
     from haywire.core.state.identity import LibraryStateClassIdentity

@@ -16,8 +16,7 @@ T = TypeVar("T")
 
 
 def widget(**kwargs: Any) -> Callable[[type[T]], type[T]]:
-    """
-    Decorator to register a class as a UI widget.
+    """Decorator to register a class as a UI widget.
 
     Always invoked with parentheses — `@widget(...)`. The bare `@widget`
     form (no parens) is not supported.

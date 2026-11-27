@@ -72,7 +72,8 @@ def test_add_node_action_default_node_data_is_none():
 
 def test_add_node_action_redo_reuses_wrapper_without_recreating():
     """A second _execute_impl() (redo) must re-add the existing wrapper via
-    add_node_wrapper, not recreate it through create_node_wrapper."""
+    add_node_wrapper, not recreate it through create_node_wrapper.
+    """
     from haywire.core.undo.actions.graph_actions import AddNodeAction
 
     calls = {"create": 0, "add": 0}
@@ -322,7 +323,8 @@ def test_paste_node_actions_carry_pre_minted_ids():
 def test_paste_skips_an_id_already_minted_in_the_same_paste():
     """The graph only checks ids it already holds, and pasted siblings are not in
     the graph yet at mint time — so paste must dedup against its own mints or two
-    pasted nodes can collide (reachable with the short 6-hex suffix)."""
+    pasted nodes can collide (reachable with the short 6-hex suffix).
+    """
     from haywire.core.undo.actions.graph_actions import AddNodeAction, PasteClipboardAction
 
     payload = _payload(
@@ -391,7 +393,8 @@ def test_paste_execution_edge_connects_created_nodes():
     class _RecordingGraph:
         """Mimics the real graph: create_node_wrapper registers a node under the
         id it actually uses; create_edge_wrapper does node_wrappers[id] and
-        raises KeyError on a miss (exactly the real bug)."""
+        raises KeyError on a miss (exactly the real bug).
+        """
 
         def __init__(self):
             self.node_wrappers = {}
@@ -493,7 +496,8 @@ def test_editor_paste_clipboard_returns_none_on_error():
 class TestPasteExecutionIntegration:
     """Execute a paste-with-edge against a REAL graph with real nodes/edges,
     end-to-end, and confirm the pasted edge connects the two newly-created
-    nodes (no KeyError)."""
+    nodes (no KeyError).
+    """
 
     def _two_connected_nodes(self, graph):
         # AddFloatProbeNode has only FLOAT ports — serializes cleanly (the

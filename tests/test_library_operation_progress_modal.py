@@ -145,7 +145,7 @@ async def test_finish_with_error_shows_close_and_keeps_banner(user: User) -> Non
 @pytest.mark.unit
 @pytest.mark.anyio
 async def test_finish_with_error_and_restart_shows_both(user: User) -> None:
-    """error + RESTART → banner visible AND restart button (per Q12.A)."""
+    """`error` + RESTART → banner visible AND restart button (per Q12.A)."""
     captured: dict[str, LibraryOperationProgressModal] = {}
 
     @ui.page("/")
@@ -208,7 +208,8 @@ async def test_finish_restart_registers_exactly_one_click_handler(user: User) ->
 async def test_finish_done_registers_exactly_one_click_handler(user: User) -> None:
     """No-flags 'Done' button must register exactly one click handler that
     closes the popup. Regression-guards the implicit-else branch that used
-    to rely on the construction-time ``on_click=popup.close``."""
+    to rely on the construction-time ``on_click=popup.close``.
+    """
     captured: dict[str, LibraryOperationProgressModal] = {}
 
     @ui.page("/")

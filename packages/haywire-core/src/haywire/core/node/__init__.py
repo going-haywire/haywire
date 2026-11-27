@@ -1,7 +1,5 @@
 # haywire/core/node/__init__.py
-"""
-Node system for Haywire.
-"""
+"""Node system for Haywire."""
 
 from __future__ import annotations
 

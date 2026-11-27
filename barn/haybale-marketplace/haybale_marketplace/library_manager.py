@@ -1,5 +1,4 @@
-"""
-Library management orchestration layer.
+"""Library management orchestration layer.
 
 Wraps uv subprocess calls + entry point cache invalidation +
 library registry operations into a single service API.
@@ -303,7 +302,9 @@ class LibraryManager:
         return proc.returncode == 0, "\n".join(last_lines)
 
     def _parse_dry_run_removals(self, output: str) -> list[str]:
-        """Parse `uv pip install --dry-run` stdout and return distribution names
+        """Parse `uv pip install --dry-run` stdout for the packages it would uninstall.
+
+        Parse `uv pip install --dry-run` stdout and return distribution names
         of packages that would be uninstalled (i.e. upgraded/replaced).
 
         Lines of interest look like: ' - haybale-core==0.0.5'
@@ -465,8 +466,9 @@ class LibraryManager:
         return success
 
     async def dry_run(self, install_spec: str) -> list[str]:
-        """Run `uv pip install --dry-run` and return distribution names of packages
-        that would be removed (upgraded) by the install.
+        """Run `uv pip install --dry-run` and return the packages the install would remove.
+
+        A package the install upgrades counts as removed.
 
         Returns:
             List of pip distribution names that would be uninstalled.

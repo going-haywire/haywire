@@ -1,6 +1,5 @@
 # tests/core/test_settings/test_settings.py
-"""
-Tests for the Settings-based settings system.
+"""Tests for the Settings-based settings system.
 
 Covers:
 - Simple mode (no registry): direct local store access
@@ -226,8 +225,7 @@ class TestExtendedMode:
 
 
 def _make_mirror_bag(predefined_local=None):
-    """
-    Build a Settings bag with one shadow field ('color') mirroring the global
+    """Build a Settings bag with one shadow field ('color') mirroring the global
     key 'test.color'.  Returns (registry, bag, GLOBAL_KEY).
 
     _setting_key must be set so the descriptor enters extended-mode resolution;
@@ -280,7 +278,8 @@ class TestMirrorCallbackSuppression:
 
     def test_global_change_ignored_when_local_set_no_override_escape(self):
         """With a local override, ANY global change is suppressed — there is
-        no OVERRIDE strength that can force a re-fire."""
+        no OVERRIDE strength that can force a re-fire.
+        """
         registry, bag, key = _make_mirror_bag(predefined_local={"color": "#ff0000"})
         calls = []
         bag._subscribe(lambda name, val, old: calls.append((name, val)))
@@ -291,7 +290,8 @@ class TestMirrorCallbackSuppression:
 
     def test_redundant_write_of_resolved_value_creates_no_override(self):
         """Writing a mirror field the value it already resolves to is a no-op:
-        no phantom local override, so reset still works."""
+        no phantom local override, so reset still works.
+        """
         registry, bag, key = _make_mirror_bag()
         assert not bag._is_locally_set("color")
         resolved = bag.color  # the mirrored global, "#ffffff"

@@ -323,7 +323,8 @@ class TestControlGroupExecution:
 
     def test_every_node_in_the_chain_executed_once(self, control_group):
         """5 control nodes (begin, card×2, input, output, inner print, outer print)
-        plus the interior Add."""
+        plus the interior Add.
+        """
         graph, _definition, _card, _add, _outer = control_group
 
         exec_count = _run_one_frame(graph)

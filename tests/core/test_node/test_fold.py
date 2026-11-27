@@ -54,7 +54,8 @@ def test_fold_mints_a_port_with_no_pin(graph_with_library_system) -> None:
 
 def test_a_fold_takes_the_direction_of_its_children(graph_with_library_system) -> None:
     """The fold renders in its children's lane, so it carries their port_type —
-    not the CONFIG its as_config() spec starts out with."""
+    not the CONFIG its as_config() spec starts out with.
+    """
     from haywire.core.types.enums import PortType
 
     probe = _make_probe(graph_with_library_system)
@@ -65,7 +66,8 @@ def test_a_fold_takes_the_direction_of_its_children(graph_with_library_system) -
 def test_an_inherited_direction_refreshes_the_is_inlet_cache(graph_with_library_system) -> None:
     """set_value branches on the cached _is_inlet, not on is_inlet(). A fold
     that took INLET with a stale cache would run the OUTLET write path —
-    node-set plus propagate, skipping on_change — silently."""
+    node-set plus propagate, skipping on_change — silently.
+    """
     probe = _make_probe(graph_with_library_system)
     fold = probe.ports["inputs"]
     assert fold._is_inlet == fold.is_inlet()
@@ -73,7 +75,8 @@ def test_an_inherited_direction_refreshes_the_is_inlet_cache(graph_with_library_
 
 def test_an_inlet_fold_still_draws_no_pin(graph_with_library_system) -> None:
     """is_fold, not is_config, is what keeps a fold pinless — otherwise a fold
-    that inherits INLET would sprout a connectable pin of its own."""
+    that inherits INLET would sprout a connectable pin of its own.
+    """
     probe = _make_probe(graph_with_library_system)
     fold = probe.ports["inputs"]
     assert fold.is_config() is False, "fixture assumption: this fold inherited INLET"
@@ -82,7 +85,8 @@ def test_an_inlet_fold_still_draws_no_pin(graph_with_library_system) -> None:
 
 def test_a_fold_carries_the_fold_widget_and_its_label(graph_with_library_system) -> None:
     """The header is the fold's widget, so FOLD overrides the TOGGLE_WIDGET it
-    would otherwise inherit from BOOL, and the widget learns the label from its config."""
+    would otherwise inherit from BOOL, and the widget learns the label from its config.
+    """
     from haywire.barn.builtin.widget_keys import FOLD_WIDGET
 
     probe = _make_probe(graph_with_library_system)
@@ -156,7 +160,8 @@ def test_a_rejigged_fold_redraws_once(library_system) -> None:
 
 def test_a_fold_describes_itself_without_the_author(graph_with_library_system) -> None:
     """An undescribed fold must not fall through to BOOL's "True or False",
-    which describes the mechanism rather than what the fold holds."""
+    which describes the mechanism rather than what the fold holds.
+    """
     probe = _make_probe(graph_with_library_system)
     from haywire.barn.builtin.types import BOOL, FOLD
 

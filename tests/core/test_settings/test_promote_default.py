@@ -73,7 +73,8 @@ def test_a_user_promotion_of_an_unseeded_field_survives():
 
 def test_a_bag_absent_from_the_saved_data_keeps_its_seed():
     """A library adding a bag later still gets the face its author intended —
-    BaseNode._initialize_from_dict only iterates bags present in the file."""
+    BaseNode._initialize_from_dict only iterates bags present in the file.
+    """
     bag = _bag()  # never _from_dict'ed, as for an unknown bag
 
     assert bag._get_promoted_direction("shown") is PortType.CONFIG
@@ -81,7 +82,8 @@ def test_a_bag_absent_from_the_saved_data_keeps_its_seed():
 
 def test_default_must_be_a_direction_promotable_allows():
     """A declaration promote_setting() would refuse should fail loudly at
-    class-definition time, not when one node fails to build."""
+    class-definition time, not when one node fails to build.
+    """
     with pytest.raises(ValueError, match=r"promote_default"):
 
         class Contradictory(NodeSettings):

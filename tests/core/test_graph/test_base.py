@@ -1,5 +1,4 @@
-"""
-Unit tests for BaseGraph.
+"""Unit tests for BaseGraph.
 
 Tests graph creation and basic operations.
 """
@@ -49,7 +48,8 @@ class TestBaseGraph:
 
     def test_generated_id_retries_past_an_occupied_id(self, empty_graph: BaseGraph, monkeypatch):
         """The suffix is short (8 hex), so collisions are reachable: an id already
-        in node_wrappers must be skipped rather than handed out twice."""
+        in node_wrappers must be skipped rather than handed out twice.
+        """
         suffixes = iter(["aaaaaaaa", "aaaaaaaa", "bbbbbbbb"])
         monkeypatch.setattr(
             "haywire.core.graph.base.uuid.uuid4",

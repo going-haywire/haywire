@@ -1,6 +1,4 @@
-"""
-AdapterRegistry - IType-to-IType conversion registry with chain support
-"""
+"""AdapterRegistry - IType-to-IType conversion registry with chain support"""
 
 from __future__ import annotations
 
@@ -14,8 +12,7 @@ from .base import BaseAdapter
 
 
 class AdapterRegistry(BaseRegistry[BaseAdapter]):
-    """
-    Registry for IType-to-IType conversion adapters.
+    """Registry for IType-to-IType conversion adapters.
 
     Design:
     - Stores adapters by (source_registry_key, target_registry_key) tuple
@@ -56,8 +53,7 @@ class AdapterRegistry(BaseRegistry[BaseAdapter]):
     def _register_class(
         self, cls: type[BaseAdapter], library_identity: LibraryIdentity | None = None
     ) -> str | None:
-        """
-        Register adapter class.
+        """Register adapter class.
 
         Validates that converts_from/converts_to are ITypes,
         then stores by type pair with priority sorting.
@@ -113,8 +109,7 @@ class AdapterRegistry(BaseRegistry[BaseAdapter]):
         return super()._register(registry_key, cls, library_identity)
 
     def _unregister_class(self, registry_key: str) -> type[BaseAdapter] | None:
-        """
-        Unregister an adapter by its registry_key.
+        """Unregister an adapter by its registry_key.
 
         Args:
             registry_key: The registry_key of the adapter to unregister
@@ -144,8 +139,7 @@ class AdapterRegistry(BaseRegistry[BaseAdapter]):
         return super()._unregister(registry_key)
 
     def has_adapter(self, source_registry_key: str, target_registry_key: str) -> bool:
-        """
-        Check if adapter exists for IType conversion.
+        """Check if adapter exists for IType conversion.
 
         Args:
             source_registry_key: Source type registry key
@@ -157,8 +151,7 @@ class AdapterRegistry(BaseRegistry[BaseAdapter]):
         return (source_registry_key, target_registry_key) in self._adapters
 
     def get_adapter(self, source_registry_key: str, target_registry_key: str) -> type[BaseAdapter] | None:
-        """
-        Get highest priority adapter for IType conversion.
+        """Get highest priority adapter for IType conversion.
 
         Args:
             source_registry_key: Source type registry key
@@ -173,8 +166,7 @@ class AdapterRegistry(BaseRegistry[BaseAdapter]):
     def get_all_adapters(
         self, source_registry_key: str, target_registry_key: str
     ) -> list[type[BaseAdapter]]:
-        """
-        Get all adapters for conversion (sorted by priority).
+        """Get all adapters for conversion (sorted by priority).
 
         Args:
             source_registry_key: Source type registry key
@@ -188,8 +180,7 @@ class AdapterRegistry(BaseRegistry[BaseAdapter]):
     def find_adapter_chain(
         self, source_registry_key: str, target_registry_key: str, max_depth: int = 3
     ) -> list[type[BaseAdapter]] | None:
-        """
-        Find adapter chain for multi-hop conversion.
+        """Find adapter chain for multi-hop conversion.
 
         Uses breadth-first search to find shortest conversion path.
 
@@ -251,8 +242,7 @@ class AdapterRegistry(BaseRegistry[BaseAdapter]):
         return None
 
     def list_conversions(self) -> list[tuple[str, str]]:
-        """
-        List all available IType conversions.
+        """List all available IType conversions.
 
         Returns:
             list[tuple[str, str]]: List of (source_key, target_key)
@@ -260,8 +250,7 @@ class AdapterRegistry(BaseRegistry[BaseAdapter]):
         return list(self._adapters.keys())
 
     def list_conversions_from(self, source_registry_key: str) -> list[str]:
-        """
-        List all target types that source can convert to.
+        """List all target types that source can convert to.
 
         Args:
             source_registry_key: Source type registry key
@@ -272,8 +261,7 @@ class AdapterRegistry(BaseRegistry[BaseAdapter]):
         return [tgt_key for (src_key, tgt_key) in self._adapters.keys() if src_key == source_registry_key]
 
     def list_conversions_to(self, target_registry_key: str) -> list[str]:
-        """
-        List all source types that can convert to target.
+        """List all source types that can convert to target.
 
         Args:
             target_registry_key: Target type registry key

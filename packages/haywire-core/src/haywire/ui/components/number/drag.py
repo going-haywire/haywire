@@ -1,5 +1,4 @@
-"""
-Blender-style drag number input.
+"""Blender-style drag number input.
 
 Features:
 - Horizontal drag to change value

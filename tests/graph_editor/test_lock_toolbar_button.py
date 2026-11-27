@@ -150,7 +150,8 @@ class TestItReadsStateRatherThanCapturingIt:
 
     def test_every_click_toggles_the_prop(self, nicegui_slot_context):
         """The regression: a handler closing over the draw-time state would
-        write the same value forever and stop after the first press."""
+        write the same value forever and stop after the first press.
+        """
         props = _Props(locked=False)
         button = _draw(_ctx(props))
 
@@ -172,7 +173,8 @@ class TestItReadsStateRatherThanCapturingIt:
 
     def test_it_carries_exactly_one_tooltip_after_toggling(self, nicegui_slot_context):
         """`.tooltip()` STACKS rather than replaces, which is why the panel
-        builds its own and retexts it."""
+        builds its own and retexts it.
+        """
         props = _Props(locked=False)
         button = _draw(_ctx(props))
 
@@ -222,7 +224,8 @@ class TestCollapseGatesOnLockedNotOnSelectionSize:
     def test_one_locked_node_among_many_hides_them(self):
         """Unreachable through the canvas (locked nodes cannot join a
         multi-selection), but the predicate is written as "any" so it stays
-        correct on its own terms rather than on that invariant."""
+        correct on its own terms rather than on that invariant.
+        """
         ctx = _ctx(None, n_selected=3, locked_ids={"n1"})
         assert CollapseToolbarPanel.poll(ctx) is False
 

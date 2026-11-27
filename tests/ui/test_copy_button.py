@@ -9,7 +9,7 @@ import pytest
 
 @pytest.fixture
 def anyio_backend() -> str:
-    """anyio's backend parametrization. The repo runs asyncio only."""
+    """`anyio`'s backend parametrization. The repo runs asyncio only."""
     return "asyncio"
 
 

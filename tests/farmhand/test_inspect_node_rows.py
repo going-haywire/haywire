@@ -152,7 +152,7 @@ def test_filters_and_across_axes():
 
 
 def test_unmatched_is_keyed_per_axis_and_ignores_and_exclusion():
-    """unmatched means 'no such thing here', not 'excluded by a sibling axis'."""
+    """`unmatched` means 'no such thing here', not 'excluded by a sibling axis'."""
     t = _tools()
     node = _node(flags=Flags, tuning=Tuning)
 

@@ -298,7 +298,8 @@ def test_a_pasted_group_stand_in_gets_a_subgraph_of_its_own(
     graph_with_library_system, library_system, monkeypatch
 ):
     """The copy takes its Subgraph along, so once the Graph-node class works the two cards
-    stand for two Subgraphs, not one."""
+    stand for two Subgraphs, not one.
+    """
     from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY, GraphNode
     from haywire.barn.builtin.nodes.subgraph_io import SubgraphInputNode, SubgraphOutputNode
     from haywire.core.graph.clipboard import build_clipboard_payload

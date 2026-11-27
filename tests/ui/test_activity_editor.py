@@ -28,7 +28,8 @@ def test_editor_is_visible_to_every_tier():
 def test_account_panel_is_a_view_tier_entry_in_the_account_menu():
     """The entry point is a panel in the same library as the editor, not a
     TopBar chip in core: core naming a barn registry key is the dependency
-    direction this panel exists to avoid."""
+    direction this panel exists to avoid.
+    """
     from unittest.mock import MagicMock
 
     from haybale_studio.panels.account.account import OpenActivityPanel
@@ -42,7 +43,8 @@ def test_account_panel_is_a_view_tier_entry_in_the_account_menu():
 
 def test_account_panel_button_reveals_the_activity_editor(monkeypatch):
     """Drives the real ``draw`` and fires the real ``on_click``, so a wrong
-    editor class or a dropped label is caught here rather than in the browser."""
+    editor class or a dropped label is caught here rather than in the browser.
+    """
     from unittest.mock import MagicMock
 
     from haybale_studio.editors.activity_editor import ActivityEditor

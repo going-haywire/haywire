@@ -1,5 +1,4 @@
-"""
-Stacked NodeSkin — one port column, with group support
+"""Stacked NodeSkin — one port column, with group support
 
 Ports of every direction stack in a single column; this is the default skin.
 """
@@ -23,8 +22,7 @@ def _lane_of(port: DataPort) -> PortType:
     _is_default=True,
 )
 class StackedNodeSkin(NodeSkin):
-    """
-    The default skin: every port type stacked in ONE column.
+    """The default skin: every port type stacked in ONE column.
 
     Named for that column. The order within it is outlets → configs → inlets,
     and each pin is sided by the node's LayoutDirection rather than by which
@@ -66,8 +64,9 @@ class StackedNodeSkin(NodeSkin):
         *,
         on_stage: bool,
     ):
-        """Vertical layouts (T2B / B2T): inlets and outlets become bare pin
-        strips on the card's top/bottom edges, leaving only configs in the body.
+        """Vertical layouts (T2B / B2T): inlets and outlets become bare pin strips on the card's edges.
+
+        The strips sit on the card's top/bottom edges, leaving only configs in the body.
 
         Both strips are absolutely positioned (see ``render_pin_strip``) and so
         contribute nothing to the card's flow width; with a short label and few
@@ -130,8 +129,9 @@ class StackedNodeSkin(NodeSkin):
         *,
         on_stage: bool,
     ):
-        """Horizontal layouts (L2R / R2L): every port type stacks in one
-        column, each pin sided by the layout, with ghost pins in the header.
+        """Horizontal layouts (L2R / R2L): every port type stacks in one column.
+
+        Each pin is sided by the layout, with ghost pins in the header.
         """
         main_card.classes("w-full min-w-64 max-w-sm node-card zoom-pan-lod0").style(card_style)
 
@@ -245,8 +245,7 @@ class StackedNodeSkin(NodeSkin):
         *,
         on_stage: bool,
     ):
-        """
-        Render ports with hierarchical group structure.
+        """Render ports with hierarchical group structure.
 
         Only renders top-level ports - child ports are rendered
         recursively inside their parent groups.
@@ -293,8 +292,7 @@ class StackedNodeSkin(NodeSkin):
         *,
         on_stage: bool,
     ):
-        """
-        Render a collapsible fold with visual hierarchy.
+        """Render a collapsible fold with visual hierarchy.
 
         Folds are rendered with:
         - A header row holding the fold's widget, which opens and closes it

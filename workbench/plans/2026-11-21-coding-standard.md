@@ -107,7 +107,7 @@ redesigning DI.
 | R3 | done (#194, ca1698508, 2026-11-22) | 155 unused ignores (one fewer than counted); `LogEditor._flush` now skips a cleared log element |
 | R4 | done (#195, ec83ccb67, 2026-11-22) | one auto-fix commit, not one per package (squash merges it into one anyway); `UP031` ignored (its sites are JS templates) and `UP038` (deprecated upstream); PEP 695 generics: 16 by ruff's unsafe fix, the three registries and `ProgressSettings.track` by hand; `__init__.py` files keep their import order (exempt from `I001`): sorting them broke the packages' import cycles; `types/fields.py` and `node/{data,decorator}.py` import submodules, not their own package; two tests moved function-local classes to module level (CS-T3 now names that case); `DataField.remove_source` joins the B027 exceptions; `pr-intake` needed #196 for a PR over 300 files; the squash commit went into `.git-blame-ignore-revs` with R5 |
 | R5 | done (#186, 2026-11-26) | 62 unused `noqa`, no bare one; 52 named rules never enabled (`BLE001` ×23, `SLF001`, `N802`, …); removed by hand so each reason stays as a plain comment, which R7 builds on |
-| R6 | pending (#187) | |
+| R6 | done (#187, 2026-11-27) | 2759 findings, not ~1100: the issue counted packages/ and barn/; tests/ add 1603. D205 is off in tests/ (778 there; review keeps it), the rest of D2/D4 holds there; D403/D405/D416 fixed by hand, not by ruff (it capitalised code names, turned `IMPORTANT:` into a section and broke a NumPy header); D200 by ruff's unsafe fix; the library docs regenerated from the new docstrings; the squash commit goes into `.git-blame-ignore-revs` with the next slice, as R4's did |
 | R7 | pending (#188) | |
 | R8 | pending (#189) | |
 | R9 | pending (#190) | |

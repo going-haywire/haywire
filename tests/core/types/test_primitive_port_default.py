@@ -1,6 +1,5 @@
 # tests/core/types/test_primitive_port_default.py
-"""
-A primitive port's default must be a value its type accepts:
+"""A primitive port's default must be a value its type accepts:
 
 - ``INT.as_outlet("n", default="abc")`` raises TypeError naming the port when
   the spec is built (i.e. inside the node's ``init()``), not at copy/save time

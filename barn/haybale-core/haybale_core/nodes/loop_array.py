@@ -107,7 +107,6 @@ class LoopArrayNode(BaseNode):
 
     def _add_array_ports(self, element: Any | None) -> None:
         """Add `Array`, `Item` and `Failed`: open slots until an array is wired in."""
-
         self._element = element
         if element is None:
             self.add(

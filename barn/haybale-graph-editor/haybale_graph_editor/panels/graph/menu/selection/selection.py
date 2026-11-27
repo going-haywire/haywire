@@ -1,6 +1,5 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py
-"""
-Selection context-menu panels — the surface ``SelectionMenu``.
+"""Selection context-menu panels — the surface ``SelectionMenu``.
 
 These are also what the floating toolbar's ⋯ shows, since it hosts the same
 surface rather than duplicating a curated set.
@@ -581,8 +580,10 @@ _RESET_DETAIL_TOOLTIP = "Clear this node's own detail rank so it follows the gra
     order=20,
 )
 class ClearDetailOverridesMenuPanel(BasePanel):
-    """Drop each selected node's own detail rank, inside the Detail submenu
-    it undoes — beside the ranks it resets, not on the top-level menu.
+    """Drop each selected node's own detail rank.
+
+    The row sits inside the Detail submenu it undoes — beside the ranks it
+    resets, not on the top-level menu.
 
     Without this a node that has ever been re-ranked by hand is pinned for
     good, and a graph-wide detail change silently skips it — "unset tracks,

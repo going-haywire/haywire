@@ -1,6 +1,4 @@
-"""
-Temperature type - derived from FLOAT for testing type hierarchy support.
-"""
+"""Temperature type - derived from FLOAT for testing type hierarchy support."""
 
 from __future__ import annotations
 

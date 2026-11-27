@@ -145,7 +145,8 @@ class TestEnableAllLibrariesFiresCallbacks:
 
         The previous test asserts ordering with two libraries; this test
         makes the same point in a way that explicitly forbids the
-        'fire all callbacks at the end' shape."""
+        'fire all callbacks at the end' shape.
+        """
         reg = LibraryRegistry()
         callback_times: dict[str, int] = {}
         enable_times: dict[str, int] = {}
@@ -211,7 +212,8 @@ class TestEnableLibraryFiresCallback:
 class TestDisableLibraryFiresCallback:
     """Mirror of TestEnableLibraryFiresCallback: disable_library must fire
     every registered disable callback after library.disable() returns, so
-    LibraryStateContainer can drop the library from its filter set."""
+    LibraryStateContainer can drop the library from its filter set.
+    """
 
     def test_callback_fires_for_targeted_library_after_disable(self):
         reg = LibraryRegistry()

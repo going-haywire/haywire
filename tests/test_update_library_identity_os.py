@@ -107,7 +107,8 @@ def test_installed_version_reads_dist_info_not_the_running_process(tmp_path: Pat
 
 def test_installed_version_returns_none_for_absent_dist(tmp_path: Path) -> None:
     """A name with no dist-info and no in-process metadata resolves to None,
-    so the caller writes a bare requirement rather than inventing a version."""
+    so the caller writes a bare requirement rather than inventing a version.
+    """
     from haybale_marketplace.library_manager import LibraryManager
 
     site_packages = tmp_path / "lib" / "python3.12" / "site-packages"

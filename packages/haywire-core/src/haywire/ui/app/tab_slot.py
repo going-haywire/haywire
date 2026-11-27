@@ -1,5 +1,4 @@
-"""
-TabSlot — the Slot subclass for the EDIT / INFO slots.
+"""TabSlot — the Slot subclass for the EDIT / INFO slots.
 
 Renders a column containing a horizontal tab bar on top (``ui.tabs``) and the
 ``ui.tab_panels`` area below. In the foldable INFO slot, re-clicking the

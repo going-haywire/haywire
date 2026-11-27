@@ -182,8 +182,11 @@ class BaseWidget(IWidget, ABC):
         return self.ui_element
 
     def cleanup(self) -> None:
-        """Final teardown. Drops the dispatch subscription, deactivates bindings,
-        then calls the subclass hook ``_on_cleanup()``. Idempotent."""
+        """Final teardown.
+
+        Drops the dispatch subscription, deactivates bindings,
+        then calls the subclass hook ``_on_cleanup()``. Idempotent.
+        """
         if self._cleaned_up:
             return
         if self._model_dispatch_cb is not None and self._dispatch_field is not None:
@@ -205,5 +208,7 @@ class BaseWidget(IWidget, ABC):
 
     def _on_cleanup(self) -> None:
         """Override to release subclass-owned resources (e.g. a backend).
-        Called by the final ``cleanup()``; do NOT override ``cleanup()`` itself."""
+
+        Called by the final ``cleanup()``; do NOT override ``cleanup()`` itself.
+        """
         ...

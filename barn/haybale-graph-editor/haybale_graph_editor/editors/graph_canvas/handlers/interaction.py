@@ -1,5 +1,4 @@
-"""
-InteractionHandlers — drag and edge-click event handlers.
+"""InteractionHandlers — drag and edge-click event handlers.
 
 Stateless: all mutations are delegated to the level's Editor, reached through the
 edit route, which records undo actions internally. Undo grouping is achieved by
@@ -30,8 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class InteractionHandlers:
-    """
-    Handle drag and edge-click canvas events.
+    """Handle drag and edge-click canvas events.
 
     This class is intentionally stateless: it translates user-interaction
     events into Editor calls.  The Editor owns the undo history, so every

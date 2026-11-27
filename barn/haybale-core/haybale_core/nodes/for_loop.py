@@ -1,5 +1,4 @@
-"""
-ForLoop Node - Standard loop construct for iteration.
+"""ForLoop Node - Standard loop construct for iteration.
 
 Executes loop body a specified number of times with index tracking.
 """
@@ -17,8 +16,7 @@ from haywire.api import EXEC, INT, BaseNode, ExecutionContext, NodeType, NumberW
     node_type=NodeType.LOOPBACK,
 )
 class ForLoopNode(BaseNode):
-    """
-    Standard for-loop iteration node.
+    """Standard for-loop iteration node.
 
     Executes loop body from start index to end index with specified step.
 
@@ -91,8 +89,7 @@ class ForLoopNode(BaseNode):
         self._loop_initialized = False
 
     def worker(self, context: ExecutionContext, start: int = 0, end: int = 10, step: int = 1) -> str | None:
-        """
-        Execute one loop iteration.
+        """Execute one loop iteration.
 
         Args:
             context: Execution context.

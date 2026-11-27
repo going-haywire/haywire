@@ -1,5 +1,4 @@
-"""
-Tests for LibraryFileHandler — the component that translates OS filesystem
+"""Tests for LibraryFileHandler — the component that translates OS filesystem
 events (via watchdog) into debounced FileChangeEvents dispatched to registries.
 
 Covers:
@@ -82,7 +81,8 @@ class RecordingRegistry(HotReloadRegistry):
 
 class _RejectingRegistry(BaseRegistry):
     """A real BaseRegistry: it takes the genuine event_dispatcher path, so the
-    non-.py rejection under test is the shipped one, not a stand-in."""
+    non-.py rejection under test is the shipped one, not a stand-in.
+    """
 
     def __init__(self):
         super().__init__()
@@ -137,7 +137,8 @@ class _ManualTimer:
 
 class _ManualTimers:
     """The debounce timers a handler started, fired by hand: what a debounce window coalesces
-    no longer depends on how fast this thread issues its events."""
+    no longer depends on how fast this thread issues its events.
+    """
 
     def __init__(self):
         self.started: list[_ManualTimer] = []
@@ -241,14 +242,16 @@ class TestBasicFileOperations:
 @pytest.mark.core
 class TestFiltering:
     """Verify that directories are ignored and non-.py files are rejected
-    downstream rather than filtered here."""
+    downstream rather than filtered here.
+    """
 
     def test_non_python_file_is_routed_and_rejected_downstream(self, handler, identity):
         """The handler is a router: it offers every file to the registries that
         claimed the folder, and the registry decides only modules matter.
 
         Asserted against a real BaseRegistry.event_dispatcher rather than a
-        mock, because the seam between the two IS the behaviour under test."""
+        mock, because the seam between the two IS the behaviour under test.
+        """
         registry = _RejectingRegistry()
         handler.add_folder_mapping(identity.folder_path, identity, registry, debounce_delay=0.05)
         base = identity.folder_path
@@ -284,8 +287,7 @@ class TestFiltering:
 @pytest.mark.unit
 @pytest.mark.core
 class TestAtomicWrites:
-    """
-    Editors and tools often write atomically: write to a temp file, then
+    """Editors and tools often write atomically: write to a temp file, then
     rename it over the target.  The watcher should treat this as MODIFIED.
     """
 
@@ -300,7 +302,8 @@ class TestAtomicWrites:
 
     def test_atomic_write_of_a_non_python_file_emits_modified(self, wired_handler, identity, registry):
         """Nothing about the atomic-write shape is Python-specific — an editor
-        saves haybale.toml the same way it saves a module."""
+        saves haybale.toml the same way it saves a module.
+        """
         base = identity.folder_path
         wired_handler.on_moved(FileMovedEvent(f"{base}/haybale.toml.tmp.12345", f"{base}/haybale.toml"))
         assert registry.wait_for_event()
@@ -309,8 +312,7 @@ class TestAtomicWrites:
         assert registry.events[0].file_path == f"{base}/haybale.toml"
 
     def test_atomic_write_suppresses_spurious_delete(self, timers, wired_handler, identity, registry):
-        """
-        After an atomic write (MOVE), the OS may deliver a spurious DELETE
+        """After an atomic write (MOVE), the OS may deliver a spurious DELETE
         for the destination file.  The watcher should suppress it.
         """
         base = identity.folder_path
@@ -326,8 +328,7 @@ class TestAtomicWrites:
         assert len(registry.events) == 0
 
     def test_delete_suppression_expires(self, wired_handler, identity, registry):
-        """
-        The DELETE suppression window should expire, so a real DELETE
+        """The DELETE suppression window should expire, so a real DELETE
         much later is not suppressed.
         """
         path = f"{identity.folder_path}/module.py"
@@ -354,7 +355,8 @@ class TestTrueRenames:
         """existing.py → bar.py should produce DELETED(existing) then CREATED(bar).
 
         The source is a file the handler knows about — seeded from disk — which
-        is what distinguishes a rename from an editor's atomic write."""
+        is what distinguishes a rename from an editor's atomic write.
+        """
         base = identity.folder_path
         assert f"{base}/existing.py" in wired_handler._known_files
 
@@ -538,7 +540,8 @@ class TestKnownFilesTracking:
 
     def test_non_python_files_are_seeded_and_downgraded_too(self, handler, tmp_lib, registry):
         """_known_files tracks whatever is on disk, so the CREATE→MODIFIED
-        downgrade protects a .md exactly as it protects a module."""
+        downgrade protects a .md exactly as it protects a module.
+        """
         readme = tmp_lib / "README.md"
         readme.write_text("# hello\n")
         identity = _make_identity(folder=str(tmp_lib))
@@ -552,7 +555,8 @@ class TestKnownFilesTracking:
 
     def test_excluded_directories_are_not_walked(self, handler, tmp_lib, registry):
         """A library with a local virtualenv must not cost a full tree walk on
-        the enable path — and nothing in there is a component anyway."""
+        the enable path — and nothing in there is a component anyway.
+        """
         venv_pkg = tmp_lib / ".venv" / "lib" / "site-packages"
         venv_pkg.mkdir(parents=True)
         (venv_pkg / "vendored.py").write_text("# not ours\n")
@@ -624,8 +628,7 @@ class TestKnownFilesTracking:
 @pytest.mark.unit
 @pytest.mark.core
 class TestAtomicWriteRaceCondition:
-    """
-    Reproduce the race condition where the OS delivers events for an atomic
+    """Reproduce the race condition where the OS delivers events for an atomic
     write in the wrong order: CREATE for the destination arrives and is
     dispatched BEFORE the MOVE (tmp → .py) event arrives.
 
@@ -637,8 +640,7 @@ class TestAtomicWriteRaceCondition:
     """
 
     def test_create_before_move_should_emit_modified(self, timers, handler, identity):
-        """
-        Simulate the race: OS delivers CREATE for dest.py, then later the
+        """Simulate the race: OS delivers CREATE for dest.py, then later the
         MOVE (tmp → dest.py).  The debounce should coalesce them so only
         MODIFIED reaches the registry.
 
@@ -667,8 +669,7 @@ class TestAtomicWriteRaceCondition:
     def test_create_dispatched_before_move_arrives(
         self, timers: _ManualTimers, handler: LibraryFileHandler, identity: LibraryIdentity
     ):
-        """
-        Simulate the worst-case race: the CREATE event's debounce timer
+        """Simulate the worst-case race: the CREATE event's debounce timer
         fires and dispatches to the registry BEFORE the MOVE event arrives.
         This is the exact scenario that caused the duplicate registration
         error in production.
@@ -758,7 +759,8 @@ class TestBatchDispatch:
 
     def test_files_saved_together_never_dispatch_at_once(self, timers, wired_handler, identity):
         """The race of #221: a helper and two node modules saved together reached one
-        registry on three timer threads at once."""
+        registry on three timer threads at once.
+        """
         registry = _OverlapRegistry(hold_until_overlap=True)
         wired_handler.add_folder_mapping(identity.folder_path, identity, registry, debounce_delay=0.05)
         for name in ("helper.py", "node_a.py", "node_b.py"):

@@ -79,8 +79,11 @@ def _pid_alive(pid: int) -> bool:
 
 
 def identity_status(ident: dict) -> str:
-    """Best-effort: 'dead' (pid gone), 'recycled' (pid alive but a provably
-    different process), or 'alive' (pid live; same process or unverifiable)."""
+    """Best-effort status of the identity's pid: 'dead', 'recycled', or 'alive'.
+
+    'dead' (pid gone), 'recycled' (pid alive but a provably different process),
+    or 'alive' (pid live; same process or unverifiable).
+    """
     pid = ident.get("pid")
     if not isinstance(pid, int) or not _pid_alive(pid):
         return "dead"

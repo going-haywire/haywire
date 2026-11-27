@@ -1,6 +1,5 @@
 # haybale_studio/panels/properties/setting/app.py
-"""
-Application settings panels, on the ``AppSettingsSurface`` surface.
+"""Application settings panels, on the ``AppSettingsSurface`` surface.
 
 ThemeSettingsPanel    — active workbench theme
 NodeSkinDefaultPanel  — default node skin settings

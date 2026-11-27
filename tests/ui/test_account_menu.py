@@ -15,19 +15,22 @@ def test_account_menu_id_is_stable():
 def test_account_menu_always_applies():
     """Its entries are access-filtered by the shared panel gate, and a menu
     whose tree draws nothing does not open — so a principal with no entries
-    needs no special case here."""
+    needs no special case here.
+    """
     assert AccountMenuSurface.poll(MagicMock()) is True
 
 
 def test_account_menu_declares_no_presentation():
     """A menu surface has no chrome of its own, so the properties strip does
-    not list it even though it is a root."""
+    not list it even though it is a root.
+    """
     assert AccountMenuSurface.presentation is None
 
 
 def test_the_provider_satisfies_the_surface_contract():
     """The name collision is deliberate: AccountMenuSurface is the surface,
-    AccountMenuProvider is the host that opens it."""
+    AccountMenuProvider is the host that opens it.
+    """
     assert AccountMenuSurface.provides is AccountActions
     provider = AccountMenuProvider(context=MagicMock(), session=MagicMock(), panel_registry=MagicMock())
     assert isinstance(provider, AccountActions)

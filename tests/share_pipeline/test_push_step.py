@@ -68,7 +68,8 @@ async def test_push_streams_output(pushable: Path) -> None:
 @pytest.mark.anyio
 async def test_push_uses_the_hardened_env(pushable: Path) -> None:
     """A missing credential must be a clean error, not an indefinite hang —
-    there is no TTY behind a NiceGUI event handler."""
+    there is no TTY behind a NiceGUI event handler.
+    """
     from haywire.core.publishing import git as gitcmd
 
     seen: dict = {}
@@ -104,7 +105,8 @@ async def test_push_failure_raises_with_the_manual_command(pushable: Path) -> No
 @pytest.mark.anyio
 async def test_push_is_retryable_in_place(pushable: Path) -> None:
     """A transient network failure must not poison the pipeline — the same step
-    can be run again without re-running earlier steps."""
+    can be run again without re-running earlier steps.
+    """
     from haywire.core.publishing import git as gitcmd
 
     calls = {"n": 0}
@@ -134,7 +136,8 @@ async def test_push_without_a_version_raises(pushable: Path) -> None:
 async def test_push_raises_on_detached_head(pushable: Path) -> None:
     """Defensive: check_preconditions() already rejects detached HEAD before any
     caller reaches apply_push(), but the guard here must fail loud rather than
-    silently push a `HEAD:None`-shaped refspec if it's ever reached anyway."""
+    silently push a `HEAD:None`-shaped refspec if it's ever reached anyway.
+    """
     sha = subprocess.run(
         ["git", "rev-parse", "HEAD"], cwd=pushable, check=True, capture_output=True, text=True
     ).stdout.strip()

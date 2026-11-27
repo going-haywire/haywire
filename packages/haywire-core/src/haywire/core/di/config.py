@@ -1,6 +1,5 @@
 # haywire/core/di/config.py
-"""
-Dependency Injection configuration for Haywire.
+"""Dependency Injection configuration for Haywire.
 
 This module sets up the DI container with all necessary providers for
 registries, factories, and services.
@@ -70,8 +69,7 @@ logger = logging.getLogger(__name__)
 
 
 class HaywireModule(Module):
-    """
-    Main DI module for Haywire system.
+    """Main DI module for Haywire system.
 
     This module provides singleton instances of all core registries,
     factories, and services used throughout the Haywire system.
@@ -87,8 +85,7 @@ class HaywireModule(Module):
         host_store: HostStore | None = None,
         workspace_settings_path: str | None = None,
     ):
-        """
-        Initialize the DI module.
+        """Initialize the DI module.
 
         Args:
             workspace_root:     Root path of the workspace (auto-detected if None).
@@ -136,8 +133,7 @@ class HaywireModule(Module):
     @provider
     @singleton
     def provide_settings_registry(self) -> SettingsRegistry:
-        """
-        Provide singleton SettingsRegistry.
+        """Provide singleton SettingsRegistry.
 
         Initialization order:
         1. Register built-in setting definitions (schema only, no values).
@@ -378,16 +374,14 @@ class HaywireModule(Module):
 
 
 class LibrarySystemService:
-    """
-    Service that handles library system initialization and provides easy access to components.
+    """Service that handles library system initialization and provides easy access to components.
 
     This service encapsulates the complexity of setting up the library discovery system
     and loading all libraries into the appropriate registries.
     """
 
     def __init__(self, injector: Injector):
-        """
-        Initialize with DI injector.
+        """Initialize with DI injector.
 
         Args:
             injector: The configured DI injector
@@ -396,8 +390,7 @@ class LibrarySystemService:
         self._initialized = False
 
     def initialize(self) -> LibrarySystemService:
-        """
-        Initialize the library system by loading all libraries.
+        """Initialize the library system by loading all libraries.
 
         Returns:
             Self for method chaining
@@ -847,8 +840,7 @@ class LibrarySystemService:
     # =========================================================================
 
     def get_setting(self, name: str) -> Any:
-        """
-        Get a resolved setting value.
+        """Get a resolved setting value.
 
         Args:
             name: Setting name (e.g., 'ui.node.bg_color')
@@ -861,8 +853,7 @@ class LibrarySystemService:
         return value
 
     def set_setting(self, name: str, value: Any) -> None:
-        """
-        Set a global setting value.
+        """Set a global setting value.
 
         Args:
             name: Setting name
@@ -894,8 +885,7 @@ def create_haywire_injector(
     host_store: HostStore | None = None,
     workspace_settings_path: str | None = None,
 ) -> Injector:
-    """
-    Create and configure a Haywire DI injector.
+    """Create and configure a Haywire DI injector.
 
     Args:
         workspace_root:       Root path of the workspace (auto-detected if None).
@@ -940,8 +930,7 @@ def create_library_system_service(
     host_store: HostStore | None = None,
     workspace_settings_path: str | None = None,
 ) -> LibrarySystemService:
-    """
-    Create and initialize a complete library system service.
+    """Create and initialize a complete library system service.
 
     Convenience function that creates the DI injector, creates the service,
     and initializes the library system in one call.
@@ -991,8 +980,7 @@ _global_library_system: LibrarySystemService | None = None
 
 
 def set_global_injector(injector: Injector | None) -> None:
-    """
-    Set the global DI injector.
+    """Set the global DI injector.
 
     This should be called during application initialization.
 
@@ -1005,8 +993,7 @@ def set_global_injector(injector: Injector | None) -> None:
 
 
 def set_library_system(service: LibrarySystemService | None) -> None:
-    """
-    Set the global LibrarySystemService.
+    """Set the global LibrarySystemService.
 
     Should be called during application initialization.
 
@@ -1019,8 +1006,7 @@ def set_library_system(service: LibrarySystemService | None) -> None:
 
 
 def get_library_system() -> LibrarySystemService:
-    """
-    Get the global LibrarySystemService.
+    """Get the global LibrarySystemService.
 
     Returns:
         LibrarySystemService instance
@@ -1051,8 +1037,7 @@ def get_type_registry() -> TypeRegistry:
 
 
 def get_settings_registry() -> SettingsRegistry:
-    """
-    Get the SettingsRegistry from the global library system.
+    """Get the SettingsRegistry from the global library system.
 
     Convenience function for quick access to settings.
 
@@ -1066,8 +1051,7 @@ def get_settings_registry() -> SettingsRegistry:
 
 
 def get_setting(name: str) -> Any:
-    """
-    Get a resolved setting value.
+    """Get a resolved setting value.
 
     Convenience function for quick access to settings.
 
@@ -1085,8 +1069,7 @@ def get_setting(name: str) -> Any:
 
 
 def get_adapter_factory() -> AdapterFactory:
-    """
-    Get the AdapterFactory from the global injector.
+    """Get the AdapterFactory from the global injector.
 
     Returns:
         AdapterFactory instance

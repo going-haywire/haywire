@@ -13,7 +13,9 @@ Stacks audio blocks into one block with all their channels
 
 ## Notes
 
-Joins the blocks on its inputs, in order, into one block. A single-channel input adds one
+Joins the blocks on its inputs, in order, into one block.
+
+A single-channel input adds one
 channel; a multichannel input adds all of its channels.
 
 Connect an audio output to the open input at the bottom: it becomes an input of its own and a

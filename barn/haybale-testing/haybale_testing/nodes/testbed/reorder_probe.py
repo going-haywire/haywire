@@ -28,7 +28,6 @@ class ReorderProbeNode(BaseNode):
 
     def rebuild(self):
         """Re-add the dynamic inlets, as post_init would on every load."""
-
         with self.rejig(include=r"^dyn_"):
             for name in ("dyn_a", "dyn_b", "dyn_c"):
                 self.add(FLOAT.as_inlet(name))

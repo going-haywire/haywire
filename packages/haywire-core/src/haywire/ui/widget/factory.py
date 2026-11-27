@@ -119,10 +119,7 @@ def _refuse(_value: Any) -> bool:
 
 
 class WidgetFactory(IWidgetFactory):
-    """
-    Factory class for creating widget instances using the WidgetRegistry.
-
-    """
+    """Factory class for creating widget instances using the WidgetRegistry."""
 
     def __init__(self, widget_registry: WidgetRegistry):
         self._creators: dict[str, Any] = {}
@@ -136,8 +133,7 @@ class WidgetFactory(IWidgetFactory):
         self._widget_regkey_to_nodeids: dict[str, set[str]] = {}
 
     def add_widget_lifecycle_subscriber(self, callback: NodeIDsBatchCallback) -> None:
-        """
-        Add a customer callback for widget hot reload notifications.
+        """Add a customer callback for widget hot reload notifications.
 
         Args:
             callback: Function to call with affected node IDs when a widget is reloaded
@@ -145,8 +141,7 @@ class WidgetFactory(IWidgetFactory):
         self._widget_lifecycle_subscribers.add(callback)
 
     def remove_widget_lifecycle_subscriber(self, callback: NodeIDsBatchCallback) -> None:
-        """
-        Remove a previously added customer callback for widget hot reload notifications.
+        """Remove a previously added customer callback for widget hot reload notifications.
 
         Args:
             callback: Function to remove from the notification list
@@ -238,15 +233,14 @@ class WidgetFactory(IWidgetFactory):
     def _get_widget(
         self, registry_key: str, model: WidgetModel
     ) -> tuple[IWidget | None, LifeCycleEvent | None]:
-        """
-        Get a widget instance for the given element using the widget registry.
+        """Get a widget instance for the given element using the widget registry.
+
         Args:
             registry_key: The registry key of the widget to render
             model: The model the widget binds to
         Returns:
             BaseWidget: The instantiated widget for the element or None
         """
-
         lc_event = self.widget_registry.get_widget_event(registry_key)
 
         widget_cls: type[IWidget] | None = lc_event.affected_class
@@ -274,8 +268,7 @@ class WidgetFactory(IWidgetFactory):
         return widget_instance, lc_event
 
     def _on_widget_reloaded(self, batch: list[LifeCycleEvent]) -> None:
-        """
-        Customer callback for widget hot reload events.
+        """Customer callback for widget hot reload events.
 
         This is called by the WidgetRegistry when a widget class is reloaded, added, or removed.
         Since widgets can be used by any renderer, we clear the entire cache.

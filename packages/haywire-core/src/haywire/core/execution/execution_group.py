@@ -1,5 +1,4 @@
-"""
-Execution groups - the unit of execution threading.
+"""Execution groups - the unit of execution threading.
 
 Flows that share a control node form one execution group, and each group
 runs its frames one at a time on a single runner thread. Data nodes never

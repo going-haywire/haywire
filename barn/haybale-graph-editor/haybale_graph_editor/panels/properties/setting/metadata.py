@@ -1,6 +1,5 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/properties/setting/metadata.py
-"""
-GraphMetadataPanel — renders the active graph's document metadata (graph.meta).
+"""GraphMetadataPanel — renders the active graph's document metadata (graph.meta).
 
 Sibling of GraphSettingsPanel (graph.props): both are GraphSettings bags, so
 both delegate the entire editing surface to ``render_settings``. That is why

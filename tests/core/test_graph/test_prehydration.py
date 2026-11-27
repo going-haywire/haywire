@@ -124,7 +124,8 @@ def test_v2_promotion_string_becomes_a_dict():
 
 def test_migrated_promotion_carries_no_show_widget():
     """Nobody could have set one before v3, so a migrated port must resolve to
-    its direction default — i.e. render exactly as it did in v2."""
+    its direction default — i.e. render exactly as it did in v2.
+    """
     out = prehydrate(_v2_node({"a": "inlet", "b": "outlet", "c": "config"}))
     assert all("show_widget" not in rec for rec in _promoted_of(out).values())
 

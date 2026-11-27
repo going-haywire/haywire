@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Start, stop or report the studio of the checkout or worktree you are in: one rule for core
-and the org libraries, for people, agents and every orchestrator. In core:
+"""Start, stop or report the studio of the checkout or worktree you are in.
+
+One rule for core and the org libraries, for people, agents and every orchestrator. In core:
 
     python3 dev/scripts/studio.py start [options of haywire studio start, e.g. --browser]
     python3 dev/scripts/studio.py stop

@@ -1,5 +1,4 @@
-"""
-Root pytest configuration with DI fixtures.
+"""Root pytest configuration with DI fixtures.
 
 Provides fixtures for different test scopes and scenarios.
 """
@@ -329,8 +328,7 @@ def _restore_ambient_di(snap: dict) -> None:
 
 @pytest.fixture
 def test_injector(project_root: Path) -> Generator[Injector, None, None]:
-    """
-    Provide a fresh test injector for each test.
+    """Provide a fresh test injector for each test.
 
     This is for unit tests that need DI but not full library loading.
 
@@ -353,8 +351,7 @@ def test_injector(project_root: Path) -> Generator[Injector, None, None]:
 
 @pytest.fixture
 def test_injector_with_undo(project_root: Path) -> Generator[Injector, None, None]:
-    """
-    Provide test injector (kept for backwards-compat; undo is now per-graph).
+    """Provide test injector (kept for backwards-compat; undo is now per-graph).
 
     Same ambient-DI snapshot/restore as ``test_injector`` — see there.
     """
@@ -425,8 +422,7 @@ def _isolated_library_storage(tmp_path_factory: pytest.TempPathFactory):
 
 @pytest.fixture(scope="session")
 def library_system(project_root: Path, test_library_path: Path):
-    """
-    Provide fully initialized library system for integration tests.
+    """Provide fully initialized library system for integration tests.
 
     This is expensive, so it's session-scoped and shared across tests.
     Mark tests using this with @pytest.mark.integration
@@ -460,8 +456,7 @@ def library_system(project_root: Path, test_library_path: Path):
 
 @pytest.fixture
 def graph_with_library_system(library_system) -> BaseGraph:
-    """
-    Provide a graph with full library system loaded.
+    """Provide a graph with full library system loaded.
 
     Use this for integration tests that need to create nodes/edges
     using NodeFactory and AdapterFactory.
@@ -580,7 +575,8 @@ def attach_stub_session(instance):
 
 def _make_stub_node_wrapper(node_id: str):
     """A minimal NodeWrapper stand-in. ``NodeData.add``/``_pop`` call
-    ``mark_as_structuraly_dirty``/``redraw`` on the wrapper."""
+    ``mark_as_structuraly_dirty``/``redraw`` on the wrapper.
+    """
     return type(
         "W",
         (),
@@ -665,7 +661,8 @@ def register_edit_state() -> Callable[[LibraryStateContainer, str], type]:
 def declare_differently(wrapper) -> None:
     """Make *wrapper*'s node count as built from code its data conflicts with, so its next hot
     reload resets it: the node's record of what its class declared loses its ports, as if the
-    node had grown them itself, and the class now declares the same ids."""
+    node had grown them itself, and the class now declares the same ids.
+    """
     saved: dict = {"declared_before_the_reload": {"recipe": {"registry_key": "none"}, "kwargs": {}}}
     wrapper.node._declaration_saved = saved
 

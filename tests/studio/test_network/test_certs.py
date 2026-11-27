@@ -45,7 +45,8 @@ def test_every_requested_name_lands_in_the_san_extension(names):
 
 def test_not_valid_before_is_backdated(names):
     """Clock skew between the studio and a phone on the same LAN otherwise
-    yields ERR_CERT_NOT_YET_VALID, which looks like a broken command."""
+    yields ERR_CERT_NOT_YET_VALID, which looks like a broken command.
+    """
     import datetime
 
     cert = sign_cert(generate_key(), names)
@@ -87,7 +88,7 @@ def test_names_round_trip_through_disk(tmp_path, names):
 
 
 def test_key_round_trips_through_disk(tmp_path, names):
-    """update reuses the key, so it must survive a write/read cycle intact."""
+    """`update` reuses the key, so it must survive a write/read cycle intact."""
     key = generate_key()
     write_key(key, tmp_path)
     reloaded = load_key(tmp_path)

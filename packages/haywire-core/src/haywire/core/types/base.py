@@ -16,8 +16,7 @@ T = TypeVar("T")
 
 
 class PrimitiveType[T](IType, ABC):
-    """
-    Base class for primitive type wrappers.
+    """Base class for primitive type wrappers.
 
     Primitive types wrap Python built-in types (int, float, str, bool, bytes).
     The actual storage in PrimitiveField is unwrapped for performance.
@@ -51,8 +50,7 @@ class PrimitiveType[T](IType, ABC):
     field_class: type[DataField[Any]] | None = None  # Will be set to PrimitiveField
 
     def __init_subclass__(cls, **kwargs):
-        """
-        Extract element_type_cls from Generic[T] parameter.
+        """Extract element_type_cls from Generic[T] parameter.
 
         Called automatically when PrimitiveType is subclassed.
         """
@@ -72,8 +70,7 @@ class PrimitiveType[T](IType, ABC):
                             break
 
     def __init__(self, value: T | None = None, **kwargs):
-        """
-        Initialize primitive with a value.
+        """Initialize primitive with a value.
 
         A primitive instance structurally CANNOT hold absence: ``None`` is read
         as "not supplied" at every step, and a ``None`` that survives all the
@@ -125,8 +122,7 @@ class PrimitiveType[T](IType, ABC):
     # ========================================================================
 
     def to_dict(self) -> dict:
-        """
-        Serialize this primitive to a dictionary.
+        """Serialize this primitive to a dictionary.
 
         Default implementation wraps the unwrapped value as {'value': self._value}.
         Override in subclasses for custom serialization logic.
@@ -138,8 +134,7 @@ class PrimitiveType[T](IType, ABC):
 
     @classmethod
     def from_dict(cls, data: dict) -> T:
-        """
-        Deserialize primitive value from dictionary.
+        """Deserialize primitive value from dictionary.
 
         Default stub implementation - returns default from @type decorator.
         Override in subclasses for custom deserialization logic.
@@ -169,8 +164,7 @@ class PrimitiveType[T](IType, ABC):
 
 
 class BaseType(IType, ABC):
-    """
-    Base class for custom complex data types.
+    """Base class for custom complex data types.
 
     Complex types are user-defined dataclasses or classes that represent
     structured data (e.g., MeshData, Vector3, Transform).
@@ -204,8 +198,7 @@ class BaseType(IType, ABC):
     field_class: type[DataField[Any]] | None = None  # Will be set to BaseField
 
     def __init_subclass__(cls, **kwargs):
-        """
-        Set element_type_cls to self for complex types.
+        """Set element_type_cls to self for complex types.
 
         Called automatically when BaseType is subclassed.
 
@@ -221,8 +214,7 @@ class BaseType(IType, ABC):
 
     @property
     def value(self):
-        """
-        Returns self - the instance IS the value.
+        """Returns self - the instance IS the value.
 
         Unlike PrimitiveType which wraps a primitive,
         BaseType instances are themselves the data.
@@ -235,8 +227,7 @@ class BaseType(IType, ABC):
 
     @classmethod
     def _get_default_dict(cls) -> dict:
-        """
-        Get default kwargs from @type decorator.
+        """Get default kwargs from @type decorator.
 
         Helper method used by default to_dict/from_dict implementations.
 
@@ -250,8 +241,7 @@ class BaseType(IType, ABC):
         return {}
 
     def to_dict(self) -> dict:
-        """
-        Serialize BaseType instance to dictionary.
+        """Serialize BaseType instance to dictionary.
 
         Default implementation:
         - If dataclass: uses dataclasses.asdict()
@@ -281,8 +271,7 @@ class BaseType(IType, ABC):
 
     @classmethod
     def from_dict(cls, data: dict) -> Self:
-        """
-        Deserialize BaseType instance from dictionary.
+        """Deserialize BaseType instance from dictionary.
 
         Default implementation:
         - If dataclass: unpacks data as constructor kwargs

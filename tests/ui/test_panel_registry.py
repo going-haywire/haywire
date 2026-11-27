@@ -1,7 +1,5 @@
 # tests/ui/test_panel_registry.py
-"""
-Tests for the PanelRegistry and @panel decorator (surface model).
-"""
+"""Tests for the PanelRegistry and @panel decorator (surface model)."""
 
 from __future__ import annotations
 

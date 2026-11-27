@@ -67,7 +67,6 @@ class LibraryDiscovery:
     @classmethod
     def _load_library_from_entry_point(cls, ep: EntryPoint) -> DiscoveredLibrary | None:
         """Load a library class and its identity from an entry point, or None if either is unusable."""
-
         try:
             library_cls = ep.load()
 

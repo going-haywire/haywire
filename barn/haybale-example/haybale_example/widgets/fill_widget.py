@@ -210,8 +210,11 @@ class FillWidget(BaseWidget):
         ).props(f'color="{icon}"')
 
     def _render_stops(self) -> None:
-        """Rebuild the stop rows. Only called when the stop *count* changes —
-        editing a colour or position leaves the rows in place."""
+        """Rebuild the stop rows.
+
+        Only called when the stop *count* changes —
+        editing a colour or position leaves the rows in place.
+        """
         self._stops_box.clear()
         # Rebuilt rows mean new elements; the old picker handles are dead.
         self._pickers: dict[int, Any] = {}

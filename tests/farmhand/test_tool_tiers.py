@@ -150,7 +150,8 @@ def test_view_tools_are_view():
 @pytest.mark.integration
 def test_every_tool_is_classified():
     """The discovered tools are exactly the classified ones: a shipped tool nobody looked at
-    fails here, and so does an empty discovery or a stale entry in the buckets above."""
+    fails here, and so does an empty discovery or a stale entry in the buckets above.
+    """
     known = ADMIN_TOOLS | EDIT_TOOLS | OPERATE_TOOLS | VIEW_TOOLS
     assert set(_tool_map()) == known
 

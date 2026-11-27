@@ -34,8 +34,7 @@ def anchor_cleanup_to_element(element: ui.element, callback: Callable[[], None])
 
 
 def generate_pin_uuid(node_id: str, pin_id: str) -> str:
-    """
-    Generate a unique pin identifier for UI and edge systems.
+    """Generate a unique pin identifier for UI and edge systems.
 
     Args:
         node_id: The node's unique identifier
@@ -48,15 +47,13 @@ def generate_pin_uuid(node_id: str, pin_id: str) -> str:
         generate_pin_id('node_abc123', 'temperature')
         -> 'temperature@node_abc123'
     """
-
     return f"{pin_id}@{node_id}"
 
 
 def generate_edge_uuid(
     outlet_node_id: str, outlet_pin_id: str, inlet_node_id: str, inlet_pin_id: str
 ) -> str:
-    """
-    Generate a unique edge identifier for UI and graph systems.
+    """Generate a unique edge identifier for UI and graph systems.
 
     Format: ``{outlet_node_id}[{outlet_pin_id}]->{inlet_node_id}[{inlet_pin_id}]`` —
     written source-to-sink, matching the direction the data flows.

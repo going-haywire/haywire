@@ -65,7 +65,8 @@ def test_actionable_drift_exits_drift_and_prints_each_kind(tmp_path: Path, capsy
 @pytest.mark.unit
 def test_unresolved_only_is_informational_and_exits_ok(tmp_path: Path, capsys) -> None:
     """The one test that pins Q3's decision: unresolved imports are printed
-    but never gate the exit code — they're advisory, not actionable drift."""
+    but never gate the exit code — they're advisory, not actionable drift.
+    """
     lib_dir = _make_barn_library(tmp_path)
     drift = DepDrift(lib_dir=lib_dir, unresolved=["some.weird.import"])
 

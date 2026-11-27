@@ -272,7 +272,9 @@ def _render_addition_row(flow: ShareFlow, lib_dir: Path, dep: str, controls: dic
 
 
 def _render_removal_row(lib_dir: Path, dep: str, controls: dict, token: str) -> None:
-    """Nothing pre-selected: a dynamic import is indistinguishable from an
+    """Nothing pre-selected.
+
+    A dynamic import is indistinguishable from an
     unused declaration, and removing cannot be undone from here.
 
     Not boxed like the others: the checkbox carries its own label, so subject
@@ -290,8 +292,11 @@ def _render_removal_row(lib_dir: Path, dep: str, controls: dict, token: str) -> 
 
 
 def _render_floor_row(lib_dir: Path, row: tuple[str, str, str], controls: dict, token: str) -> None:
-    """Every control starts on keep, which writes nothing — a floor states the
-    OLDEST version that works and nothing here can compute that."""
+    """Every control starts on keep, which writes nothing.
+
+    A floor states the
+    OLDEST version that works and nothing here can compute that.
+    """
     dist, declared, installed = row
     with _decision(f"{dist} — declared {declared}, installed {installed}", f"in {lib_dir.name}", token):
         mode = hui.select_field(options=FLOOR_OPTIONS, value="keep", label="Floor").classes("w-full")
@@ -301,8 +306,9 @@ def _render_floor_row(lib_dir: Path, row: tuple[str, str, str], controls: dict, 
 
 
 def _render_clean_lines(libraries, registrations: dict) -> None:
-    """One ✓ line per finding kind that found nothing, plus the auto-applied
-    library-dependency registrations, if any.
+    """One ✓ line per finding kind that found nothing, plus auto-applied dependency registrations.
+
+    The registrations are the library-dependency ones, listed only if any.
 
     The predecessor gave each of the finding kinds a full screen with its own
     Continue button — six screens of good news for a clean repo.
@@ -338,8 +344,11 @@ def _render_clean_lines(libraries, registrations: dict) -> None:
 
 
 def _render_framework(flow: ShareFlow) -> Callable[[], str | None]:
-    """The one authored floor. Recommended option keeps what is declared —
-    raising it locks out consumers who could have installed fine."""
+    """The one authored floor.
+
+    Recommended option keeps what is declared —
+    raising it locks out consumers who could have installed fine.
+    """
     plan = flow.framework_plan
     if plan is None or not plan.options:
         return lambda: None

@@ -47,7 +47,8 @@ def test_reads_every_identity_field(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_absent_keys_are_omitted_not_emptied(tmp_path: Path) -> None:
     """The splat contract: a caller updates defaults, so an absent key must not
-    arrive as "" and clobber one."""
+    arrive as "" and clobber one.
+    """
     fields = read_haybale_toml(_write(tmp_path, 'name = "haybale-core"\nversion = "0.0.40"\n'))
     assert fields == {"name": "haybale-core", "version": "0.0.40"}
     assert "label" not in fields
@@ -57,7 +58,8 @@ def test_absent_keys_are_omitted_not_emptied(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_unknown_keys_are_ignored(tmp_path: Path) -> None:
     """The publishing coordinates are the marketstall row's business — they
-    don't reach the identity, even though they live in the same file."""
+    don't reach the identity, even though they live in the same file.
+    """
     fields = read_haybale_toml(
         _write(
             tmp_path,
@@ -127,7 +129,8 @@ def test_wrong_list_type_raises(tmp_path: Path) -> None:
 @pytest.mark.parametrize("bad", ["haybale-studio", "haybale.studio", "haybale studio", "2cool"])
 def test_non_module_linked_library_raises(tmp_path: Path, bad: str) -> None:
     """A hyphen yields the scope prefix "haybale-studio.", which matches no
-    module — hot-reload then degrades silently. Reject it at read time."""
+    module — hot-reload then degrades silently. Reject it at read time.
+    """
     d = _write(tmp_path, f'name = "haybale-core"\nlinked_libraries = ["{bad}"]\n')
     with pytest.raises(HaybaleTomlError):
         read_haybale_toml(d)
@@ -203,8 +206,9 @@ def test_tag_for_prefixes_v() -> None:
 
 @pytest.mark.unit
 def test_tag_for_does_not_double_the_prefix() -> None:
-    """version is PEP 440 and never carries the v; if one shows up, it is a bug
-    upstream and the tag should look wrong rather than silently right."""
+    """`version` is PEP 440 and never carries the v; if one shows up, it is a bug
+    upstream and the tag should look wrong rather than silently right.
+    """
     assert tag_for("v0.0.40") == "vv0.0.40"
 
 
@@ -371,8 +375,9 @@ def test_version_is_projected_into_pyproject():
 
 @pytest.mark.unit
 def test_sync_never_removes_the_pyproject_version(tmp_path):
-    """pip reads version from pyproject and cannot read haybale.toml, so an
-    absent declared version must leave the existing literal in place."""
+    """`pip` reads version from pyproject and cannot read haybale.toml, so an
+    absent declared version must leave the existing literal in place.
+    """
     from haywire.core.publishing.generate import sync_pyproject_from_haybale
 
     module_dir = tmp_path / "haybale_alpha"

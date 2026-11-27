@@ -16,8 +16,7 @@ T = TypeVar("T")
 
 
 def skin(**kwargs: Any) -> Callable[[type[T]], type[T]]:
-    """
-    Decorator to register a class as a node skin.
+    """Decorator to register a class as a node skin.
 
     Always invoked with parentheses — `@skin(...)` or `@skin()`. The bare
     `@skin` form (no parens) is not supported.

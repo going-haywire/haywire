@@ -8,7 +8,8 @@ from unittest.mock import MagicMock
 
 def _ctx_with_active_graph(graph, container):
     """Build a SessionContext double exposing EditState.active_graph and
-    GraphAppState.get_by_graph."""
+    GraphAppState.get_by_graph.
+    """
     ctx = MagicMock()
     edit_state = MagicMock()
     edit_state.active_graph = graph

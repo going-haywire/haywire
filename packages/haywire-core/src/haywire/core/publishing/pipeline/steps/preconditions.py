@@ -75,9 +75,10 @@ def _has_haywire_dir_below(repo_root: Path) -> bool:
 
 
 def _reserved_prefix_failure(offenders: list[tuple[Path, str]]) -> PreconditionFailure:
-    """The combined failure for every `hay-*` library found (stop-at-first
-    still applies at the report level — this is one failure, not one per
-    library). See `_RESERVED_LOCAL_PREFIX`.
+    """The combined failure for every `hay-*` library found.
+
+    Stop-at-first still applies at the report level — this is one failure, not one per
+    library. See `_RESERVED_LOCAL_PREFIX`.
 
     Suggests a ready-to-run `haywire rename` command per library, replacing
     the reserved prefix with the conventional `haybale-` one — the same

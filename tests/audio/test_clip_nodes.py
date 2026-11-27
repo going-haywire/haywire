@@ -1,5 +1,6 @@
 """The clip nodes: AUDIO_CLIP ports, Clip Event, Collect Clip, Clip Segmenter, Clip Queue, and
-Clip Player's On Finish."""
+Clip Player's On Finish.
+"""
 
 from __future__ import annotations
 

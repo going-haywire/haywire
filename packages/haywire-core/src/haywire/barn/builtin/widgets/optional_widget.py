@@ -1,5 +1,4 @@
-"""OptionalWidget — renders an ``OPTIONAL[T]`` field: the element's own widget,
-plus an absence state.
+"""OptionalWidget — renders an ``OPTIONAL[T]`` field: the element's own widget, plus an absence state.
 
 One widget serves EVERY wrapped IType. It never knows what it is wrapping: it
 reads the element type off the cell, looks up that type's declared widget key,

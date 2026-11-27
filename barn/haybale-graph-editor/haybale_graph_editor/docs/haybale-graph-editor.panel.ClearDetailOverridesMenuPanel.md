@@ -11,8 +11,10 @@ Drop each selected node's own detail rank, so it follows the graph's again.
 
 ## Notes
 
-Drop each selected node's own detail rank, inside the Detail submenu
-it undoes — beside the ranks it resets, not on the top-level menu.
+Drop each selected node's own detail rank.
+
+The row sits inside the Detail submenu it undoes — beside the ranks it
+resets, not on the top-level menu.
 
 Without this a node that has ever been re-ranked by hand is pinned for
 good, and a graph-wide detail change silently skips it — "unset tracks,

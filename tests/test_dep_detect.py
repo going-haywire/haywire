@@ -107,7 +107,8 @@ def test_haywire_ui_import_emits_haywire_core_not_studio(tmp_path: Path) -> None
     """haywire.ui ships in the haywire-core wheel (96 files); the
     haywire-studio wheel contains none of it. Routing haywire.ui.* to
     haywire-studio told every barn library that touches a widget to declare a
-    dependency that does not provide what it imports."""
+    dependency that does not provide what it imports.
+    """
     lib = _make_library(
         tmp_path,
         init_body="from haywire.ui.elements import elements as hui\n",
@@ -130,7 +131,8 @@ def test_bare_haywire_import_emits_haywire_core_conservative(tmp_path: Path) -> 
 @pytest.mark.unit
 def test_core_and_ui_together_emit_haywire_core_once(tmp_path: Path) -> None:
     """Both subpackages live in the same distribution, so importing both is
-    still exactly one dependency — not two, and not a duplicate."""
+    still exactly one dependency — not two, and not a duplicate.
+    """
     lib = _make_library(
         tmp_path,
         init_body=(
@@ -148,7 +150,8 @@ def test_core_and_ui_together_emit_haywire_core_once(tmp_path: Path) -> None:
 def test_haywire_studio_import_still_emits_haywire_studio(tmp_path: Path) -> None:
     """A library that genuinely needs the studio imports `haywire_studio`,
     which resolves through the normal dist mapping — the fix must not make
-    that dependency undetectable."""
+    that dependency undetectable.
+    """
     lib = _make_library(
         tmp_path,
         init_body="from haywire_studio.packaging.docs.generate import generate_docs\n",
@@ -160,7 +163,8 @@ def test_haywire_studio_import_still_emits_haywire_studio(tmp_path: Path) -> Non
 @pytest.mark.unit
 def test_registered_library_lands_in_both_outputs(tmp_path: Path) -> None:
     """Imports of a *registered* haywire library belong in both
-    @library(linked_libraries=...) and pyproject."""
+    @library(linked_libraries=...) and pyproject.
+    """
     lib = _make_library(tmp_path, init_body="from haybale_core import types\n")
     # haybale-core is installed in the dev workspace; the FakeLibrarySource
     # asserts it as a registered library.
@@ -174,7 +178,8 @@ def test_registered_library_lands_in_both_outputs(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_unregistered_haybale_shaped_module_is_third_party(tmp_path: Path) -> None:
     """A module whose distribution looks like 'haybale-foo' but is NOT in the
-    registry is treated as third-party (pyproject only, decorator empty)."""
+    registry is treated as third-party (pyproject only, decorator empty).
+    """
     # We need a real installed dist for the resolver to find something. Pick
     # `toml` (third-party, definitely installed, definitely not a library).
     lib = _make_library(tmp_path, init_body="import toml\n")
@@ -188,7 +193,8 @@ def test_unregistered_haybale_shaped_module_is_third_party(tmp_path: Path) -> No
 @pytest.mark.unit
 def test_third_party_uses_geq_specifier(tmp_path: Path) -> None:
     """Every suggested specifier is a floor. ``~=`` would stamp a ceiling
-    nobody chose and that nobody would revisit."""
+    nobody chose and that nobody would revisit.
+    """
     lib = _make_library(tmp_path, init_body="import pytest\n")
     result = detect_deps(lib, libraries=FakeLibrarySource())
     assert len(result.pyproject) == 1
@@ -244,7 +250,8 @@ def test_relative_imports_are_ignored(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_version_in_specifier_matches_installed(tmp_path: Path) -> None:
     """The specifier's version uses the running-interpreter's installed
-    version of the dist, not the library's own version."""
+    version of the dist, not the library's own version.
+    """
     lib = _make_library(
         tmp_path,
         init_body="from haywire.core.node.registry import NodeRegistry\n",
@@ -257,7 +264,8 @@ def test_version_in_specifier_matches_installed(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_mixed_realistic_tree(tmp_path: Path) -> None:
     """A library importing framework + registered lib + stdlib + third-party
-    populates all expected outputs and nothing more."""
+    populates all expected outputs and nothing more.
+    """
     lib = _make_library(
         tmp_path,
         init_body=(

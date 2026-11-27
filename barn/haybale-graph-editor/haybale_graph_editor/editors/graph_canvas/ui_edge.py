@@ -1,5 +1,4 @@
-"""
-Edge visual state — how an EdgeWrapper's state becomes a drawn connection.
+"""Edge visual state — how an EdgeWrapper's state becomes a drawn connection.
 
 An edge has no UI object of its own. Unlike a node, which owns a NiceGUI
 container and a rendered skin card (see UINode), an edge's entire visual
@@ -33,8 +32,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class EdgeVisualState:
-    """
-    Visual state for connection rendering.
+    """Visual state for connection rendering.
 
     This determines how the connection appears in the UI.
     All visual feedback is conveyed through these properties only.
@@ -113,8 +111,7 @@ def _canvas_style(style: dict[str, Any]) -> dict[str, Any]:
 
 
 def edge_visual_state(wrapper: EdgeWrapper) -> EdgeVisualState:
-    """
-    Calculate visual state from EdgeWrapper state.
+    """Calculate visual state from EdgeWrapper state.
 
     Visual States:
     1. VALID (default): Use gradient ('auto'), full opacity

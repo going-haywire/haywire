@@ -1,5 +1,4 @@
-"""
-HarnessApp — isolated NiceGUI app for settings UI development and testing.
+"""HarnessApp — isolated NiceGUI app for settings UI development and testing.
 
 Usage:
     uv run python tests/ui/harness/app.py

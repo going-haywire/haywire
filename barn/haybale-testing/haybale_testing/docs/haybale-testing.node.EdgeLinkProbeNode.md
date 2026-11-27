@@ -34,8 +34,9 @@
 
 ## Notes
 
-Node specificly to test connection behaviors
-in the UI. It has a wide variety of inlet and outlet types
+Node specifically to test connection behaviors in the UI.
+
+It has a wide variety of inlet and outlet types
 to test all the different connection rules.
 It does not perform any actual logic in its worker,
 it just serves as a testbed for connections.

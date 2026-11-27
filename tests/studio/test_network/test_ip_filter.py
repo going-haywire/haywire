@@ -153,7 +153,8 @@ def test_client_none_is_rejected():
 def test_websocket_client_none_closes_1008_not_403():
     """The reject helper must branch on scope type, not just on the reason
     for rejection — a None client on a websocket scope must still close
-    with 1008, not send an HTTP response frame."""
+    with 1008, not send an HTTP response frame.
+    """
     inner = _Recorder()
     middleware = IPAllowlistMiddleware(inner, allowed_ranges=["0.0.0.0/0"])
     scope = _make_scope(scope_type="websocket", client=None)
@@ -191,7 +192,8 @@ def test_malformed_peer_ip_logs_warning(caplog):
 
 def test_xff_present_peer_not_trusted_proxy_is_ignored():
     """Peer is NOT in trusted_proxies -> XFF must not be consulted; the
-    direct peer (out of range) determines the outcome."""
+    direct peer (out of range) determines the outcome.
+    """
     inner = _Recorder()
     middleware = IPAllowlistMiddleware(
         inner,
@@ -212,7 +214,8 @@ def test_xff_present_peer_not_trusted_proxy_is_ignored():
 def test_xff_present_peer_in_trusted_proxies_uses_rightmost_untrusted():
     """Peer IS a trusted proxy. Chain: client, proxy2, proxy1 (proxy1 is the
     closest hop, appended last / rightmost). trusted_proxies covers 10.0.0.0/8;
-    real client 203.0.113.5 is outside it and must be picked."""
+    real client 203.0.113.5 is outside it and must be picked.
+    """
     inner = _Recorder()
     middleware = IPAllowlistMiddleware(
         inner,
@@ -232,7 +235,8 @@ def test_xff_present_peer_in_trusted_proxies_uses_rightmost_untrusted():
 
 def test_xff_chain_all_trusted_falls_back_to_peer():
     """Every entry in the XFF chain is itself a trusted proxy: no untrusted
-    hop exists, so we fall back to the direct peer for the allow check."""
+    hop exists, so we fall back to the direct peer for the allow check.
+    """
     inner = _Recorder()
     middleware = IPAllowlistMiddleware(
         inner,
@@ -252,7 +256,8 @@ def test_xff_chain_all_trusted_falls_back_to_peer():
 
 def test_xff_empty_trusted_proxies_ignores_header_even_if_present():
     """trusted_proxies is empty -> XFF must never be consulted, even though
-    the header is present and would otherwise resolve to an allowed IP."""
+    the header is present and would otherwise resolve to an allowed IP.
+    """
     inner = _Recorder()
     middleware = IPAllowlistMiddleware(
         inner,
@@ -304,7 +309,8 @@ def test_invalid_cidr_in_trusted_proxies_raises_value_error():
 
 def test_ranges_parsed_once_in_constructor():
     """Mutating the source iterable after construction must not affect an
-    already-built middleware — ranges are parsed once, not lazily re-read."""
+    already-built middleware — ranges are parsed once, not lazily re-read.
+    """
     ranges = ["192.168.1.0/24"]
     middleware = IPAllowlistMiddleware(_Recorder(), allowed_ranges=ranges)
     ranges.append("10.0.0.0/8")

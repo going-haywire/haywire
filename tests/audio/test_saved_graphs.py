@@ -20,7 +20,8 @@ def _mixer(graph):
 def test_a_saved_audio_flow_loads_with_its_mixer_inputs_collecting(graph_with_library_system):
     """File Players, Audio Clock, Audio Events, Audio Mixer and Device Out, saved when each mixer input
     had a `Write` pin: the inputs collect their blocks, the `Write` pins are gone, and their edges are
-    kept invalid."""
+    kept invalid.
+    """
     graph = graph_with_library_system
     assert graph.load_from_file(str(FIXTURES / "audio_flow.haywire"))
     graph.force_validation()
@@ -37,7 +38,8 @@ def test_a_saved_audio_flow_loads_with_its_mixer_inputs_collecting(graph_with_li
 
 def test_a_saved_mixer_input_comes_to_own_its_gain_and_mute(graph_with_library_system, tmp_path):
     """Saved before inputs owned their `Gain` and `Mute`: after loading, removing an input takes them
-    along, and a save keeps the link."""
+    along, and a save keeps the link.
+    """
     from haywire.core.node.promotion import remove_port
 
     graph = graph_with_library_system
@@ -86,7 +88,8 @@ def test_an_edge_from_a_control_node_into_an_audio_pin_loads_invalid_and_is_kept
 
 def test_the_device_in_soak_graph_loads_with_every_edge_valid(graph_with_library_system):
     """Begin Play starts a Device In whose Audio Event plays each block on a Device Out: the graph
-    of the PR's soak check."""
+    of the PR's soak check.
+    """
     graph = graph_with_library_system
     assert graph.load_from_file(str(FIXTURES / "device_in_soak.haywire"))
     graph.force_validation()
@@ -104,7 +107,8 @@ def test_a_graph_saved_with_pooled_audio_settings_loads_without_them(
     """Saved while Audio Event had Delivery and the block emitters a Backlog (ADR 0097, before block
     streams were never pooled): an Audio Event set to Pooled and a File Player with a Backlog whose
     Size was promoted to a config port. Both load as valid nodes, the Audio Event takes every block,
-    the promoted port is gone, and a save drops the old settings."""
+    the promoted port is gone, and a save drops the old settings.
+    """
     from haywire.api import Delivery
 
     graph = graph_with_library_system
