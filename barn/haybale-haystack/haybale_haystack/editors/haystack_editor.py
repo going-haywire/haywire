@@ -15,6 +15,7 @@ from haybale_haystack.flow_meter import FlowMeterView
 from haybale_haystack.graph_entry import EntryKind, GraphEntry
 from haybale_haystack.signals import HaystackReloaded, HaystackTeardown
 from haybale_haystack.states.haystack_state import HaystackState
+from haywire.api import MacroRegistry
 from haywire.api.workbench import (
     AccessTier,
     ActiveGraphMoved,
@@ -36,7 +37,6 @@ from haywire.api.workbench import (
     redraw_on,
 )
 from haywire.core.execution.flow_metrics import FlowMeterSampler
-from haywire.core.macro.promote import MACRO_SUFFIX
 from haywire.core.session import IAppState
 from haywire.ui.components.popup import Popup
 from haywire.ui.modals import pick_modal, rename_modal
@@ -550,7 +550,7 @@ class HaystackEditor(BaseEditor):
         entry = self._resolve_entry(binding_id, context)
         if entry is None:
             return
-        if entry.path is not None and entry.path.suffix == MACRO_SUFFIX:
+        if entry.path is not None and entry.path.suffix == MacroRegistry.SUFFIX:
             if _refused(context, AccessTier.ADMIN, "Saving a macro"):
                 return
 

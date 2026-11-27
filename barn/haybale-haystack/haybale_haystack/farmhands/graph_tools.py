@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from haywire.api import MacroRegistry
 from haywire.api.workbench import (
     AccessTier,
     Farmhand,
@@ -12,7 +13,6 @@ from haywire.api.workbench import (
     farmhand,
     truncation_note,
 )
-from haywire.core.macro.promote import MACRO_SUFFIX
 
 _READ_ONLY = ToolAnnotations(read_only_hint=True)
 _MUTATING = ToolAnnotations()
@@ -162,7 +162,8 @@ class HaystackSaveGraphTool(Farmhand):
         entry = _entry(ctx, binding_id)
         target = (ctx.workspace_root() / save_as).resolve() if save_as else None
         written = target or entry.path
-        if written is not None and written.suffix == MACRO_SUFFIX and not ctx.can_access(AccessTier.ADMIN):
+        writes_macro = written is not None and written.suffix == MacroRegistry.SUFFIX
+        if writes_macro and not ctx.can_access(AccessTier.ADMIN):
             # A macro document is a file in its library; writing into a library needs admin.
             raise FarmhandError(
                 "access_denied",

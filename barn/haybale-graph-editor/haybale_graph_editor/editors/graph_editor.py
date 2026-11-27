@@ -34,6 +34,7 @@ from haybale_graph_editor.editors.graph_save_as import open_graph_save_as_dialog
 from haybale_graph_editor.protocols import GraphContainer, SubgraphContainer
 from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.states.graph_app_state import GraphAppState
+from haywire.api import MacroRegistry
 from haywire.api.workbench import (
     AccessTier,
     ActiveGraphMoved,
@@ -63,7 +64,6 @@ from haywire.api.workbench import (
     react_on,
 )
 from haywire.core.graph.edit_route import EditRoute
-from haywire.core.macro.promote import MACRO_SUFFIX
 from haywire.core.node.layout import PATCH, STAGE
 from haywire.core.signals import SubgraphNavigation, ToggleLock, ToggleStageView
 from haywire.core.signals.keys import format_combo
@@ -1629,7 +1629,7 @@ class GraphEditor(BaseEditor):
             return
         if (
             entry.path is not None
-            and entry.path.suffix == MACRO_SUFFIX
+            and entry.path.suffix == MacroRegistry.SUFFIX
             and not context.can_access(AccessTier.ADMIN)
         ):
             ui.notify("Saving a macro needs admin access", type="warning", position="top-right")
