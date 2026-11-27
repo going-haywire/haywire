@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import logging
 import threading
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from haywire.barn.builtin.delivery import BacklogSettings
     from haywire.core.execution.event_source import Trigger
     from haywire.core.execution.vm import HaywireVM
     from haywire.core.node import BaseNode
@@ -56,16 +58,34 @@ class ExecutionContext:
     bail: str | None = None
     """Set by the VM when a worker raises: how far this frame bails (``run``, ``frame``, ``branch``)."""
 
-    def emit_callback(self, event_name: str, payload: dict[str, Any] | None = None) -> None:
+    def emit_callback(
+        self,
+        event_name: str | Sequence[str],
+        payload: dict[str, Any] | None = None,
+        backlog: BacklogSettings | None = None,
+    ) -> None:
         """
         Emit a callback to trigger other flows.
 
+        Pass all of an emitter's subscriber names in one call: listeners whose
+        Delivery is Pooled then share the callback (ADR 0097).
+
         Args:
-            event_name: Name of callback event
+            event_name: Name of callback event, or the names of all the emitter's subscribers
             payload: Optional data to pass
+            backlog: The emitter's ``BacklogSettings``, where callbacks wait while every
+                pooled listener is busy; ``None`` holds 16 and drops the oldest.
+
+        Example::
+
+            # One listener by name.
+            context.emit_callback(event_name="my_callback", payload={"value": 1})
+            # Every subscriber of the emitter in one emit, with its backlog.
+            names = list(self.value("callbacks").values())
+            context.emit_callback(event_name=names, payload={"value": 1}, backlog=self.backlog)
         """
         if self.vm:
-            self.vm.emit_callback(event_name, payload)
+            self.vm.emit_callback(event_name, payload, backlog)
         else:
             logger.warning("Cannot emit callback: No VM reference in context")
 

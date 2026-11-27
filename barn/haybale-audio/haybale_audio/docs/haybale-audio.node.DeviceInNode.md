@@ -23,6 +23,8 @@ Records a sound device's input as audio blocks
 | `channels` | recording | `'All device channels'` | Channels to record. More than the device has records all of the device's. |
 | `sample_rate` | recording | `'Device default'` | Samples per second. The device's own rate needs no conversion by the sound system. |
 | `block_size` | recording | `256` | Samples per block. 256 at 48 kHz is a block every 5.3 ms. |
+| `size` | backlog | `16` | How many events wait while every pooled listener is busy. |
+| `full` | backlog | `'Drop oldest'` | Drop oldest makes room by losing the oldest waiting event. Wait holds the emitter up to 5 s for room, then loses the new event. |
 
 ## Notes
 

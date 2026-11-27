@@ -7,11 +7,13 @@ from haywire.api import (
     STRING,
     BaseNode,
     CallbackEvent,
+    DeliverySettings,
     ExecutionContext,
     MenuWidget,
     NodeType,
     QueueMode,
     TextWidget,
+    bag,
     node,
 )
 
@@ -25,6 +27,8 @@ from haywire.api import (
 )
 class CallbackEventProbeNode(BaseNode):
     """Test-only event node that listens for custom callbacks."""
+
+    delivery = bag(DeliverySettings)
 
     def init(self):
         with self.fold("Custom Name", default=False, on_change="redraw"):
@@ -67,6 +71,10 @@ class CallbackEventProbeNode(BaseNode):
         # A copy or a loaded graph restores the saved id; the listener publishes the id it listens on.
         self.ports["listen_callback"].set_value(self.node_id)
         self._update_subscription(None, None)
+        self.delivery._subscribe_field("mode", self._on_delivery)
+
+    def _on_delivery(self, _value: object, _old: object) -> None:
+        self._update_subscription(None, None)
 
     def redraw(self, *args, **kwargs) -> None:
         self.wrapper.redraw()
@@ -82,13 +90,19 @@ class CallbackEventProbeNode(BaseNode):
         if mode:
             callback_name = self.value("custom_callback_name")
             self.event_subscription = CallbackEvent(
-                event_name=callback_name, queue_mode=queue_mode, max_queue_size=max_queue_size
+                event_name=callback_name,
+                queue_mode=queue_mode,
+                max_queue_size=max_queue_size,
+                delivery=self.delivery.delivery,
             )
             self.wrapper.request_graph_reassembly()
         else:
             callback_name = self.value("listen_callback")
             self.event_subscription = CallbackEvent(
-                event_name=callback_name, queue_mode=queue_mode, max_queue_size=max_queue_size
+                event_name=callback_name,
+                queue_mode=queue_mode,
+                max_queue_size=max_queue_size,
+                delivery=self.delivery.delivery,
             )
 
     def worker(self, context: ExecutionContext) -> str | None:

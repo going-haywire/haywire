@@ -1,6 +1,16 @@
 from __future__ import annotations
 
-from haywire.api import EXEC, BaseNode, CallbackEvent, ExecutionContext, NodeType, node
+from haywire.api import (
+    EXEC,
+    BacklogSettings,
+    BaseNode,
+    CallbackEvent,
+    DeliverySettings,
+    ExecutionContext,
+    NodeType,
+    bag,
+    node,
+)
 
 
 @node(
@@ -12,6 +22,8 @@ from haywire.api import EXEC, BaseNode, CallbackEvent, ExecutionContext, NodeTyp
 )
 class RecordEventProbeNode(BaseNode):
     """Test-only event node publishing a `TEST_RECORD_CALLBACK` subscription named after itself."""
+
+    delivery = bag(DeliverySettings)
 
     def init(self):
         from haybale_testing.types import TEST_RECORD_CALLBACK
@@ -26,7 +38,14 @@ class RecordEventProbeNode(BaseNode):
         self.add(EXEC.as_outlet("triggered", label="Triggered"))
 
     def post_init(self):
-        self.event_subscription = CallbackEvent(event_name=self.node_id)
+        self._subscribe()
+        self.delivery._subscribe_field("mode", self._on_delivery)
+
+    def _on_delivery(self, _value: object, _old: object) -> None:
+        self._subscribe()
+
+    def _subscribe(self) -> None:
+        self.event_subscription = CallbackEvent(event_name=self.node_id, delivery=self.delivery.delivery)
 
     def worker(self, context: ExecutionContext) -> str | None:
         return "triggered"
@@ -40,7 +59,13 @@ class RecordEventProbeNode(BaseNode):
     node_type=NodeType.CONTROL,
 )
 class RecordEmitProbeNode(BaseNode):
-    """Test-only emitter collecting `TEST_RECORD_CALLBACK` subscriptions in a pooled inlet."""
+    """Test-only emitter collecting `TEST_RECORD_CALLBACK` subscriptions in a pooled inlet.
+
+    One emit reaches every subscription, so pooled Record Event Probes share it. The payload
+    is `{"weights": {name: weight}}`, each listener's weight under its name.
+    """
+
+    backlog = bag(BacklogSettings)
 
     def init(self):
         from haybale_core.types import POOLED
@@ -51,6 +76,11 @@ class RecordEmitProbeNode(BaseNode):
         self.add(EXEC.as_outlet("exec", label="Then"))
 
     def worker(self, context: ExecutionContext) -> str | None:
-        for record in self.value("subscriptions").values():
-            context.emit_callback(event_name=record.name, payload={"weight": record.weight})
+        records = list(self.value("subscriptions").values())
+        weights = {record.name: record.weight for record in records}
+        context.emit_callback(
+            event_name=[record.name for record in records],
+            payload={"weights": weights},
+            backlog=self.backlog,
+        )
         return "exec"

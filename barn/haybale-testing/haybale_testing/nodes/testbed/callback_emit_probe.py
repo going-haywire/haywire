@@ -6,11 +6,13 @@ from haywire.api import (
     EXEC,
     FLOAT,
     STRING,
+    BacklogSettings,
     BaseNode,
     ExecutionContext,
     NodeType,
     TextWidget,
     ToggleWidget,
+    bag,
     node,
 )
 
@@ -24,6 +26,8 @@ from haywire.api import (
 )
 class CallbackEmitProbeNode(BaseNode):
     """Test-only control node that emits a named callback."""
+
+    backlog = bag(BacklogSettings)
 
     def init(self):
         from haybale_core.types import POOLED
@@ -83,7 +87,8 @@ class CallbackEmitProbeNode(BaseNode):
                 self.callback_index = (self.callback_index + 1) % len(edge_callbacks)
                 context.emit_callback(event_name=edge_callback, payload=payload_dict)
             else:
-                for edge_callback in edge_callbacks.values():
-                    context.emit_callback(event_name=edge_callback, payload=payload_dict)
+                context.emit_callback(
+                    event_name=list(edge_callbacks.values()), payload=payload_dict, backlog=self.backlog
+                )
 
         return "exec"

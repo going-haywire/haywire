@@ -19,6 +19,8 @@ A button on the card that triggers connected Tick Event flows while the graph ru
 
 | name | bag | default | description |
 |---|---|---|---|
+| `size` | backlog | `16` | How many events wait while every pooled listener is busy. |
+| `full` | backlog | `'Drop oldest'` | Drop oldest makes room by losing the oldest waiting event. Wait holds the emitter up to 5 s for room, then loses the new event. |
 | `run` | button | `False` | Press to trigger the connected flows once |
 
 ## Notes
@@ -37,3 +39,6 @@ Begin Play → Start                 Tick Event.Listen → Trigger
 The button works from *Start* until *Stop* or until the graph stops. A press
 made while the graph is stopped shows as pending and is cleared when the graph
 starts again.
+
+Tick Events set to *Pooled* share the presses: the next free one runs each press,
+and *Backlog Size* presses wait while all are busy (*When Full* decides the rest).

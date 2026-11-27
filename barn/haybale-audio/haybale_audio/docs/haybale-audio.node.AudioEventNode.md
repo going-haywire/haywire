@@ -20,6 +20,7 @@ Triggered for each audio block a connected audio emitter delivers
 |---|---|---|---|
 | `queue_mode` | dispatch | `'Block (every block)'` | Block queues every block and back-pressures the emitter. Drop keeps only the newest block, so audio is lost whenever the flow runs behind. |
 | `max_queue_size` | dispatch | `100` | How many pending blocks to hold. 100 blocks of 256 samples at 48 kHz are about 0.5 s. |
+| `mode` | delivery | `'Every'` | Every runs this flow for every event. Pooled shares the events with the other pooled listeners of the same emitter: the next free one runs each event. |
 
 ## Notes
 
@@ -35,6 +36,10 @@ the audio nodes. A plain `EXEC` outlet does not connect to them, so a control no
 audio flow, while an `AUDIO_EXEC` outlet does connect to an `EXEC` inlet, so an audio flow can drive
 a control node. That node then runs inside the flow's pass, and its time counts against the block
 period. `Start` and `Stop` pins stay plain `EXEC`: the control world starts and stops audio nodes.
+
+Delivery: `Every` runs the flow for every block. `Pooled` shares the blocks with the emitter's
+other pooled listeners, the next free one taking each block; Queue Mode and Max Queue Size then
+have no effect, and blocks no longer arrive in order across the listeners.
 
 Outputs:
     block_ready: Control flow when a block arrives

@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 from haywire.core.assembly.flow_assembly_manager import FlowAssemblyManager
 from haywire.core.execution import gc_freeze, gil_switch
 from haywire.core.execution.callback_manager import CallbackManager
+from haywire.core.execution.delivery import Delivery
 from haywire.core.execution.event_source import (
     CallbackEvent,
     ExternalEvent,
@@ -309,9 +310,11 @@ class Interpreter:
             flow=flow, vm=self.vm, queue_mode=sub.queue_mode, max_queue_size=sub.max_queue_size
         )
 
-        # Register callback listeners
+        # Register callback listeners; a pooled one reports each trigger's end to its pools.
         if isinstance(flow.event_subscription, CallbackEvent):
             self.callback_manager.register_callback_listener(flow.event_subscription.event_name, flow)
+            if flow.event_subscription.delivery is Delivery.POOLED:
+                flow.queue.on_done = self.callback_manager.trigger_done
 
     def _cleanup_current_graph(self, print_stats: bool = False) -> None:
         """

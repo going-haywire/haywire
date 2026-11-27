@@ -20,6 +20,8 @@ Converts audio blocks to another sample rate and delivers them to Audio Event no
 |---|---|---|---|
 | `target_rate` | resample | `48000` | Samples per second of the delivered blocks. |
 | `quality` | resample | `'Fast'` | Fast costs about 0.25% of real time for stereo and is clean for speech and music. |
+| `size` | backlog | `16` | How many events wait while every pooled listener is busy. |
+| `full` | backlog | `'Drop oldest'` | Drop oldest makes room by losing the oldest waiting event. Wait holds the emitter up to 5 s for room, then loses the new event. |
 
 ## Notes
 

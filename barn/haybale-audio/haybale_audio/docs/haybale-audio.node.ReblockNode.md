@@ -19,6 +19,8 @@ Re-cuts audio blocks to a fixed size and delivers them to Audio Event nodes
 | name | bag | default | description |
 |---|---|---|---|
 | `block_size` | reblock | `256` | Samples per delivered block. |
+| `size` | backlog | `16` | How many events wait while every pooled listener is busy. |
+| `full` | backlog | `'Drop oldest'` | Drop oldest makes room by losing the oldest waiting event. Wait holds the emitter up to 5 s for room, then loses the new event. |
 
 ## Notes
 

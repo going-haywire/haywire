@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 from enum import Enum
 from queue import Empty, Full, Queue
 from threading import Event, Lock
@@ -82,6 +83,10 @@ class FlowQueue:
         self._queue_lock = Lock()
 
         self._is_executing = Event()
+
+        self.on_done: Callable[[Flow], None] | None = None
+        """Called with the flow for every trigger taken out of the queue, run or discarded;
+        a pooled flow's callback manager sets it (ADR 0097)."""
 
         # Triggers discarded without running; only grows.
         self._dropped = 0
@@ -166,7 +171,12 @@ class FlowQueue:
         try:
             self._execute_flow(trigger)
         finally:
-            self.trigger_queue.task_done()
+            try:
+                # Before task_done: a waiter never sees the queue empty during a pooled hand-over.
+                if self.on_done is not None:
+                    self.on_done(self.flow)
+            finally:
+                self.trigger_queue.task_done()
 
     def _discard_pending(self) -> int:
         """Drop every pending trigger, marking each done; return how many were dropped."""
@@ -176,9 +186,14 @@ class FlowQueue:
                 try:
                     self.trigger_queue.get_nowait()
                 except Empty:
-                    return dropped
+                    break
                 self.trigger_queue.task_done()
                 dropped += 1
+        # Outside the queue lock: on_done may enqueue the flow's next trigger.
+        if self.on_done is not None:
+            for _ in range(dropped):
+                self.on_done(self.flow)
+        return dropped
 
     def _execute_flow(self, trigger: Trigger) -> None:
         """Run one frame for ``trigger`` and record its timing; an exception is logged, not raised."""
@@ -274,6 +289,10 @@ class FlowQueue:
     def get_queue_size(self) -> int:
         """Get current number of queued triggers."""
         return self.trigger_queue.qsize()
+
+    def count_dropped(self) -> None:
+        """Count one Trigger meant for this flow and lost before reaching its queue (a pooled one)."""
+        self._dropped += 1
 
     def get_dropped_count(self) -> int:
         """Return how many Triggers this queue has discarded without running them."""

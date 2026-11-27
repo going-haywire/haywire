@@ -16,6 +16,12 @@ Test version of CustomCallback — listens for named callbacks
 | `triggered` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `payload` | outlet | `haywire-core:type:FLOAT` | Decimal number |
 
+## Settings
+
+| name | bag | default | description |
+|---|---|---|---|
+| `mode` | delivery | `'Every'` | Every runs this flow for every event. Pooled shares the events with the other pooled listeners of the same emitter: the next free one runs each event. |
+
 ## Notes
 
 Test-only event node that listens for custom callbacks.

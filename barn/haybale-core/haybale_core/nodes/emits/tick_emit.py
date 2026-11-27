@@ -3,7 +3,18 @@ from __future__ import annotations
 import threading
 import time
 
-from haywire.api import CALLBACK, EXEC, FLOAT, BaseNode, ExecutionContext, NodeType, NumberWidget, node
+from haywire.api import (
+    CALLBACK,
+    EXEC,
+    FLOAT,
+    BacklogSettings,
+    BaseNode,
+    ExecutionContext,
+    NodeType,
+    NumberWidget,
+    bag,
+    node,
+)
 
 
 @node(
@@ -29,7 +40,12 @@ class TickEmitNode(BaseNode):
     Outputs:
         started: Control flow after tick thread starts
         stopped: Control flow after tick thread stops
+
+    Tick Events set to Pooled share the ticks: the next free one runs each tick, and
+    Backlog Size ticks wait while all are busy (When Full decides the rest).
     """
+
+    backlog = bag(BacklogSettings)
 
     def init(self):
         from haybale_core.types import POOLED
@@ -127,12 +143,10 @@ class TickEmitNode(BaseNode):
             last_time = now
             self._frame_count += 1
 
-            # Emit to all connected TickEventNodes
-            for callback in callback_names:
-                context.emit_callback(
-                    event_name=callback,
-                    payload={"delta_time": delta},
-                )
+            # One emit for all connected Tick Events, so pooled ones share the tick.
+            context.emit_callback(
+                event_name=callback_names, payload={"delta_time": delta}, backlog=self.backlog
+            )
 
             # Delta smoothing for timing accuracy
             new_delta_diff = self._delta_diff + (delta - interval)

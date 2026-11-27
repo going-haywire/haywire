@@ -7,10 +7,12 @@ from haywire.api import (
     STRING,
     BaseNode,
     CallbackEvent,
+    DeliverySettings,
     ExecutionContext,
     MenuWidget,
     NodeType,
     TextWidget,
+    bag,
     node,
 )
 
@@ -28,11 +30,15 @@ class CallbackEventNode(BaseNode):
 
     Config:
         callback_name: Name of the callback to listen for
+        delivery: `Every` runs for every callback; `Pooled` shares them with the emitter's other
+            pooled listeners, the next free one taking each callback
 
     Outputs:
         triggered: Control flow when callback received
         payload: Data from callback
     """
+
+    delivery = bag(DeliverySettings)
 
     def init(self):
         # Config for callback name
@@ -71,6 +77,10 @@ class CallbackEventNode(BaseNode):
         self.ports["listen_callback"].set_value(self.node_id)
         # Set initial subscription
         self._update_subscription(None, None)
+        self.delivery._subscribe_field("mode", self._on_delivery)
+
+    def _on_delivery(self, _value: object, _old: object) -> None:
+        self._update_subscription(None, None)
 
     def redraw(self, *args, **kwargs) -> None:
         """Request a redraw of the node in the UI."""
@@ -82,12 +92,16 @@ class CallbackEventNode(BaseNode):
         mode = self.value("custom_name")
         if mode:
             callback_name = self.value("custom_callback_name")
-            self.event_subscription = CallbackEvent(event_name=callback_name)
+            self.event_subscription = CallbackEvent(
+                event_name=callback_name, delivery=self.delivery.delivery
+            )
             # Trigger flow reassembly via wrapper
             self.wrapper.request_graph_reassembly()
         else:
             callback_name = self.value("listen_callback")
-            self.event_subscription = CallbackEvent(event_name=callback_name)
+            self.event_subscription = CallbackEvent(
+                event_name=callback_name, delivery=self.delivery.delivery
+            )
 
     def worker(self, context: ExecutionContext) -> str | None:
         # Extract payload from trigger
