@@ -193,7 +193,7 @@ change §8.3's serialization contract or the resolution chain; it only moves
 *where* the bytes are read and written. One real external caller keeps a
 handful of registry internals (`_global_watch_enabled`,
 `_workspace_watch_enabled`, `_reload_from_file`) on the registry rather than
-the store: `core/di/config.py`'s `_print_settings_status`/`reload_settings()`
+the store: `core/di/config.py`'s `_log_settings_status`/`reload_settings()`
 read them directly, so `registry.py` is not — and was never targeted to be —
 as small as a clean definitions/tiers-only module would be in isolation.
 

@@ -22,5 +22,5 @@ class PrintNode(BaseNode):
 
     def worker(self, context):
         message = self.value("message")
-        print(message)  # the studio log shows stdout
+        print(message)  # noqa: T201 (the node's purpose: the studio log shows stdout)
         return "done"

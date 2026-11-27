@@ -488,7 +488,8 @@ class FarmhandHost(SignalPeer):
 
         hint = self._connection_hint(port, document, tls=tls)
         logger.info(f"Farmhand MCP server will serve at /mcp — connect with:\n  {hint}")
-        print(f"🤝 Farmhand: {hint}")
+        # A print as well: people and agents copy the connect line from the terminal.
+        print(f"🤝 Farmhand: {hint}")  # noqa: T201
 
     @staticmethod
     def _connection_hint(port: int, document, *, tls: bool) -> str:

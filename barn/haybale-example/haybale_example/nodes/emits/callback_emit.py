@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from haywire.api import (
     BOOL,
     CALLBACK,
@@ -13,6 +15,8 @@ from haywire.api import (
     ToggleWidget,
     node,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @node(
@@ -79,7 +83,7 @@ class CallbackEmitNode(BaseNode):
 
     def printout(self, port, new_value):
         self.callback_index = 0
-        print(f"Edge Callback changed to: {new_value}")
+        logger.info(f"Edge Callback changed to: {new_value}")
 
     def worker(
         self,

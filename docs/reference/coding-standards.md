@@ -451,8 +451,9 @@ whole library. **Enforced by**: review. **Scope**: repo.
 ### CS-L2 · `print` only for a command-line tool's output to its user
 
 Everything else logs. **Why**: an embedder of the library system or a test can't silence
-a print. **Enforced by**: review (ruff `T20` with per-file ignores for CLI modules,
-planned). **Scope**: repo.
+a print. **Enforced by**: ruff `T20`, with per-file ignores for the CLI modules and scripts
+(`pyproject.toml`, `barn/ruff.toml`) and a `noqa: T201` for each other print that stays.
+**Scope**: repo.
 
 ### CS-L3 · Log levels mean the same everywhere
 
