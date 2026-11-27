@@ -11,6 +11,7 @@ Audio blocks, events and routing shared by speech and streaming libraries
 - **Audio Clock** — Emits a silent audio block at a steady rate
 - **Audio Event** — Triggered for each audio block a connected audio emitter delivers
 - **Audio Mixer** — Sums several audio sources into one block per clock tick
+- **Clip Player** — Plays an audio clip as audio blocks, in real time
 - **Device In** — Records a sound device's input as audio blocks
 - **Device Out** — Plays audio blocks on a sound device
 - **File Player** — Plays an audio file as audio blocks, in real time

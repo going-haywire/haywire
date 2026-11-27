@@ -27,6 +27,11 @@ _NODES = [
         {"start": EXEC, "stop": EXEC, "started": EXEC, "stopped": EXEC},
     ),
     (
+        "clip_player",
+        "ClipPlayerNode",
+        {"start": EXEC, "stop": EXEC, "started": EXEC, "stopped": EXEC},
+    ),
+    (
         "audio_clock",
         "AudioClockNode",
         {"start": EXEC, "stop": EXEC, "started": EXEC, "stopped": EXEC},
