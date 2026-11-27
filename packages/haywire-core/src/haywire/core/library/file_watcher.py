@@ -38,6 +38,15 @@ class LibraryFileHandler(FileSystemEventHandler):
     it does not care about itself (see ``BaseRegistry.event_dispatcher``). Each
     folder mapping carries its own library identity, so one handler serves
     several libraries.
+
+    Debouncing is per handler: every event restarts one window, and when it
+    runs out the whole batch is dispatched in one pass, one registry after the
+    other and in arrival order within a registry. A registry's events in one
+    batch share one ``reloaded_modules`` set, so a module a helper's reload
+    already took along is not reloaded again for its own event. Batches never
+    overlap: a module is never reloaded on two threads at once, which
+    ``module_scan_for_classes`` cannot survive (its ``sys.modules`` delete
+    races the other thread's import).
     """
 
     def __init__(self):
@@ -48,10 +57,14 @@ class LibraryFileHandler(FileSystemEventHandler):
         # folder_mapping. Each registry decides via its own dependency graph
         # whether the changed file is relevant.
         self.root_fallbacks: dict[str, tuple[LibraryIdentity, list[HotReloadRegistry], float]] = {}
-        # (file_path, registry_id) -> FileChangeEvent
-        self.pending_events: dict[tuple[str, int], FileChangeEvent] = {}
-        # (file_path, registry_id) -> timer
-        self.debounce_timers: dict[tuple[str, int], threading.Timer] = {}
+        # (file_path, registry_id) -> (FileChangeEvent, registry), in arrival
+        # order: only the latest event per file and registry is kept.
+        self.pending_events: dict[tuple[str, int], tuple[FileChangeEvent, HotReloadRegistry]] = {}
+        # The one debounce window, restarted by every event.
+        self._debounce_timer: threading.Timer | None = None
+        # Held for a whole batch, so a window that runs out while the previous
+        # batch is still reloading waits for it.
+        self._dispatch_lock = threading.Lock()
         # file_path -> expiry timestamp: suppresses DELETED for a file just
         # promoted by an atomic write (tmp → py), for which the OS may deliver
         # a spurious DELETE after the move event.
@@ -208,11 +221,11 @@ class LibraryFileHandler(FileSystemEventHandler):
             self._handle_file_change(event.dest_path, FileEventType.MODIFIED)
 
     def _handle_file_change(self, file_path: str, event_type: FileEventType):
-        """Handle file change with per-registry debouncing.
+        """Queue the change for every matching registry and restart the debounce window.
 
-        Each matching registry gets its own debounced event stream, carrying
-        that folder's library identity; only the latest event per file and
-        registry survives the debounce window.
+        Each matching registry gets its own event, carrying that folder's
+        library identity; only the latest event per file and registry is kept.
+        The window is the longest delay of the matching mappings.
         """
         matching_registries = self._get_matching_registries(file_path)
 
@@ -220,13 +233,7 @@ class LibraryFileHandler(FileSystemEventHandler):
             return  # File not in any watched folder
 
         with self._lock:
-            for library_identity, registry, debounce_delay, is_dependency in matching_registries:
-                registry_id = id(registry)
-                event_key = (file_path, registry_id)
-
-                if event_key in self.debounce_timers:
-                    self.debounce_timers[event_key].cancel()
-
+            for library_identity, registry, _debounce_delay, is_dependency in matching_registries:
                 event = FileChangeEvent(
                     file_path=file_path,
                     event_type=event_type,
@@ -234,35 +241,45 @@ class LibraryFileHandler(FileSystemEventHandler):
                     timestamp=time.time(),
                     dependency_event=is_dependency,
                 )
+                event_key = (file_path, id(registry))
+                # Re-inserted at the end: the batch keeps the order of the latest events.
+                self.pending_events.pop(event_key, None)
+                self.pending_events[event_key] = (event, registry)
 
-                self.pending_events[event_key] = event
+            if self._debounce_timer is not None:
+                self._debounce_timer.cancel()
+            delay = max(match[2] for match in matching_registries)
+            self._debounce_timer = threading.Timer(delay, self._process_debounced_events)
+            self._debounce_timer.start()
 
-                timer = threading.Timer(
-                    debounce_delay, self._process_debounced_event, args=[event_key, registry]
-                )
-                self.debounce_timers[event_key] = timer
-                timer.start()
+    def _process_debounced_events(self):
+        """Dispatch every queued event as one batch, after the debounce window."""
+        with self._dispatch_lock:
+            with self._lock:
+                batch = list(self.pending_events.values())
+                self.pending_events.clear()
+                self._debounce_timer = None
 
-    def _process_debounced_event(self, event_key: tuple[str, int], registry: HotReloadRegistry):
-        """Process the event after debounce delay"""
-        with self._lock:
-            if event_key not in self.pending_events:
-                return
+            by_registry: dict[int, tuple[HotReloadRegistry, list[FileChangeEvent]]] = {}
+            for event, registry in batch:
+                by_registry.setdefault(id(registry), (registry, []))[1].append(event)
 
-            event = self.pending_events[event_key]
-            del self.pending_events[event_key]
-
-            if event_key in self.debounce_timers:
-                del self.debounce_timers[event_key]
-
-        registry.event_dispatcher(event)
+            for registry, events in by_registry.values():
+                reloaded_modules: set[str] = set()
+                for event in events:
+                    event.reloaded_modules = reloaded_modules
+                    try:
+                        registry.event_dispatcher(event)
+                    except Exception:
+                        # One registry's failure must not drop the rest of the batch.
+                        logger.exception(f"FileWatcher: dispatching {event.file_path} failed")
 
     def cleanup(self):
         """Clean up pending timers"""
         with self._lock:
-            for timer in self.debounce_timers.values():
-                timer.cancel()
-            self.debounce_timers.clear()
+            if self._debounce_timer is not None:
+                self._debounce_timer.cancel()
+                self._debounce_timer = None
             self.pending_events.clear()
             self._atomic_write_suppress.clear()
             self._known_files.clear()
