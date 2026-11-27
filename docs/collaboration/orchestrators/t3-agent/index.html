@@ -5549,7 +5549,8 @@ and <code>T3CODE_THREAD_ID</code>; the session-start hook then names this file. 
   own <code>&lt;tag&gt; ◆ lead</code>, a task's <code>&lt;lead tag&gt; › &lt;branch&gt;</code>, <code>?</code> in front while it waits on the
   user. A task never renames itself.</li>
 <li><strong>A link</strong> to a thread is <code>t3-thread://v2/&lt;environment&gt;/&lt;thread id&gt;</code>; its last part is
-  the id <code>t3_thread_send</code> takes.</li>
+  the id <code>t3_thread_send</code> takes. A reply or message writes it as <code>[title](t3-thread://…)</code>,
+  since T3 shows a bare one as unclickable text.</li>
 </ul>
 <h2 id="created">Created<a class="headerlink" href="#created" title="Permanent link">&para;</a></h2>
 <p>The lead calls <code>t3_thread_launch</code> with a new worktree from <code>origin/master</code>, the branch

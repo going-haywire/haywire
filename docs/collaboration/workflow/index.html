@@ -6073,7 +6073,8 @@ table or why there was none), <em>Blocked</em> (on what), <em>Needs a decision</
 <p><strong>A decision lives in the task's thread:</strong></p>
 <ol>
 <li>The task writes the decisions there in the format of <em>Asking the user for a
-   decision</em>, ending with the lead's link, and sends the lead one line with its own link.</li>
+   decision</em>, ending with the lead's link (in T3 the Markdown form
+   <code>[title](t3-thread://…)</code>), and sends the lead one line with its own link.</li>
 <li>The lead puts <code>?</code> before the task's name, marks it unread, and gives the user the line
    and the link.</li>
 <li>The user answers in the task. That is the user's word for that task, approvals
