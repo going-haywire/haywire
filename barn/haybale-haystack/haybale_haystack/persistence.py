@@ -259,7 +259,8 @@ def rename_haystack(workspace_root: Path, old_name: str, new_name: str) -> bool:
             data["haystack"]["name"] = new_name
             dst.write_text(toml.dumps(data))
     except Exception:
-        pass  # file rename succeeded even if TOML update fails
+        # The file rename succeeded; only the name stored inside it is stale.
+        logger.warning("haystack %r renamed, but its stored name was not updated", new_name, exc_info=True)
 
     logger.info(f"Haystack '{old_name}' renamed to '{new_name}'")
     return True

@@ -49,7 +49,7 @@ class _LogHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         try:
             self._append(self.format(record))
-        except Exception:
+        except Exception:  # noqa: S110 - a log call here re-enters this handler
             pass
 
 
@@ -188,7 +188,7 @@ class LogEditor(BaseEditor):
         try:
             for msg in batch:
                 log_element.push(msg)
-        except Exception:
+        except Exception:  # noqa: S110 - a log line here lands in this editor and fails again
             pass
 
     def _copy(self) -> None:

@@ -13,6 +13,7 @@ obtainable) proves it is the same process, but its absence never blocks.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import socket
 from pathlib import Path
@@ -20,6 +21,9 @@ from pathlib import Path
 import psutil
 
 from haywire.core.storage import HAYWIRE_DIR, ensure_haywire_dir
+
+logger = logging.getLogger(__name__)
+
 
 IDENTITY_FILENAME = "studio.json"
 
@@ -88,5 +92,6 @@ def identity_status(ident: dict) -> str:
         if isinstance(recorded, (int, float)) and abs(actual - recorded) > 2.0:
             return "recycled"
     except Exception:
-        pass  # lookup failed — cannot disprove liveness
+        # Lookup failed: it cannot disprove liveness.
+        logger.debug("psutil lookup of pid %s failed", pid, exc_info=True)
     return "alive"

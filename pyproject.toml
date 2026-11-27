@@ -150,7 +150,9 @@ exclude = ["workbench/playground/", ".scratch/"]
 # and a bare noqa that suppresses everything both fail (CS-T5).
 # T20 bans print outside a command-line tool's output to its user (CS-L2);
 # the CLI modules and scripts are exempt below, one-off prints carry a noqa.
-extend-select = ["E501", "PT", "B", "TID251", "TID252", "UP", "I", "RUF100", "PGH004", "T20"]
+# S110/S112 ban a silent `except: pass`/`continue` (CS-E2): a broad except logs
+# with exc_info, reports through report_failure, or carries a noqa with a reason.
+extend-select = ["E501", "PT", "B", "TID251", "TID252", "UP", "I", "RUF100", "PGH004", "T20", "S110", "S112"]
 # UP038 is deprecated upstream: `isinstance(x, A | B)` is slower than a tuple.
 # UP031 is about strings, not annotations, and its sites here are JS templates
 # full of braces, where %-formatting reads better than escaped str.format.
@@ -206,6 +208,8 @@ ban-relative-imports = "all"
 "**/__init__.py" = ["I001"]
 # PT is a pytest-only style; production code has no test functions to lint.
 "!tests/**" = ["PT"]
+# S110/S112 (CS-E2) hold for the shipped code only. ONE negated pattern, as above.
+"!{packages,barn}/**" = ["S110", "S112"]
 # T20 (CS-L2): print is these modules' output to the person running them.
 "packages/haywire-studio/src/haywire_studio/cli/**" = ["T20"]
 "packages/haywire-studio/src/haywire_studio/init.py" = ["T20"]

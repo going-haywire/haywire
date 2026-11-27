@@ -256,14 +256,17 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         try:
             self._canvas_settings._unsubscribe(self._on_canvas_setting_changed)
         except Exception:
-            pass
+            # Teardown: a failed unsubscribe only keeps a dead listener.
+            logger.debug("canvas settings unsubscribe failed", exc_info=True)
         try:
             self._edge_settings._unsubscribe(self._on_edge_setting_changed)
         except Exception:
-            pass
+            # Teardown: a failed unsubscribe only keeps a dead listener.
+            logger.debug("edge settings unsubscribe failed", exc_info=True)
         try:
             self._pz_settings._unsubscribe(self._on_setting_changed)
         except Exception:
-            pass
+            # Teardown: a failed unsubscribe only keeps a dead listener.
+            logger.debug("pan-zoom settings unsubscribe failed", exc_info=True)
         self._on_canvas_event = None
         self.zoom_container = None

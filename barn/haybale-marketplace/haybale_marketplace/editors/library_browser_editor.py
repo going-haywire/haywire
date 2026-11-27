@@ -457,7 +457,8 @@ class LibraryBrowserEditor(BaseEditor):
                     if entry.name:
                         _catalog_by_dist_name[entry.name] = entry
             except Exception:
-                pass
+                # Optional: without the catalog index the rows show no catalog details.
+                logger.debug("indexing the project catalog failed", exc_info=True)
 
         def _catalog_entry_for(info: LibraryInfo):
             return _catalog_by_dist_name.get(info.row.name)
@@ -532,7 +533,8 @@ class LibraryBrowserEditor(BaseEditor):
                             elif Version(entry.version) < Version(lib.row.version):
                                 downgrades_available[entry.name] = entry.version
                         except Exception:
-                            pass
+                            # An unparseable version only leaves this row without an update badge.
+                            logger.debug("comparing versions of %s failed", entry.name, exc_info=True)
 
                 # Available (not yet installed) — both [[caches]] and [[heaps]].
                 if self._filter_available:

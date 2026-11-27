@@ -590,7 +590,8 @@ class SettingsRegistry(BaseRegistry[Settings]):
             if resolved is not None:
                 return resolved
         except Exception:
-            pass
+            # No type registry yet (unit test, early init): use the builtin scalars below.
+            logger.debug("type registry lookup for %r failed", py_type, exc_info=True)
 
         from haywire.barn.builtin.types import BOOL, FLOAT, INT, STRING
 

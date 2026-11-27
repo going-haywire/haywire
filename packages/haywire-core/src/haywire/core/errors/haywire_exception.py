@@ -1053,7 +1053,8 @@ class HaywireException(Exception):
         try:
             get_error_ledger().record(self)
         except Exception:
-            pass  # the ledger must never break error reporting itself
+            # The ledger must never break error reporting itself; the report below still logs.
+            logging.getLogger(__name__).debug("recording in the error ledger failed", exc_info=True)
         logger = logger or logging.getLogger()
         if self.ledger_merged:
             logger.debug("%s (repeat of ledger entry %d)", self.message, self.ledger_seq)

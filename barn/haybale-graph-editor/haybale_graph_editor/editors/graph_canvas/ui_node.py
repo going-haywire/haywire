@@ -249,7 +249,8 @@ class UINode:
                 try:
                     self.container_slot.clear()
                 except Exception:
-                    pass  # Ignore errors during error cleanup
+                    # Error cleanup: the render failure itself is reported below.
+                    logger.debug("clearing the node container after a failed render failed", exc_info=True)
 
             self.container_slot = None
 
