@@ -4188,6 +4188,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#25-delivery-every-or-pooled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 Delivery: every or pooled
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -5669,6 +5680,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#25-delivery-every-or-pooled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 Delivery: every or pooled
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -5902,36 +5924,65 @@
 <p>Removing any edge on the path unsubscribes. An inlet left without a linked edge shows its own value (ADR 0040); for a callback port that is absent. The reroute forwards absence, and the emitter's pooled inlet removes the entry keyed by its own edge. A displaced edge that takes over keeps the subscription in place.</p>
 <p>On load, a relay with something upstream takes its value from upstream, not from its own saved value. Only an orphaned relay (nothing upstream) keeps what it saved; a relay saved before callbacks could be absent may hold <code>""</code>, now a real name, until it is relinked or deleted.</p>
 <p>A Subgraph boundary relays the same way. The card's immediate inlets and the Subgraph Output's immediate inlets carry <code>on_change = hb_relay</code>, which writes the partner port on the other side at once — the Subgraph Input's outlet for a card inlet, the card's outlet for a Subgraph Output inlet — found by id through <code>subgraph_crossing</code>. <code>reconcile_interface</code> copies every immediate pair once whenever card and interior meet, so load order and a macro reload leave both sides agreeing. Unlinking either side reveals the next port's own value, which the relay carries on. A listener is an EVENT node, which a Subgraph may not contain, so a subscription crosses inward to an interior emitter, or straight through a Group (a reroute or a nested card inside). See ADR 0041.</p>
+<h3 id="25-delivery-every-or-pooled">2.5 Delivery: every or pooled<a class="headerlink" href="#25-delivery-every-or-pooled" title="Permanent link">&para;</a></h3>
+<p>Each listener chooses how it takes callbacks, with the <strong>Delivery</strong> setting of core's <code>DeliverySettings</code> bag, which its event node passes into its <code>CallbackEvent(delivery=...)</code> (ADR 0097):</p>
+<ul>
+<li><strong>Every</strong> (<code>Delivery.EVERY</code>, the default) runs the listener's Flow for every callback, as a broadcast.</li>
+<li><strong>Pooled</strong> (<code>Delivery.POOLED</code>) shares the callbacks with the other pooled listeners <strong>of the same emit</strong>. Those listeners form a <strong>pool</strong>. The next free member, in turn, runs each callback. While all members are busy, the callback waits in the pool's <strong>backlog</strong>.</li>
+</ul>
+<p>For core to see which listeners hear the same event, an emitter passes <strong>all its subscriber names in one emit</strong>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">(</span><span class="s2">&quot;callbacks&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">context</span><span class="o">.</span><span class="n">emit_callback</span><span class="p">(</span><span class="n">event_name</span><span class="o">=</span><span class="n">names</span><span class="p">,</span> <span class="n">payload</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;delta_time&quot;</span><span class="p">:</span> <span class="n">delta</span><span class="p">},</span> <span class="n">backlog</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">backlog</span><span class="p">)</span>
+</span></code></pre></div>
+<p>An emitter that emits one name at a time still delivers correctly, but each pooled listener is then a pool of its own, so no work is shared.</p>
+<p><strong>The emitter owns the backlog.</strong> It includes core's <code>BacklogSettings</code> bag and passes it with each emit:</p>
+<ul>
+<li><em>Backlog Size</em> (default 16) sets how many callbacks wait.</li>
+<li><em>When Full</em> sets what a full backlog does. <code>Drop oldest</code> (<code>BacklogFull.DROP_OLDEST</code>, the default) loses the oldest waiting callback. <code>Wait</code> (<code>BacklogFull.WAIT</code>) holds the emitting thread up to 5 s for room and then loses the new callback. The runner thread of a member's group never waits (ADR 0064 D6), since its wait would hold the member it waits for: it loses the new callback at once. The runner of another group waits like any thread.</li>
+<li>A lost callback counts as dropped on the queue of the member whose turn it was, so the Flow meter shows it. <code>Drop oldest</code> logs it at debug level, as <code>QueueMode.DROP</code> does; <code>Wait</code> logs a warning.</li>
+</ul>
+<p>An emit without the bag uses 16 and <code>Drop oldest</code>.</p>
+<p><strong>Rules of a pool:</strong></p>
+<ul>
+<li><strong>Who belongs.</strong> A pool is the emitter (the node owning the bag) plus the set of its pooled listeners. Two emitters that pass their bags never share one; every emitter in core's libraries does. An emit without a bag can't name its emitter (<code>ExecutionContext.node</code> is whichever node the frame ran last), so its pool is its listeners alone: bag-less emitters feeding the same pooled listeners share one pool (ADR 0097 D4).</li>
+<li><strong>Busy and free.</strong> A pooled Flow is busy from the moment core hands it a callback until that frame ends, also when the frame raised. It counts as busy only once, even when it belongs to two pools.</li>
+<li><strong>Its own queue.</strong> A pooled Flow's queue holds at most the callback it runs, so its own <em>Queue Mode</em> and <em>Max Queue Size</em> have no effect.</li>
+<li><strong>Order.</strong> Callbacks lose their order across the members, since frames end in whatever order they take.</li>
+<li><strong>Stop and recompile.</strong> A stop or a recompile drops every pool and backlog.</li>
+<li><strong>Execution groups.</strong> Pooled Flows that share a control node are one execution group (ADR 0064), so they still run one after the other.</li>
+</ul>
 <h2 id="3-lifecycle">3. Lifecycle<a class="headerlink" href="#3-lifecycle" title="Permanent link">&para;</a></h2>
 <h3 id="31-assembly-and-listener-registration">3.1 Assembly and listener registration<a class="headerlink" href="#31-assembly-and-listener-registration" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>FlowAssemblyManager.assemble_graph(graph)
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  ├─ identify event nodes → one Flow per event node
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  │     Flow 1: event_subscription = SystemEvent(BEGIN_PLAY)
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  │     Flow 2: event_subscription = CallbackEvent(event_name=&#39;my_callback&#39;)
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  │
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  └─ build each Flow normally (control + data assembly)
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>Interpreter, starting each Flow
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>  └─ CallbackEvent subscription
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>       → callback_manager.register_callback_listener(event_name, flow)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>FlowAssemblyManager.assemble_graph(graph)
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  ├─ identify event nodes → one Flow per event node
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  │     Flow 1: event_subscription = SystemEvent(BEGIN_PLAY)
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  │     Flow 2: event_subscription = CallbackEvent(event_name=&#39;my_callback&#39;)
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>  │
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>  └─ build each Flow normally (control + data assembly)
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>Interpreter, starting each Flow
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>  └─ CallbackEvent subscription
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>       → callback_manager.register_callback_listener(event_name, flow)
 </span></code></pre></div>
 <p>Listener Flows are registered from each event node's <code>event_subscription</code>, never from edges.</p>
 <h3 id="32-runtime-dispatch">3.2 Runtime dispatch<a class="headerlink" href="#32-runtime-dispatch" title="Permanent link">&para;</a></h3>
 <p>When an emitter fires a callback:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>emitter worker (or a thread it started) → context.emit_callback(event_name, payload)
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  ↓
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>VM.emit_callback → CallbackManager.emit_callback
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  ↓
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>Each Flow registered for event_name runs
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>  (independently, not as part of the emitter&#39;s control chain)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>emitter worker (or a thread it started) → context.emit_callback(event_name, payload)
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  ↓
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>VM.emit_callback → CallbackManager.emit_callback
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  ↓
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>Each Flow registered for event_name runs
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  (independently, not as part of the emitter&#39;s control chain)
 </span></code></pre></div>
 <p>The listener Flow runs through the standard VM dispatch — it's a Flow like any other; the only thing special is how it was <em>triggered</em>.</p>
-<p>Emitting enqueues one trigger per listener flow. A listener whose queue mode is <code>BLOCK</code> and whose queue is full makes the emitting thread wait up to 5 s for room (a runner thread never waits: the trigger is dropped). An emitter triggered from the UI therefore emits from a thread it owns, never from the UI event loop: <code>RunButtonNode</code>'s button only wakes its thread, which emits.</p>
+<p>Emitting enqueues one trigger per <em>Every</em> listener flow, name by name. A listener whose queue mode is <code>BLOCK</code> and whose queue is full makes the emitting thread wait up to 5 s for room (a runner thread never waits: the trigger is dropped). A <code>Wait</code> backlog that is full holds the emitting thread the same way, except a runner of a pool member's group. An emitter triggered from the UI therefore emits from a thread it owns, never from the UI event loop: <code>RunButtonNode</code>'s button only wakes its thread, which emits.</p>
+<p>The <em>Pooled</em> listeners of the emit get the callback through their pool (§2.5). Each pooled Flow's <code>FlowQueue</code> reports every trigger it takes out of its queue to <code>CallbackManager.trigger_done</code>: one that ran, one that failed, and one discarded at a stop. The Flow then takes the oldest callback waiting in its pools, or becomes free. One lock guards pools, busy Flows and backlogs, and no <code>FlowQueue</code> is called while it is held.</p>
 <h3 id="33-statistics">3.3 Statistics<a class="headerlink" href="#33-statistics" title="Permanent link">&para;</a></h3>
 <p>The Interpreter exposes callback statistics for debugging:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">stats</span> <span class="o">=</span> <span class="n">interpreter</span><span class="o">.</span><span class="n">get_statistics</span><span class="p">()</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;callbacks&#39;</span><span class="p">]</span>                      <span class="c1"># CallbackManager: registered event names and listener counts</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">stats</span> <span class="o">=</span> <span class="n">interpreter</span><span class="o">.</span><span class="n">get_statistics</span><span class="p">()</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;callbacks&#39;</span><span class="p">]</span>                      <span class="c1"># CallbackManager: registered event names and listener counts</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;callbacks&#39;</span><span class="p">][</span><span class="s1">&#39;pools&#39;</span><span class="p">]</span>             <span class="c1"># each pool&#39;s members, busy, waiting, dropped, and emitters waiting for room</span>
 </span></code></pre></div>
 <h3 id="34-hot-reload-behaviour">3.4 Hot-reload behaviour<a class="headerlink" href="#34-hot-reload-behaviour" title="Permanent link">&para;</a></h3>
 <p>CALLBACK edges follow the same hot-reload path as DATA/EXEC edges (see <a href="../../edges/edges-arch/">architecture/execution/edges</a>). If an emitter or listener node reloads:</p>
@@ -5950,36 +6001,39 @@
 </ul>
 <h2 id="5-examples">5. Examples<a class="headerlink" href="#5-examples" title="Permanent link">&para;</a></h2>
 <h3 id="51-edge-based-callback">5.1 Edge-based callback<a class="headerlink" href="#51-edge-based-callback" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Flow 1 (BeginPlay):                              Flow 2 (Listener):
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  ┌──────────┐      ┌───────────────┐             ┌─────────────────┐
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  │BeginPlay │─exec→│ Emit Callback │             │ Custom Callback │
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  └──────────┘      │    Trigger ◄──┼─────────────┤ Listen          │
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>                    └───────────────┘  CALLBACK   └─────────────────┘
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>The CALLBACK edge runs from the listener&#39;s Listen outlet to the emitter&#39;s
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>pooled Trigger inlet and carries the listener&#39;s subscription name. When
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>Flow 1 reaches Emit Callback, it emits to every name in that pool, and
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>the CallbackManager runs Flow 2.
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Flow 1 (BeginPlay):                              Flow 2 (Listener):
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  ┌──────────┐      ┌───────────────┐             ┌─────────────────┐
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>  │BeginPlay │─exec→│ Emit Callback │             │ Custom Callback │
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>  └──────────┘      │    Trigger ◄──┼─────────────┤ Listen          │
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>                    └───────────────┘  CALLBACK   └─────────────────┘
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>The CALLBACK edge runs from the listener&#39;s Listen outlet to the emitter&#39;s
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>pooled Trigger inlet and carries the listener&#39;s subscription name. When
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>Flow 1 reaches Emit Callback, it emits to every name in that pool, and
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>the CallbackManager runs Flow 2.
 </span></code></pre></div>
 <h3 id="52-callback-by-name-no-edge">5.2 Callback by name (no edge)<a class="headerlink" href="#52-callback-by-name-no-edge" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Custom Callback (listener) and Emit Callback (emitter) both switch on</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># the Custom Name fold and use the same name. No edge between them.</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">listener</span><span class="o">.</span><span class="n">ports</span><span class="p">[</span><span class="s2">&quot;custom_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">listener</span><span class="o">.</span><span class="n">ports</span><span class="p">[</span><span class="s2">&quot;custom_callback_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="s2">&quot;my_callback&quot;</span><span class="p">)</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">emitter</span><span class="o">.</span><span class="n">ports</span><span class="p">[</span><span class="s2">&quot;custom_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">emitter</span><span class="o">.</span><span class="n">ports</span><span class="p">[</span><span class="s2">&quot;custom_callback_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="s2">&quot;my_callback&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Custom Callback (listener) and Emit Callback (emitter) both switch on</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1"># the Custom Name fold and use the same name. No edge between them.</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">listener</span><span class="o">.</span><span class="n">ports</span><span class="p">[</span><span class="s2">&quot;custom_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">listener</span><span class="o">.</span><span class="n">ports</span><span class="p">[</span><span class="s2">&quot;custom_callback_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="s2">&quot;my_callback&quot;</span><span class="p">)</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">emitter</span><span class="o">.</span><span class="n">ports</span><span class="p">[</span><span class="s2">&quot;custom_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">emitter</span><span class="o">.</span><span class="n">ports</span><span class="p">[</span><span class="s2">&quot;custom_callback_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="s2">&quot;my_callback&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <h2 id="6-open-questions">6. Open questions<a class="headerlink" href="#6-open-questions" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Cyclic callback chains.</strong> A → B → A is currently undetected at assembly time. The Done-stack in the VM bounds runaway loops at execution but a static check would surface them earlier.</li>
-<li><strong>Per-callback configuration</strong> (priority, debouncing) is not exposed today — every listener runs on every emit.</li>
+<li><strong>Per-callback configuration</strong> (priority, debouncing) is not exposed today. Delivery (§2.5) is the only choice a listener makes.</li>
+<li><strong>Pool names.</strong> One emitter feeds one pool. Several separate pools behind one emitter would need a pool name (ADR 0097, <em>Considered</em>).</li>
 <li><strong>Cross-Interpreter callbacks.</strong> Each <code>GraphEntry</code> has its own Interpreter; callbacks are scoped to one Interpreter. Inter-graph callbacks would require an SessionManager-level dispatch that does not currently exist.</li>
 </ul>
 <h2 id="key-files">Key files<a class="headerlink" href="#key-files" title="Permanent link">&para;</a></h2>
 <ul>
 <li><code>src/haywire/core/execution/interpreter.py</code> — <code>Interpreter</code> (per-graph; owns the CallbackManager and registers <code>CallbackEvent</code> Flows with it)</li>
-<li><code>src/haywire/core/execution/callback_manager.py</code> — <code>CallbackManager</code> (dispatch by event name)</li>
+<li><code>src/haywire/core/execution/callback_manager.py</code> — <code>CallbackManager</code> (dispatch by event name; pools, busy Flows and backlogs)</li>
+<li><code>src/haywire/core/execution/delivery.py</code> — <code>Delivery</code>, <code>BacklogFull</code></li>
+<li><code>src/haywire/barn/builtin/delivery.py</code> — <code>DeliverySettings</code>, <code>BacklogSettings</code></li>
 <li><code>src/haywire/core/execution/execution_context.py</code> — <code>ExecutionContext.emit_callback</code></li>
 <li><code>src/haywire/core/execution/event_source.py</code> — <code>CallbackEvent</code> listener event-node (framework class; library nodes import it)</li>
 <li><code>src/haywire/core/assembly/flow_assembly_manager.py</code> — builds the Flows; reads each event node's <code>event_subscription</code> (no callback-edge handling)</li>

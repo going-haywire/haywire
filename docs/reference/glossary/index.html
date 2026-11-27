@@ -6775,6 +6775,21 @@ Macro is registered and placed.</p>
 <td>Backpressure (describes BLOCK only, not DROP — see Flagged ambiguities)</td>
 </tr>
 <tr>
+<td><strong>Delivery</strong></td>
+<td>How an EVENT node takes the callbacks it listens to: <strong>Every</strong> (its Flow runs for every callback, the default) or <strong>Pooled</strong> (it shares the callbacks of one emit with that emit's other pooled listeners). Set with core's <code>DeliverySettings</code> bag and carried on <code>CallbackEvent.delivery</code>; the <code>Delivery</code> enum is canonical. See ADR 0097</td>
+<td>Distribution mode</td>
+</tr>
+<tr>
+<td><strong>Pool</strong></td>
+<td>The pooled listeners of one emitter's emit. The next free member runs each callback; a member is busy until its frame ends. Formed by core from the emit, never declared. See ADR 0097</td>
+<td>Worker pool, shared callback</td>
+</tr>
+<tr>
+<td><strong>Backlog</strong></td>
+<td>Where a pool's callbacks wait while every member is busy. Owned by the emitter through core's <code>BacklogSettings</code> bag: <em>Backlog Size</em> (default 16) and <em>When Full</em> (<code>Drop oldest</code> or <code>Wait</code>, the <code>BacklogFull</code> enum). Not a FlowQueue: a pooled Flow's own queue holds only the callback it runs</td>
+<td>Queue (that is the FlowQueue)</td>
+</tr>
+<tr>
 <td><strong>DROP / realtime mode</strong></td>
 <td><code>QueueMode.DROP</code>: stale Triggers are discarded so the Flow always processes the newest available frame. Paired with <code>max_queue_size=1</code> to actually guarantee newest (DROP alone leaves a transient backlog). The author default of the camera <code>Frame Event</code> node</td>
 <td>Skip, throttle (imprecise)</td>
