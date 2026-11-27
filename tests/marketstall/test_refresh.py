@@ -503,7 +503,7 @@ def test_count_updates_available_flags_installed_below_cache_min(monkeypatch) ->
 
 @pytest.mark.unit
 def test_count_updates_available_skips_equal_versions(monkeypatch) -> None:
-    """installed == version is not an update — only strictly less."""
+    """`installed` == version is not an update — only strictly less."""
     import importlib.metadata as _meta
 
     from haywire.core.marketstall.refresh import _count_updates_available

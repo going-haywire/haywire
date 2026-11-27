@@ -188,7 +188,7 @@ def test_refresh_report_default_zeros() -> None:
 
 @pytest.mark.unit
 def test_refresh_report_sources_partition() -> None:
-    """fetched + from_cache + unavailable must always sum to total subscriptions."""
+    """`fetched` + from_cache + unavailable must always sum to total subscriptions."""
     from haywire.core.marketstall.types import RefreshReport
 
     r = RefreshReport(sources_fetched=3, sources_from_cache=1, sources_unavailable=2)
@@ -245,7 +245,7 @@ def test_public_surface_imports_from_marketstall_package() -> None:
 
 @pytest.mark.unit
 def test_requires_haywire_defaults_empty_and_round_trips():
-    """require holds a FULL PEP 440 specifier, not a bare version —
+    """`require` holds a FULL PEP 440 specifier, not a bare version —
     the author picks the operator. Absent means no declared requirement.
     """
     from haywire.core.library.haybale import Haybale

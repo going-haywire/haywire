@@ -17,7 +17,9 @@ _PREFIX = "ch_"
     node_type=NodeType.DATA,
 )
 class SplitChannelsNode(BaseNode):
-    """Outputs single channels of the input block. Output `Channel 0` is the first channel, `Channel 1`
+    """Outputs single channels of the input block.
+
+    Output `Channel 0` is the first channel, `Channel 1`
     the second, and so on.
 
     Connect the open output at the bottom to something: it becomes the output for the next channel

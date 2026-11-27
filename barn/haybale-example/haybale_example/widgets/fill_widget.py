@@ -210,7 +210,9 @@ class FillWidget(BaseWidget):
         ).props(f'color="{icon}"')
 
     def _render_stops(self) -> None:
-        """Rebuild the stop rows. Only called when the stop *count* changes —
+        """Rebuild the stop rows.
+
+        Only called when the stop *count* changes —
         editing a colour or position leaves the rows in place.
         """
         self._stops_box.clear()

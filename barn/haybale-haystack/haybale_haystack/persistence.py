@@ -18,12 +18,11 @@ TOML schema
     [graphs.run]                          # optional; omitted when all values are defaults
     autorestart = true
 
-Notes
------
-- Paths are stored as *relative* strings so haystacks stay portable when the
-  workspace moves; a path outside workspace_root falls back to its absolute form.
-- The project uses the ``toml`` package (both reads and writes) — do NOT
-  switch to ``tomli`` / ``tomli_w`` without updating all callers.
+Notes:
+    - Paths are stored as *relative* strings so haystacks stay portable when the
+      workspace moves; a path outside workspace_root falls back to its absolute form.
+    - The project uses the ``toml`` package (both reads and writes) — do NOT
+      switch to ``tomli`` / ``tomli_w`` without updating all callers.
 """
 
 from __future__ import annotations

@@ -119,6 +119,7 @@ class UINode:
 
     def refresh(self, reason: ChangeReason):
         """Refresh the UI representation of the node.
+
         This forces a re-render using the current renderer.
         """
         self.render()  # Re-render with current renderer
@@ -519,6 +520,7 @@ class UINode:
 
     def _emit_sync_event_redraw(self):
         """Emit a redraw event after the node DOM has been rebuilt.
+
         Vue will re-attach the hover observer and redraw all connected edges,
         using the pending-set / MutationObserver pattern if the canvas is not
         currently the active panel.
@@ -542,8 +544,9 @@ class UINode:
         return None
 
     def delete(self):
-        """Tear down subscriptions and remove the node's DOM. For single-node
-        removal (``remove_node_visual``).
+        """Tear down subscriptions and remove the node's DOM.
+
+        For single-node removal (``remove_node_visual``).
         """
         self.teardown_subscriptions()
         self.delete_dom()
@@ -553,8 +556,9 @@ class UINode:
         self.teardown_subscriptions()
 
     def teardown_subscriptions(self):
-        """Detach this node's factory tracking, lifecycle subscriber, and widget
-        callbacks. Does NOT touch the DOM. Idempotent.
+        """Detach this node's factory tracking, lifecycle subscriber, and widget callbacks.
+
+        Does NOT touch the DOM. Idempotent.
         """
         logger.debug(f"🔌 Tearing down subscriptions for UINode {self._node_id} ..")
         self._unsubscribe_slot_fields()
@@ -567,7 +571,9 @@ class UINode:
         logger.debug(f".. Done 🔌 subscription teardown for UINode {self._node_id}.")
 
     def delete_dom(self):
-        """Remove this node's container DOM. For single-node deletion only;
+        """Remove this node's container DOM.
+
+        For single-node deletion only;
         the bulk close path relies on the container teardown instead.
         """
         if self.container_slot:

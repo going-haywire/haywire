@@ -134,6 +134,7 @@ class IAdapter(ABC):
     @abstractmethod
     def convert(self, value: Any) -> Any:
         """Method to convert value.
+
         This method ONLY performs conversion.
         Use execute() to run the full adapter chain.
 
@@ -146,7 +147,8 @@ class IAdapter(ABC):
 
     @abstractmethod
     def execute(self, value: Any) -> Any:
-        """Main method to execute adapter-chain
+        """Main method to execute adapter-chain.
+
         Args:
             value: Input value to convert
         Returns:
@@ -161,15 +163,16 @@ class IAdapter(ABC):
 
     @abstractmethod
     def get_test_value(self) -> Any:
-        """method returns a sample value of the type this adapter
-        is converting from for testing this adapter
+        """Method returns a sample value of the type this adapter is converting from.
+
+        The value is for testing this adapter.
 
         Returns: sample value of the expected input type
         """
         return True
 
     def get_test_repetitions(self) -> int:
-        """method returns the number of repetitions the test needs to run"""
+        """Method returns the number of repetitions the test needs to run"""
         return 10
 
     @abstractmethod
@@ -244,6 +247,7 @@ class BaseAdapter(IAdapter):
     @abstractmethod
     def convert(self, value: Any) -> Any:
         """Value-level conversion: Convert UNWRAPPED value.
+
         DO NOT USE THIS METHOD FOR CONVERSION. USE execute() INSTEAD.
 
         This is where actual data transformation happens.

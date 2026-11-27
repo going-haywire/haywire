@@ -268,8 +268,9 @@ class SkinFactory:
         self._reindex_node(node_id)
 
     def _notify_factory_subscribers(self, node_id: str) -> None:
-        """Notify all subscribers about lifecycle events affected
-        by changes of skin and widgets the factory has detected.
+        """Notify all subscribers about lifecycle events affected by skin and widget changes.
+
+        The changes are those of skin and widgets the factory has detected.
 
         Args:
             node_id: The ID of the node affected by the lifecycle event
@@ -280,9 +281,9 @@ class SkinFactory:
                 callback()
 
     def _listen_on_skin_lifecycle_event(self, batch: list[LifeCycleEvent]) -> None:
-        """Listener for skin hot reload events is called by the SkinRegistry
-        when a skin class is reloaded, added, or removed.
-        It clears the cache for affected skins.
+        """Listener for skin hot reload events; clears the cache for affected skins.
+
+        Called by the SkinRegistry when a skin class is reloaded, added, or removed.
 
         Args:
             batch: List of lifecycle events with complete context

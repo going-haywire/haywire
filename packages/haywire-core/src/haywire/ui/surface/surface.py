@@ -1,6 +1,7 @@
 # packages/haywire-core/src/haywire/ui/surface/surface.py
-"""Surface: a place Panels appear — a properties tab, a context menu, a
-region within one, a flyout. See docs/adr/0029-surface-model.md.
+"""Surface: a place Panels appear — a properties tab, a context menu, a region within one, a flyout.
+
+See docs/adr/0029-surface-model.md.
 
 Each Surface subclass declares:
   - id: ClassVar[str]                  — stable key (used for hot-reload

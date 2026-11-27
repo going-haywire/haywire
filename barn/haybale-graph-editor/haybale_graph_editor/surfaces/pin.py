@@ -87,8 +87,9 @@ class PinEditMenu(Surface):
 
 
 class PinWidgetMenu(Surface):
-    """The "Show widget" submenu of ``PinMenu`` — one row per
-    ``ShowWidgetStrategy``, marked with the port's current choice.
+    """The "Show widget" submenu of ``PinMenu``.
+
+    One row per ``ShowWidgetStrategy``, marked with the port's current choice.
 
     A **verb** surface, unlike its sibling ``PinEditMenu``: these rows change
     the port rather than navigating to a component's source. That is why it

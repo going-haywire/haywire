@@ -1,5 +1,7 @@
-"""Edge defaults: the arrow head, its size and the width computed edges draw with,
-before a graph overrides them, and the hit padding of every edge.
+"""Edge defaults: arrow head, arrow size, computed-edge width and hit padding.
+
+The arrow head, its size and the width computed edges draw with apply before a graph
+overrides them; the hit padding applies to every edge.
 
 A pure ``FrameworkSettings`` schema in core, because ``GraphProperties`` (core)
 shadows it and core never imports ui. The canvas reads the effective values

@@ -41,8 +41,7 @@ if TYPE_CHECKING:
 
 
 def open_component(error: HaywireException, context: SessionContext) -> bool:
-    """Point the CONTEXT-slot component source viewer at this error's component
-    and force it into view.
+    """Point the CONTEXT-slot component source viewer at this error's component and force it into view.
 
     The HaywireException-keyed form of :func:`open_component_source`; see it for
     the routing. Returns False if the error has no registry_key.
@@ -93,8 +92,7 @@ def open_file_in_studio(filepath: str, line_number: int | None, context: Session
 
 
 def reveal_instance(error: HaywireException, context: SessionContext) -> None:
-    """Ask every open GraphEditor in THIS session to reveal+select this
-    error's instance, if it's theirs.
+    """Ask every open GraphEditor in THIS session to reveal+select this error's instance, if it's theirs.
 
     Publishes RevealGraphInstance (session-local — see its docstring for
     why) and returns immediately — there is no synchronous way to know

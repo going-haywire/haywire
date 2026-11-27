@@ -194,7 +194,9 @@ def _names(covered) -> str:
 
 
 def _print_off_loopback(result: TlsStatus) -> None:
-    """A correct configuration. No warning wording, no fix command — saying
+    """A correct configuration.
+
+    No warning wording, no fix command — saying
     otherwise trains users to ignore this command (D7).
     """
     print("TLS is not configured — the studio serves plain HTTP.\n")

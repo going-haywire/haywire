@@ -129,7 +129,9 @@ context with no signal that it did."""
 
 
 def _doc_result(summary: str, text: str, full: bool, **extra: object) -> dict:
-    """Shared shape for every docs return: truncate unless full=, and when
+    """Shared shape for every docs return.
+
+    Truncate unless full=, and when
     truncated say by how much and how to get the rest.
     """
     total = len(text)

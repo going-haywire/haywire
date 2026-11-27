@@ -362,6 +362,7 @@ class EdgeWrapper:
 
     def redraw(self) -> None:
         """Request a visual redraw of this edge in the UI.
+
         Mirrors NodeWrapper.redraw().
         """
         if self._graph:
@@ -369,6 +370,7 @@ class EdgeWrapper:
 
     def request_revalidation(self) -> None:
         """Request revalidation of this edge (rebuild + re-link).
+
         Mirrors NodeWrapper.mark_as_structuraly_dirty().
         """
         if self._graph:
@@ -438,6 +440,7 @@ class EdgeWrapper:
 
     def unlink(self) -> None:
         """Remove this edge from the linked set of both ports.
+
         The edge remains tracked in the port's ``all`` set for potential re-enablement.
 
         Used when the edge loses functionality (e.g. hot reload broke
@@ -467,6 +470,7 @@ class EdgeWrapper:
 
     def detach(self) -> None:
         """Fully remove this edge from both ports (both tiers).
+
         Used when the edge is explicitly deleted or its port is destroyed.
 
         After detaching, attempts re-enablement on both ports.
@@ -548,9 +552,7 @@ class EdgeWrapper:
     # =========================================================================
 
     def _update_link_state(self) -> None:
-        """Update own link state flags based on whether each port considers
-        this edge as linked.
-        """
+        """Update own link state flags based on whether each port considers this edge as linked."""
         if self._inlet_port:
             self._state.is_inlet_linked = self._inlet_port.incoming.is_linked_to(self._edge_id)
         else:
@@ -586,9 +588,7 @@ class EdgeWrapper:
             )
 
     def _try_reenable_on_ports(self) -> None:
-        """After this edge is unlinked or detached, check both ports for
-        re-enablement candidates.
-        """
+        """After this edge is unlinked or detached, check both ports for re-enablement candidates."""
         if self._inlet_port:
             candidate = self._inlet_port.incoming.try_reenable()
             if candidate:
@@ -666,6 +666,7 @@ class EdgeWrapper:
 
     def _check_chain_for_changes(self, chain: list[str]):
         """Check if adapter chain has changed compared to given chain.
+
         Issues a warning to the state if so.
 
         Args:
@@ -873,7 +874,7 @@ class EdgeWrapper:
             return False
 
     def _test(self) -> bool:
-        """test adapter chain with test value.
+        """Test adapter chain with test value.
 
         Returns:
             True if test passes, False otherwise

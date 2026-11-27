@@ -458,7 +458,7 @@ def test_inspect_summary_always_present(farmhand_call):
 
 
 def test_inspect_settings_excludes_props(farmhand_call):
-    """props IS a settings bag, so it must be filtered out of the settings section."""
+    """`props` IS a settings bag, so it must be filtered out of the settings section."""
     bid = _new_graph(farmhand_call)
     try:
         node_id = _add(farmhand_call, bid)
@@ -738,7 +738,7 @@ def test_summary_reports_per_bag_counts(farmhand_call):
 
 
 def test_inspect_state_reports_stage_booleans(farmhand_call):
-    """state carries per-stage lifecycle flags — the post-hot-reload diagnostic."""
+    """`state` carries per-stage lifecycle flags — the post-hot-reload diagnostic."""
     bid = _new_graph(farmhand_call)
     try:
         node_id = _add(farmhand_call, bid)

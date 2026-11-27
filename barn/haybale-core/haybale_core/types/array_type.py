@@ -51,9 +51,9 @@ class ARRAY(CompoundType[T]):
     Storage: ArrayField stores List[T] with unwrapped elements
     Transfer: List of unwrapped values (primitives or instances)
 
-    IMPORTANT:
-    ARRAY declares no wire type, so it travels on its element type's; a declared one would take
-    precedence (see wire_type_of).
+    Important:
+        ARRAY declares no wire type, so it travels on its element type's; a declared one would take
+        precedence (see wire_type_of).
 
     Hooks: Uses default implementations from IType
     - _validate_port_type: Allows all port types (inlet, outlet, config)

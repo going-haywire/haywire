@@ -99,7 +99,7 @@ class TestReentrancyGuard:
 class TestAcrossASubgraphBoundary:
     @staticmethod
     def _loop_through_a_group(graph, suffix: str):
-        """listener -> card -> (interior relay) -> card -> probe -> card; the probe closes the loop."""
+        """`listener` -> card -> (interior relay) -> card -> probe -> card; the probe closes the loop."""
         group = build_group(graph)
         group.definition.create_edge_wrapper(
             group.input_node.node_id, "sub_in", group.output_node.node_id, "sub_out"

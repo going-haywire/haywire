@@ -1,6 +1,7 @@
-"""Builtin Library: framework-owned types (primitives, vectors, colour, and the
-EXEC and CALLBACK signal types), their basic adapters, and the reroute node and
-skin. Loaded at Priority 1 before any entry-point plugin, so that
+"""Builtin Library: framework-owned types, their basic adapters, and the reroute node and skin.
+
+The types are the primitives, vectors, colour, and the EXEC and CALLBACK signal
+types. Loaded at Priority 1 before any entry-point plugin, so that
 ``haywire-core:type:*``, ``haywire-core:node:*`` and ``haywire-core:skin:*`` keys
 resolve when graphs and plugins reference them.
 """

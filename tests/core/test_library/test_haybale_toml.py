@@ -206,7 +206,7 @@ def test_tag_for_prefixes_v() -> None:
 
 @pytest.mark.unit
 def test_tag_for_does_not_double_the_prefix() -> None:
-    """version is PEP 440 and never carries the v; if one shows up, it is a bug
+    """`version` is PEP 440 and never carries the v; if one shows up, it is a bug
     upstream and the tag should look wrong rather than silently right.
     """
     assert tag_for("v0.0.40") == "vv0.0.40"
@@ -375,7 +375,7 @@ def test_version_is_projected_into_pyproject():
 
 @pytest.mark.unit
 def test_sync_never_removes_the_pyproject_version(tmp_path):
-    """pip reads version from pyproject and cannot read haybale.toml, so an
+    """`pip` reads version from pyproject and cannot read haybale.toml, so an
     absent declared version must leave the existing literal in place.
     """
     from haywire.core.publishing.generate import sync_pyproject_from_haybale

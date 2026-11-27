@@ -352,8 +352,9 @@ class setting[T: IType](SettingDescriptor):
 
     @property
     def is_graph_mirror(self) -> bool:
-        """True for a field declared via the ``graph()`` factory — a mirror
-        of a field on the owning graph's settings bag (GraphSettings).
+        """True for a field declared via the ``graph()`` factory.
+
+        Such a field is a mirror of a field on the owning graph's settings bag (GraphSettings).
 
         These are wired cell-to-cell against the graph bag's live cell, not
         through the registry-key channel, so ``is_mirror`` is False for them:
@@ -368,8 +369,9 @@ class setting[T: IType](SettingDescriptor):
         return bool(self._validator(value))
 
     def _stamp_widget(self) -> None:
-        """Compute the field's widget contract: an explicit ``widget=`` wins,
-        else the field IType's declared default.
+        """Compute the field's widget contract.
+
+        An explicit ``widget=`` wins, else the field IType's declared default.
         """
         identity = getattr(self._type, "class_identity", None)
         spec = self._widget_spec or {}

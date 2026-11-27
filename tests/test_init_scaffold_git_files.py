@@ -93,7 +93,7 @@ def test_gitattributes_normalizes_text_eol() -> None:
 
 
 def test_gitattributes_arms_no_lfs_filter() -> None:
-    """git stores a ~130-byte pointer; a consumer without git-lfs receives THAT
+    """`git` stores a ~130-byte pointer; a consumer without git-lfs receives THAT
     instead of the asset. The install succeeds and the library breaks at runtime,
     and *.png is exactly what a node library's icons and skins match.
     """

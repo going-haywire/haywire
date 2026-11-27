@@ -30,8 +30,9 @@ from .publish_workflow import (
 
 
 def _release_pin(dist: str = "haywire-studio") -> str:
-    """Return a floor specifier (``>=X.Y.Z``) for the running haywire release,
-    so scaffolded projects pin to the version that created them rather than a
+    """Return a floor specifier (``>=X.Y.Z``) for the running haywire release.
+
+    Scaffolded projects pin to the version that created them rather than a
     stale hardcoded literal.
 
     A floor, not a compatible-release (``~=``): ``~=X.Y.Z`` also stamps a
@@ -119,8 +120,9 @@ def _validate_project_name(value: str) -> None:
 
 
 def _lib_basename(name: str) -> str:
-    """Lowercase *name* and strip a leading ``hay-``/``hay_``/``haybale-``/
-    ``haybale_`` so the scaffolded library isn't double-prefixed.
+    """Lowercase *name* and strip a leading ``hay-``/``hay_``/``haybale-``/``haybale_`` prefix.
+
+    This way the scaffolded library isn't double-prefixed.
 
     The default local library dist name is ``hay-<base>``; if the user
     already named their project ``hay-weather`` (or ``Hay-Weather`` — the

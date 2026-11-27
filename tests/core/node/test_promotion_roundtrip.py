@@ -6,7 +6,7 @@ pytestmark = pytest.mark.integration
 
 
 def test_promoted_inlet_survives_full_roundtrip(graph_with_library_system, library_system):
-    """promote -> serialize -> fresh node from dict -> promoted port regenerated + rebound to cell.
+    """Promote -> serialize -> fresh node from dict -> promoted port regenerated + rebound to cell.
 
     The promoted port is ABSENT from the serialized ports block — its
     promotion is recorded in the settings bag instead and the port is

@@ -234,7 +234,7 @@ def test_slot_with_no_bindings_has_no_active_binding() -> None:
 
 
 def test_slot_resolves_initial_active_with_payload() -> None:
-    """composite active_key must exact-match the binding_id-carrying binding,
+    """Composite active_key must exact-match the binding_id-carrying binding,
     not fall through to the first same-key binding.
     """
     reg = _FakeRegistry()

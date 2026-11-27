@@ -253,6 +253,7 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
 
     def center_on(self, content_x: float, content_y: float) -> None:
         """Pan so that the given content-space point is centered in the viewport.
+
         Must be called after the Vue component is mounted (_on_ready or later).
         Does nothing while the container is not on screen (it measures zero).
         """

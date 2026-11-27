@@ -254,8 +254,9 @@ class SelectionHandlers:
         return {n for n, p in props.items() if not p.locked and self.channel.includes(p)}
 
     def _replace_selection(self, nodes: set[str], edges: set[str] | None = None) -> None:
-        """Select exactly ``nodes`` and ``edges`` (none by default), with no active element,
-        here and in the browser.
+        """Select exactly ``nodes`` and ``edges``, here and in the browser.
+
+        ``edges`` defaults to none; no element is left active.
         """
         self.selected_nodes = nodes
         self.selected_edges = edges or set()

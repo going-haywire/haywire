@@ -96,7 +96,9 @@ class HaystackEditor(BaseEditor):
         ActiveGraphMoved, GraphDataMutated, GraphUnsavedChanged, HaystackReloaded, GraphNoticesChanged
     )
     def _refresh_on_state_move(self, context: SessionContext, event) -> None:
-        """Empty body — the decorator triggers ``wrapper.redraw()`` after
+        """Empty body: the decorator redraws after this returns.
+
+        The decorator triggers ``wrapper.redraw()`` after
         this returns, which re-runs ``draw`` and ``_render_list``.
         """
 

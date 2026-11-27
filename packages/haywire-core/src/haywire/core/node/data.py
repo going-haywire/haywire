@@ -839,8 +839,9 @@ class NodeData:
     # =========================================================================
 
     def _analyze_worker_signature(self) -> Callable:
-        """Build a callable that takes a context and invokes ``self.worker`` with the
-        unwrapped values of the ports its signature names.
+        """Build a callable that takes a context and invokes ``self.worker``.
+
+        The worker is called with the unwrapped values of the ports its signature names.
 
         Raises:
             ValueError: If a worker parameter without a default names no existing

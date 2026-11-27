@@ -64,8 +64,9 @@ class StackedNodeSkin(NodeSkin):
         *,
         on_stage: bool,
     ):
-        """Vertical layouts (T2B / B2T): inlets and outlets become bare pin
-        strips on the card's top/bottom edges, leaving only configs in the body.
+        """Vertical layouts (T2B / B2T): inlets and outlets become bare pin strips on the card's edges.
+
+        The strips sit on the card's top/bottom edges, leaving only configs in the body.
 
         Both strips are absolutely positioned (see ``render_pin_strip``) and so
         contribute nothing to the card's flow width; with a short label and few
@@ -128,8 +129,9 @@ class StackedNodeSkin(NodeSkin):
         *,
         on_stage: bool,
     ):
-        """Horizontal layouts (L2R / R2L): every port type stacks in one
-        column, each pin sided by the layout, with ghost pins in the header.
+        """Horizontal layouts (L2R / R2L): every port type stacks in one column.
+
+        Each pin is sided by the layout, with ghost pins in the header.
         """
         main_card.classes("w-full min-w-64 max-w-sm node-card zoom-pan-lod0").style(card_style)
 

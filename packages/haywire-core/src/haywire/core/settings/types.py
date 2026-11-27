@@ -1,5 +1,6 @@
 # haywire/core/settings/types.py
 """Type aliases for descriptor annotations — purely for IDE hinting.
+
 At runtime these are just str.
 """
 

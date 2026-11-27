@@ -1,4 +1,5 @@
 """Minimal workbench-flavoured theme fixtures for testing the theme system.
+
 These themes exist solely to provide stable, known values in tests — they are
 not meant to look good in the UI.
 """

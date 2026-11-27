@@ -65,8 +65,9 @@ class BaseNode(NodeData):
         pass
 
     def post_init(self) -> None:
-        """Complete the setup that loading a saved graph cannot reproduce, such as
-        instantiating helper objects.
+        """Complete the setup that loading a saved graph cannot reproduce.
+
+        Such setup is, for example, instantiating helper objects.
 
         Called right after ``init()`` for a new node, and after the saved ports,
         values and settings are loaded for a node built from saved data. Work that

@@ -184,7 +184,7 @@ def test_refresh_lockfile_noop_without_a_lockfile(repo_agreeing: Path) -> None:
 
 
 def test_refresh_lockfile_warns_but_never_raises(repo_agreeing: Path, monkeypatch) -> None:
-    """uv lock failing is a warning, not a blocker."""
+    """`uv` lock failing is a warning, not a blocker."""
     (repo_agreeing / "uv.lock").write_text("")
 
     def _fail(*_a, **_kw):

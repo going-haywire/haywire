@@ -42,7 +42,9 @@ class Slot(ABC):
         visible: bool = True,
         size: int = 300,
     ):
-        """Args:
+        """Initialize the slot.
+
+        Args:
             session: The owning session.
             name: Slot identifier — a :class:`SlotName`
                 (ACTION, CONTEXT, EDIT, INFO).
@@ -404,8 +406,9 @@ class Slot(ABC):
             self._tab_client = None
 
     def _render_area_contents(self, parent: ui.element) -> None:
-        """Create the area container (a headless ``ui.tab_panels``) as a child
-        of ``parent`` and draw the active wrapper's editor into its panel.
+        """Create the area container and draw the active wrapper's editor into its panel.
+
+        The area container is a headless ``ui.tab_panels``, created as a child of ``parent``.
 
         Each wrapper gets its own ``ui.tab_panel`` keyed by ``binding_id``.
         All panels live in the DOM simultaneously; switching toggles

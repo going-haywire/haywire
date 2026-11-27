@@ -49,6 +49,7 @@ class IWidget(ABC):
 
     def cleanup(self) -> None:
         """Optional cleanup method.
+
         Override if your widget needs to release resources.
         """
         pass

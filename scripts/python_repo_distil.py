@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Python Files to Markdown Consolidator
-=====================================
+"""Python Files to Markdown Consolidator.
 
 This script scans a repository folder for Python files and consolidates them
 into a single markdown document with proper formatting and structure.

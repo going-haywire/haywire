@@ -170,8 +170,10 @@ export interface {interface_name} {{"""
 
 
 def generate_arrow_heads() -> str:
-    """Return the arrow-head table as a JavaScript module that sets ``window.HwArrowHeads``
-    and the size steps as ``window.HwArrowHeadSizes``.
+    """Return the arrow-head table and its size steps as a JavaScript module.
+
+    The module sets the table as ``window.HwArrowHeads`` and the size steps as
+    ``window.HwArrowHeadSizes``.
 
     canvas.vue builds one ``<marker>`` per head and size from them. Shipped as a file rather than a
     prop, so it is not re-sent with every canvas update.

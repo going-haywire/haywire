@@ -127,8 +127,9 @@ def _fix_commit_dirty_tree(pipeline: SharePipeline, **kwargs: str) -> None:
 
 
 def _fix_strip_os(pipeline: SharePipeline, **kwargs: str) -> None:
-    """Handler for fix_id="strip_os". Requires a `lib_dir` kwarg: the barn
-    library's directory, relative to `pipeline.repo_root` (e.g.
+    """Handler for fix_id="strip_os".
+
+    Requires a `lib_dir` kwarg: the barn library's directory, relative to `pipeline.repo_root` (e.g.
     "barn/haybale-alpha"), taken from the failing `PreconditionFailure.lib_dir`
     — needed because a repo can have multiple barn libraries, each with its
     own independent os fault.

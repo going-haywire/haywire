@@ -20,9 +20,10 @@ _MACRO_ICON = "🧩"
 
 
 class NodeMenuBuilder:
-    """Builds organized, hierarchical menus using node identity information
-    from the NodeFactory, based on the menu paths defined in node decorators
-    (e.g., menu='core/basic').
+    """Builds organized, hierarchical menus from node identity information.
+
+    The identity information comes from the NodeFactory; the hierarchy follows
+    the menu paths defined in node decorators (e.g., menu='core/basic').
     """
 
     def __init__(

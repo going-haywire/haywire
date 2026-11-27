@@ -584,9 +584,10 @@ class HaywireException(Exception):
     instead of adding it. Not serialized."""
 
     def fingerprint(self) -> tuple:
-        """Identity for ledger dedup: where, what kind, the source location it was
-        raised from, and the message with digits normalized so "Node 3 failed" and
-        "Node 7 failed" collide.
+        """Identity for ledger dedup: where, what kind, raise location and normalized message.
+
+        The identity is where, what kind, the source location it was raised from, and the
+        message with digits normalized so "Node 3 failed" and "Node 7 failed" collide.
         """
         return (
             self.operation,

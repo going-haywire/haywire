@@ -16,7 +16,7 @@ pytestmark = [pytest.mark.unit, pytest.mark.anyio]
 
 @pytest.fixture
 def anyio_backend() -> str:
-    """anyio's backend parametrization. The repo runs asyncio only."""
+    """`anyio`'s backend parametrization. The repo runs asyncio only."""
     return "asyncio"
 
 

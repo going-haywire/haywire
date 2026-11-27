@@ -285,7 +285,7 @@ class TestEdges:
     def test_array_same_element_type_no_element_adapter(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """test array outlet to pooled_array_string_inlet for
+        """Test array outlet to pooled_array_string_inlet for
         ARRAY[TEST_STRING] → ARRAY[TEST_STRING] (same).
         """
         graph = graph_with_library_system

@@ -92,7 +92,9 @@ class EditorWrapperState:
         return errors if errors else None
 
     def _clear_errors(self) -> None:
-        """Clear runtime and instantiate errors. error_import is preserved
+        """Clear runtime and instantiate errors.
+
+        error_import is preserved
         and only cleared explicitly on successful hot-reload.
         """
         self.error_instantiate = None
@@ -123,20 +125,22 @@ class EditorWrapper:
         label: str = "",
         slot: Slot | None = None,
     ):
-        """Args:
-        editor_key: Registry key of the editor class.
-        editor_cls: The editor class.
-        registry: Editor registry for self-subscription.
-        session: Owning session — held for the wrapper's lifetime.
-        binding_id: Optional disambiguator (e.g., file path string for
-            multi-instance editors). Stored as ``_binding_id``; the
-            public ``binding_id`` property exposes the composite
-            ``editor_key::disambiguator`` form. None for single-instance editors.
-        label: Tab label for tabbed slots. Defaults to empty; resolved
-            lazily at draw time when empty.
-        slot: Owning slot — used by close/force_close/repayload to call
-            back into slot mutators. None for detached wrappers (e.g.
-            unit tests); those paths fall back to direct field updates.
+        """Initialize the wrapper.
+
+        Args:
+            editor_key: Registry key of the editor class.
+            editor_cls: The editor class.
+            registry: Editor registry for self-subscription.
+            session: Owning session — held for the wrapper's lifetime.
+            binding_id: Optional disambiguator (e.g., file path string for
+                multi-instance editors). Stored as ``_binding_id``; the
+                public ``binding_id`` property exposes the composite
+                ``editor_key::disambiguator`` form. None for single-instance editors.
+            label: Tab label for tabbed slots. Defaults to empty; resolved
+                lazily at draw time when empty.
+            slot: Owning slot — used by close/force_close/repayload to call
+                back into slot mutators. None for detached wrappers (e.g.
+                unit tests); those paths fall back to direct field updates.
         """
         self.editor_key = editor_key
         self.editor_cls = editor_cls
@@ -184,7 +188,9 @@ class EditorWrapper:
 
     @property
     def editor_binding_id(self) -> str:
-        """Stable composite identity. ``editor_key`` for single-instance wrappers;
+        """Stable composite identity.
+
+        ``editor_key`` for single-instance wrappers;
         ``editor_key::_binding_id`` when a ``_binding_id`` disambiguator is present.
         """
         return f"{self.editor_key}::{self._binding_id}" if self._binding_id else self.editor_key

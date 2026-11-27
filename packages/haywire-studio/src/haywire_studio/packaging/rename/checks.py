@@ -1,5 +1,7 @@
-"""Preconditions. Every function here is read-only — the preflight promises
-to change nothing, including temp probe files.
+"""Preconditions.
+
+Every function here is read-only — the preflight promises to change nothing,
+including temp probe files.
 """
 
 from __future__ import annotations

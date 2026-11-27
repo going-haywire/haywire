@@ -468,8 +468,9 @@ class LibraryRegistry:
             raise LibraryLoadError(f"Failed instantiating library {library_folder_name}: {e}") from e
 
     def _bundled_module_path(self, library_path: str) -> str | None:
-        """Return the dotted import path for a library bundled inside the installed
-        ``haywire`` package, or ``None`` if ``library_path`` is outside it.
+        """Return the dotted import path for a library bundled inside the installed ``haywire`` package.
+
+        Returns ``None`` if ``library_path`` is outside it.
 
         A bundled library (e.g. ``haywire/barn/builtin``) has to be imported
         under this name, so the registered class is the same object

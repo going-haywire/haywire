@@ -108,7 +108,8 @@ class ComponentRegistry[T: RegisteredClass](HotReloadRegistry):
 
     def list_visible_names(self) -> list[str]:
         """List registry_keys of non-hidden classes.
-        for those offered as a choice in author-facing selection UIs (menus, pickers).
+
+        These are the classes offered as a choice in author-facing selection UIs (menus, pickers).
         """
         return [
             key for key, cls in self._classes.items() if not cast(BaseIdentity, cls.class_identity).hidden

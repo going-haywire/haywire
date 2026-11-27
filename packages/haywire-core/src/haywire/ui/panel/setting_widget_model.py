@@ -40,17 +40,19 @@ class SettingWidgetModel:
         wrapper: Any = None,
         settings: Any = None,
     ) -> None:
-        """Args:
-        on_edit: Called with each raw value the widget produces. Returns ``False`` to
-            refuse the write; any other result counts as accepted.
-        requires: The level mode a write needs, which the widget's element is stamped
-            with (``stamp_requires``); ``None`` when no route takes the writes.
-        wrapper: The ``NodeWrapper`` of the port this model stands for, so a widget
-            can ask its node (``_wrapper`` on a ``DataPort``); ``None`` for a
-            settings field.
-        settings: The ``Settings`` bag that owns the field, so a widget can read the
-            field's siblings (``MenuWidget`` hands it to a one-argument ``options``
-            callable); ``None`` when the model stands for no bag field.
+        """Initialize the model.
+
+        Args:
+            on_edit: Called with each raw value the widget produces. Returns ``False`` to
+                refuse the write; any other result counts as accepted.
+            requires: The level mode a write needs, which the widget's element is stamped
+                with (``stamp_requires``); ``None`` when no route takes the writes.
+            wrapper: The ``NodeWrapper`` of the port this model stands for, so a widget
+                can ask its node (``_wrapper`` on a ``DataPort``); ``None`` for a
+                settings field.
+            settings: The ``Settings`` bag that owns the field, so a widget can read the
+                field's siblings (``MenuWidget`` hands it to a one-argument ``options``
+                callable); ``None`` when the model stands for no bag field.
         """
         self.id = field_id
         self._wrapper = wrapper

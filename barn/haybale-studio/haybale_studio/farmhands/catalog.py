@@ -105,7 +105,9 @@ _LIST_COMPONENTS_SCHEMA = {
 
 
 def _matches_search(identity: Any, query_lower: str) -> bool:
-    """Same substring-over-label/description/search_tags algorithm as
+    """Same substring search as NodeFactory.search_nodes, applied to any component kind.
+
+    Same substring-over-label/description/search_tags algorithm as
     NodeFactory.search_nodes (packages/haywire-core/.../node/factory.py), applied
     generically since label/description live on BaseIdentity. search_tags is
     NodeIdentity-only, so other kinds match on label/description alone.

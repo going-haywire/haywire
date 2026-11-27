@@ -72,7 +72,7 @@ def _load_graph_and_factory(library_system):
 
 
 def test_single_node_render_profile(library_system, nicegui_slot_context):
-    """cProfile one node-card render and print the top cumulative frames."""
+    """`cProfile` one node-card render and print the top cumulative frames."""
     skin_factory, skin_key, wrappers = _load_graph_and_factory(library_system)
     one = wrappers[0]
 

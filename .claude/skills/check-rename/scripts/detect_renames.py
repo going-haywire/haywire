@@ -194,7 +194,9 @@ def _extract_params(func: ast.FunctionDef | ast.AsyncFunctionDef, parent_qual: s
 
 
 def extract_symbols(src: str) -> set[Symbol]:
-    """Extract:
+    """Extract the named symbols of a module.
+
+    Extracts:
     - top-level functions/classes (function, class)
     - methods on top-level classes (method)
     - class-body annotated/plain assignments (attribute)

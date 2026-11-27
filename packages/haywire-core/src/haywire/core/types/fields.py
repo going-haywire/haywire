@@ -287,7 +287,9 @@ class DataField[T](ABC):
         self.on_changed.remove(callback)
 
     def fire(self, value: Any, old: Any = None) -> None:
-        """Notify observers of change. ``old`` is the replaced value — pass it
+        """Notify observers of change.
+
+        ``old`` is the replaced value — pass it
         wherever it is knowable; ``None`` marks an in-place/unknowable change.
         """
         self.on_changed(FieldChange(value, old, self.field_id))

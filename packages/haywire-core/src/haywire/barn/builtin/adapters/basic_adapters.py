@@ -72,7 +72,9 @@ class BoolToIntAdapter(BaseAdapter):
 
 @adapter(description="String into a choices slot", converts_from=STRING, converts_to=CHOICES)
 class StringToChoicesAdapter(BaseAdapter):
-    """STRING -> CHOICES needs an explicit adapter: CHOICES is the descendant,
+    """STRING -> CHOICES needs an explicit adapter.
+
+    CHOICES is the descendant,
     so (per adapter-canon.md) an ancestor-to-descendant conversion is never a
     free passthrough — not every string is a valid choice. The reverse
     direction (CHOICES -> STRING) needs no adapter at all: CHOICES(STRING)

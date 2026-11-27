@@ -34,8 +34,9 @@ def is_field_promoted(bag: Settings, field: str) -> bool:
 
 
 def _resolve_promoted(node: NodeData, port_id: str) -> tuple[Settings, setting]:
-    """Resolve the (settings-bag, descriptor) pair a promoted ``port_id`` binds, by
-    matching the id against each descriptor's storage_key.
+    """Resolve the (settings-bag, descriptor) pair a promoted ``port_id`` binds.
+
+    The id is matched against each descriptor's storage_key.
 
     Raises ``KeyError`` if no descriptor on the node carries that key.
     """
@@ -60,8 +61,10 @@ def bag_accessor(node: NodeData, bag: Settings) -> str | None:
 
 
 def _descriptor(node: NodeData, accessor: str, field: str) -> setting:
-    """The setting descriptor for ``<accessor>.<field>`` on *node*, including a field
-    inherited from a settings-bag base class. Raises ``KeyError`` for an unknown field.
+    """The setting descriptor for ``<accessor>.<field>`` on *node*.
+
+    Includes a field inherited from a settings-bag base class. Raises ``KeyError`` for
+    an unknown field.
     """
     bag: NodeSettings = getattr(node, accessor)
     return type(bag)._settings_descriptors()[field]
@@ -235,8 +238,10 @@ def promote_setting(
 
 
 def demote_setting(node: NodeData, port_id: str) -> None:
-    """Remove the promoted port ``port_id``, release its cell binding, and clear the
-    settings-side promotion record. The setting shows its own value again.
+    """Remove the promoted port ``port_id`` and undo its promotion.
+
+    Releases its cell binding and clears the settings-side promotion record. The
+    setting shows its own value again.
 
     A promotion whose port is gone is still cleared, so the setting can always be
     released. A port matching no setting — the library changed under a saved

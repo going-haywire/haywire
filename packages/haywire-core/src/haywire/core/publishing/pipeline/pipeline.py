@@ -112,8 +112,10 @@ class SharePipeline:
         handler(self, **kwargs)
 
     def rollback(self) -> None:
-        """Revert every write this run made — safe because step 1 guaranteed
-        a clean tree before anything was written. See steps/rollback.py.
+        """Revert every write this run made.
+
+        Safe because step 1 guaranteed a clean tree before anything was written. See
+        steps/rollback.py.
         """
         steps_rollback.revert_working_tree(self)
 

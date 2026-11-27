@@ -1,5 +1,6 @@
 # haywire/core/settings/registry.py
 """SettingsRegistry - central registry for setting definitions and global values.
+
 Extends BaseRegistry for hot-reload and folder scan support.
 
 Three-tier value storage:
@@ -919,9 +920,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
     # =========================================================================
 
     def registered_schemas(self) -> list[type]:
-        """All registered FrameworkSettings / LibrarySettings schema classes, in
-        registration order.
-        """
+        """All registered FrameworkSettings / LibrarySettings schema classes, in registration order."""
         return list(self._classes.values())
 
     def definitions_for_schema(self, schema_cls: type) -> dict[str, setting]:

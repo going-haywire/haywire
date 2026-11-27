@@ -1,5 +1,6 @@
 # haywire/ui/themes/theme_registry.py
 """ThemeRegistry — hot-reload-capable registry for BaseTheme classes.
+
 Extends BaseRegistry for library folder scan and hot-reload support.
 """
 
@@ -103,8 +104,9 @@ class ThemeRegistry(BaseRegistry[BaseTheme]):
         )
 
     def list_visible_workbench_themes(self) -> list[tuple[str, str]]:
-        """Return sorted (registry_key, label) pairs for non-hidden workbench themes —
-        those offered as a choice in the theme picker.
+        """Return sorted (registry_key, label) pairs for non-hidden workbench themes.
+
+        These are the themes offered as a choice in the theme picker.
         """
         return sorted(
             (cls.class_identity.registry_key, cls.class_identity.label)
@@ -129,8 +131,9 @@ class ThemeRegistry(BaseRegistry[BaseTheme]):
         )
 
     def list_visible_node_themes(self) -> list[tuple[str, str]]:
-        """Return sorted (registry_key, label) pairs for non-hidden node themes —
-        those offered as a choice in a theme picker.
+        """Return sorted (registry_key, label) pairs for non-hidden node themes.
+
+        These are the themes offered as a choice in a theme picker.
         """
         return sorted(
             (cls.class_identity.registry_key, cls.class_identity.label)

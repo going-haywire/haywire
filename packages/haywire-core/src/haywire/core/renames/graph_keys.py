@@ -63,8 +63,9 @@ def is_registry_key(value: str) -> bool:
 
 
 def _rewrite(value: object, old: str, new: str) -> tuple[object, int]:
-    """Rewrite one key value if it belongs to *old*. Colon-scoped, so
-    ``haybale-foo`` never matches ``haybale-foobar``, and grammar-guarded, so
+    """Rewrite one key value if it belongs to *old*.
+
+    Colon-scoped, so ``haybale-foo`` never matches ``haybale-foobar``, and grammar-guarded, so
     prose parked in a key field is left alone.
     """
     if not isinstance(value, str):
@@ -75,8 +76,9 @@ def _rewrite(value: object, old: str, new: str) -> tuple[object, int]:
 
 
 def _rewrite_module(value: object, old_module: str, new_module: str) -> tuple[object, int]:
-    """Rewrite a dotted-module-shaped value (``identity.module``): exact
-    match, or ``<old_module>.<rest>`` for a submodule. Never a bare
+    """Rewrite a dotted-module-shaped value (``identity.module``).
+
+    Exact match, or ``<old_module>.<rest>`` for a submodule. Never a bare
     substring match — ``haybale_testing_extras`` must not match
     ``haybale_testing``.
     """
@@ -92,8 +94,9 @@ def _rewrite_module(value: object, old_module: str, new_module: str) -> tuple[ob
 def _rewrite_folder_path(
     value: object, old_dist: str, old_module: str, new_dist: str, new_module: str
 ) -> tuple[object, int]:
-    """Rewrite ``library.folder_path``'s ``.../<old_dist>/<old_module>``
-    tail. The workspace-root prefix is preserved untouched — only the two
+    """Rewrite ``library.folder_path``'s ``.../<old_dist>/<old_module>`` tail.
+
+    The workspace-root prefix is preserved untouched — only the two
     path segments that are actually this library's own name are rewritten,
     never a blind substring replace across the whole path.
     """
@@ -153,9 +156,10 @@ def _walk(
     in_library: bool = False,
     in_identity: bool = False,
 ) -> int:
-    """Recurse the whole tree once: rewrite key fields where they appear,
-    and record a drift hit for every OTHER string the rules say still mentions
-    the old name.
+    """Recurse the whole tree once: rewrite key fields and record drift hits.
+
+    Key fields are rewritten where they appear, and a drift hit is recorded for every
+    OTHER string the rules say still mentions the old name.
 
     A single pass, not two, is required for correctness: a field the walker
     rewrites (``registry_key``, ``widget_key``, ``chain_adapter_keys``, the

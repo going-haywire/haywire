@@ -145,7 +145,7 @@ async def test_finish_with_error_shows_close_and_keeps_banner(user: User) -> Non
 @pytest.mark.unit
 @pytest.mark.anyio
 async def test_finish_with_error_and_restart_shows_both(user: User) -> None:
-    """error + RESTART → banner visible AND restart button (per Q12.A)."""
+    """`error` + RESTART → banner visible AND restart button (per Q12.A)."""
     captured: dict[str, LibraryOperationProgressModal] = {}
 
     @ui.page("/")

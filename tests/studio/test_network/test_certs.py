@@ -88,7 +88,7 @@ def test_names_round_trip_through_disk(tmp_path, names):
 
 
 def test_key_round_trips_through_disk(tmp_path, names):
-    """update reuses the key, so it must survive a write/read cycle intact."""
+    """`update` reuses the key, so it must survive a write/read cycle intact."""
     key = generate_key()
     write_key(key, tmp_path)
     reloaded = load_key(tmp_path)

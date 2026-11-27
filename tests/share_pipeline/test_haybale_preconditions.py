@@ -258,7 +258,7 @@ def test_the_bump_writes_the_version_into_haybale_toml_too(project: Path) -> Non
 
 
 def test_the_bump_records_where_the_library_is_published_from(project: Path) -> None:
-    """origin is an observation about this checkout, not something authored —
+    """`origin` is an observation about this checkout, not something authored —
     which is what makes a fork correct for free on its first publish.
     """
     SharePipeline(project).apply_bump("1.2.3")

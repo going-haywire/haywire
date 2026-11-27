@@ -72,8 +72,9 @@ class SplitNodeSkin(NodeSkin):
         *,
         on_stage: bool,
     ):
-        """Vertical layouts (T2B / B2T): inlets/outlets become pin strips on
-        the card's top/bottom edges; only configs stay in the body.
+        """Vertical layouts (T2B / B2T): inlets/outlets become pin strips on the card's edges.
+
+        The strips sit on the card's top/bottom edges; only configs stay in the body.
 
         The two-band split has nothing left to express here — with both pin
         directions on the card edges, the body holds configs and nothing else,
@@ -126,8 +127,9 @@ class SplitNodeSkin(NodeSkin):
         *,
         on_stage: bool,
     ):
-        """Horizontal layouts (L2R / R2L): configs span the top, inlets and
-        outlets sit side by side beneath.
+        """Horizontal layouts (L2R / R2L): configs span the top.
+
+        Inlets and outlets sit side by side beneath.
         """
         main_card.classes(
             f"w-full min-w-64 max-w-sm node-card zoom-pan-lod0 {self.card_classes(wrapper)}"

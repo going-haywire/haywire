@@ -39,9 +39,9 @@ def _keyed_bag(bag_cls: type[NodeSettings], accessor: str) -> type[NodeSettings]
 
 
 def _wire_settings_schemas(node_cls: type[BaseNode]) -> None:
-    """Collect every ``Settings`` subclass declared on the node class, stamp
-    ``_setting_key`` on their ``setting`` descriptors, and store them as
-    ``cls._settings_bags``.
+    """Collect the ``Settings`` subclasses declared on the node class into ``cls._settings_bags``.
+
+    Each one's ``setting`` descriptors get their ``_setting_key`` stamped.
 
     The accessor name is the inner class name. ``_setting_key`` is
     ``'<accessor>.<field>'`` (``'filter.strength'``), a per-node identifier and

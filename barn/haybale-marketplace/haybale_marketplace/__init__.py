@@ -9,7 +9,8 @@ from haywire.api import BaseLibrary, SettingsRegistry, library
     file_watcher=True,
 )
 class Library(BaseLibrary):
-    """Marketplace library — install/uninstall/enable UI
+    """Marketplace library — install/uninstall/enable UI.
+
     - publishes the LibraryManager for editor consumption
     - marketstall orchestration (parse/refresh/etc.)
     - library browser, overview, component..

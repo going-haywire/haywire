@@ -281,7 +281,9 @@ class ResetNodeCardsMenuPanel(BasePanel):
             )
 
     def _reset(self) -> None:
-        """Report the count: a reset that finds nothing to clear looks broken
+        """Report the count.
+
+        A reset that finds nothing to clear looks broken
         otherwise, and "nothing to clear" is the common case.
         """
         from nicegui import ui as _ui

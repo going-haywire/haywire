@@ -13,9 +13,10 @@ def _strip_specifier(spec: str) -> str:
 
 
 def _parse_floor_spec(spec: str) -> tuple[str, str] | None:
-    """Parse a requirement string into ``(operator, version)`` for lag-eligible
-    floor operators. Returns None for operators we don't lag-check (==, <,
-    !=, no operator, or anything we can't parse).
+    """Parse a requirement string into ``(operator, version)`` for lag-eligible floor operators.
+
+    Returns None for operators we don't lag-check (==, <, !=, no operator, or anything
+    we can't parse).
 
     Recognized lag-eligible operators: ``~=``, ``>=``, ``>``.
     """

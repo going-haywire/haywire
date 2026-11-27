@@ -78,7 +78,8 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
     def _register(
         self, registry_key: str, cls: type[T], library_identity: LibraryIdentity | None = None
     ) -> str | None:
-        """Register a class with its name and optional metadata
+        """Register a class with its name and optional metadata.
+
         Args:
             registry_key (str): The haywire registry_key of the class to register
             cls (Any): The class to register
@@ -123,7 +124,8 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
         return registry_key
 
     def _unregister(self, registry_key: str) -> type[T] | None:
-        """Remove a class from the registry
+        """Remove a class from the registry.
+
         Args:
             registry_key (str): The haywire registry_key of the class to unregister
         Returns:
@@ -156,8 +158,9 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
         library_identity: LibraryIdentity,
         exclude_patterns: list[str] | None = None,
     ):
-        """Initial scan of the folder for classes matching the registry's class filter
-        and add them to this registry.
+        """Add the folder's classes matching the registry's class filter to this registry.
+
+        This is the initial scan of the folder.
 
         This method is called by the library when it is enabled.
 
@@ -230,6 +233,7 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
         exclude_patterns: list[str] | None = None,
     ):
         """Remove all classes associated with a library_identity from this registry.
+
         This method is called by the library when it is disabled.
 
         Args:
@@ -436,7 +440,8 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
         library_identity: LibraryIdentity,
         file_event: FileChangeEvent | None = None,
     ):
-        """called when a new module is created / loaded
+        """Called when a new module is created / loaded.
+
         Args:
             module (str): The module name that has been created.
             file_event: The originating FileChangeEvent, if any. When present,
@@ -485,9 +490,10 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
     def _on_change(
         self, module_name: str, library_identity: LibraryIdentity, event: FileChangeEvent | None = None
     ):
-        """re-registering existing classes within the module
-        and returning the classes that need to be
-        additionally registered / unregistered
+        """Re-register the existing classes within the module.
+
+        Returns the classes that need to be additionally registered / unregistered.
+
         Args:
             module_name (str): The module name that has changed.
             event (Optional[FileChangeEvent]): The file change event
@@ -554,6 +560,7 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
         self, module_name: str, library_identity: LibraryIdentity, event: FileChangeEvent | None = None
     ):
         """Reload a single unmanaged module without registry-specific handling.
+
         Catches ModuleNotFoundError to log dependency errors.
         Called by the _on_change method.
         """
@@ -634,6 +641,7 @@ class BaseRegistry[T: RegisteredClass](ComponentRegistry[T], FolderScanMixin):
 
     def _reload_managed_module(self, module_name: str, library_identity: LibraryIdentity):
         """Reload a single managed module with registry-specific handling.
+
         Called by the _on_change method.
         """
         # Create snapshot before reload

@@ -1,6 +1,8 @@
-"""@farmhand — stamps FarmhandIdentity. Follows the @node decorator shape
-(node/decorator.py:70): freeform **kwargs splatted into the identity dataclass,
-class-name defaults via setdefault, kind constant from library/utils.
+"""@farmhand — stamps FarmhandIdentity.
+
+Follows the @node decorator shape (node/decorator.py:70): freeform **kwargs splatted
+into the identity dataclass, class-name defaults via setdefault, kind constant from
+library/utils.
 """
 
 from __future__ import annotations

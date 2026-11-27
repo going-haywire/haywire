@@ -126,8 +126,7 @@ def invalid_os_values(lib_dir: Path) -> list[str]:
 
 
 def strip_undeclarable_os_values(lib_dir: Path) -> list[str]:
-    """Rewrite ``os`` in the library's haybale.toml, keeping only declarable
-    values (macos/windows/linux).
+    """Rewrite ``os`` in the library's haybale.toml, keeping only declarable values (macos/windows/linux).
 
     Near-miss values (osx/darwin/mac -> macos, win/win32/nt -> windows) are
     corrected rather than dropped; anything else unmapped is removed outright —

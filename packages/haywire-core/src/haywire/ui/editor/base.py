@@ -47,8 +47,9 @@ class BaseEditor(ABC):
         self.wrapper: EditorWrapper = wrapper
 
     def on_focus(self, context: SessionContext) -> None:
-        """Called when this wrapper transitions from not-active to active in its slot
-        (not when re-selecting the already-active wrapper).
+        """Called when this wrapper transitions from not-active to active in its slot.
+
+        Not called when re-selecting the already-active wrapper.
 
         Runs before draw() on the newly-activated wrapper, so context mutations here
         are visible to that draw() and to signals this hook emits. Default is a no-op;
@@ -131,6 +132,7 @@ class BaseEditor(ABC):
 
     def cleanup(self) -> None:
         """Optional cleanup when the editor is permanently removed.
+
         Override to release resources, cancel timers, etc.
         """
         pass

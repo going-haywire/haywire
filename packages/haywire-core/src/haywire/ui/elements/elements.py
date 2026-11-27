@@ -59,8 +59,9 @@ _LIST_HOVER_CLASS = "hw-list-item-hover"
 
 @contextmanager
 def panel_header(title: str, *, icon: str | None = None, is_dirty: bool = False):
-    """A slim bar at the top of a panel with title, optional icon, and space for
-    action buttons.  Use as a context manager — place action buttons inside.
+    """A slim bar at the top of a panel with title, optional icon, and space for action buttons.
+
+    Use as a context manager — place action buttons inside.
 
     Anatomy::
 
@@ -1242,8 +1243,7 @@ def section_divider(text: str | None = None):
 
 @contextmanager
 def category_group(label: str, *, default_open: bool = True):
-    """A collapsible category header for settings field groups inside a
-    ``compact-fields`` container.
+    """A collapsible category header for settings field groups inside a ``compact-fields`` container.
 
     This is distinct from ``hui.expansion_section`` (which is for property
     panel scopes with state persistence). Use this for settings field grouping

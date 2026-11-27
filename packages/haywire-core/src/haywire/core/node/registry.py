@@ -40,8 +40,9 @@ class NodeRegistry(BaseRegistry[BaseNode]):
     def _register_class(
         self, cls: type[BaseNode], library_identity: LibraryIdentity | None = None
     ) -> str | None:
-        """Register a node class under the registry_key its ``@node`` decorator stamped,
-        and return that key.
+        """Register a node class under the registry_key its ``@node`` decorator stamped.
+
+        Returns that key.
 
         A class declaring ``_is_error`` also becomes the registry's error node,
         unless one with a higher ``_error_priority`` already holds the slot; a
@@ -182,8 +183,9 @@ class NodeRegistry(BaseRegistry[BaseNode]):
         return self._regkey_to_last_lifecycle_event.get(key)
 
     def get_alternate_node_registry_keys(self, registry_key: str) -> list[str]:
-        """The keys of every registered node sharing this key's registry_id but coming
-        from a different library. The key itself is excluded.
+        """The keys of every registered node sharing this key's registry_id from another library.
+
+        The key itself is excluded.
         """
         registry_id = get_registry_id_from_key(registry_key)
         alternates = []

@@ -299,7 +299,7 @@ def test_the_toolbar_provider_forwards_the_verbs() -> None:
 
 
 def _graph(locked=(), off_stage=()):
-    """a -> b -> c; ``locked`` nodes are locked, ``off_stage`` nodes are not on stage."""
+    """``a`` -> ``b`` -> ``c``; ``locked`` nodes are locked, ``off_stage`` nodes are not on stage."""
 
     def wrapper(n):
         props = SimpleNamespace(locked=n in locked, on_stage=n not in off_stage)

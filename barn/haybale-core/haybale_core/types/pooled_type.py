@@ -45,7 +45,7 @@ class POOLED(CompoundType[T]):
 
     Its field keeps one value per source, so the inlet takes many edges (see `DataPort.takes_many_links`).
 
-    IMPORTANT:
+    Important:
         as_inlet() refuses a wire_type kwarg; the port travels on its element type's wire type.
 
     Storage: PooledField stores Dict[str, T] with unwrapped values

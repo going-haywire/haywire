@@ -53,7 +53,9 @@ def test_no_update_when_installed_matches_latest():
 
 
 def test_offline_is_reported_as_unreachable_not_as_up_to_date():
-    """ "Couldn't reach PyPI" and "you're up to date" are different answers —
+    """An unreachable PyPI is reported as such, never as "you're up to date".
+
+    "Couldn't reach PyPI" and "you're up to date" are different answers —
     collapsing them would tell the user a comforting lie.
     """
     from haywire.core.update.check import check_for_update

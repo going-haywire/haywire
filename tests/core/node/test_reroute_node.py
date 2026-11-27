@@ -63,7 +63,7 @@ def test_on_startup_caches_single_inlet_and_outlet(monkeypatch):
 
 
 def test_worker_forwards_inlet_to_outlet_and_returns_outlet_id():
-    """worker reads cached inlet value and writes it to cached outlet, returns outlet id."""
+    """`worker` reads cached inlet value and writes it to cached outlet, returns outlet id."""
     node = _make_reroute_node()
     written = {}
 

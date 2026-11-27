@@ -23,7 +23,7 @@ _BODY = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
 
 @pytest.fixture
 def anyio_backend() -> str:
-    """anyio's backend parametrization. The repo runs asyncio only."""
+    """`anyio`'s backend parametrization. The repo runs asyncio only."""
     return "asyncio"
 
 
@@ -325,7 +325,7 @@ async def test_collision_is_visible_before_the_write(tmp_path: Path) -> None:
 
 @pytest.mark.anyio
 async def test_preferring_the_other_source_flips_the_winner_in_place(tmp_path: Path) -> None:
-    """ "Use this one" re-resolves and stays on the step — no write, new winner."""
+    """Choosing "Use this one" re-resolves and stays on the step — no write, new winner."""
     flow = _colliding_flow(tmp_path)
     mock = _collision_reachable()
     try:

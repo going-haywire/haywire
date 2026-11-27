@@ -7,7 +7,8 @@ from typing import Final
 
 class ICONS:
     """Hardcoded icon name constants with IDE preview support.
-    see https://fonts.google.com/icons?icon.set=Material%20Icons
+
+    See https://fonts.google.com/icons?icon.set=Material%20Icons
     """
 
     # Basic icons

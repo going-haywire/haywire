@@ -42,8 +42,10 @@ class ReblockSettings(NodeSettings):
     node_type=NodeType.CONTROL,
 )
 class ReblockNode(BaseNode):
-    """Collects the blocks that reach `Write` and delivers blocks of exactly `Block Size` samples to
-    every Audio Event listening, in order. One input block can give several output blocks or none.
+    """Re-cuts the blocks that reach `Write` into blocks of exactly `Block Size` samples.
+
+    The new blocks go to every Audio Event listening, in order. One input block can give several
+    output blocks or none.
 
     The delivered blocks start a new flow: the Audio Event that receives them is the queue between
     the two rates. A change of channel count or sample rate in the input drops the samples still held.

@@ -9,16 +9,16 @@ H = Callable[[T], None]
 
 
 class Event[T]:
-    """A generic event class that allows you to register and trigger event handlers,
-    and also provides a way to wait for the next event to be fired.
+    """A generic event: register and trigger handlers, and wait for the next one to fire.
 
     Attributes:
         _handlers (List[H]): A list to store event handlers.
     """
 
     def __init__(self):
-        """Initialize the Event instance with an empty list of handlers
-        and a threading event to allow waiting for events.
+        """Initialize the Event instance with an empty list of handlers and a threading event.
+
+        The threading event allows waiting for events.
         """
         self._handlers: list[H] = []
         self._latest_value: T | None = None
@@ -53,6 +53,7 @@ class Event[T]:
 
     def invoke(self, value: T) -> None:
         """Invoke all registered event handlers with the provided value.
+
         Also set the threading event to allow waiting mechanisms to proceed.
 
         Args:
@@ -83,6 +84,7 @@ class Event[T]:
 
     def register(self, handler: H) -> H:
         """Append an event handler to the list of handlers and return it.
+
         This method should be used as decorator.
 
         Args:

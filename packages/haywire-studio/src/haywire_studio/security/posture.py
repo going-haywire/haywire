@@ -433,9 +433,9 @@ def _rule_broad_allowlist(posture: Posture) -> list[Finding]:
 
 
 def _rule_no_trusted_proxies(posture: Posture) -> list[Finding]:
-    """Only matters behind a reverse proxy, where it collapses every client
-    into one apparent address. NOTE, because most exposed studios have no
-    proxy at all.
+    """Only matters behind a reverse proxy, where it collapses every client into one apparent address.
+
+    NOTE, because most exposed studios have no proxy at all.
     """
     if not posture.reachable_by_others:
         return []

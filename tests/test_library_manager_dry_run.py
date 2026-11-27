@@ -346,7 +346,7 @@ async def test_dry_run_unproven_failure_does_not_blame_the_framework():
 
 @pytest.mark.unit
 async def test_dry_run_refreshes_the_index_for_the_target_package():
-    """uv does not revalidate a cached index page on a resolution miss, so a
+    """`uv` does not revalidate a cached index page on a resolution miss, so a
     just-published version reads as nonexistent until the TTL expires. The
     install path must refresh the one package it is acting on.
     """
@@ -471,7 +471,7 @@ async def test_empty_known_removals_is_not_treated_as_absent():
 
 @pytest.mark.unit
 async def test_streaming_emits_carriage_return_progress_updates():
-    """uv renders download progress with \\r and no newline.
+    """`uv` renders download progress with \\r and no newline.
 
     A line-oriented reader emits nothing until the bar finishes — for a large
     package that is 30+ seconds of a log that looks hung. Each \\r-terminated

@@ -1,5 +1,7 @@
-"""Writing new components into a library: which libraries may receive them, what
-would be written, the write itself, and whether the result registered.
+"""Writing new components into a library, from choosing the target to checking registration.
+
+Covers which libraries may receive them, what would be written, the write itself, and
+whether the result registered.
 
 Every function here is free of UI calls, so the New Node wizard, Promote to
 Macro and Farmhand's authoring tools share one pipeline.

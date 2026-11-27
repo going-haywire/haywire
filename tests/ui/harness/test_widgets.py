@@ -235,7 +235,7 @@ def test_direct_color_field(page: Page, harness):
 
 
 def test_choices_mirror_renders_select(page: Page, harness):
-    """mode mirror renders as a dropdown (mirror resolution → widget by type)."""
+    """`mode` mirror renders as a dropdown (mirror resolution → widget by type)."""
     goto_ready(page, f"{harness}{_NODE_PATH}")
     page.wait_for_selector("[data-field]")
 

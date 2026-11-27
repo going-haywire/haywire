@@ -24,6 +24,7 @@ class IAction(ABC):
     @abstractmethod
     def execute(self) -> None:
         """Execute the action (forward operation).
+
         This method implements the actual change to the system state.
         """
         pass
@@ -31,6 +32,7 @@ class IAction(ABC):
     @abstractmethod
     def undo(self) -> None:
         """Undo the action (reverse operation).
+
         This method reverses the change made by execute().
         """
         pass
@@ -200,6 +202,7 @@ class IHistoryManager(ABC):
     @abstractmethod
     def clear(self) -> None:
         """Clear all history.
+
         This removes all actions and resets the history state.
         """
         pass

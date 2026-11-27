@@ -73,9 +73,11 @@ class TlsStatus:
 
     @property
     def configured(self) -> bool:
-        """Both paths set. Sequential rather than ``and`` so each half is
-        separately readable — exactly one of the pair is the HALF_CONFIGURED
-        state that hard-exits the studio, so the two are not interchangeable.
+        """Both paths set.
+
+        Sequential rather than ``and`` so each half is separately readable —
+        exactly one of the pair is the HALF_CONFIGURED state that hard-exits
+        the studio, so the two are not interchangeable.
         """
         if not self.certfile:
             return False
@@ -343,9 +345,11 @@ def status(
 
 
 def _document_quietly(path: Path | None) -> SecurityDocument:
-    """The document, or an empty one. ``status`` runs against whatever is on
-    disk — including a broken file, which is precisely the situation the user
-    needs reported, so it must not raise here.
+    """The document, or an empty one.
+
+    ``status`` runs against whatever is on disk — including a broken file,
+    which is precisely the situation the user needs reported, so it must not
+    raise here.
     """
     try:
         return load_document(path)

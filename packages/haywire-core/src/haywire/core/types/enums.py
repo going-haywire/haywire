@@ -28,7 +28,9 @@ class Propagation(Enum):
 
 
 class PortType(Enum):
-    """- INLET: Can receives data/control via Inlets
+    """Port types.
+
+    - INLET: Can receives data/control via Inlets
     - OUTLET: Sends data/control via Outlets
     - SWINGLET: One port that may be either end of an edge
     - CONFIG: Has neither Inlets nor Outlets

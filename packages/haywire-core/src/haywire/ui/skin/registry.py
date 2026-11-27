@@ -102,7 +102,8 @@ class SkinRegistry(BaseRegistry[BaseSkin]):
         return super()._register(registry_key, cls, library_identity)
 
     def _unregister_class(self, registry_key: str) -> type[BaseSkin] | None:
-        """Unregister a skin by its registry_key
+        """Unregister a skin by its registry_key.
+
         Args:
             registry_key: The haywire registry_key of the skin to unregister
         Returns:
@@ -164,7 +165,8 @@ class SkinRegistry(BaseRegistry[BaseSkin]):
             logger.warning("No default skin left in registry")
 
     def get_default_skin_registry_key(self, fallback: str | None = None) -> str | None:
-        """Get the default skin registry key
+        """Get the default skin registry key.
+
         Args:
             fallback: Fallback value if no default skin is set
         Returns:

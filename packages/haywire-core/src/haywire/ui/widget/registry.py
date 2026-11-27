@@ -52,7 +52,8 @@ class WidgetRegistry(BaseRegistry[IWidget]):
         return reg
 
     def _unregister_class(self, registry_key: str) -> type[IWidget] | None:
-        """Unregister a UI widget by its registry key
+        """Unregister a UI widget by its registry key.
+
         Args:
             registry_key: The haywire registry_key of the widget to unregister
         Returns:

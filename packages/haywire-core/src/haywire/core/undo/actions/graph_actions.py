@@ -575,9 +575,7 @@ class RestackNodesAction(ActionBase):
 
 
 class RemoveElementsAction(ActionBase):
-    """Action for removing multiple nodes and connections in a single
-    operation.
-    """
+    """Action for removing multiple nodes and connections in a single operation."""
 
     def __init__(
         self,
@@ -1563,8 +1561,10 @@ class ReorderPortsAction(ActionBase):
     """
 
     def __init__(self, graph: BaseGraph, node_id: str, ordered_ids: list[str]):
-        """Args:
-        ordered_ids: Port ids of the group, in the order they should display.
+        """Initialize the action.
+
+        Args:
+            ordered_ids: Port ids of the group, in the order they should display.
         """
         super().__init__(description=f"Reorder pins on {node_id}")
         self.graph = graph
@@ -1706,12 +1706,14 @@ class SetPortMetadataAction(ActionBase):
         description_: str | None = None,
         **changes: Any,
     ):
-        """Args:
-        port_id: The port to edit, on ``node_id``.
-        description_: Optional override for the undo entry's own text, kept
-            out of the way of the ``description`` field being edited.
-        **changes: Any of ``label``, ``description``, ``default``. A field
-            left out is untouched.
+        """Initialize the action.
+
+        Args:
+            port_id: The port to edit, on ``node_id``.
+            description_: Optional override for the undo entry's own text, kept
+                out of the way of the ``description`` field being edited.
+            **changes: Any of ``label``, ``description``, ``default``. A field
+                left out is untouched.
         """
         unknown = set(changes) - set(self._FIELDS)
         if unknown:
@@ -1903,10 +1905,12 @@ class PromoteSettingAction(ActionBase):
     """
 
     def __init__(self, graph: BaseGraph, node_id: str, accessor: str, field: str, direction: Any):
-        """Args:
-        accessor: The settings bag's handle on the node (``bag_accessor()``).
-        field: The setting's attribute name in that bag.
-        direction: The ``PortType`` to promote to: inlet, outlet or config.
+        """Initialize the action.
+
+        Args:
+            accessor: The settings bag's handle on the node (``bag_accessor()``).
+            field: The setting's attribute name in that bag.
+            direction: The ``PortType`` to promote to: inlet, outlet or config.
         """
         super().__init__(description=f"Promote '{field}'")
         self.graph = graph
@@ -3015,10 +3019,12 @@ class RebuildNodesAction(ActionBase):
         description: str,
         after: Mapping[str, dict[str, Any] | None] | None = None,
     ):
-        """Args:
-        before: Each node's ``serialize()["node_data"]`` from before the rebuild, by node id.
-        after: The node data each node is rebuilt from, by node id; a node missing
-            here, or mapped to ``None``, is rebuilt through ``init()``.
+        """Initialize the action.
+
+        Args:
+            before: Each node's ``serialize()["node_data"]`` from before the rebuild, by node id.
+            after: The node data each node is rebuilt from, by node id; a node missing
+                here, or mapped to ``None``, is rebuilt through ``init()``.
         """
         super().__init__(description=description)
         self.graph = graph

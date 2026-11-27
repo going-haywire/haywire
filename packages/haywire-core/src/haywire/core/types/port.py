@@ -597,8 +597,9 @@ class DataPort(DataTypeIdentity):
         return bool(self.incoming.linked) or bool(self.outgoing.linked)
 
     def should_show_widget(self) -> bool:
-        """Resolve whether this port's inline widget should be rendered, given its
-        ``show_widget`` strategy and current link state.
+        """Resolve whether this port's inline widget should be rendered.
+
+        The answer is given its ``show_widget`` strategy and current link state.
 
         Note: this does NOT check ``widget_key`` — a caller must still confirm the
         port has a widget to render. It answers only the strategy-vs-link question.
@@ -785,8 +786,9 @@ class DataPort(DataTypeIdentity):
         self._is_dirty_structural = True
 
     def _housekeeping(self) -> None:
-        """Called during graph housekeeping phase.
-        Rebuild connection pipes after structural changes (like reconnecting edges).
+        """Rebuild connection pipes after structural changes (like reconnecting edges).
+
+        Called during graph housekeeping phase.
         This cannot be done immediately upon link changes since
         at the time of a link change, the edges are not yet validated.
         """
@@ -799,6 +801,7 @@ class DataPort(DataTypeIdentity):
 
     def _refresh_pipes(self) -> None:
         """Refresh pipes based on the port's outgoing linked edges.
+
         With outgoing linked edges, ensure pipes exist and are up-to-date.
         Without any, clear pipes.
         Called during graph housekeeping phase.
@@ -841,8 +844,10 @@ class DataPort(DataTypeIdentity):
 
     @property
     def wire_key(self) -> str | None:
-        """The key this pin matches other pins by: its wire type's id, ``WILDCARD`` for a
-        bare ``ADD`` slot, or ``None`` for a port without a wire type. See ``wires_match``.
+        """The key this pin matches other pins by.
+
+        Its wire type's id, ``WILDCARD`` for a bare ``ADD`` slot, or ``None`` for a port without
+        a wire type. See ``wires_match``.
         """
         if self.wire_type is not None:
             return self.wire_type.id
@@ -861,8 +866,9 @@ class DataPort(DataTypeIdentity):
 
     @property
     def is_dependent(self) -> bool:
-        """True for a port on a ``DEPENDENT`` wire, and for a bare ``ADD`` slot, which
-        counts as one until it grows.
+        """True for a port on a ``DEPENDENT`` wire, and for a bare ``ADD`` slot.
+
+        A bare ``ADD`` slot counts as one until it grows.
         """
         return self.has_role(WireRole.DEPENDENT) or self.wire_key == WILDCARD
 

@@ -358,7 +358,9 @@ class LibraryOverviewEditor(BaseEditor):
         row: Haybale,
         context: SessionContext,
     ) -> tuple[Callable[[], None], str] | None:
-        """Clicking a local "Notes"  opened an editable in the
+        """Click target that opens a local "Notes" file in the studio's CodeEditor.
+
+        Clicking a local "Notes"  opened an editable in the
         studio's CodeEditor rather than linked out to a remote blob.
 
         The file need not exist yet: CodeEditor opens a nonexistent path in a new tab

@@ -193,7 +193,7 @@ class TestProjectPyproject:
             assert f"{library}{_release_pin()}" in deps
 
     def test_project_is_pinned_to_python_3_12(self, scaffold_project):
-        """uv sync/run stay on 3.12 even when the machine default is newer."""
+        """`uv` sync/run stay on 3.12 even when the machine default is newer."""
         assert (scaffold_project / ".python-version").read_text().strip() == "3.12"
 
     def test_workspace_members(self, scaffold_project):

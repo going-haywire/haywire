@@ -96,8 +96,10 @@ class IPAllowlistMiddleware:
         return any(ip in network for network in self.allowed_ranges)
 
     def _resolve_client(self, peer_ip: _IPAddress, scope) -> _IPAddress:
-        """Resolve the effective client IP, honoring X-Forwarded-For only
-        when the direct peer is itself a trusted proxy.
+        """Resolve the effective client IP, honoring X-Forwarded-For only from a trusted proxy.
+
+        X-Forwarded-For is honored only when the direct peer is itself a
+        trusted proxy.
 
         Rightmost-untrusted algorithm: XFF entries are appended
         left-to-right as a request hops through proxies (leftmost = the

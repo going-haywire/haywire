@@ -259,7 +259,7 @@ def test_status_reports_a_missing_file(env, path, capsys):
 
 
 def test_status_exits_zero_in_every_state(env, path, capsys):
-    """status reports; it does not judge."""
+    """`status` reports; it does not judge."""
     assert _run(["ssl", "status"], env, path) == 0
     _run(["ssl", "setup"], env, path)
     assert _run(["ssl", "status"], env, path) == 0

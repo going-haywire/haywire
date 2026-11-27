@@ -1138,8 +1138,10 @@ class GraphEditor(BaseEditor):
             self._remount(context, level, kept.get(key, {}))
 
     def _remount(self, context: SessionContext, level: _Level, viewports: dict[str, Viewport]) -> None:
-        """Mount ``level``: its view on screen at its viewport (fitted without one), and every other
-        view in ``viewports`` at its own. A view never mounted before stays lazy.
+        """Mount ``level`` and every other view in ``viewports``, each at its own viewport.
+
+        ``level``'s view goes on screen, fitted when it has no viewport. A view never mounted
+        before stays lazy.
         """
         self._mount_level(context, level, viewport=viewports.get(level.view))
         for view, viewport in viewports.items():
@@ -1568,8 +1570,9 @@ class GraphEditor(BaseEditor):
             button.props(f"aria-pressed={'true' if shown else 'false'}")
 
     def _update_lock_button(self, context: SessionContext) -> None:
-        """Show the lock icon of the level on screen, and the action a click takes; disabled below
-        the real edit tier.
+        """Show the lock icon of the level on screen, and the action a click takes.
+
+        Disabled below the real edit tier.
         """
         button = self._lock_button
         level = self._levels.get(self._active_level)

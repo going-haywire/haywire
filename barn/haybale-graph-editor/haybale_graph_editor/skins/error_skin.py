@@ -40,8 +40,9 @@ class ErrorNodeSkin(NodeSkin):
     """
 
     def card_classes(self, wrapper: NodeWrapper) -> str:
-        """`error-node-card` is a sibling token, NOT a substitute for
-        `node-card` — CSS class selectors match whole tokens, so a card
+        """`error-node-card` is a sibling token, NOT a substitute for `node-card`.
+
+        CSS class selectors match whole tokens, so a card
         carrying only this one silently caps at max-w-sm mid-drag. The shared
         `node-card` comes from whoever builds the card; this only adds to it.
         """

@@ -46,6 +46,7 @@ class _WidgetPreviewPort:
 )
 class ComponentDocsEditor(BaseEditor):
     """Displays documentation and port information for the selected component.
+
     Rebuilds on ACTIVE_COMPONENT_CHANGED context events.
     """
 

@@ -1455,8 +1455,9 @@ class VisualLayerHandlers:
         return card_cls, input_cls, output_cls
 
     def _try_auto_wire(self, wrapper, pending: dict) -> None:
-        """After node creation from a mid-drag context menu, auto-wire the new
-        node to a compatible port on the dragged-from pin's side.
+        """Auto-wire a node created from a mid-drag context menu to a compatible port.
+
+        The port is on the dragged-from pin's side.
 
         ``pending`` carries the dragged-from pin's metadata (pin_id, node_id,
         pin_dir, wire, data_type) — see NodeCreateRequestEvent.

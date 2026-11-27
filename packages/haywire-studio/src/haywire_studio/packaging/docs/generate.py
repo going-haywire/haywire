@@ -124,8 +124,9 @@ def _generate_one(
     module_dir: Path,
     version: str | None = None,
 ) -> tuple[list[str], list[str]]:
-    """Extract + render + write every doc file for one library given a loaded
-    service. Returns that library's coverage-report and naming-report lines.
+    """Extract + render + write every doc file for one library given a loaded service.
+
+    Returns that library's coverage-report and naming-report lines.
 
     ``version`` overrides the version rendered into the docs. The share
     pipeline passes the version it just bumped to, so the docs, the tag, and

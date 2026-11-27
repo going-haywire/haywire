@@ -149,7 +149,7 @@ def test_apply_rejects_a_bare_version(tmp_path):
 
 
 def test_reordered_equivalent_specifiers_are_not_drift(tmp_path):
-    """packaging reorders on str(): ">=0.0.31,<1.0.0" round-trips as
+    """`packaging` reorders on str(): ">=0.0.31,<1.0.0" round-trips as
     "<1.0.0,>=0.0.31". Comparing raw strings would report false drift.
     """
     from haywire.core.publishing.pipeline.steps.framework import specifiers_equal

@@ -357,8 +357,9 @@ def test_the_two_entries_are_siblings_of_each_other():
 
 
 def test_settings_source_entry_nests_view_and_edit_leaves(make_node_with_setting):
-    """ "Settings source" is not itself clickable — it is a sub-flyout anchor
-    offering the two targets, "Open in Context" (CONTEXT) and "Open in Code
+    """The "Settings source" entry is a sub-flyout anchor, not a clickable leaf.
+
+    It offers the two targets, "Open in Context" (CONTEXT) and "Open in Code
     Editor" (EDIT).
     """
     node = make_node_with_setting(accessor="filter", field="threshold")
