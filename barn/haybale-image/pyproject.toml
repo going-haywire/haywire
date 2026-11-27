@@ -1,12 +1,12 @@
 [project]
 name = "haybale-image"
-version = "0.6.5"
+version = "0.6.6"
 description = "Image types, IO and viewers shared by vision and ML libraries"
 requires-python = ">=3.12"
 license = {text = "MIT"}
 
 dependencies = [
-    "haywire-core>=0.6.5",
+    "haywire-core>=0.6.6",
     # Follows opencv-contrib-python 4.13.0.90 (below), which declares numpy>=2.
     "numpy>=2.0",
     # AVIF encoding: 4.13.0.90 is the first opencv-contrib-python wheel that encodes

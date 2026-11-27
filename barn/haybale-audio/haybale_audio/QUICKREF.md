@@ -1,4 +1,4 @@
-# haybale-audio — component index (v0.6.5)
+# haybale-audio — component index (v0.6.6)
 
 ## node
 - `haybale-audio:node:AudioClockNode` — Audio Clock — Emits a silent audio block at a steady rate  _tags: audio, clock, tick, timer, master, pace, emit_
