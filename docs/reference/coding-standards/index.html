@@ -6695,8 +6695,9 @@ the app, so lookups miss silently; see
 whole library. <strong>Enforced by</strong>: review. <strong>Scope</strong>: repo.</p>
 <h3 id="cs-l2-print-only-for-a-command-line-tools-output-to-its-user">CS-L2 · <code>print</code> only for a command-line tool's output to its user<a class="headerlink" href="#cs-l2-print-only-for-a-command-line-tools-output-to-its-user" title="Permanent link">&para;</a></h3>
 <p>Everything else logs. <strong>Why</strong>: an embedder of the library system or a test can't silence
-a print. <strong>Enforced by</strong>: review (ruff <code>T20</code> with per-file ignores for CLI modules,
-planned). <strong>Scope</strong>: repo.</p>
+a print. <strong>Enforced by</strong>: ruff <code>T20</code>, with per-file ignores for the CLI modules and scripts
+(<code>pyproject.toml</code>, <code>barn/ruff.toml</code>) and a <code>noqa: T201</code> for each other print that stays.
+<strong>Scope</strong>: repo.</p>
 <h3 id="cs-l3-log-levels-mean-the-same-everywhere">CS-L3 · Log levels mean the same everywhere<a class="headerlink" href="#cs-l3-log-levels-mean-the-same-everywhere" title="Permanent link">&para;</a></h3>
 <table>
 <thead>

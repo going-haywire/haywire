@@ -6346,7 +6346,7 @@ change §8.3's serialization contract or the resolution chain; it only moves
 <em>where</em> the bytes are read and written. One real external caller keeps a
 handful of registry internals (<code>_global_watch_enabled</code>,
 <code>_workspace_watch_enabled</code>, <code>_reload_from_file</code>) on the registry rather than
-the store: <code>core/di/config.py</code>'s <code>_print_settings_status</code>/<code>reload_settings()</code>
+the store: <code>core/di/config.py</code>'s <code>_log_settings_status</code>/<code>reload_settings()</code>
 read them directly, so <code>registry.py</code> is not — and was never targeted to be —
 as small as a clean definitions/tiers-only module would be in isolation.</p>
 <h3 id="62-the-four-key-identifiers">6.2 The four key identifiers<a class="headerlink" href="#62-the-four-key-identifiers" title="Permanent link">&para;</a></h3>
