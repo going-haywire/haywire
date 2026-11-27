@@ -18,7 +18,7 @@ level: framework
 
 **Decision.**
 
-- **D1** Pooled delivery is a delivery mode in core. It is not a callback type, so it works for every callback type (`CALLBACK`, `AUDIO_CALLBACK`, …).
+- **D1** Pooled delivery is a delivery mode in core. It is not a callback type, so it works for every callback type of discrete events (`CALLBACK`, `CLIP_CALLBACK`, …), never a block stream (D11).
 - **D2** **The event node chooses.** `CallbackEvent` carries `delivery`, either `Delivery.EVERY` (the default, today's broadcast) or `Delivery.POOLED`. Like `queue_mode` it uses `kw_only` and `compare=False`. The node author sets it from core's `DeliverySettings` bag (one setting, *Delivery*), the same way ADR 0010 sets the queue mode. The emitter doesn't know how its events are distributed.
 - **D3** **One emit carries all subscriber names.** `emit_callback` takes one name or a sequence of names. With a sequence, core splits the emit:
   - every *Every* listener gets the trigger in its own flow queue, exactly as a loop of single emits does today;

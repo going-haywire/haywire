@@ -5,7 +5,7 @@ from __future__ import annotations
 from haybale_audio.dsp.clip import ClipBuffer
 from haybale_audio.emitter import set_status
 from haybale_audio.value import AudioBlock
-from haywire.api import EXEC, FLOAT, STRING, BaseNode, ExecutionContext, LabelWidget, NodeType, node
+from haywire.api import EXEC, FLOAT, STRING, BaseNode, ExecutionContext, LabelWidget, NodeType, Refusal, node
 
 
 @node(
@@ -91,7 +91,7 @@ class CollectClipNode(BaseNode):
             set_status(self, f"Sent {clip.duration:.1f} s")
             return "done"
         if audio is None:
-            raise ValueError("add needs an audio block")
+            raise Refusal("Collect Clip has no block to add: connect an Audio Event's Audio to Audio.")
         buffer.max_seconds = float(max_seconds)
         if buffer.add(audio):
             seconds = buffer.seconds

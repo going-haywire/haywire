@@ -73,6 +73,7 @@ class Segmenter:
         self._start_frame = 0  # stream frame where the open segment starts
         self._frames = 0  # frames seen so far
         self._rate = 0
+        self._channels = 0
 
     @property
     def speaking(self) -> bool:
@@ -99,7 +100,7 @@ class Segmenter:
         self._silence.clear()
         self._before_frames = self._silence_frames = self._lead_frames = 0
         self._open = False
-        self._frames = self._start_frame = self._rate = 0
+        self._frames = self._start_frame = self._rate = self._channels = 0
         self.sent = self.discarded = 0
         self.level = 0.0
 
@@ -109,9 +110,13 @@ class Segmenter:
         Raises:
             ValueError: *block* has another channel count or sample rate than the first.
         """
+        # Both checks come before any state changes, so a refused block leaves the segmenter as it was.
         if self._rate and block.sample_rate != self._rate:
             raise ValueError(f"block is at {block.sample_rate} Hz, but the stream is at {self._rate} Hz")
+        if self._channels and block.channels != self._channels:
+            raise ValueError(f"block has {block.channels} ch, but the stream has {self._channels} ch")
         self._rate = block.sample_rate
+        self._channels = block.channels
         self.level = rms(block)
         loud = self.level > self.threshold
         position = self._frames
@@ -173,8 +178,15 @@ class Segmenter:
         pause, self._silence, self._silence_frames = self._silence, [], 0
         tail = self._keep_postroll(pause)
         audio = self._buffer.take()
-        for block in pause:  # the whole pause is the next segment's pre-roll
-            self._remember(block)
+        skip = tail  # the post-roll is in this clip; only the rest of the pause is the next pre-roll
+        for block in pause:
+            if skip >= block.frames:
+                skip -= block.frames
+                continue
+            self._remember(
+                block if skip == 0 else AudioBlock(block.data[:, skip:].copy(), block.sample_rate)
+            )
+            skip = 0
         self._open = False
         if audio is None:
             return None

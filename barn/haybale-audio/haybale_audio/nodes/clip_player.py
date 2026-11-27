@@ -144,6 +144,8 @@ class ClipPlayerNode(BaseNode):
         if not (self.value("callbacks") or {}):
             set_status(self, "No subscriber")
             return None
+        # The status first: a short clip's end may be reported before this method returns.
+        set_status(self, f"Playing {clip.duration:.1f} s, {clip.channels} ch at {clip.sample_rate} Hz")
         running = self.hb_pump is not None and self.hb_pump.running
         if not (running and self.hb_reader is not None and self.hb_reader.play(clip)):
             self.hb_stop()
@@ -152,7 +154,9 @@ class ClipPlayerNode(BaseNode):
                 int(self.playback.block_size),
                 loop=bool(self.playback.loop),
                 keep_running=bool(self.playback.keep_running),
-                on_clip_end=lambda: self.hb_finished(context, "Silence until the next clip"),
+            )
+            reader.on_clip_end = lambda: reader.finish(
+                lambda: self.hb_finished(context, "Silence until the next clip")
             )
             self.hb_reader = reader
             self.hb_pump = BlockPump(
@@ -163,14 +167,13 @@ class ClipPlayerNode(BaseNode):
                 on_end=lambda error: self.hb_on_end(context, reader, error),
             )
             self.hb_pump.start()
-        set_status(self, f"Playing {clip.duration:.1f} s, {clip.channels} ch at {clip.sample_rate} Hz")
         return "started"
 
     def hb_on_end(self, context: ExecutionContext, reader: _ClipReader, error: Exception | None) -> None:
         if error is not None:
             set_status(self, f"Error: {error}")
         elif reader.ended:  # played to its end; a Stop leaves the reader running
-            self.hb_finished(context, "Finished")
+            reader.finish(lambda: self.hb_finished(context, "Finished"))
 
     def hb_finished(self, context: ExecutionContext, status: str) -> None:
         """Show ``status`` and run the Tick Events wired to `On Finish`."""
@@ -181,6 +184,9 @@ class ClipPlayerNode(BaseNode):
 
     def hb_stop(self) -> None:
         # post_init() may never have run (init() failed during a reset or reload).
+        reader = getattr(self, "hb_reader", None)
+        if reader is not None:
+            reader.stop()  # first: a clip running out as Stop arrives runs no On Finish
         pump = getattr(self, "hb_pump", None)
         if pump is not None:
             pump.stop()
@@ -194,6 +200,9 @@ class _ClipReader:
     The blocks keep the clip's sample rate and channels; the last block of a pass is shorter than
     ``block_size`` when the length does not divide. After the clip it loops, sends silence in the
     clip's format (``keep_running``), or ends. ``play`` and ``read_block`` may run on different threads.
+
+    With ``keep_running`` the clip's end is reported as its last block goes out, not when the
+    silence starts, so a next clip switched in by then follows without a silent block between.
     """
 
     def __init__(
@@ -207,8 +216,11 @@ class _ClipReader:
         self._block_size = block_size
         self._loop = loop
         self._keep_running = keep_running
-        self._on_clip_end = on_clip_end
+        self.on_clip_end = on_clip_end
         self._lock = threading.Lock()
+        self._finish_lock = threading.Lock()  # orders a finish report against stop()
+        self._stopped = False
+        self._reported = False
         self._ended = False
         self._clip = clip
         self._position = 0
@@ -220,6 +232,17 @@ class _ClipReader:
         with self._lock:
             return self._ended
 
+    def stop(self) -> None:
+        """Mark the reader stopped: from now on :meth:`finish` reports nothing."""
+        with self._finish_lock:
+            self._stopped = True
+
+    def finish(self, report: Callable[[], None]) -> None:
+        """Run ``report`` for the clip's end unless the reader was stopped first."""
+        with self._finish_lock:
+            if not self._stopped:
+                report()
+
     def play(self, clip: AudioBlock) -> bool:
         """Switch to ``clip`` from its first block; return ``False`` once the reader has ended."""
         with self._lock:
@@ -227,6 +250,7 @@ class _ClipReader:
                 return False
             self._clip = clip
             self._position = 0
+            self._reported = False
             self._silence = self._silence_for(clip)
             return True
 
@@ -241,16 +265,17 @@ class _ClipReader:
                 if not self._keep_running:
                     self._ended = True
                     return None
-                clip_ended = self._position == frames
-                self._position = frames + 1  # past the end: the clip's end is reported once
                 block = self._silence
             else:
                 end = min(self._position + self._block_size, frames)
                 data = np.ascontiguousarray(self._clip.data[:, self._position : end])
                 block = AudioBlock(data, self._clip.sample_rate)
                 self._position = end
-        if clip_ended and self._on_clip_end is not None:
-            self._on_clip_end()
+            if self._keep_running and not self._loop and self._position >= frames and not self._reported:
+                self._reported = True  # the clip's end is reported once, as its last block goes out
+                clip_ended = True
+        if clip_ended and self.on_clip_end is not None:
+            self.on_clip_end()
         return block
 
     def _silence_for(self, clip: AudioBlock) -> AudioBlock:

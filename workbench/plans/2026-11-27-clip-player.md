@@ -140,3 +140,6 @@ new Post-roll (default 100 ms, at most the Hang-over; it does not count towards 
 File Player, Clip Player, Audio Clock, Resample and Reblock; ADR 0097 D11 · 3 a: in #276. A graph
 saved with those settings loads without them (`test_saved_graphs`, fixture
 `pooled_audio_settings.haywire`).
+
+Owner, via the lead: Clip Queue keeps Pushed, Popped, Empty and Cleared (3 a); Cut stays without an
+outlet (4 a); no post-roll listen (6 a); a code review of #276 before the merge.

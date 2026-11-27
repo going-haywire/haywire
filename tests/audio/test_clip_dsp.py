@@ -166,3 +166,23 @@ def test_the_postroll_does_not_count_towards_the_minimum() -> None:
     seg = Segmenter(threshold=0.01, hangover=0.1, preroll=0.0, min_length=0.2, postroll=0.1)
     assert _feed(seg, _tone(15) + _silence(10)) == []  # 150 ms of sound, 250 ms with the post-roll
     assert seg.discarded == 1
+
+
+@pytest.mark.unit
+def test_a_block_with_other_channels_is_refused_and_leaves_the_segmenter_as_it_was() -> None:
+    seg = Segmenter(threshold=0.01, hangover=0.1, preroll=0.0, min_length=0.0)
+    _feed(seg, _tone(20))
+    with pytest.raises(ValueError, match="2 ch, but the stream has 1 ch"):
+        seg.feed(_tone(1, channels=2)[0])
+    assert seg.speaking
+    (segment,) = _feed(seg, _tone(5) + _silence(10))
+    assert segment.audio.frames == 25 * BLOCK
+
+
+@pytest.mark.unit
+def test_the_postroll_is_not_sent_again_as_the_next_preroll() -> None:
+    seg = Segmenter(threshold=0.01, hangover=0.1, preroll=0.2, min_length=0.0, postroll=0.05)
+    first, second = _feed(seg, _tone(20) + _silence(10) + _tone(20) + _silence(10))
+    assert first.audio.frames == 25 * BLOCK  # the tone and 5 blocks of post-roll
+    assert second.start == pytest.approx(25 * BLOCK / RATE), "the pre-roll starts after the post-roll"
+    assert second.audio.frames == (5 + 20 + 5) * BLOCK

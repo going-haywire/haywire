@@ -18,6 +18,7 @@ from haywire.api import (
     NodeSettings,
     NodeType,
     Promotable,
+    Refusal,
     bag,
     node,
     setting,
@@ -126,7 +127,7 @@ class ClipQueueNode(BaseNode):
         pin = context.control_pin
         if pin == "push":
             if clip is None:
-                raise ValueError("push needs a clip")
+                raise Refusal("Clip Queue has no clip to push: connect one to Clip.")
             count = clips.push(clip, str(self.queue.order), int(self.queue.max_clips))
             outlet: str | None = "pushed"
         elif pin == "pop":

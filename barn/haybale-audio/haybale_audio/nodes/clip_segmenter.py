@@ -19,6 +19,7 @@ from haywire.api import (
     NodeSettings,
     NodeType,
     Promotable,
+    Refusal,
     bag,
     node,
     setting,
@@ -120,7 +121,7 @@ class ClipSegmenterNode(BaseNode):
     shows the level, which helps to set the threshold.
 
     The clip goes to every Clip Event listening on `Subscribers` and arrives in a flow of its
-    own, so a slow step, such as a speech model, never holds up the audio flow:
+    own, so a slow step, such as a speech model, runs outside the audio flow:
 
     ```text
     Device In → Audio Event → Clip Segmenter (Add)
@@ -131,6 +132,11 @@ class ClipSegmenterNode(BaseNode):
     the segmenter's first block, and its `Clip Number` the count of clips sent. Clip Events set to
     Pooled share the clips, the next free one taking each; `Backlog` holds the clips that wait
     while every pooled one is busy.
+
+    The audio flow waits only when a Clip Event's queue is full: with the default Queue Mode
+    (Block), a flow that falls 16 clips behind makes the segmenter wait up to 5 s, and the audio
+    flow with it. For a slow step, set its Clip Event to Drop, or to Pooled: the Backlog's default
+    (Drop oldest) never waits.
 
     Inputs:
         add: Feed the block on `audio` (wire it to an Audio Event's Block Ready)
@@ -187,7 +193,7 @@ class ClipSegmenterNode(BaseNode):
             self.hb_send(context, segmenter.cut())
             return None
         if audio is None:
-            raise ValueError("add needs an audio block")
+            raise Refusal("Clip Segmenter has no block to add: connect an Audio Event's Audio to Audio.")
         settings = self.segmenting
         segmenter.threshold = float(settings.threshold)
         segmenter.hangover = max(0, int(settings.hangover_ms)) / 1000

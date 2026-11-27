@@ -10,6 +10,7 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
+from haywire.api import Refusal
 from tests.conftest import make_edge, make_node
 from tests.wait import wait_until
 
@@ -140,6 +141,12 @@ def test_collect_clip_sends_the_gathered_blocks_on_stop(graph_with_library_syste
     assert node.worker(_context("stop")) is None  # the next clip starts empty
 
 
+def test_collect_clip_without_audio_is_refused(graph_with_library_system):
+    node = _node(graph_with_library_system, "collect_clip", "CollectClipNode")
+    with pytest.raises(Refusal, match="connect an Audio Event"):
+        node.worker(_context("add"), audio=None)
+
+
 def test_collect_clip_drops_blocks_past_max_seconds(graph_with_library_system):
     node = _node(graph_with_library_system, "collect_clip", "CollectClipNode")
     block = _block(frames=1600, rate=16000)
@@ -234,7 +241,7 @@ def test_clip_segmenter_without_subscriber_sends_nothing(graph_with_library_syst
 
 def test_clip_segmenter_without_audio_is_an_error(graph_with_library_system):
     node = _segmenter(graph_with_library_system)
-    with pytest.raises(ValueError, match="audio block"):
+    with pytest.raises(Refusal, match="connect an Audio Event"):
         node.worker(_context("add"), audio=None)
 
 
@@ -296,7 +303,7 @@ def test_clip_queue_clear_empties_it(graph_with_library_system):
 
 def test_clip_queue_push_without_a_clip_is_an_error(graph_with_library_system):
     node = _queue(graph_with_library_system)
-    with pytest.raises(ValueError, match="needs a clip"):
+    with pytest.raises(Refusal, match="connect one to Clip"):
         node.worker(_context("push"), clip=None)
 
 
@@ -349,3 +356,33 @@ def test_clip_player_keeping_running_runs_on_finish_at_each_clips_end(graph_with
     node.worker(ctx, clip=_block(frames=480))  # the running pump switches to it
     assert wait_until(lambda: len(_finish_emits(ctx)) == 2)
     node.worker(_context("stop"))
+
+
+def test_clip_player_stopped_as_the_clip_runs_out_runs_no_on_finish(graph_with_library_system):
+    """The reader has ended but the pump's end has not been handled yet when Stop arrives."""
+    reader_cls = importlib.import_module("haybale_audio.nodes.clip_player")._ClipReader
+    node = _player(graph_with_library_system)
+    ctx = _context("start")
+    reader = reader_cls(_block(frames=10), 256)
+    while reader.read_block() is not None:
+        pass
+    node.hb_reader = reader
+    node.hb_stop()
+    node.hb_on_end(ctx, reader, None)
+    assert _finish_emits(ctx) == []
+
+
+def test_keep_running_reports_the_end_with_the_last_block_so_the_next_clip_follows_at_once():
+    """A queue chain switches the next clip in on the report: no silent block comes between."""
+    reader_cls = importlib.import_module("haybale_audio.nodes.clip_player")._ClipReader
+    nxt = _block(2.0, frames=256)
+    reader = reader_cls(_block(1.0, frames=300), 256, keep_running=True)
+    queue = [nxt]
+    reader.on_clip_end = lambda: queue and reader.play(queue.pop())
+    blocks = [reader.read_block() for _ in range(4)]
+    assert [(b.frames, float(b.data[0, 0])) for b in blocks] == [
+        (256, 1.0),
+        (44, 1.0),
+        (256, 2.0),
+        (256, 0.0),
+    ]
