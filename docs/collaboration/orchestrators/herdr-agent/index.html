@@ -5549,12 +5549,10 @@ the brief. A library task's worktree goes beside the repositories instead
 <h2 id="messages">Messages<a class="headerlink" href="#messages" title="Permanent link">&para;</a></h2>
 <p><code>hc send &lt;address&gt; "&lt;text&gt;"</code> arrives as the other agent's next input; <code>hc ls</code> lists the
 sessions with their space / tab; <code>hc --skill</code> prints the protocol. A task reports to the
-lead with <code>hc send</code> <strong>before its turn ends</strong>, including what the user told it directly.
-Without <code>hc</code>, the user relays.</p>
-<p><strong>Needs a decision</strong> (the workflow's four steps): the task ends its reply with the lead's
-address and sends the lead one line with its own. The lead marks the task's tab
-<code>? &lt;name&gt;</code> (<code>herdr-app do tab.rename --id &lt;tab&gt; --name "? &lt;name&gt;"</code>) and drops the <code>?</code> on
-"Decided". The hook names a task's tab after its branch; the lead may add its tag
+lead with <code>hc send</code>, in the form <em>Lead and tasks</em> in the workflow gives, <strong>before its turn
+ends</strong> (<em>Decided</em> first). Without <code>hc</code>, the user relays.</p>
+<p><strong>Needs a decision</strong> (the workflow's four steps): the lead marks the task's tab <code>? &lt;name&gt;</code>
+(<code>herdr-app do tab.rename --id &lt;tab&gt; --name "? &lt;name&gt;"</code>). The hook names a task's tab after its branch; the lead may add its tag
 (<code>core › &lt;branch&gt;</code>).</p>
 <h2 id="the-view">The view<a class="headerlink" href="#the-view" title="Permanent link">&para;</a></h2>
 <p><code>tasks.py</code> adds each task's session through the slot's <code>agents.py</code>, which reads

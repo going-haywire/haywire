@@ -5575,15 +5575,13 @@ the worktree before <code>uv sync</code> (<em>Parallel sessions</em> in the work
 bridge, with nothing to install. Its studio, the full one included, starts like a core
 task's (<em>Parallel sessions</em> in the workflow).</p>
 <h2 id="messages">Messages<a class="headerlink" href="#messages" title="Permanent link">&para;</a></h2>
-<p>A task reports with <code>t3_thread_send</code> to the lead's thread id, <strong>before its turn ends</strong>: T3
-may settle a thread at turn end, so a silent stop looks like done. The message arrives as
+<p>A task reports with <code>t3_thread_send</code> to the lead's thread id, in the form <em>Lead and tasks</em>
+in the workflow gives, <strong>before its turn ends</strong> (<em>Decided</em> first): T3 may settle a thread at turn end, so a silent stop looks like done. The message arrives as
 the lead's next input, no polling. The lead links each task's PR to the task's thread with
 <code>link_pull_request</code>, so the thread shows it.</p>
-<p><strong>Needs a decision</strong> (the workflow's four steps): the task ends its reply with the lead's
-link on its own line and sends the lead one line with its own link. The lead renames the
-task <code>? &lt;title&gt;</code> and marks it unread with <code>t3_thread_organize</code> (<code>mark_unread</code> works only
-once the task's turn has ended), then gives the user the line and the link. When the task
-sends "Decided", the lead drops the <code>?</code>.</p>
+<p><strong>Needs a decision</strong> (the workflow's four steps): the lead renames the task <code>? &lt;title&gt;</code> and
+marks it unread with <code>t3_thread_organize</code> (<code>mark_unread</code> works only once the task's turn
+has ended).</p>
 <h2 id="the-view">The view<a class="headerlink" href="#the-view" title="Permanent link">&para;</a></h2>
 <p><code>tasks.py</code> shows no session column for T3: T3 has no slot <code>agents.py</code>. The lead reads its
 task threads with <code>t3_thread_list</code>, <code>t3_worktree_list</code> and the PRs linked to them.</p>

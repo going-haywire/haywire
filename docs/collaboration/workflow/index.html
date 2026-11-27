@@ -6066,20 +6066,26 @@ itself <code>&lt;tag&gt; ◆ lead</code>.</p>
 <code>&lt;kind&gt;/&lt;name&gt;</code> branch from <code>origin/master</code>, <code>worktree_setup.py --lead &lt;your link&gt;</code> there,
 and the session started with a brief from <a href="../brief/">the template</a>, each the
 orchestrator's way.</p>
-<p><strong>A task reports</strong> to the lead through the orchestrator, one line each with the PR's URL,
-<strong>before its turn ends</strong>: <em>PR opened</em>, <em>Live check waiting</em>, <em>Ready</em> (with the live check's
-table or why there was none), <em>Blocked</em> (on what), <em>Needs a decision</em>, <em>Decided</em>,
-<em>Finished</em>. Whatever the user told the task directly goes to the lead too.</p>
+<p><strong>Messages between lead and task.</strong> Content (plans, decisions, options, tables) stays in
+the thread of whoever wrote it. A message is one line, <code>&lt;Report&gt;: &lt;what, at most one
+sentence&gt; &lt;PR URL if any&gt;</code>, with the sender's own link as its last line. The reports are
+these and no others: <em>PR opened</em>, <em>Live check waiting</em>, <em>Ready</em> (the live check's table,
+or why there was none, goes in the PR body), <em>Blocked</em> (on what), <em>Needs a decision</em> (a
+plan that needs the user's word is one), <em>Decided</em>, <em>Finished</em>. A task sends each before
+its turn ends, <em>Decided</em> excepted, and passes on what the user told it directly.</p>
+<p><strong>Every reply to the user ends with the partner's link</strong> as its last line.</p>
 <p><strong>A decision lives in the task's thread:</strong></p>
 <ol>
 <li>The task writes the decisions there in the format of <em>Asking the user for a
-   decision</em>, ending with the lead's link (in T3 the Markdown form
-   <code>[title](t3-thread://…)</code>), and sends the lead one line with its own link.</li>
-<li>The lead puts <code>?</code> before the task's name, marks it unread, and gives the user the line
-   and the link.</li>
+   decision</em>, with the lead's link as the last line (in T3 the Markdown form
+   <code>[title](t3-thread://…)</code>), and sends the lead <em>Needs a decision</em>.</li>
+<li>The lead puts <code>?</code> before the task's name, marks it unread, and gives the user the
+   task's line with the task's link as the last line; it never restates the options.</li>
 <li>The user answers in the task. That is the user's word for that task, approvals
    included.</li>
-<li>The task sends the lead "Decided: … (approved: …)"; the lead drops the <code>?</code>.</li>
+<li>The first tool call of that turn sends the lead "Decided: … (approved: …)"; the lead
+   drops the <code>?</code>. A task that reports anything else while its name carries <code>?</code> has been
+   answered: the lead drops the <code>?</code> then and notes the missed <em>Decided</em>.</li>
 </ol>
 <p><strong>The lead merges</strong> only on the user's word, watches <code>master</code>'s run (<em>Finishing as the
 maintainer</em>, step 4), warns the tasks whose PRs now conflict, and tells the task "merged";
