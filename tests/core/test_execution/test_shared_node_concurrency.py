@@ -183,6 +183,7 @@ class TestSharedNodeConcurrentExecution:
         interpreter = Interpreter()
         interpreter.load_graph(graph)
         try:
+            interpreter.start_execution()
             interpreter.vm.emit_callback(a.node_id)
             assert probe.first_inside.wait(WAIT_TIMEOUT_S), "flow A never reached X"
             interpreter.vm.emit_callback(b.node_id)
@@ -242,6 +243,7 @@ class TestSharedNodeConcurrentExecution:
         interpreter = Interpreter()
         interpreter.load_graph(graph)
         try:
+            interpreter.start_execution()
             gate = _GateDict()
             x.node._has_dirty_ports = gate
             x.node.mark_port_as_dirty(x.node.ports["exec_in"])  # exactly one dirty entry
@@ -355,6 +357,7 @@ class TestSharedNodeConcurrentExecution:
         interpreter.load_graph(graph)
         try:
             assert len(interpreter.groups) == 2
+            interpreter.start_execution()
             d.node.ports["value_a"].set_value(1.0)  # widget-style own write: marks D dirty
             interpreter.vm.emit_callback(a.node_id)
             assert probe.first_inside.wait(WAIT_TIMEOUT_S), "flow A never evaluated D"

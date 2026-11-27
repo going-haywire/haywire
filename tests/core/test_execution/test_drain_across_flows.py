@@ -54,6 +54,7 @@ class TestADrainInletAcrossFlows:
 
         interpreter = Interpreter()
         interpreter.load_graph(graph_with_library_system)
+        interpreter.start_execution()
         takes = 0
         taken_midway = 0
         try:
@@ -90,6 +91,7 @@ class TestADrainInletAcrossFlows:
 
         interpreter = Interpreter()
         interpreter.load_graph(graph_with_library_system)
+        interpreter.start_execution()
         try:
             interpreter.vm.emit_callback(p_event.node_id)
             interpreter.vm.emit_callback(c_event.node_id)

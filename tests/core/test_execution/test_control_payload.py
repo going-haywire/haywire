@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import pytest
 
-from haywire.core.execution.event_source import SystemEventType
 from haywire.core.execution.interpreter import Interpreter
 from haywire.core.graph.base import BaseGraph
 from haywire.core.types import WireRole
@@ -103,7 +102,7 @@ class TestControlPayloadEndToEnd:
         interpreter = Interpreter()
         interpreter.load_graph(graph)
         try:
-            interpreter.dispatch_system_event(SystemEventType.BEGIN_PLAY)
+            interpreter.start_execution()  # starts the runners, dispatches BEGIN_PLAY
             interpreter.wait_all(timeout=30.0)
         finally:
             interpreter.shutdown()

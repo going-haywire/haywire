@@ -59,7 +59,7 @@ class Interpreter:
         # Load and assemble graph
         interpreter.load_graph(graph)
 
-        # Start execution (dispatches BEGIN_PLAY)
+        # Start execution (starts the groups' runners, dispatches BEGIN_PLAY)
         interpreter.start_execution()
 
         # ... execution runs until stopped ...
@@ -125,7 +125,12 @@ class Interpreter:
         This:
         1. Assembles all flows in the graph
         2. Registers flows with event subscriptions, flow queues and callback listeners
-        3. Partitions the flows into execution groups and starts each group's runner
+        3. Partitions the flows into execution groups
+
+        Loading runs no node code: the groups' runners, and with them every
+        node's ``on_startup``, start in ``start_execution()``. A loaded graph
+        that is never started holds nothing, so loading serves as a compile
+        check.
 
         Args:
             graph: Graph to load
@@ -156,8 +161,6 @@ class Interpreter:
                 assert flow.queue is not None
                 flow.queue.group = group
             self.groups.append(group)
-        for group in self.groups:
-            group.start()
         graph.root_graph._validation.set_execution_hold(self)
         logger.info(f"Partitioned {len(flows)} flows into {len(self.groups)} execution groups")
 
@@ -173,8 +176,9 @@ class Interpreter:
         Start graph execution by dispatching BEGIN_PLAY.
 
         Call after load_graph(). Clears the runtime errors of every node in the
-        loaded flows, then dispatches the BEGIN_PLAY system event which triggers
-        BeginPlayEventNode flows.
+        loaded flows, starts each execution group's runner (which retains its
+        nodes, calling ``on_startup``), then dispatches the BEGIN_PLAY system
+        event which triggers BeginPlayEventNode flows.
         """
         if self._executing:
             return
@@ -189,6 +193,8 @@ class Interpreter:
         gc_freeze.freeze_for_run()
         gil_switch.shorten_for_run()
         self._holds_run_tuning = True
+        for group in self.groups:
+            group.start()
         self.dispatch_system_event(SystemEventType.BEGIN_PLAY)
         logger.info("Execution started")
 

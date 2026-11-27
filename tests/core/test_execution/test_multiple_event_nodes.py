@@ -154,6 +154,7 @@ class TestMultipleEventNodes:
         interpreter.load_graph(graph)
         try:
             assert len(interpreter.event_subscriptions["callback:shared_name"]) == 2
+            interpreter.start_execution()
             # The testbed listener writes the whole payload to a FLOAT outlet.
             interpreter.vm.emit_callback("shared_name", 1.0)  # type: ignore[arg-type]
             interpreter.wait_all(timeout=10.0)
