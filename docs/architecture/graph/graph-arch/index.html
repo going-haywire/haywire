@@ -5658,8 +5658,12 @@ see-also:
   <code>load_graph</code> (which assembles the graph; assembly raises <code>RuntimeError</code> on an
   invalid graph). The exception is caught and converted to a <code>CompileResult</code>
   verdict (<code>ok</code> + optional <code>error</code>); a failed compile leaves the entry
-  non-executing with <code>interpreter = None</code>.</li>
-<li><code>start()</code> — dispatches <code>BEGIN_PLAY</code> on the already-compiled interpreter.</li>
+  non-executing with <code>interpreter = None</code>. Assembly runs no node code: a
+  compile on its own starts no runner and retains no node, and the next
+  compile or start shuts its interpreter down and replaces it.</li>
+<li><code>start()</code> — starts the execution groups' runners (each retains its nodes,
+  calling <code>on_startup</code>) and dispatches <code>BEGIN_PLAY</code> on the already-compiled
+  interpreter.</li>
 <li><code>start_execution() -&gt; CompileResult</code> — compile then (if <code>ok</code>) start; the
   back-compatible combined entry point. Returns the verdict so callers (play
   button, haystack load, autorestart) surface assembly failure rather than
