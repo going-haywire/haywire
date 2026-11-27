@@ -211,7 +211,8 @@ These are guides, not limits: cut rationale, history and narration, never contra
 ### CS-D9 · Docstring shape follows the Google convention
 
 Summary on the first line, a blank line after it, sections as in CS-D3.
-**Enforced by**: review (ruff `D2xx`/`D4xx`, Google convention, planned). **Scope**: repo.
+**Enforced by**: ruff `D2xx`/`D4xx` (Google convention, without D415 and D417); in tests,
+the summary line (D205) by review. **Scope**: repo.
 
 ---
 
