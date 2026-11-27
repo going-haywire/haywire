@@ -351,7 +351,8 @@ async def test_declared_framework_requirement_blocks_before_the_resolver() -> No
 @pytest.mark.anyio
 async def test_undeclared_requirement_still_reaches_the_resolver() -> None:
     """An absent require must not block: CI-generated entries and any
-    entry predating the field carry none, and the resolver is the real guard."""
+    entry predating the field carry none, and the resolver is the real guard.
+    """
     source = _FakeSource()
     flow = _flow(source, package=_pkg())  # no require
 

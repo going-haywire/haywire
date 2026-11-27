@@ -11,8 +11,7 @@ from haywire.api import FLOAT, type
     widget_config={"properties": {"unit": "°D"}},
 )
 class TEMPERATURE(FLOAT):
-    """
-    Temperature measurement type.
+    """Temperature measurement type.
 
     A specialized float type for representing temperature values with
     a custom widget for temperature input/display.

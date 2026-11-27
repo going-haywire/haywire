@@ -25,8 +25,7 @@ from haywire.api import (
     node_type=NodeType.EVENT,
 )
 class CallbackEventNode(BaseNode):
-    """
-    Listens for custom callbacks from other flows.
+    """Listens for custom callbacks from other flows.
 
     Config:
         callback_name: Name of the callback to listen for

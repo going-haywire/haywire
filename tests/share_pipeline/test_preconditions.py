@@ -246,7 +246,8 @@ def test_haybale_prefix_is_not_flagged(project: Path) -> None:
     """Only the literal `hay-` prefix is reserved; `haybale-*` (the
     conventional published prefix) and any other name pass through untouched
     — this check does not enforce the `haybale-` convention, only block the
-    `hay-` reservation. `project` already uses `haybale-alpha`."""
+    `hay-` reservation. `project` already uses `haybale-alpha`.
+    """
     report = SharePipeline(project).check_preconditions()
     assert report.ok is True
 
@@ -267,7 +268,8 @@ def test_missing_origin_fails_with_setup_instructions(tmp_path: Path) -> None:
 
 def test_unreachable_remote_fails(tmp_path: Path) -> None:
     """ls-remote exercises the exact credential path push uses, so auth
-    failures surface here rather than after a commit and tag exist."""
+    failures surface here rather than after a commit and tag exist.
+    """
     repo = tmp_path / "badremote"
     _init_repo(repo)
     _add_lib(repo)
@@ -365,7 +367,8 @@ def test_recognized_host_passes_through_to_the_reachability_probe(tmp_path: Path
 def test_check_stops_at_the_first_failure(tmp_path: Path) -> None:
     """No barn/ AND no origin are both true here, but only the first-encountered
     problem (no barn/, which is probed before origin) is reported — an earlier
-    failure can make a later probe's result moot, so check() does not run it."""
+    failure can make a later probe's result moot, so check() does not run it.
+    """
     repo = tmp_path / "broken"
     _init_repo(repo)
     report = SharePipeline(repo).check_preconditions()
@@ -507,7 +510,8 @@ def test_invalid_os_declaration_fails_with_remedy(project: Path) -> None:
 
 def test_invalid_os_declaration_carries_strip_os_fix_id(project: Path) -> None:
     """The os fault is the ONE remediable precondition in Task 2's scope: it
-    offers fix_id='strip_os' with a label describing what will happen."""
+    offers fix_id='strip_os' with a label describing what will happen.
+    """
     lib = project / "barn" / "haybale-alpha"
     _declare_os(lib, '"macos", "other"')
     _commit(project, "add invalid os")
@@ -567,7 +571,8 @@ def test_malformed_toml_fails_with_remedy(project: Path) -> None:
 
 def test_malformed_toml_carries_no_fix_id(project: Path) -> None:
     """A TOML parse failure (ManifestReadError) has no mechanical repair —
-    fix_id must stay None, unlike the InvalidOsDeclarationError branch."""
+    fix_id must stay None, unlike the InvalidOsDeclarationError branch.
+    """
     lib = project / "barn" / "haybale-alpha"
     (lib / "pyproject.toml").write_text("this is not [[[ valid toml")
     _commit(project, "corrupt toml")
@@ -636,7 +641,8 @@ def test_detached_head_fails_with_remedy(tmp_path: Path, bare_remote: Path) -> N
 def test_detached_head_with_no_branch_suggests_switch_dash_c(tmp_path: Path, bare_remote: Path) -> None:
     """A dangling commit no branch was ever built from: `git branch --contains
     HEAD` returns nothing real, so the remedy must fall back to `git switch -c`
-    guidance rather than naming a nonexistent branch."""
+    guidance rather than naming a nonexistent branch.
+    """
     repo = tmp_path / "detached_no_branch"
     _init_repo(repo)
     _add_lib(repo)
@@ -787,7 +793,8 @@ def test_apply_precondition_fix_strip_os_repairs_the_named_library(project: Path
     Committed after the mutation and again after the fix: the clean-tree
     probe runs before every other probe, so each edit must be committed
     before the next check_preconditions() call can reach the probe it
-    means to exercise — matching what "Restart Wizard" actually re-checks."""
+    means to exercise — matching what "Restart Wizard" actually re-checks.
+    """
     lib = project / "barn" / "haybale-alpha"
     _declare_os(lib, '"macos", "other"')
     _commit(project, "add invalid os")
@@ -810,7 +817,8 @@ def test_apply_precondition_fix_strip_os_dedups_reversed_near_miss_order(project
     """Regression: a near-miss listed BEFORE the already-declarable value it
     maps to (e.g. ["osx", "macos"]) must not produce a duplicate entry once
     strip_os has rewritten the manifest — check_preconditions must then pass,
-    and the rewritten os list must contain no duplicates."""
+    and the rewritten os list must contain no duplicates.
+    """
     import toml
 
     lib = project / "barn" / "haybale-alpha"
@@ -834,7 +842,8 @@ def test_failure_lib_dir_round_trips_through_apply_precondition_fix(project: Pat
     """The wizard's whole point: it must be able to take `failure.lib_dir`
     straight from the report and pass it to apply_precondition_fix without
     any string-parsing of `message`. This test proves the round-trip using
-    ONLY data taken from the PreconditionFailure itself — no hardcoded path."""
+    ONLY data taken from the PreconditionFailure itself — no hardcoded path.
+    """
     lib = project / "barn" / "haybale-alpha"
     _declare_os(lib, '"macos", "other"')
     _commit(project, "add invalid os")
@@ -856,7 +865,8 @@ def test_failure_lib_dir_round_trips_through_apply_precondition_fix(project: Pat
 
 def test_apply_precondition_fix_strip_os_translates_manifest_failures(project: Path) -> None:
     """A haybale.toml that no longer parses at fix-time surfaces as
-    ManifestError, the same translation convention apply_drift_union follows."""
+    ManifestError, the same translation convention apply_drift_union follows.
+    """
     from haywire.core.publishing.pipeline import ManifestError
 
     lib = project / "barn" / "haybale-alpha"
@@ -896,7 +906,8 @@ def test_missing_origin_carries_add_origin_fix_id(tmp_path: Path) -> None:
 def test_apply_precondition_fix_add_origin_writes_url_verbatim(tmp_path: Path) -> None:
     """The remote is stored exactly as typed — an SSH-style URL is not rewritten
     to HTTPS. `_ssh_to_https` handles that at derivation time; rewriting what
-    the user typed would make `git remote -v` disagree with their input."""
+    the user typed would make `git remote -v` disagree with their input.
+    """
     repo = tmp_path / "add_origin_verbatim"
     _init_repo(repo)
     _add_lib(repo)
@@ -925,7 +936,8 @@ def test_apply_precondition_fix_add_origin_raises_when_origin_already_exists(
     tmp_path: Path, bare_remote: Path
 ) -> None:
     """A pre-existing origin (a race, or a stale report) must fail cleanly with
-    a typed exception, not a raw GitResult/subprocess failure leaking through."""
+    a typed exception, not a raw GitResult/subprocess failure leaking through.
+    """
     from haywire.core.publishing.pipeline import PreconditionsError
 
     repo = tmp_path / "add_origin_exists"
@@ -945,7 +957,8 @@ def test_apply_precondition_fix_add_origin_raises_when_origin_already_exists(
 def test_apply_precondition_fix_add_origin_accepts_unknown_host(tmp_path: Path) -> None:
     """resolve_host() governs share-URL derivation, not pushability — an
     unrecognized host (not github.com/gitlab.com, no self-hosted config entry)
-    must still be accepted for `git remote add`."""
+    must still be accepted for `git remote add`.
+    """
     from haywire.core.marketstall.host_providers import resolve_host
 
     unknown_host = "git.example-selfhosted.internal"
@@ -1003,7 +1016,8 @@ def test_apply_precondition_fix_commit_dirty_tree_requires_a_message(project: Pa
 
 def test_apply_precondition_fix_commit_dirty_tree_commits_everything(project: Path) -> None:
     """`git add -A && git commit -m <message>`, whole repo — matching the
-    probe's own "whole repo, period" scope, not scoped to barn/."""
+    probe's own "whole repo, period" scope, not scoped to barn/.
+    """
     (project / "barn" / "haybale-alpha" / "pyproject.toml").write_text('[project]\nname = "x"\n')
     (project / "untracked.txt").write_text("scratch")
 
@@ -1027,7 +1041,8 @@ def test_commit_dirty_tree_round_trip_clears_the_dirty_tree_failure(
     commit_dirty_tree failure -> apply the fix -> re-run check_preconditions()
     and confirm the tree now reads as clean (the next probe, origin, still
     fails here since bare_remote isn't wired up — that's expected: the fix
-    only needed to clear ITS OWN failure)."""
+    only needed to clear ITS OWN failure).
+    """
     repo = tmp_path / "commit_dirty_tree_e2e"
     _init_repo(repo)
     _add_lib(repo)

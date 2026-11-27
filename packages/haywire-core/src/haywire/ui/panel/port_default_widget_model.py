@@ -41,13 +41,12 @@ class PortDefaultWidgetModel:
     """
 
     def __init__(self, port: DataPort, on_edit: Callable[[Any], None]) -> None:
-        """
-        Args:
-            port: The port whose default is being edited. Read for its id, its
-                widget config and its type; never written.
-            on_edit: Called with each raw value the widget produces. The model
-                applies no policy of its own — where the value lands is the
-                caller's decision.
+        """Args:
+        port: The port whose default is being edited. Read for its id, its
+            widget config and its type; never written.
+        on_edit: Called with each raw value the widget produces. The model
+            applies no policy of its own — where the value lands is the
+            caller's decision.
         """
         assert port.type_cls is not None  # DataPort.__post_init__ enforces this
         self.id = port.id

@@ -9,7 +9,8 @@ pytestmark = pytest.mark.unit
 
 def test_reveal_graph_instance_is_session_local():
     """Deliberately NOT cross_session — see the class docstring for why
-    (a personal navigation click must not affect a peer session's UI)."""
+    (a personal navigation click must not affect a peer session's UI).
+    """
     from haywire.core.signals import RevealGraphInstance
 
     assert RevealGraphInstance.cross_session is False

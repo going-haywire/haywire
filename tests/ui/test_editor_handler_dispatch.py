@@ -215,7 +215,8 @@ def test_discover_handlers_caches_result_on_class():
 
 def test_discover_handlers_fresh_class_rebuilds_cache():
     """A hot-reload produces a brand-new class object — the cache is
-    attached to the old class only, so the new class computes its own."""
+    attached to the old class only, so the new class computes its own.
+    """
 
     class _Fresh:
         class_identity = _identity()
@@ -346,7 +347,8 @@ class _MultiHandlerEditor(_StubEditorBase):
 def test_wrapper_multiple_redraw_handlers_for_one_event_all_fire():
     """Both handlers fire; per the design decision in Step 5a we accept
     that this triggers wrapper.redraw() once per handler. The user
-    explicitly dropped the once-per-pass coalescing requirement."""
+    explicitly dropped the once-per-pass coalescing requirement.
+    """
     session = _make_session()
     wrapper = _make_wrapper(_MultiHandlerEditor, session)
     assert wrapper._instantiate() is True

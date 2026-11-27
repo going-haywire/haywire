@@ -1,6 +1,5 @@
 # haywire/core/settings/base.py
-"""
-SettingDescriptor — shared base for all property descriptors.
+"""SettingDescriptor — shared base for all property descriptors.
 
 Carries the metadata attributes (``_default``, ``_type``, ``_label``,
 ``_description``, ``_category``, ``_order``, ``_min``, ``_max``,
@@ -21,8 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class SettingDescriptor:
-    """
-    Common ancestor for all property descriptors.
+    """Common ancestor for all property descriptors.
 
     Class-level access (``MySettings.field``) returns the descriptor itself;
     subclasses implement instance-level access.

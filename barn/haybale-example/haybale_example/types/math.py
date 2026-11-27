@@ -29,8 +29,6 @@ class MathOPs(Enum):
     default=MathOPs.ADD.value,
 )
 class MATH_OPERATION(STRING):
-    """
-    A custom type representing simple mathematical operations.
-    """
+    """A custom type representing simple mathematical operations."""
 
     pass

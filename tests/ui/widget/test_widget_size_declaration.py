@@ -173,7 +173,8 @@ def test_max_height_stamps_independently_of_the_box():
 
 def test_width_only_declaration_contains_the_inline_axis():
     """min_width alone is a valid, distinct mode — the block axis stays content-driven
-    so aspect-ratio content keeps growing proportionally."""
+    so aspect-ratio content keeps growing proportionally.
+    """
     el = _StubElement()
     stamp_size_declaration(cast(Any, el), _PlainWidget(cast(Any, _StubPort({"min_width": 160}))))
 
@@ -209,7 +210,8 @@ def test_a_bare_iwidget_implementation_carries_the_declaration():
     """Both halves of the declaration are IWidget-level state — the class default
     is class_identity, the override is what config() produces — so an
     implementation that skips BaseWidget still gets a size box, and the render
-    path needs no isinstance narrowing."""
+    path needs no isinstance narrowing.
+    """
 
     @widget(description="bypasses BaseWidget entirely", min_width=200, min_height=120)
     class Bare(IWidget):

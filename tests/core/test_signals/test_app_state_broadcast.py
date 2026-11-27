@@ -1,7 +1,8 @@
 """Tests for _signal_emit on each of the three host bases.
 
 Verifies routing: SessionContext/SessionState publish to the local bus;
-AppState broadcasts to every peer via SignalDispatcher."""
+AppState broadcasts to every peer via SignalDispatcher.
+"""
 
 from __future__ import annotations
 

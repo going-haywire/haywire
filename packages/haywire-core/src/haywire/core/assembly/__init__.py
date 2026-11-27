@@ -1,5 +1,4 @@
-"""
-Haywire Assembly System
+"""Haywire Assembly System
 
 This module provides the assembly system for converting graphs into
 executable flows.

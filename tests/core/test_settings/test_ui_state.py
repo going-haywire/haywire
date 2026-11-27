@@ -1,5 +1,4 @@
-"""
-Tests for the UiState mechanism on Settings/setting():
+"""Tests for the UiState mechanism on Settings/setting():
 
 - ui_state= kwarg seeds initial state (sparse: NORMAL entries are not stored)
 - set_ui_state()/set_ui_state_all()/ui_state() runtime API, incl. the
@@ -193,7 +192,8 @@ class TestUiStateChannel:
 
 class TestCellIsNeverTouched:
     """UiState must not leak onto the value channel: no cell event, no
-    is_dirty side effect."""
+    is_dirty side effect.
+    """
 
     def test_set_ui_state_fires_no_cell_event(self):
         bag = UiStateSettings()

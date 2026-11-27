@@ -55,7 +55,8 @@ class TestIsCollapsed:
 
     def test_unreadable_props_degrades_to_unfolded_rather_than_raising(self, skin):
         """A stale or exploding props bag must not take a node card down.
-        Render path: degrade toward MORE drawing, never less."""
+        Render path: degrade toward MORE drawing, never less.
+        """
 
         class Exploding:
             @property
@@ -80,7 +81,8 @@ class TestErrorSkinNeverFolds:
     own render(), which never calls is_collapsed or branches on collapse at
     all. This pins that absence: a future edit that makes render() consult
     is_collapsed would need to also override it, or a broken node's card
-    could fold and hide the fact that anything is wrong."""
+    could fold and hide the fact that anything is wrong.
+    """
 
     def test_render_never_calls_is_collapsed(self):
         import inspect
@@ -185,7 +187,8 @@ class TestAgainstRealNodes:
 
     def test_node_writes_reach_it(self, graph):
         """Collapse is node-only now (no graph tier to mirror through), so
-        the write that must reach the skin is the node's own."""
+        the write that must reach the skin is the node's own.
+        """
         from haybale_graph_editor.skins.stacked_skin import StackedNodeSkin
 
         wrapper = self._add_node(graph)

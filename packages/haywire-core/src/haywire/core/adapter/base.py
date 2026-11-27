@@ -1,6 +1,4 @@
-"""
-Base adapter classes for type conversion
-"""
+"""Base adapter classes for type conversion"""
 
 from __future__ import annotations
 
@@ -24,8 +22,7 @@ T = TypeVar("T")
 
 
 def adapter(**kwargs: Any) -> Callable[[type[T]], type[T]]:
-    """
-    Decorator to register a class as a type adapter.
+    """Decorator to register a class as a type adapter.
 
     Always invoked with parentheses — `@adapter(...)`. The bare `@adapter`
     form (no parens) is not supported; `converts_from` and `converts_to`
@@ -106,8 +103,7 @@ def adapter(**kwargs: Any) -> Callable[[type[T]], type[T]]:
 
 @dataclass(kw_only=True)
 class AdapterIdentity(BaseIdentity):
-    """
-    Core identifying attributes of an adapter.
+    """Core identifying attributes of an adapter.
 
     IType-based: converts_from and converts_to are IType classes.
     """
@@ -123,8 +119,7 @@ class AdapterIdentity(BaseIdentity):
 
 
 class IAdapter(ABC):
-    """
-    Interface for all adapters.
+    """Interface for all adapters.
 
     All adapters must implement:
     - convert(): Transform a value
@@ -138,10 +133,10 @@ class IAdapter(ABC):
 
     @abstractmethod
     def convert(self, value: Any) -> Any:
-        """
-        Method to convert value.
+        """Method to convert value.
         This method ONLY performs conversion.
         Use execute() to run the full adapter chain.
+
         Args:
             value: Input value to convert
         Returns:
@@ -151,8 +146,7 @@ class IAdapter(ABC):
 
     @abstractmethod
     def execute(self, value: Any) -> Any:
-        """
-        Main method to execute adapter-chain
+        """Main method to execute adapter-chain
         Args:
             value: Input value to convert
         Returns:
@@ -167,8 +161,7 @@ class IAdapter(ABC):
 
     @abstractmethod
     def get_test_value(self) -> Any:
-        """
-        method returns a sample value of the type this adapter
+        """method returns a sample value of the type this adapter
         is converting from for testing this adapter
 
         Returns: sample value of the expected input type
@@ -181,8 +174,7 @@ class IAdapter(ABC):
 
     @abstractmethod
     def test(self, value: Any) -> Any:
-        """
-        Tests this adapter with sample data
+        """Tests this adapter with sample data
 
         Args:
             value: Sample input value of the type this adapter expects
@@ -196,8 +188,7 @@ class IAdapter(ABC):
 
 
 class ReturnAdapter(IAdapter):
-    """
-    Terminal adapter that returns values unchanged.
+    """Terminal adapter that returns values unchanged.
 
     Used as the default terminal adapter in chains.
     Does not have a registry key (not registered).
@@ -224,8 +215,7 @@ class ReturnAdapter(IAdapter):
 
 
 class BaseAdapter(IAdapter):
-    """
-    Base class for type adapters.
+    """Base class for type adapters.
 
     Key design:
     - Type-level operations use IType classes (for registration, matching)
@@ -253,8 +243,7 @@ class BaseAdapter(IAdapter):
 
     @abstractmethod
     def convert(self, value: Any) -> Any:
-        """
-        Value-level conversion: Convert UNWRAPPED value.
+        """Value-level conversion: Convert UNWRAPPED value.
         DO NOT USE THIS METHOD FOR CONVERSION. USE execute() INSTEAD.
 
         This is where actual data transformation happens.
@@ -273,8 +262,7 @@ class BaseAdapter(IAdapter):
         pass
 
     def execute(self, value: Any) -> Any:
-        """
-        Execute this adapter, then delegate to chain.
+        """Execute this adapter, then delegate to chain.
 
         Args:
             value: Input value (unwrapped)
@@ -289,8 +277,7 @@ class BaseAdapter(IAdapter):
         return self.execute(value)
 
     def _get_registry_keys(self) -> list[str]:
-        """
-        Get all registry keys for this adapter and any nested adapters.
+        """Get all registry keys for this adapter and any nested adapters.
 
         Base implementation returns this adapter's key plus chained keys.
         Compound adapters (ArrayArrayAdapter, StructuralAdapter) should

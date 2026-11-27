@@ -1,6 +1,5 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/properties/setting/node.py
-"""
-NodeSettingsPanel — renders all user-defined settings on the selected node.
+"""NodeSettingsPanel — renders all user-defined settings on the selected node.
 
 Appears on SettingsInspector, one collapsible section per bag.
 """

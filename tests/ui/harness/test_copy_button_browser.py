@@ -1,5 +1,4 @@
-"""
-Browser regression for the copy-to-clipboard button (Slice 6, Task 3).
+"""Browser regression for the copy-to-clipboard button (Slice 6, Task 3).
 
 Proves the real click -> JS -> ui.notify() path end-to-end in an actual
 browser: mounts a page with ``hui.code_snippet("copy-me")``, clicks its copy

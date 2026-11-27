@@ -62,7 +62,8 @@ def test_install_ip_allowlist_calls_add_middleware_with_parsed_ranges():
 
 def test_run_installs_middleware_only_when_exposed_true(monkeypatch):
     """Drive through run() itself (not just the helper) so the conditional
-    gate in run() is exercised, not only _install_ip_allowlist's own logic."""
+    gate in run() is exercised, not only _install_ip_allowlist's own logic.
+    """
     instance = HaywireApp.__new__(HaywireApp)
     instance._is_shutting_down = True  # skip cleanup() path
 
@@ -142,7 +143,8 @@ def test_invalid_cidr_in_trusted_proxies_raises_system_exit():
 
 def test_invalid_cidr_does_not_raise_raw_value_error():
     """The ValueError from the constructor must be caught and converted —
-    never surface as a raw, unhandled traceback to the operator."""
+    never surface as a raw, unhandled traceback to the operator.
+    """
     network = _network(allowed_ranges=("not-a-cidr",))
 
     with patch("haywire_studio.app.app"):
@@ -179,7 +181,8 @@ def test_no_proxy_warning_when_trusted_proxies_set(caplog):
 
 def test_proxy_warning_does_not_fire_when_exposed_false(monkeypatch, caplog):
     """The warning lives inside _install_ip_allowlist, which run() only calls
-    when the document says exposed — assert that gating from run()'s side."""
+    when the document says exposed — assert that gating from run()'s side.
+    """
     instance = HaywireApp.__new__(HaywireApp)
     instance._is_shutting_down = True
 
@@ -219,7 +222,8 @@ def test_proxy_warning_does_not_fire_when_exposed_false(monkeypatch, caplog):
 def _build_synthetic_nicegui_like_app():
     """A minimal FastAPI app with a mounted WebSocket sub-app, structurally
     identical (mount-then-middleware) to how nicegui.py wires its Socket.IO
-    mount."""
+    mount.
+    """
     from fastapi import FastAPI
     from starlette.applications import Starlette
     from starlette.routing import WebSocketRoute
@@ -239,7 +243,8 @@ def _build_synthetic_nicegui_like_app():
 def test_add_middleware_wiring_rejects_out_of_range_websocket_through_mount():
     """The real wiring: an out-of-range peer must never reach the mounted
     websocket endpoint — proves the middleware sits outside routing/mounting,
-    not just that add_middleware was called with the right arguments."""
+    not just that add_middleware was called with the right arguments.
+    """
     from starlette.testclient import TestClient
     from starlette.websockets import WebSocketDisconnect
 
@@ -275,7 +280,8 @@ def test_add_middleware_wiring_allows_in_range_websocket_through_mount():
 
 def test_add_middleware_wiring_allows_loopback_regardless_of_allowlist():
     """Loopback bypass (handled inside IPAllowlistMiddleware itself, Task 2a)
-    must still be reachable through the real add_middleware wiring."""
+    must still be reachable through the real add_middleware wiring.
+    """
     from starlette.testclient import TestClient
 
     root = _build_synthetic_nicegui_like_app()

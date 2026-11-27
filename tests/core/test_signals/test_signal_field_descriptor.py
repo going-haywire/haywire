@@ -1,7 +1,8 @@
 """Tests for _SignalFieldDescriptor, signal_field(), iter_signal_fields,
 _seed_signal_fields. Exercises identity short-circuit, class-level
 synthetic class access, shadowing rejection, host validation, mutable-
-default deep-copy seeding."""
+default deep-copy seeding.
+"""
 
 from __future__ import annotations
 
@@ -128,7 +129,8 @@ def test_mutable_default_deepcopied_per_instance():
 
 def test_iter_signal_fields_walks_mro():
     """iter_signal_fields yields (name, initial) for every signal field
-    on the class and its bases."""
+    on the class and its bases.
+    """
 
     class Base(_Recorder):
         a: int = signal_field(1)

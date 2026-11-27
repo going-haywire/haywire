@@ -1,7 +1,5 @@
 # packages/haywire-core/src/haywire/core/session/session.py
-"""
-Session class representing a single browser connection in the Haywire UI system.
-"""
+"""Session class representing a single browser connection in the Haywire UI system."""
 
 from __future__ import annotations
 
@@ -20,8 +18,7 @@ if TYPE_CHECKING:
 
 
 class Session(SignalPeer):
-    """
-    Represents a single browser session (one connected browser tab).
+    """Represents a single browser session (one connected browser tab).
 
     Each session owns:
         - A SessionContext (selection, mode, active state)
@@ -47,8 +44,7 @@ class Session(SignalPeer):
         workspace_manager: WorkspaceManager,
         dispatcher: SignalDispatcher,
     ):
-        """
-        Create a new session.
+        """Create a new session.
 
         Args:
             app_state: The shared project state (graph data, settings, etc.).

@@ -55,7 +55,8 @@ def test_invalid_module_name_is_blocked():
 def test_whitespace_padded_name_is_normalized():
     """Finding 3: validate_target's own .strip() implies stripping was
     always the intent — the normalized name must be returned, not just used
-    internally for validation."""
+    internally for validation.
+    """
     from haywire_studio.packaging.rename.checks import validate_target
 
     name, blockers, needs_confirm = validate_target("  hay-dst  ")

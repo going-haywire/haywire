@@ -52,7 +52,8 @@ def _as_saved_against_other_code(saved: dict[str, Any]) -> dict[str, Any]:
 
 def _as_saved_against_conflicting_code(saved: dict[str, Any]) -> dict[str, Any]:
     """Return *saved* as a file written when the class did not declare ``value_b`` yet, while its
-    nodes hold a port of that id: what the file says and what the code says cannot both stand."""
+    nodes hold a port of that id: what the file says and what the code says cannot both stand.
+    """
     older = _as_saved_against_other_code(saved)
     del older["declarations"][_ADD]["value_b"]
     return older

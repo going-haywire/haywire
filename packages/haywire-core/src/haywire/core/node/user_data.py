@@ -1,7 +1,5 @@
 # haywire/core/node/user_data.py
-"""
-User data containers for node state.
-"""
+"""User data containers for node state."""
 
 from __future__ import annotations
 

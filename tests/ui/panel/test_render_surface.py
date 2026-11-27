@@ -54,7 +54,8 @@ async def user() -> AsyncGenerator[User, None]:
 def _make_ctx():
     """A stand-in SessionContext. None of these tests' surfaces/panels read
     ctx.data, so a bare namespace with a MagicMock data bag is enough.
-    can_access always grants — access tiers are not what these tests probe."""
+    can_access always grants — access tiers are not what these tests probe.
+    """
     return SimpleNamespace(
         data=MagicMock(), app=MagicMock(), session_id="t", can_access=lambda required: True
     )
@@ -64,7 +65,8 @@ def _mount_hosting_panel(hosting_cls, registry: PanelRegistry) -> PanelLayout:
     """Mount ``hosting_cls`` (a real @panel-decorated BasePanel with a
     non-empty hosts=) through render_panel, exactly as a host does — this is
     what puts a live ``_hw_registry`` on the instance so its own
-    render_surface() calls resolve against ``registry``."""
+    render_surface() calls resolve against ``registry``.
+    """
     layout = PanelLayout(ui.column())
     render_panel(hosting_cls, _make_ctx(), layout, registry=registry)
     return layout
@@ -90,7 +92,8 @@ class _NoHostsSurface(Surface):
 )
 class _SneakyPanel(BasePanel):
     """Declares no hosts= at all, but tries to render one anyway — an
-    authoring error render_surface must catch, not the registry."""
+    authoring error render_surface must catch, not the registry.
+    """
 
     def draw(self, ctx, layout):
         with layout:
@@ -148,7 +151,8 @@ async def test_render_surface_reentry_into_the_same_surface_renders_one_error_an
     down (this is "the same surface twice side by side", explicitly allowed
     per host_rendering.py's _render_path docstring) — but that second
     instance's OWN render_surface() call closes the loop and the guard stops
-    it there. Two draws happen, never a third."""
+    it there. Two draws happen, never a third.
+    """
     draw_count: list[bool] = []
 
     @panel(
@@ -189,7 +193,8 @@ class _MemberlessProtocol(Protocol):
     """No members at all — isinstance() against this is True for every
     object, including None. This is the case the first draft broke on: a
     structural check cannot distinguish 'implements this' from 'happens to
-    satisfy a Protocol with nothing to check'."""
+    satisfy a Protocol with nothing to check'.
+    """
 
 
 class _PipedSurface(Surface):
@@ -208,7 +213,8 @@ async def test_host_pipe_carries_self_actions_by_default(user: User) -> None:
     """The pipe case: a layout-only panel's self.actions (received from ITS
     OWN host) is what a nested surface's panels receive — never the piping
     panel instance itself, even though it structurally satisfies a
-    member-less Protocol."""
+    member-less Protocol.
+    """
     captured_actions: list[object] = []
 
     @panel(surface=_PipedChildSurface, label="Reader", registry_id="rstest_piped_reader_panel")
@@ -381,7 +387,8 @@ async def test_leaf_two_levels_down_is_enough_to_open_the_menu(user: User) -> No
     pure layout panels must not by themselves make the tree read as empty.
     Uses ``counting_leaves()`` directly (the same counter the popup-emptiness
     decision reads) rather than a host, since no host in-tree nests exactly
-    two hop levels of pure layout the way this needs to isolate the case."""
+    two hop levels of pure layout the way this needs to isolate the case.
+    """
     from haywire.ui.panel.host_rendering import counting_leaves
 
     leaf_drew: list[bool] = []
@@ -457,7 +464,8 @@ async def test_submenu_row_over_all_disabled_panels_stays_live_and_shows_greyed_
     via render_surface — the leaf counter a real host reads is the one
     render_panel itself increments (host_rendering.py), not a hand-simulated
     one. Catches a leaf counter wired to poll() instead of to what actually
-    drew."""
+    drew.
+    """
     from haywire.ui import elements as hui
     from haywire.ui.elements.flyout import SubmenuRow, open_flyout_group
 

@@ -1,6 +1,5 @@
 # tests/ui/widget/test_optional_widget.py
-"""
-OptionalWidget — renders an ``OPTIONAL[T]`` field in two states.
+"""OptionalWidget — renders an ``OPTIONAL[T]`` field in two states.
 
 The delegation is the whole design: this widget never names an element type. It
 reads the element off the cell, looks up THAT type's declared widget key, and

@@ -1,5 +1,4 @@
-"""
-Error NodeSkin - the fallback card for a node that could not be rendered
+"""Error NodeSkin - the fallback card for a node that could not be rendered
 
 Structurally a two-band split (see SplitNodeSkin) with error styling, and one
 deliberate difference: it always shows everything.
@@ -20,8 +19,7 @@ from haywire.api import BaseNode, NodeWrapper, skin
     hidden=True,  # Fallback skin — not offered as a choice in the skin picker
 )
 class ErrorNodeSkin(NodeSkin):
-    """
-    Error skin that provides error styling for nodes.
+    """Error skin that provides error styling for nodes.
 
     This is the card a user stares at while diagnosing a broken node — either
     one whose own skin raised, or one pinned to a skin that no longer resolves.

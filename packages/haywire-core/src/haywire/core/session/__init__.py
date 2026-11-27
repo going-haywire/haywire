@@ -1,6 +1,5 @@
 # haywire/core/session/__init__.py
-"""
-Session system — per-browser session, signal vocabulary, workspace layout state.
+"""Session system — per-browser session, signal vocabulary, workspace layout state.
 
 Public API for editor / panel authors:
     from haywire.core.session import (

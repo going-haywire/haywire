@@ -135,7 +135,8 @@ def test_properties_editor_no_longer_carries_legacy_signal_surface():
 
 def test_editor_redraws_on_panel_signal_after_first_draw():
     """End-to-end through the editor seam: after wiring, publishing a
-    signal a registered panel cares about redraws the wrapper."""
+    signal a registered panel cares about redraws the wrapper.
+    """
     panel_registry = PanelRegistry()
     panel_registry._register_class(NodeSettingsPanel, _FAKE_LIBRARY_IDENTITY)
     session = _make_session_with_panel_registry(panel_registry)
@@ -155,7 +156,8 @@ def test_editor_redraws_on_panel_signal_after_first_draw():
 
 def test_cleanup_stops_redraws_and_clears_coordinator():
     """After cleanup, a previously-subscribed signal no longer redraws,
-    and the coordinator reference is cleared."""
+    and the coordinator reference is cleared.
+    """
     panel_registry = PanelRegistry()
     panel_registry._register_class(NodeSettingsPanel, _FAKE_LIBRARY_IDENTITY)
     session = _make_session_with_panel_registry(panel_registry)
@@ -179,7 +181,8 @@ def test_cleanup_stops_redraws_and_clears_coordinator():
 
 def test_hot_reload_triggers_cleanup_and_stops_redraws():
     """A CLASS_RELOADED event on the wrapper calls instance.cleanup() on
-    the old instance, after which its subscriptions no longer redraw."""
+    the old instance, after which its subscriptions no longer redraw.
+    """
     panel_registry = PanelRegistry()
     panel_registry._register_class(NodeSettingsPanel, _FAKE_LIBRARY_IDENTITY)
     session = _make_session_with_panel_registry(panel_registry)
@@ -242,7 +245,8 @@ def test_no_coordinator_when_chain_is_missing():
 
 def test_no_coordinator_when_get_panel_registry_raises():
     """get_panel_registry() raising is treated as 'absent' — logged, no
-    coordinator, no propagation."""
+    coordinator, no propagation.
+    """
     library_service = SimpleNamespace(
         get_panel_registry=MagicMock(side_effect=RuntimeError("intentional bad lookup"))
     )

@@ -63,20 +63,23 @@ class TestNodeDetailEnum:
 
     def test_wire_value_is_the_string(self):
         """StrEnum, not IntEnum: saved graphs hold names, so adding a rank
-        later renumbers nothing. See ADR 0032."""
+        later renumbers nothing. See ADR 0032.
+        """
         assert NodeDetail.FULL == "full"
         assert isinstance(NodeDetail.FULL, str)
 
     @pytest.mark.parametrize("bad", ["sideways", "", None, 7, object()])
     def test_coerce_degrades_upward_to_full(self, bad):
         """Degrading UP is deliberate: a card drawing too much costs
-        performance, one drawing too little looks broken."""
+        performance, one drawing too little looks broken.
+        """
         assert NodeDetail.coerce(bad) is NodeDetail.FULL
 
     @pytest.mark.parametrize("old_value", ["compact", "standard"])
     def test_pre_5rank_saved_values_degrade_to_full(self, old_value):
         """Breaking change, no migration shim (design session, 2026-09-02):
-        an old 3-rank graph's detail value is simply unrecognised now."""
+        an old 3-rank graph's detail value is simply unrecognised now.
+        """
         assert NodeDetail.coerce(old_value) is NodeDetail.FULL
 
     def test_coerce_passes_through_members_and_valid_strings(self):
@@ -85,7 +88,8 @@ class TestNodeDetailEnum:
 
     def test_every_member_has_a_label(self):
         """The label feeds the CHOICES widget — a missing one is a KeyError in
-        a settings panel, not at import."""
+        a settings panel, not at import.
+        """
         assert all(d.label for d in NodeDetail)
 
 
@@ -184,7 +188,8 @@ class TestNodeCollapse:
 
     def test_has_no_graph_tier(self, graph_with_library_system):
         """The tier this class used to test — deleted, not a bug. Guards
-        against `collapsed` silently regaining a graph-level shadow."""
+        against `collapsed` silently regaining a graph-level shadow.
+        """
         graph_obj = graph_with_library_system
         assert not any("collaps" in name for name in type(graph_obj.props)._settings_descriptors()), (
             "collapse regained a graph tier; it is now node-only"
@@ -192,7 +197,8 @@ class TestNodeCollapse:
 
     def test_has_no_framework_tier(self):
         """Single tier by design: a studio-wide fold would open every graph
-        showing nothing."""
+        showing nothing.
+        """
         from haywire.core.skin.settings import NodeDefaultSkinSettings
 
         assert not any("collaps" in name for name in NodeDefaultSkinSettings._settings_descriptors()), (
@@ -204,7 +210,8 @@ class TestNodeCollapse:
 class TestBothAxesRedraw:
     def test_collapse_is_a_redraw_field(self):
         """Collapse is still a CONSTRUCTION gate, so a change must rebuild the
-        card. Without the entry no tier change ever reaches the canvas."""
+        card. Without the entry no tier change ever reaches the canvas.
+        """
         from haywire.core.node.properties import NodeProperties
 
         assert "collapsed" in NodeProperties.REDRAW_FIELDS
@@ -213,7 +220,8 @@ class TestBothAxesRedraw:
         """NodeDetail stopped being a construction gate (2026-09 CSS-filter
         redesign) — a rank change is a class-attribute flip handled by
         UINode._apply_detail_attr, not a card rebuild. If this ever needs to
-        change back, it is a deliberate reversal, not a bug fix."""
+        change back, it is a deliberate reversal, not a bug fix.
+        """
         from haywire.core.node.properties import NodeProperties
 
         assert "detail" not in NodeProperties.REDRAW_FIELDS

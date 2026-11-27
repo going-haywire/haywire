@@ -114,7 +114,8 @@ def test_a_toml_modification_dispatches_nothing_and_reports_nothing(
 @pytest.mark.core
 def test_a_toml_deletion_does_not_reach_on_delete(tmp_path: Path, registry: _Registry) -> None:
     """DELETED skips validation entirely, so a guard below resolve_module_name
-    would let 'haybale.toml' unregister the module 'haybale_demo.haybale'."""
+    would let 'haybale.toml' unregister the module 'haybale_demo.haybale'.
+    """
     registry.event_dispatcher(_event(tmp_path / "haybale.toml", FileEventType.DELETED, tmp_path))
 
     assert registry.deleted == []
@@ -126,7 +127,8 @@ def test_a_py_file_reloads_even_with_a_same_stemmed_toml_sibling(
     tmp_path: Path, registry: _Registry
 ) -> None:
     """resolve_module_name strips the suffix, so 'nodes.toml' and 'nodes.py'
-    both resolve to '…nodes'. Only the .py may travel that path."""
+    both resolve to '…nodes'. Only the .py may travel that path.
+    """
     (tmp_path / "nodes.toml").write_text("x = 1\n")
     py = tmp_path / "nodes.py"
     py.write_text("x = 1\n")
@@ -148,7 +150,8 @@ def test_a_syntactically_broken_py_still_reports_a_reload_failure(
     tmp_path: Path, registry: _Registry, caplog
 ) -> None:
     """The author saved a half-written module. That is worth telling them about
-    — unlike a .toml, which was never going to reload."""
+    — unlike a .toml, which was never going to reload.
+    """
     broken = tmp_path / "broken.py"
     broken.write_text("def oops(:\n")
 

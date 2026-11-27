@@ -72,7 +72,8 @@ class NodeWrapperState:
 
     def is_valid(self) -> bool:
         """True once every stage has passed: registered, imported, instantiated,
-        initialized, structurally valid and tested."""
+        initialized, structurally valid and tested.
+        """
         return (
             self.is_registered
             and self.is_imported
@@ -84,7 +85,8 @@ class NodeWrapperState:
 
     def get_errors(self) -> list[HaywireException] | None:
         """Every error recorded on this node, or ``None`` if there are none. Carrying
-        an error does not necessarily make the node invalid."""
+        an error does not necessarily make the node invalid.
+        """
         error: list[HaywireException] = []
         if self.error_import:
             error.append(self.error_import)
@@ -301,7 +303,8 @@ class NodeWrapper:
 
     def _kept_save_data(self, include_data: bool = True) -> dict[str, Any]:
         """The kept node data with the props the user can change on the card;
-        without ``include_data``, the ports' values are left out as ``Port.to_dict`` does."""
+        without ``include_data``, the ports' values are left out as ``Port.to_dict`` does.
+        """
         assert self._kept_data is not None and self._node_instance is not None
         data = copy.deepcopy(self._kept_data)
         # Only the props: a node that failed to load may not serialize as a whole.
@@ -370,7 +373,8 @@ class NodeWrapper:
 
     def _import_node_cls(self):
         """Resolve the node class for ``registry_key``, recording any import error
-        and, when it fails, the alternate registry keys to offer instead."""
+        and, when it fails, the alternate registry keys to offer instead.
+        """
         self._node_cls, self._state.error_import = self._node_factory.get_node(self.registry_key)
         if self._state.error_import:
             self._state.is_imported = False
@@ -696,7 +700,6 @@ class NodeWrapper:
 
         Returns whether the test passed; a failure lands in ``state.error_test``.
         """
-
         try:
             if self._node_instance:
                 start_time = time.perf_counter()

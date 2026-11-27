@@ -63,7 +63,8 @@ def test_full_pipeline_panel_registered_and_queryable():
 def test_a_panel_only_appears_on_its_own_surface():
     """The display/action fork is gone: which panels a surface yields depends
     on the surface id alone, so a menu panel is simply absent from another
-    surface's list rather than filtered out by a second axis."""
+    surface's list rather than filtered out by a second axis.
+    """
     reg = PanelRegistry()
     reg._register_class(_SpeakerPanel, _FAKE_LIBRARY_IDENTITY)
 
@@ -80,7 +81,8 @@ def test_full_pipeline_surface_discovered_via_get_root_surfaces():
 def test_a_menu_surface_is_a_root_too():
     """Root-ness is not the strip's whole filter — a menu surface no panel
     hosts is a root as well, and the strip additionally requires
-    ``presentation`` (which a menu surface never declares)."""
+    ``presentation`` (which a menu surface never declares).
+    """
     reg = PanelRegistry()
     reg._register_class(_SpeakerPanel, _FAKE_LIBRARY_IDENTITY)
 

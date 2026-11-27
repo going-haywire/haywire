@@ -101,7 +101,8 @@ def test_source_key_resolution_is_skipped_when_developer_mode_is_off(make_node_w
     ``_component_key`` run — not just inside ``_build_developer_menu`` around
     the menu it draws. Those resolvers do registry lookups on every row's
     render; gating only the drawing still pays that cost on every session,
-    developer mode or not."""
+    developer mode or not.
+    """
     import haywire.ui.panel.render_utils as render_utils_module
 
     calls: list[Any] = []
@@ -121,7 +122,8 @@ def test_source_key_resolution_is_skipped_when_developer_mode_is_off(make_node_w
 
 def test_the_ordinary_row_is_unchanged_by_the_flag(make_node_with_setting):
     """Developer mode ADDS one entry; it must not disturb the row or the menu
-    entries that were already there."""
+    entries that were already there.
+    """
     node = make_node_with_setting(accessor="filter", field="threshold")
     off = _render(node.filter, developer_mode=False)
     on = _render(node.filter, developer_mode=True)
@@ -144,7 +146,8 @@ def test_the_ordinary_row_is_unchanged_by_the_flag(make_node_with_setting):
 
 def test_node_settings_bag_falls_back_to_the_owning_node(make_node_with_setting):
     """A NodeSettings bag is never registered, so it has no key of its own —
-    the owning node's key opens the same file the bag is declared in."""
+    the owning node's key opens the same file the bag is declared in.
+    """
     node = make_node_with_setting(accessor="filter", field="threshold")
     bag = node.filter
 
@@ -163,7 +166,8 @@ def test_registered_settings_class_answers_its_own_key(library_system):
 
 def test_a_declared_field_records_its_owning_class(library_system):
     """The registry render path has no bag instance — the owning class comes
-    from the descriptor's _owner_cls, stamped at __set_name__."""
+    from the descriptor's _owner_cls, stamped at __set_name__.
+    """
     from haywire.core.debug.debug_settings import DebugSettings
 
     defn = next(iter(DebugSettings._settings_descriptors().values()))
@@ -172,7 +176,8 @@ def test_a_declared_field_records_its_owning_class(library_system):
 
 def test_component_key_of_none_is_none():
     """Callers pass lookups that legitimately find nothing (no owning panel,
-    no owning class); every one would otherwise need the same guard."""
+    no owning class); every one would otherwise need the same guard.
+    """
     assert _component_key(None) is None
 
 
@@ -191,7 +196,8 @@ def test_component_key_of_an_unregistered_class_is_none():
 
 def test_drawing_panel_is_none_outside_a_panel():
     """Settings are also rendered outside any panel (the UI harness renders a
-    bag straight onto a page), so None is an ordinary answer."""
+    bag straight onto a page), so None is an ordinary answer.
+    """
     assert drawing_panel() is None
 
 
@@ -242,7 +248,8 @@ def test_the_developer_anchor_is_not_greyed(make_node_with_setting):
 def test_the_developer_anchor_is_a_menu_item_like_its_siblings(make_node_with_setting):
     """A row menu IS a QMenu, so its entries are q-items. A SubmenuRow is a
     hui.menu_row — built for a Popup column with no QMenu ancestor — and lands
-    with different padding, out of alignment beside Reset and Promote."""
+    with different padding, out of alignment beside Reset and Promote.
+    """
     node = make_node_with_setting(accessor="filter", field="threshold")
     anchor = _render(node.filter, developer_mode=True)
 
@@ -251,7 +258,8 @@ def test_the_developer_anchor_is_a_menu_item_like_its_siblings(make_node_with_se
 
 def test_the_submenu_entries_do_not_wrap(make_node_with_setting):
     """Quasar flips the flyout leftward near a panel edge and shrink-to-fits,
-    wrapping the longest label; a pinned leaf keeps the menu at its width."""
+    wrapping the longest label; a pinned leaf keeps the menu at its width.
+    """
     from haywire.ui.elements.flyout import FlyoutMenu
 
     node = make_node_with_setting(accessor="filter", field="threshold")
@@ -269,7 +277,8 @@ def test_the_submenu_entries_do_not_wrap(make_node_with_setting):
 def test_the_developer_anchor_matches_its_siblings_density(make_node_with_setting):
     """flyout_category defaults to dense (right for NodeMenuBuilder, whose own
     leaves are dense). A settings row's items are not dense, and a dense q-item
-    has smaller padding — so the anchor sat visibly shorter than the menu."""
+    has smaller padding — so the anchor sat visibly shorter than the menu.
+    """
     node = make_node_with_setting(accessor="filter", field="threshold")
     items = _top_level_items(_render(node.filter, developer_mode=True))
 
@@ -279,7 +288,8 @@ def test_the_developer_anchor_matches_its_siblings_density(make_node_with_settin
 
 def test_a_bag_with_no_resolvable_keys_draws_no_developer_row():
     """An unregistered bag rendered outside a panel resolves neither entry, so
-    the submenu is dropped rather than drawn empty."""
+    the submenu is dropped rather than drawn empty.
+    """
     from haywire.barn.builtin.types import FLOAT
     from haywire.core.settings import setting
     from haywire.core.settings.settings import Settings
@@ -349,7 +359,8 @@ def test_the_two_entries_are_siblings_of_each_other():
 def test_settings_source_entry_nests_view_and_edit_leaves(make_node_with_setting):
     """ "Settings source" is not itself clickable — it is a sub-flyout anchor
     offering the two targets, "Open in Context" (CONTEXT) and "Open in Code
-    Editor" (EDIT)."""
+    Editor" (EDIT).
+    """
     node = make_node_with_setting(accessor="filter", field="threshold")
     ctx = _ctx(developer_mode=True)
 
@@ -402,7 +413,8 @@ def test_clicking_view_source_publishes_reveal_with_context_target(make_node_wit
 
 def test_clicking_open_in_code_editor_publishes_reveal_source(make_node_with_setting):
     """The two entries publish two DIFFERENT signals, not one signal with a
-    discriminator: each is fully handled by whichever editor claims it."""
+    discriminator: each is fully handled by whichever editor claims it.
+    """
     from haywire.core.signals import RevealSource
 
     node = make_node_with_setting(accessor="filter", field="threshold")
@@ -438,7 +450,8 @@ def test_clicking_open_in_code_editor_publishes_reveal_source(make_node_with_set
 
 def test_render_utils_does_not_import_any_barn_library():
     """The rule as a test, not only as a lint config: this module is core UI and
-    must not name a haybale_* package anywhere, including inside a function."""
+    must not name a haybale_* package anywhere, including inside a function.
+    """
     import inspect
 
     from haywire.ui.panel import render_utils

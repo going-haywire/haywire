@@ -127,8 +127,7 @@ class ComponentRegistry[T: RegisteredClass](HotReloadRegistry):
     # ============================================================================
 
     def add_batch_event_subscriber(self, callback: LifeCycleBatchCallback) -> None:
-        """
-        Register a customer callback to be notified of hot reload events.
+        """Register a customer callback to be notified of hot reload events.
 
         Customer callbacks are invoked immediately after a class is reloaded,
         added, or removed. They receive a LifeCycleEvent batch with complete context.
@@ -144,8 +143,7 @@ class ComponentRegistry[T: RegisteredClass](HotReloadRegistry):
             )
 
     def remove_batch_event_subscriber(self, callback: LifeCycleBatchCallback) -> None:
-        """
-        Unregister a customer callback.
+        """Unregister a customer callback.
 
         Args:
             callback: The callback to remove
@@ -155,8 +153,7 @@ class ComponentRegistry[T: RegisteredClass](HotReloadRegistry):
             self.logger.debug(f"Removed customer callback: {getattr(callback, '__name__', repr(callback))}")
 
     def add_registry_subscriber(self, registry: HotReloadRegistry) -> None:
-        """
-        Register another registry to be notified of hot reload events.
+        """Register another registry to be notified of hot reload events.
 
         Registry subscribers are invoked after customer callbacks and receive
         complete FileChangeEvent information for their own processing.
@@ -171,8 +168,7 @@ class ComponentRegistry[T: RegisteredClass](HotReloadRegistry):
             )
 
     def remove_registry_subscriber(self, registry: HotReloadRegistry) -> None:
-        """
-        Unregister a registry subscriber.
+        """Unregister a registry subscriber.
 
         Args:
             registry: The registry to unsubscribe
@@ -182,8 +178,7 @@ class ComponentRegistry[T: RegisteredClass](HotReloadRegistry):
             self.logger.debug(f"Removed registry subscriber: {registry.__class__.__name__}")
 
     def _queue_lifecycle_event(self, event: LifeCycleEvent) -> None:
-        """
-        Queues a hot reload event.
+        """Queues a hot reload event.
 
         This method is called internally during hot reload operations.
         Errors in individual callbacks are logged but don't stop generation of events.
@@ -196,23 +191,20 @@ class ComponentRegistry[T: RegisteredClass](HotReloadRegistry):
         self._lifecycle_event_queue.append(event)
 
     def _notify_batch_event_subscribers(self) -> None:
-        """
-        Batch notify all customer callbacks about hot reload events.
+        """Batch notify all customer callbacks about hot reload events.
 
         This method is called internally during hot reload operations.
 
         Callbacks receive the complete event information.:
 
         """
-
         for callback in self._batch_event_subscribers[:]:
             callback(self._lifecycle_event_queue)
 
         self._lifecycle_event_queue.clear()
 
     def _notify_registry_subscribers(self, event: FileChangeEvent) -> None:
-        """
-        Notify all registry subscribers about a hot reload event.
+        """Notify all registry subscribers about a hot reload event.
 
         This method is called after customer callbacks have been notified.
         Registry subscribers receive the complete event information and can

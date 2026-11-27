@@ -1,5 +1,4 @@
-"""
-Global and project-level configuration management for Haywire.
+"""Global and project-level configuration management for Haywire.
 
 Global config lives at ~/.haywire/ and stores user preferences,
 marketplace sources, and recently opened projects.

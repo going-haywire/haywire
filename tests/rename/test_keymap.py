@@ -190,7 +190,8 @@ def test_rewrites_node_identity_and_its_descriptive_copies(tmp_path):
 @pytest.mark.unit
 def test_parameterized_types_are_covered_through_their_recipes(tmp_path):
     """``ArrayType[IMAGE_RGB]``, ``PooledType[ArrayType[INT]]`` and ``OPTIONAL[IMAGE_RGB]``
-    save the family key with a nested ``element_type``; one entry per family covers them."""
+    save the family key with a nested ``element_type``; one entry per family covers them.
+    """
     data, _, _, _ = _patched(tmp_path)
     ports = data["nodes"]["BeginPlayNode_ea80758b"]["node_data"]["ports"]
 
@@ -296,7 +297,8 @@ def test_counts_per_key_and_copies(tmp_path):
 @pytest.mark.unit
 def test_drift_reports_whole_old_keys_outside_key_fields_only(tmp_path):
     """A key parked in a field the mode doesn't own is reported; a lookalike key or a
-    bare class name in prose is not."""
+    bare class name in prose is not.
+    """
     _, _, leftovers, _ = _patched(tmp_path)
 
     assert leftovers == ["properties.skin"]

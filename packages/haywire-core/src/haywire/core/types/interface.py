@@ -513,8 +513,7 @@ class IType(ABC):
 
     @classmethod
     def create_default(cls):
-        """
-        Create a default instance.
+        """Create a default instance.
 
         Default implementation uses the 'default' dict from @type decorator
         as constructor kwargs. Override this method for complex default logic.

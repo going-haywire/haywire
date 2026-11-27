@@ -1,6 +1,5 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/graph/context.py
-"""
-The canvas right-click menu, as a small tree of surfaces.
+"""The canvas right-click menu, as a small tree of surfaces.
 
 ``GraphContextPanel`` owns the arrangement — an icon shortcut row along the
 top edge and a prime area below — and renders both region surfaces into the
@@ -283,7 +282,8 @@ class ResetNodeCardsMenuPanel(BasePanel):
 
     def _reset(self) -> None:
         """Report the count: a reset that finds nothing to clear looks broken
-        otherwise, and "nothing to clear" is the common case."""
+        otherwise, and "nothing to clear" is the common case.
+        """
         from nicegui import ui as _ui
 
         cleared = self.actions.clear_node_card_overrides()

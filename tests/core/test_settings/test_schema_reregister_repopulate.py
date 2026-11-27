@@ -117,7 +117,8 @@ class TestRegisterClassRepopulatesFromToml:
 
     def test_no_toml_paths_is_a_noop(self):
         """If neither global_path nor workspace_path is set, re-registration
-        is still safe — repopulate just skips both."""
+        is still safe — repopulate just skips both.
+        """
         registry = SettingsRegistry()  # no load_from_json calls
 
         Schema = _make_schema()
@@ -131,7 +132,8 @@ class TestRegisterClassRepopulatesFromToml:
 
     def test_missing_toml_file_is_a_noop(self, tmp_path: Path):
         """If the JSON path is set but the file doesn't exist, repopulate
-        is a no-op rather than an error."""
+        is a no-op rather than an error.
+        """
         nonexistent = tmp_path / "does-not-exist.json"
 
         registry = SettingsRegistry()

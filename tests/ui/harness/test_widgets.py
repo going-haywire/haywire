@@ -1,5 +1,4 @@
-"""
-Widget coverage tests: verify that each setting type resolves and renders the
+"""Widget coverage tests: verify that each setting type resolves and renders the
 correct widget DOM (the right control per IType) through the shared-widget panel.
 
 Full matrix for SettingsProbeNode.example:
@@ -246,7 +245,8 @@ def test_choices_mirror_renders_select(page: Page, harness):
 
 def test_watch_mirror_fields_render_disabled_widgets(page: Page, harness):
     """watch() mirror fields render real, disabled widgets — not a label
-    fallback. ui_state=DISABLED is uniform chrome across every field kind."""
+    fallback. ui_state=DISABLED is uniform chrome across every field kind.
+    """
     goto_ready(page, f"{harness}{_NODE_PATH}")
     page.wait_for_selector("[data-field]")
 

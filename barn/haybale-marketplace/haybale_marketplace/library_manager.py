@@ -1,5 +1,4 @@
-"""
-Library management orchestration layer.
+"""Library management orchestration layer.
 
 Wraps uv subprocess calls + entry point cache invalidation +
 library registry operations into a single service API.

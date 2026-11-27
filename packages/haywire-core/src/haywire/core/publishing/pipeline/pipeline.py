@@ -113,7 +113,8 @@ class SharePipeline:
 
     def rollback(self) -> None:
         """Revert every write this run made — safe because step 1 guaranteed
-        a clean tree before anything was written. See steps/rollback.py."""
+        a clean tree before anything was written. See steps/rollback.py.
+        """
         steps_rollback.revert_working_tree(self)
 
     def record(self, paths: list[Path]) -> list[Path]:

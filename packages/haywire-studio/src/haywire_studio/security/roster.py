@@ -92,7 +92,8 @@ class Roster:
 
     def find(self, name: str) -> Principal | None:
         """Exact-match lookup. Names are case-sensitive so two principals cannot
-        collide under one casefold and silently share a tier."""
+        collide under one casefold and silently share a tier.
+        """
         for principal in self.principals:
             if principal.name == name:
                 return principal
@@ -100,7 +101,8 @@ class Roster:
 
     def find_by_token(self, token: str) -> Principal | None:
         """Agent lookup by bearer token. An empty token never matches, so a
-        user principal (which has no token) can never be reached this way."""
+        user principal (which has no token) can never be reached this way.
+        """
         if not token:
             return None
         for principal in self.principals:

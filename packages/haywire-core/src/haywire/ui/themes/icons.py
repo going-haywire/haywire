@@ -1,6 +1,4 @@
-"""
-Named color constants and unified theme keys for Haywire.
-"""
+"""Named color constants and unified theme keys for Haywire."""
 
 from __future__ import annotations
 
@@ -8,8 +6,7 @@ from typing import Final
 
 
 class ICONS:
-    """
-    Hardcoded icon name constants with IDE preview support.
+    """Hardcoded icon name constants with IDE preview support.
     see https://fonts.google.com/icons?icon.set=Material%20Icons
     """
 
@@ -73,8 +70,7 @@ class ICONS:
 
     @classmethod
     def get(cls, name: str, default: str = "circle") -> str:
-        """
-        Get icons by name with fallback.
+        """Get icons by name with fallback.
 
         Args:
             name: Icon name (case-insensitive)

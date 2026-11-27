@@ -1,5 +1,4 @@
-"""
-IconSlot — the Slot subclass for the ACTION / CONTEXT slots.
+"""IconSlot — the Slot subclass for the ACTION / CONTEXT slots.
 
 Renders a horizontal row with a narrow vertical bar (48px) of icon buttons on
 one side and the area ``ui.tab_panels`` on the other.

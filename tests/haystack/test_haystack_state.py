@@ -443,7 +443,8 @@ def test_an_edge_repaint_does_not_broadcast(state_with_mocked_deps):
 
 def test_a_move_still_marks_unsaved(state_with_mocked_deps):
     """NODE_MOVED repaints too, but position is persisted — suppressing it
-    would silently drop a drag from the next save."""
+    would silently drop a drag from the next save.
+    """
     state = state_with_mocked_deps
     entry = state.create_new()
     entry.unsaved = False
@@ -531,7 +532,8 @@ def test_a_value_edit_after_an_undo_announces_the_availability_change(state_with
 
 def test_an_undo_that_changed_nothing_still_counts_for_the_next_announcement(state_with_mocked_deps):
     """Fold, unfold, Undo, fold: the undone step restores a value already in place, so no
-    validation runs between the undo and the next write, and only the undo count tells."""
+    validation runs between the undo and the next write, and only the undo count tells.
+    """
     from haywire.core.signals import GraphUnsavedChanged
 
     state = state_with_mocked_deps
@@ -712,7 +714,8 @@ def test_load_haystack_calls_persistence_and_updates_last_name(
 def test_load_haystack_missing_file_does_not_update_last_name(state_with_mocked_deps, tmp_path):
     """If the named haystack TOML does not exist, last_haystack_name must NOT
     be updated — otherwise the next on_enable would try to rehydrate from a
-    file that doesn't exist."""
+    file that doesn't exist.
+    """
     state = state_with_mocked_deps
     state._workspace_root = tmp_path
     state._haystack_settings.last_haystack_name = "previous"

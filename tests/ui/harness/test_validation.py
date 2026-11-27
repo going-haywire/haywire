@@ -1,6 +1,4 @@
-"""
-Validation tests: verify that invalid values surface a data-error DOM element.
-"""
+"""Validation tests: verify that invalid values surface a data-error DOM element."""
 
 from __future__ import annotations
 

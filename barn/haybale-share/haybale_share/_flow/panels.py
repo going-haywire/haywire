@@ -291,7 +291,8 @@ def _render_removal_row(lib_dir: Path, dep: str, controls: dict, token: str) -> 
 
 def _render_floor_row(lib_dir: Path, row: tuple[str, str, str], controls: dict, token: str) -> None:
     """Every control starts on keep, which writes nothing — a floor states the
-    OLDEST version that works and nothing here can compute that."""
+    OLDEST version that works and nothing here can compute that.
+    """
     dist, declared, installed = row
     with _decision(f"{dist} — declared {declared}, installed {installed}", f"in {lib_dir.name}", token):
         mode = hui.select_field(options=FLOOR_OPTIONS, value="keep", label="Floor").classes("w-full")
@@ -339,7 +340,8 @@ def _render_clean_lines(libraries, registrations: dict) -> None:
 
 def _render_framework(flow: ShareFlow) -> Callable[[], str | None]:
     """The one authored floor. Recommended option keeps what is declared —
-    raising it locks out consumers who could have installed fine."""
+    raising it locks out consumers who could have installed fine.
+    """
     plan = flow.framework_plan
     if plan is None or not plan.options:
         return lambda: None

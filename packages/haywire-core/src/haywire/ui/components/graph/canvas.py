@@ -1,5 +1,4 @@
-"""
-GraphCanvasVue - Vue-based graph canvas component for NiceGUI
+"""GraphCanvasVue - Vue-based graph canvas component for NiceGUI
 
 This component provides a clean Python wrapper around a Vue component that handles
 all client-side graph canvas interactions with the enhanced event system.
@@ -144,7 +143,8 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
 
     def set_edge_defaults(self, arrow: str, arrow_size: str, width: float) -> None:
         """Push the graph's computed-edge arrow head (a head name or ``none``), its size (a key of
-        ``HEAD_SIZES``) and width in pixels."""
+        ``HEAD_SIZES``) and width in pixels.
+        """
         self._props["edge-arrow"] = arrow
         self._props["edge-arrow-size"] = arrow_size
         self._props["edge-width"] = width
@@ -232,9 +232,7 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         self.update()
 
     def emit_sync_event(self, event: BaseGraphEvent):
-        """
-        Send sync event to Vue component - THE ONLY COMMUNICATION METHOD
-        """
+        """Send sync event to Vue component - THE ONLY COMMUNICATION METHOD"""
         # Don't send events if component is being cleaned up
         if getattr(self, "_is_cleanup", False):
             return

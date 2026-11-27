@@ -1,6 +1,5 @@
 # haywire/core/settings/settings_node.py
-"""
-NodeSettings — base class for node-local settings.
+"""NodeSettings — base class for node-local settings.
 
 Subclass inside a @node class body and declare fields with ``setting()``:
 
@@ -31,8 +30,7 @@ from .settings import Settings
 
 @dataclass_transform(field_specifiers=(setting, shadow, watch, graph))
 class NodeSettings(Settings):
-    """
-    Base class for node-local settings.
+    """Base class for node-local settings.
 
     Declare as an inner class on a @node class.  The @node decorator assigns
     ``_setting_key`` to each ``setting()`` descriptor, and the node instance

@@ -160,7 +160,8 @@ def test_loopback_is_admitted_under_every_allowlist(ranges):
 
 def test_own_address_excluded_does_not_mean_locked_out():
     """`covers_own_address() is False` and "operator can connect" are both true
-    at once — they are statements about different addresses."""
+    at once — they are statements about different addresses.
+    """
     posture = _posture("192.168.0.0/24", reachable_at="10.244.138.229")
     assert posture.covers_own_address() is False
     assert _middleware_allows("192.168.0.0/24", "127.0.0.1") is True

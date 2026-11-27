@@ -1,6 +1,5 @@
 # packages/haywire-core/src/haywire/core/library/info.py
-"""
-LibraryInfo — a library as the Library Manager sees it.
+"""LibraryInfo — a library as the Library Manager sees it.
 
 Pairs the library's declared metadata (a ``Haybale``, read from its own
 ``haybale.toml`` or taken from a marketstall row) with the install state

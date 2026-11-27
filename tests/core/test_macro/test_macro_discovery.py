@@ -54,7 +54,8 @@ def factory_with_a_macro(tmp_path, library_system):
 
 def test_the_macro_appears_under_the_macros_root_by_library(factory_with_a_macro):
     """The path is ``macros/<library label>``, so the menu can lift macros into
-    one section rather than filing them under each library."""
+    one section rather than filing them under each library.
+    """
     menu = factory_with_a_macro.get_menu_structure()
 
     assert "macros/testlib" in menu
@@ -96,7 +97,8 @@ def test_node_info_resolves_for_a_macro_key(factory_with_a_macro):
 
 def test_node_info_for_a_node_class_is_not_a_macro(factory_with_a_macro, library_system):
     """The flag separates the two kinds a factory resolves, so a menu needs
-    neither the registry nor the key's shape to tell them apart."""
+    neither the registry nor the key's shape to tell them apart.
+    """
     node_key = next(iter(library_system.get_node_registry().list_visible_names()))
 
     info = factory_with_a_macro.get_node_info(node_key)

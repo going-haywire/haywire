@@ -23,7 +23,8 @@ def _isolate_di_settings_registry():
     """BaseGraph.__init__ requires the DI context's settings registry to be
     configured (get_settings_registry(), no constructor override — matches
     NodeData.__init__). Snapshot/restore the module-global slot around each
-    test so set_settings_registry() here doesn't leak into other test files."""
+    test so set_settings_registry() here doesn't leak into other test files.
+    """
     from haywire.core.di import context as di_context
 
     saved = di_context._settings_registry
@@ -35,7 +36,8 @@ def _isolate_di_settings_registry():
 
 def _registry():
     """Build an isolated registry AND make it the ambient DI registry, since
-    BaseGraph.__init__ requires get_settings_registry() to resolve."""
+    BaseGraph.__init__ requires get_settings_registry() to resolve.
+    """
     from haywire.core.di.context import set_settings_registry
 
     registry = create_test_settings_registry()

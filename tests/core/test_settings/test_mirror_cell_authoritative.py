@@ -119,7 +119,8 @@ def test_cleanup_unsubscribes_from_registry():
 
 def test_watch_is_writable_and_promotable_outlet_and_disabled():
     """watch() is now sugar over setting(mirrors=..., ui_state=DISABLED,
-    promotable=OUTLET) — no _read_only flag, no AttributeError on write."""
+    promotable=OUTLET) — no _read_only flag, no AttributeError on write.
+    """
     from haywire.core.settings.descriptor import Promotable, UiState
 
     registry, bag = _make_watch_bag()
@@ -149,7 +150,8 @@ def test_same_bag_mirror_raises_value_error():
     """mirrors= must reference a field on a DIFFERENT class. A same-bag
     sibling (never registry.define()'d) used to be silently made to work via
     _in_bag_mirror_adapters — that machinery had zero production usage and is
-    deleted; the input is now rejected at declaration time instead."""
+    deleted; the input is now rejected at declaration time instead.
+    """
     with pytest.raises(ValueError, match="SameBagBag"):
 
         class SameBagBag(Settings):
@@ -160,7 +162,8 @@ def test_same_bag_mirror_raises_value_error():
 def test_watch_field_serializes_once_locally_set():
     """watch() fields are writable now (Task 1) — once locally overridden,
     they serialize like any other mirror field. The old read_only-driven
-    to_dict()/from_dict() exclusion is gone."""
+    to_dict()/from_dict() exclusion is gone.
+    """
     registry, bag = _make_watch_bag()
     bag.color = "#ff0000"
 

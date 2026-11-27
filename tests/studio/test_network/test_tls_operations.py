@@ -107,7 +107,8 @@ def test_setup_twice_is_refused(env):
 
 def test_setup_adopts_an_orphaned_certificate_without_regenerating(env):
     """The guarantee: a certificate the user may already have trusted
-    elsewhere is never silently replaced."""
+    elsewhere is never silently replaced.
+    """
     first = setup(directory=env.directory, path=env.settings)
     before_cert, before_key = _digest(first.cert_path), _digest(first.key_path)
 

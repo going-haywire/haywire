@@ -46,7 +46,8 @@ def test_a_select_never_lifts_itself() -> None:
     """A select carries no stacking of its own, anywhere. Inside a Popup its
     own 6000 already clears the card; inside a dropdown the *dropdown* lifts
     the whole body. An unconditional self-lift would let a panel's dropdown
-    escape to <body> and float over overlays it should sit under."""
+    escape to <body> and float over overlays it should sit under.
+    """
     select = _build(options=["a", "b"])
 
     assert _LIFT not in select._props
@@ -55,7 +56,8 @@ def test_a_select_never_lifts_itself() -> None:
 def test_shell_defines_the_overlay_ladder() -> None:
     """Every ``var(--hw-z-*)`` in the overlay tier is only meaningful if the
     shell injects it. The literal fallbacks cover pages rendered without the
-    shell CSS (previews, tests)."""
+    shell CSS (previews, tests).
+    """
     from pathlib import Path
 
     shell = Path("packages/haywire-core/src/haywire/ui/app/shell.py").read_text()
@@ -71,7 +73,8 @@ def test_the_popup_sits_below_quasars_interaction_tier() -> None:
 
     If someone raises the Popup above 6000 again, every menu inside a popup
     goes invisible and the per-site lift machinery comes back — that is the
-    regression this guards (see design-guide.md §2.9)."""
+    regression this guards (see design-guide.md §2.9).
+    """
     import re
     from pathlib import Path
 
@@ -101,7 +104,8 @@ def test_the_dropdown_lift_clears_the_dropdown_panel() -> None:
     A ``hui.dropdown`` panel renders at ``--hw-z-menu-over-menu``; anything
     inside it that opens its own portal lands on the bare interaction tier
     *underneath* that panel unless lifted past it. Equal is not enough —
-    a tie would leave the outcome to portal insertion order."""
+    a tie would leave the outcome to portal insertion order.
+    """
     import re
 
     from haywire.ui.elements.flyout import _NESTED_POPUP_Z
@@ -119,7 +123,8 @@ def test_the_dropdown_lift_reaches_a_bare_context_menu() -> None:
     ``ContextMenu`` is a *sibling* of ``Menu`` — both subclass ``Element``
     directly — so an ``isinstance(el, ui.menu)`` test misses every row menu.
     That is precisely how a settings row's right-click menu came to open
-    behind the dropdown panel that spawned it."""
+    behind the dropdown panel that spawned it.
+    """
     from haywire.ui.elements.flyout import _lift_nested_popups
 
     assert not issubclass(ui.context_menu, ui.menu), (

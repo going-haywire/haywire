@@ -1,5 +1,4 @@
-"""
-Flow Assembly Manager - Coordinates flow assembly from graphs.
+"""Flow Assembly Manager - Coordinates flow assembly from graphs.
 
 The FlowAssemblyManager is responsible for:
 1. Identifying flows in a graph (by event nodes)
@@ -55,8 +54,7 @@ class AssemblyMetadata:
 
 
 class FlowAssemblyManager:
-    """
-    Manages assembly of graphs into executable flows.
+    """Manages assembly of graphs into executable flows.
 
     Responsibilities:
     - Identify event nodes and separate flows
@@ -76,8 +74,7 @@ class FlowAssemblyManager:
         logger.debug("FlowAssemblyManager initialized")
 
     def assemble_graph(self, graph: BaseGraph) -> list[Flow]:
-        """
-        Assemble all flows in a graph.
+        """Assemble all flows in a graph.
 
         This is the main entry point for assembly. It:
         1. Validates the graph
@@ -149,8 +146,7 @@ class FlowAssemblyManager:
         return flows
 
     def _validate_graph(self, graph: BaseGraph) -> list[str]:
-        """
-        Validate graph structure before assembly.
+        """Validate graph structure before assembly.
 
         Args:
             graph: Graph to validate
@@ -257,8 +253,7 @@ class FlowAssemblyManager:
             ).enrich(graph_id=graph.graph_id, operation="Node Assembly Preparation")
 
     def _identify_event_nodes(self, graph: BaseGraph) -> list[BaseNode]:
-        """
-        Identify all event nodes in the graph.
+        """Identify all event nodes in the graph.
 
         Args:
             graph: Graph to search
@@ -276,8 +271,7 @@ class FlowAssemblyManager:
         return event_nodes
 
     def _assemble_flow(self, event_node: BaseNode, graph: BaseGraph) -> Flow:
-        """
-        Assemble a complete flow from an event node.
+        """Assemble a complete flow from an event node.
 
         Args:
             event_node: Event node starting the flow
@@ -321,8 +315,7 @@ class FlowAssemblyManager:
         return flow
 
     def get_flow(self, flow_id: str) -> Flow | None:
-        """
-        Get an assembled flow by ID.
+        """Get an assembled flow by ID.
 
         Args:
             flow_id: Flow ID
@@ -333,8 +326,7 @@ class FlowAssemblyManager:
         return self.assembled_flows.get(flow_id)
 
     def get_flows_for_event(self, subscription_key: str) -> list[Flow]:
-        """
-        Get all flows listening for a specific event.
+        """Get all flows listening for a specific event.
 
         Args:
             subscription_key: Event subscription key
@@ -351,8 +343,7 @@ class FlowAssemblyManager:
         return matching_flows
 
     def get_statistics(self) -> dict:
-        """
-        Get assembly statistics.
+        """Get assembly statistics.
 
         Returns:
             Assembly statistics

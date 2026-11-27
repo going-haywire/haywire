@@ -39,14 +39,14 @@ class SkinRegistry(BaseRegistry[BaseSkin]):
     def _register_class(
         self, cls: type[BaseSkin], library_identity: LibraryIdentity | None = None
     ) -> str | None:
-        """
-        Register a skin class.
+        """Register a skin class.
 
         Uses the registry_key that was set by the @skin decorator during class definition.
 
         Args:
             cls: The NodeSkin class
             library_identity: Optional library metadata for the skin.
+
         Returns:
             str: The haywire registry_key of the registered skin.
         """
@@ -179,8 +179,7 @@ class SkinRegistry(BaseRegistry[BaseSkin]):
         return self._error_skin_name
 
     def get_skin_event(self, key: str | None) -> LifeCycleEvent:
-        """
-        Get last lifecycle skin event by registry key
+        """Get last lifecycle skin event by registry key
 
         Args:
             key: Registry key in format "library_id:skin:skin_name"

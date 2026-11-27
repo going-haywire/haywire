@@ -1,5 +1,4 @@
-"""
-Smoke tests to verify basic test infrastructure.
+"""Smoke tests to verify basic test infrastructure.
 
 These tests ensure that the testing framework itself is working.
 """

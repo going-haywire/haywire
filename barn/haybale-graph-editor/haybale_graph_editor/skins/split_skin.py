@@ -1,5 +1,4 @@
-"""
-Split NodeSkin — configs on top, inlets and outlets side by side
+"""Split NodeSkin — configs on top, inlets and outlets side by side
 
 The counterpart to :class:`StackedNodeSkin`: same ports, two bands instead of
 one column.

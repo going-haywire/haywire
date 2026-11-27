@@ -1,6 +1,4 @@
-"""
-Math operation node: applies a basic operation to two float values
-"""
+"""Math operation node: applies a basic operation to two float values"""
 
 # Import the node system base class
 from __future__ import annotations

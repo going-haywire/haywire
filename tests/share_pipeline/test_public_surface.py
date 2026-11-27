@@ -51,7 +51,8 @@ def test_share_domain_functions_are_importable() -> None:
 
 def test_share_error_hierarchy_is_intact() -> None:
     """Every step exception stays a ShareError, so the wizard's single
-    `except ShareError` per step keeps catching all of them."""
+    `except ShareError` per step keeps catching all of them.
+    """
     module = importlib.import_module("haywire.core.publishing.pipeline")
     for name in (
         "PreconditionsError",

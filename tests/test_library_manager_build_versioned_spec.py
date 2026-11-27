@@ -37,7 +37,8 @@ def test_build_versioned_spec_pypi_pins_with_double_equals() -> None:
 def test_build_versioned_spec_pypi_ignores_unpinned_install_spec_field() -> None:
     """Regression: the bug was passing Haybale.install_spec (the bare, unpinned
     catalog field) straight to uv. build_versioned_spec must build the pinned
-    spec from pkg.name, not read pkg.install_spec at all for pypi sources."""
+    spec from pkg.name, not read pkg.install_spec at all for pypi sources.
+    """
     LibraryManager = _lib_manager_cls()
     pkg = Haybale(
         name="haybale-marketplace", version="0.0.34", source="pypi", install_spec="haybale-marketplace"

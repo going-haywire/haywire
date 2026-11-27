@@ -21,7 +21,8 @@ def test_directory_paths_link_to_the_tree_form():
 
 def test_notes_links_to_the_blob_form_inside_the_module_dir():
     """`notes` is a bare filename; the module directory it sits in is derived
-    from install_spec rather than stored."""
+    from install_spec rather than stored.
+    """
     pkg = Haybale(
         name="lib",
         version="1.0.0",

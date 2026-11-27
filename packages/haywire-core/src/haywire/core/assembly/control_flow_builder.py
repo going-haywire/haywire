@@ -1,5 +1,4 @@
-"""
-Control Flow Builder - Builds control flow navigation graphs.
+"""Control Flow Builder - Builds control flow navigation graphs.
 
 The ControlFlowBuilder creates a navigation structure (not an execution
 sequence) that the VM uses to determine which node to execute next based
@@ -22,8 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class ControlFlowBuilder:
-    """
-    Builds control flow navigation graphs.
+    """Builds control flow navigation graphs.
 
     Starting from an event node, this builder:
     1. Traverses all control connections
@@ -34,8 +32,7 @@ class ControlFlowBuilder:
 
     @staticmethod
     def build(event_node: BaseNode, graph: BaseGraph) -> ControlFlowGraph:
-        """
-        Build control flow graph starting from event node.
+        """Build control flow graph starting from event node.
 
         Args:
             event_node: Event node that starts the flow
@@ -103,8 +100,7 @@ class ControlFlowBuilder:
 
     @staticmethod
     def _build_topology(control_graph: ControlFlowGraph) -> list[str]:
-        """
-        Build topological order of control nodes.
+        """Build topological order of control nodes.
 
         This is used by data flow builder to determine which control
         nodes are "upstream" vs "downstream" to prevent illegal data

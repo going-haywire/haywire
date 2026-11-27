@@ -1,6 +1,4 @@
-"""
-PanelIdentity dataclass for the Haywire panel system.
-"""
+"""PanelIdentity dataclass for the Haywire panel system."""
 
 from __future__ import annotations
 
@@ -17,8 +15,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class PanelIdentity(BaseIdentity):
-    """
-    Metadata attached to a panel class by the @panel decorator.
+    """Metadata attached to a panel class by the @panel decorator.
 
     Set once at class-definition time; survives hot-reload.
 

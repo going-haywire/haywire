@@ -1,7 +1,5 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node_ports.py
-"""
-NodePortsPanel — lists inlet, swinglet, outlet, and config ports on the selected node.
-"""
+"""NodePortsPanel — lists inlet, swinglet, outlet, and config ports on the selected node."""
 
 from __future__ import annotations
 

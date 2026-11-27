@@ -1,5 +1,4 @@
-"""
-Tests for SessionContextMenuProvider.
+"""Tests for SessionContextMenuProvider.
 
 Verifies that the provider:
 - Gates the surface, then polls its panels and draws only those that apply
@@ -302,7 +301,8 @@ def test_close_cleanup_runs_immediately_when_no_panels_visible(register_edit_sta
 def test_a_tree_that_draws_nothing_deletes_the_popup(register_edit_state):
     """Emptiness is a property of the tree: a layout panel polling true is not
     enough to open a menu. The popup is built hidden, rendered into, and
-    discarded if no *leaf* drew — and the close cleanup runs either way."""
+    discarded if no *leaf* drew — and the close cleanup runs either way.
+    """
     session = MagicMock()
     ctx, EditStateCls = make_context(register_edit_state, session=session)
     edit: Any = ctx.data[EditStateCls]
@@ -360,7 +360,8 @@ def test_a_surface_declaring_no_provides_opens_with_inert_panels(register_edit_s
     with ``actions=None`` and the menu still opens; only the second aborts.
     Conflating them made every verb-less surface (the common case for a
     third-party surface reached through the DOM attribute — ADR-0029, "No
-    addressability check") silently open nothing."""
+    addressability check") silently open nothing.
+    """
     session = MagicMock()
     ctx, EditStateCls = make_context(register_edit_state, session=session)
     edit: Any = ctx.data[EditStateCls]
@@ -407,7 +408,8 @@ def test_a_surface_declaring_no_provides_opens_with_inert_panels(register_edit_s
 def test_on_surface_context_with_unregistered_id_opens_nothing_and_logs(register_edit_state, caplog):
     """No fallback. The old ``or NodeFocus`` made the node inspector reachable
     by default from any right-click; deleting the branch means an id that
-    resolves to nothing opens nothing and logs — not some default surface."""
+    resolves to nothing opens nothing and logs — not some default surface.
+    """
     import logging
 
     session = MagicMock()

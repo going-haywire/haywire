@@ -47,8 +47,7 @@ class NodeMenuBuilder:
         recent_nodes: list[str] | None = None,
         show_search: bool = True,
     ) -> ui.column:
-        """
-        Create a complete node menu with optional recent nodes and search.
+        """Create a complete node menu with optional recent nodes and search.
 
         Args:
             recent_nodes: List of recently used node registry keys to show at top

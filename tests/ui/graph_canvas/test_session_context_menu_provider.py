@@ -82,7 +82,8 @@ def test_provider_satisfies_every_surface_it_opens():
     """render_surface validates the host against the target surface's
     ``provides`` — so a provider claiming a Protocol it satisfies only in part
     now fails at the point of nesting instead of silently handing its panels a
-    broken ``self.actions``."""
+    broken ``self.actions``.
+    """
     from haybale_graph_editor.surfaces import (
         EdgeMenu,
         GraphContext,
@@ -502,7 +503,8 @@ def test_provider_satisfies_selection_actions_with_batch_verbs():
 
 def test_on_selection_context_writes_selection_from_payload(monkeypatch):
     """on_selection_context seeds EditState.selected_* from the event payload
-    before opening the menu, so menu panels poll against fresh state."""
+    before opening the menu, so menu panels poll against fresh state.
+    """
     provider = _make_provider()
     edit = cast(Any, provider)._test_edit_stub
     # Prevent the real popup/registry machinery from running.
@@ -545,7 +547,8 @@ class TestMenuSupersedesTheOpenOne:
 
     def test_close_open_menu_closes_and_lets_on_close_clear_the_handle(self):
         """It must NOT clear _open_popup itself — Popup.close() fires on_close
-        synchronously, and that is what owns the attribute."""
+        synchronously, and that is what owns the attribute.
+        """
         provider = _make_provider()
         popup = MagicMock()
         provider._open_popup = popup
@@ -556,7 +559,8 @@ class TestMenuSupersedesTheOpenOne:
 
     def test_a_dead_popup_does_not_take_the_next_menu_down(self):
         """Page closed under a pending gesture: closing raises, and the next
-        menu must still open."""
+        menu must still open.
+        """
         provider = _make_provider()
         popup = MagicMock()
         popup.close.side_effect = RuntimeError("client is gone")
@@ -569,7 +573,8 @@ class TestMenuSupersedesTheOpenOne:
     def test_dispatcher_closes_before_routing_the_intent(self):
         """The ordering guarantee, asserted as an ordering rather than by
         outcome — an intent that ran first would see the previous gesture's
-        cleanup land on top of the state it had just written."""
+        cleanup land on top of the state it had just written.
+        """
         from haywire.ui.components.graph.event_definitions import ContextMenuSelectedEvent
 
         provider = _make_provider()
@@ -683,7 +688,8 @@ class TestCollapseToggle:
 
     def test_a_mixed_selection_reads_as_not_collapsed(self):
         """So the first press folds everything, rather than unfolding the
-        already-folded half of the selection."""
+        already-folded half of the selection.
+        """
         provider = _make_provider()
         folded = SimpleNamespace(node=SimpleNamespace(props=SimpleNamespace(collapsed=True)))
         loose = SimpleNamespace(node=SimpleNamespace(props=SimpleNamespace(collapsed=False)))
@@ -750,7 +756,8 @@ class TestGraphWideCardReset:
 
     def test_it_leaves_tracking_nodes_alone(self):
         """Resetting a field that is not locally set would be a no-op anyway,
-        but counting it would overstate what the command did."""
+        but counting it would overstate what the command did.
+        """
         provider = _make_provider()
         wrappers = self._graph_of(provider, False, False)
 

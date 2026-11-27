@@ -1,6 +1,5 @@
 # haywire/core/settings/settings.py
-"""
-Settings — observable setting container for Haywire.
+"""Settings — observable setting container for Haywire.
 
 Subclass and declare settings with ``setting()``:
 
@@ -52,7 +51,8 @@ logger = logging.getLogger(__name__)
 class PromotedFormatError(Exception):
     """A settings dict is in the flat ``{field: value}`` shape, which
     ``Settings._from_dict`` cannot restore: it expects
-    ``{"values", "promoted"}``. There is no migration."""
+    ``{"values", "promoted"}``. There is no migration.
+    """
 
 
 class Promotion(NamedTuple):
@@ -75,8 +75,7 @@ class Promotion(NamedTuple):
 
 @dataclass_transform(field_specifiers=(setting,))
 class Settings:
-    """
-    Base Settings class for observable settings.
+    """Base Settings class for observable settings.
 
     Subclasses declare typed settings using ``setting()``.  When a
     ``SettingsRegistry`` is injected, ``setting`` fields gain full
@@ -179,14 +178,16 @@ class Settings:
 
     def _local_value(self, descriptor: setting) -> Any:
         """Return this field's own value from its cell, whatever an edge delivers to a
-        promoted inlet. Only meaningful when the field is in ``_set_keys``."""
+        promoted inlet. Only meaningful when the field is in ``_set_keys``.
+        """
         return self._cell_for(descriptor).get_own_value()
 
     def _write_local(self, descriptor: setting, value: Any) -> None:
         """Write *value* into this field's cell and mark it locally set.
 
         Skips the validator. The opinion is recorded before the cell write, so
-        a subscriber sees ``_is_locally_set()`` already True."""
+        a subscriber sees ``_is_locally_set()`` already True.
+        """
         self._set_keys.add(descriptor.storage_key)
         self._cell_for(descriptor).set_value(value)
 
@@ -247,7 +248,8 @@ class Settings:
 
     def _get_promoted_show_widget(self, name: str) -> ShowWidgetStrategy | None:
         """*name*'s recorded widget-visibility choice, or None when it uses the
-        direction default (or is not promoted at all)."""
+        direction default (or is not promoted at all).
+        """
         fields = type(self)._settings_descriptors()
         if name not in fields:
             return None
@@ -304,7 +306,8 @@ class Settings:
     def _demote(self, field: str) -> None:
         """Remove *field*'s promoted port, if any. Sugar over
         ``haywire.core.node.promotion.demote_setting``. No-op if *field* is not
-        currently promoted or the bag is not node-bound."""
+        currently promoted or the bag is not node-bound.
+        """
         fields = type(self)._settings_descriptors()
         if field not in fields or self._node is None:
             return
@@ -317,7 +320,8 @@ class Settings:
 
     def _owning_graph(self) -> BaseGraph | None:
         """The graph this bag can reach: its own (GraphSettings) or its
-        node's (node → wrapper → graph). None for standalone bags."""
+        node's (node → wrapper → graph). None for standalone bags.
+        """
         graph_obj = getattr(self, "_graph", None)
         if graph_obj is not None:
             return graph_obj
@@ -332,7 +336,8 @@ class Settings:
         """The live cell of a graph mirror's src field on the owning graph's
         bag — or None when detached (standalone bag, node not in a graph,
         graph lacks the src bag). Detached fields hold the descriptor
-        default and are not live."""
+        default and are not live.
+        """
         if not descriptor.is_graph_mirror:
             return None
         src = descriptor._mirror_descriptor
@@ -401,9 +406,8 @@ class Settings:
     # -------------------------------------------------------------------------
 
     def _resolve(self, field_key: str, mirror_key: str, default: Any) -> Any:
-        """
-        Full resolution chain:
-            local SET > workspace SET > global SET > default
+        """Full resolution chain:
+        local SET > workspace SET > global SET > default
         """
         from haywire.core.settings.value import SettingValue
 
@@ -444,7 +448,8 @@ class Settings:
 
         Registry-key mirror → registry notification channel. Graph mirror →
         cell adapter on the src bag's cell (detached bags stay at the
-        descriptor default, not live). No-op for plain fields."""
+        descriptor default, not live). No-op for plain fields.
+        """
         if descriptor.is_graph_mirror:
             self._subscribe_graph_mirror(descriptor)
             return
@@ -467,7 +472,8 @@ class Settings:
         Attaches one adapter to the src field's cell on the owning graph's bag;
         the adapter writes changes into this field's own cell unless a local
         opinion suppresses it. No-op on a detached bag, which keeps the
-        descriptor default. Idempotent per field."""
+        descriptor default. Idempotent per field.
+        """
         key = descriptor.storage_key
         if key in self._graph_mirror_adapters:
             return
@@ -485,8 +491,7 @@ class Settings:
         self._graph_mirror_adapters[key] = (src_cell, _adapter)
 
     def _on_field_change(self, full_key: str, value: SettingValue) -> None:
-        """
-        Dispatched by the registry when a mirrored field's effective value changes.
+        """Dispatched by the registry when a mirrored field's effective value changes.
 
         Writes the newly resolved value into the cell of every cross-mirror
         field pointing at *full_key*, so the cell — which a promoted port may
@@ -514,7 +519,8 @@ class Settings:
         One adapter per field cell, so every writer notifies uniformly:
         descriptor sets, resets, registry write-through, and edge drives into
         a promoted shared cell. Idempotent per callback; a callback that raises
-        is logged and does not stop the others."""
+        is logged and does not stop the others.
+        """
         if callback in self._subscriptions:
             return
         adapters: list[tuple[DataField, Callable]] = []
@@ -539,7 +545,8 @@ class Settings:
         descriptor sets, resets, registry write-through, edge drives.
         :meth:`_unsubscribe` and :meth:`_cleanup` detach it. Idempotent per
         (field, callback); the same callback may watch several fields. Raises
-        ``KeyError`` for an unknown field name."""
+        ``KeyError`` for an unknown field name.
+        """
         fields = type(self)._settings_descriptors()
         if field not in fields:
             raise KeyError(f"No setting '{field}' on {type(self).__name__}")
@@ -705,7 +712,8 @@ class Settings:
         """Release every subscription and adapter this bag holds. Call on node removal.
 
         Required for wired persistent fields and graph mirrors: their cells are
-        owned by the registry or the graph and outlive this bag."""
+        owned by the registry or the graph and outlive this bag.
+        """
         self._cleaned_up = True
         for callback in list(self._subscriptions):
             self._unsubscribe(callback)
@@ -843,7 +851,8 @@ class Settings:
 
         A channel separate from :meth:`_subscribe`: it fires only for
         :meth:`_set_ui_state` transitions, never for value changes, and value
-        subscribers never hear UI-state changes. Idempotent per callback."""
+        subscribers never hear UI-state changes. Idempotent per callback.
+        """
         if callback not in self._ui_state_listeners:
             self._ui_state_listeners.append(callback)
 

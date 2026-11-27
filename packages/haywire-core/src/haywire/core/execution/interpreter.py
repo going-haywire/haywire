@@ -1,5 +1,4 @@
-"""
-Haywire Interpreter - Main execution coordinator.
+"""Haywire Interpreter - Main execution coordinator.
 
 The Interpreter is responsible for:
 - Managing flow assembly
@@ -41,8 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 class Interpreter:
-    """
-    Main Haywire execution coordinator.
+    """Main Haywire execution coordinator.
 
     The Interpreter provides the interface between external systems
     and Haywire's internal execution model. It:
@@ -77,8 +75,7 @@ class Interpreter:
         exception_bail: Callable[[], str] | None = None,
         on_bail_run: Callable[[], None] | None = None,
     ):
-        """
-        Initialize interpreter.
+        """Initialize interpreter.
 
         Args:
             global_context: Global execution context passed to all flows
@@ -120,8 +117,7 @@ class Interpreter:
         logger.info("Haywire Interpreter initialized")
 
     def load_graph(self, graph: BaseGraph) -> None:
-        """
-        Load and assemble a graph for execution.
+        """Load and assemble a graph for execution.
 
         This:
         1. Assembles all flows in the graph
@@ -173,8 +169,7 @@ class Interpreter:
         return self._executing
 
     def start_execution(self) -> None:
-        """
-        Start graph execution by dispatching BEGIN_PLAY.
+        """Start graph execution by dispatching BEGIN_PLAY.
 
         Call after load_graph(). Clears the runtime errors of every node in the
         loaded flows, starts each execution group's runner (which retains its
@@ -200,8 +195,7 @@ class Interpreter:
         logger.info("Execution started")
 
     def stop_execution(self, timeout: float = 2.0) -> None:
-        """
-        Stop graph execution.
+        """Stop graph execution.
 
         Dispatches SHUTDOWN, then grants a *scoped* grace period for any
         author-wired graceful teardown to run before forcibly stopping every
@@ -286,8 +280,7 @@ class Interpreter:
         return bool(self._abandoned) or any(group.is_abandoned for group in self.groups)
 
     def _register_flow(self, flow: Flow) -> None:
-        """
-        Register a flow with event subscriptions, its flow queue and callback listener.
+        """Register a flow with event subscriptions, its flow queue and callback listener.
 
         Args:
             flow: Flow to register
@@ -317,8 +310,7 @@ class Interpreter:
                 flow.queue.on_done = self.callback_manager.trigger_done
 
     def _cleanup_current_graph(self, print_stats: bool = False) -> None:
-        """
-        Cleanup current graph state.
+        """Cleanup current graph state.
 
         Args:
             print_stats: Whether to log each flow's execution statistics during cleanup
@@ -363,8 +355,7 @@ class Interpreter:
     def dispatch_system_event(
         self, event_type: SystemEventType, payload: dict[str, Any] | None = None
     ) -> int:
-        """
-        Dispatch a system event.
+        """Dispatch a system event.
 
         Args:
             event_type: Type of system event
@@ -379,8 +370,7 @@ class Interpreter:
     def dispatch_external_event(
         self, category: str, name: str, payload: dict[str, Any] | None = None
     ) -> int:
-        """
-        Dispatch an external event.
+        """Dispatch an external event.
 
         Args:
             category: Event category (e.g., 'input', 'network')
@@ -394,8 +384,7 @@ class Interpreter:
         return self._dispatch_event(event.get_subscription_key(), payload)
 
     def _dispatch_event(self, subscription_key: str, payload: dict[str, Any] | None = None) -> int:
-        """
-        Internal method to dispatch event to flows.
+        """Internal method to dispatch event to flows.
 
         Args:
             subscription_key: Event subscription key
@@ -428,8 +417,7 @@ class Interpreter:
         return triggered
 
     def wait_all(self, timeout: float | None = None, stop_after: bool = True) -> None:
-        """
-        Wait for all flows to complete their queued triggers.
+        """Wait for all flows to complete their queued triggers.
 
         After waiting, optionally stops every execution group's runner
         thread.
@@ -475,8 +463,7 @@ class Interpreter:
         return [flow.queue.snapshot() for flow in self._all_flows() if flow.queue is not None]
 
     def get_statistics(self) -> dict[str, Any]:
-        """
-        Get execution statistics.
+        """Get execution statistics.
 
         Returns:
             Dictionary with statistics from all components

@@ -1,5 +1,4 @@
-"""
-Tests for haybale-testing context menu action panels.
+"""Tests for haybale-testing context menu action panels.
 
 Verifies registration metadata (action+focus) and poll() contracts for:
 - Node panels: TestDeleteNode, TestCopyNode, TestRedrawNode, TestRevalidateNode, TestResetNode
@@ -102,7 +101,8 @@ def make_context(
 
 def test_test_node_menu_demands_the_node_verbs():
     """``provides`` belongs to the surface, not to each panel on it — the
-    contract is the surface's demand on whatever hosts it."""
+    contract is the surface's demand on whatever hosts it.
+    """
     assert TestNodeMenu.provides is TestNodeActions
 
 

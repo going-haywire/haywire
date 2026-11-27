@@ -1,5 +1,6 @@
 """An ARRAY port takes its element's wire type and colour, and an array outlet on a data wire
-allows several links like any data outlet."""
+allows several links like any data outlet.
+"""
 
 from __future__ import annotations
 
@@ -22,7 +23,8 @@ def _edge_link_test_node(graph: BaseGraph):
 
 class TestArrayTypeOutletConnectionRule:
     """An ARRAY outlet over a data element takes many links, exactly like a scalar
-    data outlet; see `DataPort.takes_many_links`."""
+    data outlet; see `DataPort.takes_many_links`.
+    """
 
     def test_array_outlet_over_data_element_allows_multiple_links(self, graph_with_library_system):
         node = _edge_link_test_node(graph_with_library_system)
@@ -33,7 +35,8 @@ class TestArrayTypeOutletConnectionRule:
 
     def test_pooled_array_inlet_over_data_element_is_multi_link(self, graph_with_library_system):
         """A pooled array inlet resolves to the data wire and takes several links
-        (a pooled field keeps one value per source, so the inlet takes many)."""
+        (a pooled field keeps one value per source, so the inlet takes many).
+        """
         node = _edge_link_test_node(graph_with_library_system)
         inlet = node.ports["pooled_array_string_inlet"]
 
@@ -62,7 +65,8 @@ class TestArrayTypeOutletConnectionRule:
 
     def test_two_edges_link_from_the_same_array_outlet(self, graph_with_library_system):
         """End-to-end regression: a second edge from an ARRAY outlet must
-        link, not displace the first (the bug this module exists to catch)."""
+        link, not displace the first (the bug this module exists to catch).
+        """
         graph = graph_with_library_system
         node_a = _edge_link_test_node(graph)
         node_b = _edge_link_test_node(graph)

@@ -1,6 +1,5 @@
 # haywire/core/settings/registry.py
-"""
-SettingsRegistry - central registry for setting definitions and global values.
+"""SettingsRegistry - central registry for setting definitions and global values.
 Extends BaseRegistry for hot-reload and folder scan support.
 
 Three-tier value storage:
@@ -37,8 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 class SettingsRegistry(BaseRegistry[Settings]):
-    """
-    Central registry for setting definitions and global values.
+    """Central registry for setting definitions and global values.
 
     Extends BaseRegistry for hot-reload and library folder scan support.
     Schema classes (FrameworkSettings / LibrarySettings) can be registered
@@ -193,8 +191,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
             )
 
     def _notify_subscribers(self, changed: dict[str, SettingValue]) -> None:
-        """
-        Notify subscribers for a batch of changed keys and bring their cells current.
+        """Notify subscribers for a batch of changed keys and bring their cells current.
 
         Exact-key subscribers fire for their key; subscribers registered under
         key=None receive every change. Dead weakrefs are cleaned up.
@@ -296,8 +293,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
             self._notify_subscribers({k: SettingValue.unset() for k in changed_keys})
 
     def register_schema(self, schema_cls, library_identity: LibraryIdentity | None = None) -> str | None:
-        """
-        Explicitly register a FrameworkSettings or LibrarySettings schema class.
+        """Explicitly register a FrameworkSettings or LibrarySettings schema class.
 
         Creates a class_identity from _namespace if not already present
         (needed for FrameworkSettings built-ins that don't use @settings).
@@ -331,8 +327,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
     # =========================================================================
 
     def subscribe(self, key: str | None, callback: Callable[[str, SettingValue], None]) -> None:
-        """
-        Subscribe *callback* to setting changes for *key*.
+        """Subscribe *callback* to setting changes for *key*.
 
         *key* controls the scope (exact-key only):
             None            — fires on every key change (global listener)
@@ -364,8 +359,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
     # =========================================================================
 
     def load_from_json(self, path: Path | str, tier: str = "workspace", watch: bool = False) -> None:
-        """
-        Load setting values from a JSON file into the specified tier.
+        """Load setting values from a JSON file into the specified tier.
 
         Args:
             path:  Path to the JSON file.
@@ -648,8 +642,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
             }
 
     def save_to_json(self, path: Path | str | None = None) -> None:
-        """
-        Save current workspace-tier values to JSON.
+        """Save current workspace-tier values to JSON.
 
         Only the workspace tier is saved — the global tier is hand-edited by the
         user and is never overwritten by the application. Only *set* values are
@@ -694,8 +687,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         ui_order: int = 0,
         metadata: dict | None = None,
     ) -> setting:
-        """
-        Define a custom setting from code (authoritative schema).
+        """Define a custom setting from code (authoritative schema).
 
         This creates a new setting definition not associated to any Settings bag
         and adds it to the registry, making it available
@@ -824,14 +816,11 @@ class SettingsRegistry(BaseRegistry[Settings]):
         return SettingValue.unset()
 
     def get_global(self, name: str) -> SettingValue:
-        """
-        Get the merged effective global value (workspace tier beats global tier).
-        """
+        """Get the merged effective global value (workspace tier beats global tier)."""
         return self._effective_value(name)
 
     def get_global_tier(self, name: str, tier: str = "workspace") -> SettingValue:
-        """
-        Get the raw SettingValue for a specific tier ('global' or 'workspace').
+        """Get the raw SettingValue for a specific tier ('global' or 'workspace').
 
         Use this for introspection (e.g. get_info() UI display) when you need
         to distinguish which tier a value came from.
@@ -930,15 +919,13 @@ class SettingsRegistry(BaseRegistry[Settings]):
     # =========================================================================
 
     def registered_schemas(self) -> list[type]:
-        """
-        All registered FrameworkSettings / LibrarySettings schema classes, in
+        """All registered FrameworkSettings / LibrarySettings schema classes, in
         registration order.
         """
         return list(self._classes.values())
 
     def definitions_for_schema(self, schema_cls: type) -> dict[str, setting]:
-        """
-        Return all definitions that belong to *schema_cls*, keyed by full_key.
+        """Return all definitions that belong to *schema_cls*, keyed by full_key.
 
         Matching is done by namespace prefix — every definition whose full_key
         starts with ``schema_cls._namespace + '.'`` is included.  Returns an

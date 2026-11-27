@@ -1,5 +1,4 @@
-"""
-Type system for Haywire.
+"""Type system for Haywire.
 
 This module provides infrastructure for defining and managing data types
 (both primitive type variants and custom compound types) that can be passed between

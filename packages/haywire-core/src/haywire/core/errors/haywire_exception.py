@@ -1,5 +1,4 @@
-"""
-Unified HaywireException - UI-first exception for user-facing errors
+"""Unified HaywireException - UI-first exception for user-facing errors
 
 HaywireException (User-facing)
 
@@ -95,8 +94,7 @@ _FRAMEWORK_PATHS = [
 
 
 def is_framework_code(filepath: str, framework_paths: list[str] | None = None) -> bool:
-    """
-    Check if a file is part of the framework (not user code).
+    """Check if a file is part of the framework (not user code).
 
     Args:
         filepath: Path to the file
@@ -124,8 +122,7 @@ def is_framework_code(filepath: str, framework_paths: list[str] | None = None) -
 def _find_decorator_frame(
     traceback_frames: list[dict[str, Any]], framework_paths: list[str] | None = None
 ) -> dict[str, Any] | None:
-    """
-    Find a frame that contains a decorator application.
+    """Find a frame that contains a decorator application.
 
     Returns the last (deepest) frame with a decorator, prioritizing user code.
     """
@@ -148,8 +145,7 @@ def _find_decorator_frame(
 def find_most_relevant_user_frame(
     traceback_frames: list[dict[str, Any]], exception: Exception, framework_paths: list[str] | None = None
 ) -> dict[str, Any] | None:
-    """
-    Find the most relevant user code frame.
+    """Find the most relevant user code frame.
 
     This is smarter than just finding the first user code:
     1. For decorator errors, find the decorator application
@@ -205,8 +201,7 @@ def find_most_relevant_user_frame(
 def extract_extended_context(
     filename: str, line_number: int, context_lines: int = 10
 ) -> tuple[str, list[tuple[int, str]], str | None, int | None]:
-    """
-    Extract extended context around an error line.
+    """Extract extended context around an error line.
 
     Tries to identify what the user was doing:
     - Class definition
@@ -307,8 +302,7 @@ def extract_extended_context(
 def analyze_error_context(
     traceback_frames: list[dict[str, Any]], selected_frame: dict[str, Any], exception: Exception
 ) -> dict[str, Any]:
-    """
-    Analyze the error context to provide better insights.
+    """Analyze the error context to provide better insights.
 
     Looks at the relationship between frames to understand:
     - Is this an import-time error?
@@ -372,8 +366,7 @@ def enhance_error_message_for_context(
     *,
     line_number: int | None = None,
 ) -> tuple[str, list[str]]:
-    """
-    Generate contextual error message and suggestions.
+    """Generate contextual error message and suggestions.
 
     Args:
         context_type: Type of code context ('class', 'function', 'anonymous'
@@ -434,8 +427,7 @@ def enhance_error_message_for_context(
 
 @dataclass
 class HaywireException(Exception):
-    """
-    Unified exception with structured error data for UI rendering.
+    """Unified exception with structured error data for UI rendering.
 
     This is the single source of truth for all user-facing errors in Haywire.
 
@@ -594,7 +586,8 @@ class HaywireException(Exception):
     def fingerprint(self) -> tuple:
         """Identity for ledger dedup: where, what kind, the source location it was
         raised from, and the message with digits normalized so "Node 3 failed" and
-        "Node 7 failed" collide."""
+        "Node 7 failed" collide.
+        """
         return (
             self.operation,
             self.registry_key,
@@ -637,8 +630,7 @@ class HaywireException(Exception):
         category: str = "Error",
         **kwargs,
     ) -> HaywireException:
-        """
-        Create a new exception with minimal information.
+        """Create a new exception with minimal information.
 
         Use this when you're creating an error from scratch (not from exception).
 
@@ -655,8 +647,7 @@ class HaywireException(Exception):
 
     @classmethod
     def _extract(cls, exception: Exception) -> dict[str, Any]:
-        """
-        Extract technical details from a Python exception.
+        """Extract technical details from a Python exception.
 
         This is a low-level method that extracts traceback, source location,
         error type, etc. without creating a HaywireException instance.
@@ -835,8 +826,7 @@ class HaywireException(Exception):
         operation: str | None = None,
         **kwargs,
     ) -> HaywireException:
-        """
-        Create from a caught Python exception with auto-extraction.
+        """Create from a caught Python exception with auto-extraction.
 
         Automatically extracts: traceback, source location, error type, etc.
         Uses smart frame detection to find the most relevant user code.
@@ -891,8 +881,7 @@ class HaywireException(Exception):
         suggestions: list[str] | None = None,
         **kwargs,
     ) -> HaywireException:
-        """
-        Add context as error propagates (chainable).
+        """Add context as error propagates (chainable).
 
         Can also extract and add technical details from an exception.
 
@@ -987,7 +976,8 @@ class HaywireException(Exception):
         ``<string>``, ``<stdin>``, ...) — the last-resort frame in
         ``extract()`` can pick one of these when every real frame in the
         traceback was filtered out as framework code, and there is no file
-        on disk for "Open file" to open."""
+        on disk for "Open file" to open.
+        """
         if self.filename is None or self.line_number is None:
             return False
         return not self.filename.startswith("<")
@@ -1012,7 +1002,8 @@ class HaywireException(Exception):
         """True if we know which component definition this error relates to.
 
         registry_key is ``<library>:<kind>:<id>`` — enough to open the
-        component's source (the kind is parsed from the key)."""
+        component's source (the kind is parsed from the key).
+        """
         return self.registry_key is not None
 
     def can_reveal_instance(self) -> bool:
@@ -1020,7 +1011,8 @@ class HaywireException(Exception):
 
         Needs the graph (graph_id) AND something to select inside it — a node
         (node_id) or an edge (edge_id). graph_id alone can only reveal the
-        graph, not select an instance."""
+        graph, not select an instance.
+        """
         return self.graph_id is not None and (self.node_id is not None or self.edge_id is not None)
 
     # ========================================================================
@@ -1077,8 +1069,7 @@ class HaywireException(Exception):
         return True
 
     def format_detailed(self) -> str:
-        """
-        Format for detailed console output.
+        """Format for detailed console output.
 
         This is the FALLBACK - primary display is ErrorWidget.
         """
@@ -1315,8 +1306,7 @@ class HaywireException(Exception):
         return f"{name}: {text}" if text else name
 
     def to_dict(self) -> dict:
-        """
-        Serialize to a JSON-friendly dict.
+        """Serialize to a JSON-friendly dict.
 
         This is the wire format for the Errors editor and the haybale-studio_get_errors
         Farmhand (MCP): the ledger holds live HaywireException objects, and each

@@ -70,7 +70,8 @@ def wired_library_schema():
 def test_write_persists_through_registry(wired_library_schema):
     """A write on instance A is visible on a freshly-constructed instance B —
     regression test for the original bug (descriptor write only touched the
-    per-instance value store, never the registry)."""
+    per-instance value store, never the registry).
+    """
     make_instance, registry = wired_library_schema
 
     a = make_instance()
@@ -98,7 +99,8 @@ def test_write_does_not_double_fire_on_property_change(wired_library_schema):
     is the single source of truth. Calling _on_property_change directly would
     double-fire every subscriber callback (UI redraws, IPC, etc).
 
-    Regression test for the original review of d8ff3a31."""
+    Regression test for the original review of d8ff3a31.
+    """
     make_instance, _registry = wired_library_schema
 
     inst = make_instance()
@@ -114,7 +116,8 @@ def test_write_does_not_double_fire_on_property_change(wired_library_schema):
 def test_save_to_json_debounced_is_noop_without_workspace_path():
     """save_to_json_debounced must be a no-op when no path is configured —
     otherwise the background timer would fire save_to_json which raises
-    ValueError on a thread with no error handling."""
+    ValueError on a thread with no error handling.
+    """
     registry = SettingsRegistry()
     # No workspace_path set, no path argument.
     registry.save_to_json_debounced()
@@ -167,7 +170,8 @@ def test_settings_decorator_promotes_descriptor_to_persistent_setting():
     pattern (the canonical real-world pattern) silently lose persistence.
 
     Regression test for a smoke-test discovery: HaystackSettings uses
-    @settings(namespace=...) and was NOT promoted before this fix."""
+    @settings(namespace=...) and was NOT promoted before this fix.
+    """
     from haywire.core.settings.decorator import settings
 
     @settings(namespace="test.decorator.promoted")
@@ -186,7 +190,8 @@ def test_haystack_settings_writes_persist_through_registry():
     a write to one instance must be visible to a freshly-constructed instance.
 
     This is the test that would have caught the production bug surfaced by the
-    manual smoke test."""
+    manual smoke test.
+    """
     from haybale_haystack.settings.haystack_settings import HaystackSettings
 
     registry = SettingsRegistry()

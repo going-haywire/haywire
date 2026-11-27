@@ -482,7 +482,8 @@ async def test_flyout_icon_with_an_empty_body_greys_the_anchor_retroactively(use
     """``FlyoutIcon``'s own case 1, mirroring ``SubmenuRow``'s: an empty body
     greys the icon anchor after exit -- ``FlyoutIcon`` shares the same
     ``__enter__``/``__exit__`` mechanism as ``SubmenuRow``, just with a
-    ``ui.button`` anchor (``self._anchor``) instead of a styled row."""
+    ``ui.button`` anchor (``self._anchor``) instead of a styled row.
+    """
     captured: dict[str, object] = {}
 
     @ui.page("/")
@@ -551,7 +552,8 @@ async def test_a_flyout_over_an_empty_body_at_the_popup_level_does_not_count_as_
 async def test_a_flyout_over_a_drawn_body_at_the_popup_level_counts_once(user: User) -> None:
     """The other half of the rule above: an icon whose body drew content is
     content at the popup level, so a toolbar of hosting icons alone (an edge
-    selection's Style and ⋯) still shows. It counts once, not once per leaf."""
+    selection's Style and ⋯) still shows. It counts once, not once per leaf.
+    """
     from haywire.ui.panel.host_rendering import counting_leaves
 
     captured: dict[str, object] = {}

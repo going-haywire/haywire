@@ -45,7 +45,8 @@ def test_matches_the_private_spelling_it_replaces():
 
 def test_walks_the_mro_base_first():
     """Inherited fields precede subclass ones; a redeclared field keeps its
-    base position rather than jumping to the end."""
+    base position rather than jumping to the end.
+    """
     assert list(settings_fields(Derived)) == ["alpha", "beta", "gamma"]
 
 

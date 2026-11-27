@@ -1,5 +1,4 @@
-"""
-Shutdown Event Node.
+"""Shutdown Event Node.
 
 Triggered when the interpreter is shutting down, allowing for cleanup operations.
 """
@@ -17,8 +16,7 @@ from haywire.api import EXEC, FLOAT, BaseNode, ExecutionContext, NodeType, Syste
     node_type=NodeType.EVENT,
 )
 class ShutdownEventNode(BaseNode):
-    """
-    Triggered when execution is shutting down.
+    """Triggered when execution is shutting down.
 
     Use this node to perform cleanup operations before the interpreter stops.
     For example:
@@ -69,8 +67,7 @@ class ShutdownEventNode(BaseNode):
         self.event_subscription = SystemEvent(SystemEventType.SHUTDOWN)
 
     def worker(self, context: ExecutionContext) -> str | None:
-        """
-        Execute when shutdown event is received.
+        """Execute when shutdown event is received.
 
         Outputs the current timestamp and continues execution flow
         to allow downstream cleanup nodes to execute.

@@ -1,6 +1,5 @@
 # haywire/core/settings/settings_framework.py
-"""
-FrameworkSettings — framework/app-defined settings schemas.
+"""FrameworkSettings — framework/app-defined settings schemas.
 
 Defined in haywire-core or haywire-studio; each registers into every live
 SettingsRegistry when defined, and every registry built later takes it too.
@@ -44,8 +43,7 @@ _live_registries: weakref.WeakSet[SettingsRegistry] = weakref.WeakSet()
 
 @dataclass_transform(field_specifiers=(setting,))
 class FrameworkSettings(Settings):
-    """
-    Framework/app-defined settings schema.
+    """Framework/app-defined settings schema.
 
     For use by haywire-core and haywire-studio internals only.
     Node authors should use NodeSettings; library authors should use LibrarySettings.

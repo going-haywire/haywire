@@ -22,8 +22,7 @@ from haywire.api import (
     node_type=NodeType.EVENT,
 )
 class TickEventNode(BaseNode):
-    """
-    Runs its flow each time a connected emitter triggers it.
+    """Runs its flow each time a connected emitter triggers it.
 
     Connect the `Listen` outlet to the `Trigger` inlet of a Tick Emit (periodic
     ticks) or a Run Button (one trigger per press).

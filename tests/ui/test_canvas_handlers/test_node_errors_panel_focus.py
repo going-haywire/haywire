@@ -3,7 +3,8 @@
 The menu one is on ``SelectionMenu`` (the unified right-click menu); the
 inspector one stays on ``NodeInspector``. With the display/action fork gone,
 the surface id is the only thing keeping them apart — which is precisely the
-double duty the Edge and Canvas splits had to resolve."""
+double duty the Edge and Canvas splits had to resolve.
+"""
 
 from __future__ import annotations
 

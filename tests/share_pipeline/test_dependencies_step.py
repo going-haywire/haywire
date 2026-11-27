@@ -174,7 +174,8 @@ def test_removals_drop_only_the_named_dists(project: Path) -> None:
 
 def test_extras_and_markers_survive_every_write(project: Path) -> None:
     """The lossy-round-trip bug: regenerating entries from detection drops
-    extras, markers and direct references. Entry-level edits never read them."""
+    extras, markers and direct references. Entry-level edits never read them.
+    """
     lib = project / "barn" / "haybale-alpha"
     _write_deps(
         lib,
@@ -239,7 +240,8 @@ def test_decorator_gap_alone_is_not_drift(project: Path) -> None:
 
 def test_linked_registrations_are_applied_in_union_mode(project: Path) -> None:
     """Existing entries survive: a name added by hand for a dynamic import
-    would otherwise be dropped by a tool that cannot see that import."""
+    would otherwise be dropped by a tool that cannot see that import.
+    """
     lib = project / "barn" / "haybale-alpha"
     declared = lib / "haybale_alpha" / "haybale.toml"
 

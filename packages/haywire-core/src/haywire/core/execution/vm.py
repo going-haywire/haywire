@@ -25,8 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 class HaywireVM:
-    """
-    Virtual Machine for executing Haywire flows.
+    """Virtual Machine for executing Haywire flows.
 
     The VM manages control flow execution by:
     1. Starting from event node
@@ -47,8 +46,7 @@ class HaywireVM:
         exception_bail: Callable[[], str] | None = None,
         on_bail_run: Callable[[], None] | None = None,
     ) -> None:
-        """
-        Initialize VM.
+        """Initialize VM.
 
         Args:
             global_context: Global execution context
@@ -81,8 +79,7 @@ class HaywireVM:
     def _create_execution_context(
         self, flow: Flow, trigger: Trigger | None = None, frame_number: int = 0
     ) -> ExecutionContext:
-        """
-        Create execution context for flow execution.
+        """Create execution context for flow execution.
 
         Creates local context from graph variables and builds complete
         ExecutionContext with global context, trigger, and frame number.
@@ -175,8 +172,7 @@ class HaywireVM:
         frame_number: int = 0,
         cancel: threading.Event | None = None,
     ) -> int:
-        """
-        Execute a flow's control flow.
+        """Execute a flow's control flow.
 
         This is the main entry point for flow execution. It:
         1. Creates the execution context and runs ``on_frame_start``
@@ -302,8 +298,7 @@ class HaywireVM:
     def _execute_control_node(
         self, node_info: ControlNodeInfo, flow: Flow, exec_ctx: ExecutionContext
     ) -> str | None:
-        """
-        Execute a control node.
+        """Execute a control node.
 
         Steps:
         1. Evaluate localized data flow (if exists)
@@ -353,8 +348,7 @@ class HaywireVM:
         return next_outlet_id
 
     def catch_exception(self, exception: Exception, node: BaseNode, operation: str) -> None:
-        """
-        Handle exception during node execution.
+        """Handle exception during node execution.
 
         Stores the error in the node's runtime errors.
         """
@@ -374,8 +368,7 @@ class HaywireVM:
     def _navigate_next(
         self, next_outlet_id: str | None, node_info: ControlNodeInfo, loopback_stack: list[str]
     ) -> tuple[str | None, str | None]:
-        """
-        Determine next node to execute based on worker result.
+        """Determine next node to execute based on worker result.
 
         Args:
             next_outlet_id: Outlet ID from worker, or None
@@ -425,8 +418,7 @@ class HaywireVM:
         exec_ctx: ExecutionContext,
         shared_node_ids: frozenset[str] = frozenset(),
     ) -> None:
-        """
-        Evaluate a localized data flow.
+        """Evaluate a localized data flow.
 
         Executes data nodes in sequence to update inlet values
         for the control node. A shared data node runs under its wrapper's
@@ -482,8 +474,7 @@ class HaywireVM:
         payload: dict[str, Any] | None = None,
         backlog: BacklogSettings | None = None,
     ) -> None:
-        """
-        Emit a callback to trigger other flows.
+        """Emit a callback to trigger other flows.
 
         This is called by control nodes during execution to trigger
         event nodes listening for this callback. See ``CallbackManager.emit_callback``.

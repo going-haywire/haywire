@@ -40,7 +40,8 @@ def test_two_pypi_rows_with_one_name_are_the_same_library() -> None:
 
 def test_pypi_rows_match_even_with_differing_origins() -> None:
     """A mirror and the canonical feed may disagree about `origin` while both
-    point at the same PyPI distribution — PyPI's namespace settles it."""
+    point at the same PyPI distribution — PyPI's namespace settles it.
+    """
     assert _matches(_hb(source="pypi", origin=_ALICE), _hb(source="pypi", origin=_BOB)) is True
 
 
@@ -84,7 +85,8 @@ def test_pypi_versus_git_is_a_conflict() -> None:
 
 def test_a_missing_origin_on_a_git_row_is_a_conflict() -> None:
     """Cannot prove sameness, so do not claim it. Rare in practice: the share
-    wizard cannot publish without a git URL to push to."""
+    wizard cannot publish without a git URL to push to.
+    """
     assert _matches(_hb(origin=""), _hb(origin=_ALICE)) is False
 
 
@@ -117,7 +119,8 @@ def _installed_matches(info, candidate: Haybale, marketplace_path: str | None) -
 
 def test_editable_project_local_checkout_is_its_own_authority(tmp_path) -> None:
     """A dev tree carries no `origin` (the share wizard writes it at publish),
-    so without this rule an in-repo library would conflict on every refresh."""
+    so without this rule an in-repo library would conflict on every refresh.
+    """
     barn = tmp_path / "barn" / "haybale-mesh"
     barn.mkdir(parents=True)
     marketplace = str(tmp_path / ".haywire" / "marketplace.toml")

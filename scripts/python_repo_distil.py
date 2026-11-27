@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Python Files to Markdown Consolidator
+"""Python Files to Markdown Consolidator
 =====================================
 
 This script scans a repository folder for Python files and consolidates them
@@ -113,7 +112,6 @@ def scan_repository(repo_path, ignore_patterns):
 
 def generate_markdown(python_files, repo_path, output_file):
     """Generate markdown document from Python files."""
-
     # Calculate statistics
     total_files = len(python_files)
     total_lines = sum(f["info"]["total_lines"] for f in python_files)

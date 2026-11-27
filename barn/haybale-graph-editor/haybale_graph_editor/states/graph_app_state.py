@@ -190,7 +190,8 @@ class GraphAppState(AppState):
 
     def all_containers(self) -> list[GraphContainer]:
         """Snapshot of all registered containers. Mutating the list does
-        not affect the registry."""
+        not affect the registry.
+        """
         return list(self._graphs.values())
 
 

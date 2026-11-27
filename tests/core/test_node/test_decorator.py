@@ -1,6 +1,4 @@
-"""
-Tests for the @node decorator, including inheritance behavior.
-"""
+"""Tests for the @node decorator, including inheritance behavior."""
 
 from __future__ import annotations
 

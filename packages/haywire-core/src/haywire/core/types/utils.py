@@ -32,8 +32,7 @@ class ElementTypeSpec(TypedDict):
 
 
 class PortSpec(TypedDict):
-    """
-    Specification for creating a port.
+    """Specification for creating a port.
 
     This is what as_inlet/as_outlet return - a recipe dict, not an instance.
     The node's add() method uses this spec to instantiate the actual DataPort.
@@ -47,8 +46,7 @@ class PortSpec(TypedDict):
 
 
 def create_port_spec(type_cls: type[IType], port_type: PortType, id: str, **kwargs) -> PortSpec:
-    """
-    Create a port specification dict.
+    """Create a port specification dict.
 
     Args:
         type_cls: The IType class (FLOAT, ARRAY[STRING], etc.)
@@ -139,8 +137,7 @@ def is_type_owned(type_cls: type[IType], name: str) -> bool:
 
 
 def serialize_element_type(type_cls: type[IType]) -> ElementTypeSpec:
-    """
-    Recursively serialize element type for compound types.
+    """Recursively serialize element type for compound types.
 
     Args:
         type_cls: Element type class to serialize
@@ -211,8 +208,7 @@ def _takes_argument(fn: Callable[..., Any]) -> bool:
 
 
 def is_cattrs_serializable(value: Any) -> tuple[bool, str | None]:
-    """
-    Check if a value is serializable using cattrs (JSON-compatible).
+    """Check if a value is serializable using cattrs (JSON-compatible).
 
     Args:
         value: Value to check
@@ -249,8 +245,7 @@ def _check_primitive_default(value: Any, cls: type[PrimitiveType[Any]], context:
 def normalize_and_validate_default(
     default_value: Any, cls: type[IType], context: str = "type decorator"
 ) -> dict[str, Any]:
-    """
-    Normalize and validate default value for type registration or port creation.
+    """Normalize and validate default value for type registration or port creation.
 
     For PrimitiveTypes: Auto-wraps primitive values into {'value': ...}
     For all types: Validates serializability with cattrs

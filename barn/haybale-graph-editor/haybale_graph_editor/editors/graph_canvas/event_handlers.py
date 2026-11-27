@@ -1,5 +1,4 @@
-"""
-Event handler registration system for the enhanced graph canvas event system.
+"""Event handler registration system for the enhanced graph canvas event system.
 
 This module provides:
 - Decorator for registering event handlers
@@ -55,8 +54,7 @@ def handler_requires(handler: Callable) -> LevelMode:
 
 
 def build_event_handler_map(sources: list[object]) -> dict[str, Callable]:
-    """
-    Build an event-type → handler mapping by scanning a list of handler sources.
+    """Build an event-type → handler mapping by scanning a list of handler sources.
 
     For each source object, scans all methods for the ``_handles_event_classes``
     attribute set by the ``@handles_event`` decorator.  When two sources register

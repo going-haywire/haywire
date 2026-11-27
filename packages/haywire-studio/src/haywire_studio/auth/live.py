@@ -62,8 +62,7 @@ class RosterCache:
         self._stamp = None
 
     def _current_stamp(self) -> tuple[float, int] | None:
-        """
-        get the current stats if the file
+        """get the current stats if the file
 
         returns:
             tuple with time of modification and size in bytes

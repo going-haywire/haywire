@@ -1,6 +1,4 @@
-"""
-Tests for SelectionHandlers — manages selected_nodes, selected_edges, and clipboard state.
-"""
+"""Tests for SelectionHandlers — manages selected_nodes, selected_edges, and clipboard state."""
 
 from __future__ import annotations
 
@@ -399,7 +397,8 @@ def test_paste_notifies_when_nothing_to_paste(graph, session, edit_state_cls):
 
 def test_paste_auto_selects_pasted_elements(graph, session, edit_state_cls):
     """After a successful paste, the new nodes/edges become the selection and
-    are pushed to the canvas via visual_layer.sync_selections."""
+    are pushed to the canvas via visual_layer.sync_selections.
+    """
     editor = MagicMock()
     editor.paste_clipboard.return_value = (["new_n1", "new_n2"], ["new_e1"])
     visual_layer = MagicMock()

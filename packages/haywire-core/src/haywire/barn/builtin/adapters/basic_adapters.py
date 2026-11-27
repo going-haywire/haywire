@@ -1,6 +1,4 @@
-"""
-Basic type conversion adapters
-"""
+"""Basic type conversion adapters"""
 
 from __future__ import annotations
 
@@ -79,7 +77,8 @@ class StringToChoicesAdapter(BaseAdapter):
     free passthrough — not every string is a valid choice. The reverse
     direction (CHOICES -> STRING) needs no adapter at all: CHOICES(STRING)
     already gets a free passthrough via AdapterFactory's
-    issubclass(source_type, sink_type) check."""
+    issubclass(source_type, sink_type) check.
+    """
 
     @override
     def convert(self, value: str) -> str:

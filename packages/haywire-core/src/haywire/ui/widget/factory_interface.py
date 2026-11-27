@@ -14,9 +14,7 @@ if TYPE_CHECKING:
 
 
 class IWidgetFactory(ABC):
-    """
-    Interface for Widget Factory classes.
-    """
+    """Interface for Widget Factory classes."""
 
     @abstractmethod
     def render_widget(
@@ -40,6 +38,7 @@ class IWidgetFactory(ABC):
             route: Where the widget's writes to a data port go; ``None`` refuses
                 every write to a data port.
             minimum: The lowest level mode at which *route* lets a write through.
+
         Returns:
             IWidget instance or None if widget creation failed
         """

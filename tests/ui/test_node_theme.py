@@ -95,7 +95,8 @@ class TestToCssVars:
 
     def test_a_node_theme_may_declare_any_workbench_token(self):
         """No curated node-scoped subset — a node-authored theme may set
-        text_body, bg_input, accent, ... anything in _CSS_TOKEN_MAP."""
+        text_body, bg_input, accent, ... anything in _CSS_TOKEN_MAP.
+        """
 
         class _T(BaseTheme):
             text_body = "rgba(255,255,255,0.9)"
@@ -115,7 +116,8 @@ class TestToCssVars:
         applied. The graph and global tiers sit above that ancestor and DO
         apply them — this is a DOM-position fact for the write path (see
         ui_node.py / graph_canvas_manager.py) to know, not a restriction on
-        the theme class itself."""
+        the theme class itself.
+        """
         for token in ("node_selected", "node_active", "node_shadow"):
             assert token in BaseTheme._CSS_TOKEN_MAP
 
@@ -132,7 +134,8 @@ class TestNodeThemeDecorator:
 
     def test_registry_key_format(self):
         """Standard 3-segment reg_key — theme_type lives on class_identity,
-        not encoded into the key."""
+        not encoded into the key.
+        """
         expected = "haybale-testing:theme:TestNodeTheme"
         assert TestNodeTheme.class_identity.registry_key == expected
 

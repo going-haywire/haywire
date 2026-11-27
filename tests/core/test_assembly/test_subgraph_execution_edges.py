@@ -206,7 +206,8 @@ class TestALazyEdgeLeavingTheCard:
 
     def test_resolving_the_sink_pulls_the_value_across(self, lazy_out_of_the_card):
         """Draining the pending pipe is what moves the value — the same call
-        ``BaseNode._execute`` makes before a worker runs."""
+        ``BaseNode._execute`` makes before a worker runs.
+        """
         graph, _definition, _card, consumer = lazy_out_of_the_card
 
         _run_one_frame(graph)

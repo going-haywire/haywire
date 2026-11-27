@@ -246,7 +246,8 @@ def test_public_surface_imports_from_marketstall_package() -> None:
 @pytest.mark.unit
 def test_requires_haywire_defaults_empty_and_round_trips():
     """require holds a FULL PEP 440 specifier, not a bare version —
-    the author picks the operator. Absent means no declared requirement."""
+    the author picks the operator. Absent means no declared requirement.
+    """
     from haywire.core.library.haybale import Haybale
 
     bare = Haybale(name="haybale-foo", version="0.1.0")

@@ -26,7 +26,8 @@ pytestmark = pytest.mark.usefixtures("cached_packages_distributions")
 class _FakeLibrarySource:
     """Minimal HaywireLibrarySource for testing union/lag with a controlled set
     of registered dists. Avoids depending on the dev workspace's real entry
-    points."""
+    points.
+    """
 
     def __init__(self, dists: list[str]) -> None:
         # entry-point name → dist name. Tests only need the dist set, so use
@@ -111,7 +112,8 @@ def test_drift_when_pyproject_missing_haywire_core(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_drift_linked_missing_registered_library(tmp_path: Path, monkeypatch) -> None:
     """Source imports a registered haywire library but the decorator
-    omits it — drift on the decorator side, not pyproject."""
+    omits it — drift on the decorator side, not pyproject.
+    """
     import importlib.metadata as _meta
 
     # Pin the installed version so the `~=0.0.1` floor below never lags it,
@@ -158,7 +160,8 @@ def test_drift_no_drift_when_everything_declared(tmp_path: Path, monkeypatch) ->
 @pytest.mark.unit
 def test_drift_extra_declarations_dont_count_as_drift(tmp_path: Path, monkeypatch) -> None:
     """Declared but unused deps must NOT be flagged: false positives would
-    block users with optional or transitive deps."""
+    block users with optional or transitive deps.
+    """
     import importlib.metadata as _meta
 
     monkeypatch.setattr(_meta, "version", lambda dist: "0.0.1")
@@ -174,7 +177,8 @@ def test_drift_extra_declarations_dont_count_as_drift(tmp_path: Path, monkeypatc
 @pytest.mark.unit
 def test_drift_handles_malformed_pyproject_gracefully(tmp_path: Path) -> None:
     """A malformed pyproject.toml should NOT crash detect_share_drift; it
-    should treat declarations as empty so the drift report still surfaces."""
+    should treat declarations as empty so the drift report still surfaces.
+    """
     lib = _make_library(
         tmp_path,
         init_body_imports="from haywire.core.node.registry import NodeRegistry\n",
@@ -190,7 +194,8 @@ def test_drift_handles_malformed_pyproject_gracefully(tmp_path: Path) -> None:
 def test_drift_handles_invalid_os_declaration_gracefully(tmp_path: Path) -> None:
     """A valid TOML with an invalid haybale.toml `os` value should NOT crash
     detect_share_drift; it degrades the same way a malformed pyproject does,
-    via read_manifest_lenient."""
+    via read_manifest_lenient.
+    """
     lib = _make_library(
         tmp_path,
         init_body_imports="from haywire.core.node.registry import NodeRegistry\n",
@@ -261,7 +266,8 @@ def test_detect_share_drift_accepts_injected_library_source(tmp_path: Path, monk
 @pytest.mark.unit
 def test_entry_point_source_finds_dev_workspace_libraries() -> None:
     """In the dev venv, EntryPointLibrarySource should resolve haybale-core
-    and haybale-studio (their entry points are registered)."""
+    and haybale-studio (their entry points are registered).
+    """
     src = EntryPointLibrarySource()
     names = src.list_names()
     # Names depend on actual entry-point declarations — match by distribution name.
@@ -278,7 +284,8 @@ def test_entry_point_source_finds_dev_workspace_libraries() -> None:
 @pytest.mark.unit
 def test_lag_flagged_for_haybale_dep_with_tilde_equals(tmp_path: Path, monkeypatch) -> None:
     """A haybale-* dep declared `~=` against a floor below the installed version
-    should be flagged as version lag (spec §12.2)."""
+    should be flagged as version lag (spec §12.2).
+    """
     import importlib.metadata as _meta
 
     monkeypatch.setattr(_meta, "version", lambda dist: "0.5.0" if dist == "haybale-core" else "0.0.0")
@@ -313,7 +320,8 @@ def test_lag_flagged_for_haybale_dep_with_gte(tmp_path: Path, monkeypatch) -> No
 @pytest.mark.unit
 def test_lag_not_flagged_for_exact_pin(tmp_path: Path, monkeypatch) -> None:
     """`==` is a deliberate pin; spec §12.2 says it must NOT be lag-flagged
-    even if the installed version is higher."""
+    even if the installed version is higher.
+    """
     import importlib.metadata as _meta
 
     monkeypatch.setattr(_meta, "version", lambda dist: "0.5.0" if dist == "haybale-core" else "0.0.0")
@@ -346,7 +354,8 @@ def test_lag_not_flagged_for_third_party_dep(tmp_path: Path, monkeypatch) -> Non
     """Spec §12.1 critical correctness property: third-party deps (not
     registered as haywire libraries) must NEVER be lag-checked. Acting on
     third-party lag would gratuitously narrow library compatibility based
-    on the author's dev-machine state."""
+    on the author's dev-machine state.
+    """
     import importlib.metadata as _meta
 
     # Pretend numpy is installed at 2.0 but library declares numpy>=1.0.
@@ -398,7 +407,8 @@ def test_lag_skipped_when_dep_not_installed(tmp_path: Path, monkeypatch) -> None
 @pytest.mark.unit
 def test_drift_report_includes_lag_section(tmp_path: Path, monkeypatch) -> None:
     """The human report must mention lag explicitly so users understand
-    why share is warning/failing."""
+    why share is warning/failing.
+    """
     import importlib.metadata as _meta
 
     monkeypatch.setattr(_meta, "version", lambda dist: "0.5.0" if dist == "haybale-core" else "0.0.0")

@@ -141,7 +141,8 @@ def test_no_real_menu_surface_declares_presentation():
     proves the *catalog* obeys it — every in-tree menu/toolbar/region surface
     (as opposed to a properties tab) declares no ``presentation``, so none of
     them could ever slip into the strip even if some future panel forgot to
-    nest it under a host. Guards the invariant Task C's review flagged."""
+    nest it under a host. Guards the invariant Task C's review flagged.
+    """
     from haybale_graph_editor.surfaces import (
         EdgeMenu,
         GraphContext,

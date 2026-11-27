@@ -1,6 +1,5 @@
 # haywire/ui/themes/theme_registry.py
-"""
-ThemeRegistry — hot-reload-capable registry for BaseTheme classes.
+"""ThemeRegistry — hot-reload-capable registry for BaseTheme classes.
 Extends BaseRegistry for library folder scan and hot-reload support.
 """
 
@@ -13,8 +12,7 @@ from .workbench import BaseTheme
 
 
 class ThemeRegistry(BaseRegistry[BaseTheme]):
-    """
-    Registry for BaseTheme classes — both workbench and node flavours.
+    """Registry for BaseTheme classes — both workbench and node flavours.
 
     Extends BaseRegistry for hot-reload (library plugins can supply themes)
     and folder scan support. "Workbench" vs "node" is a property of a

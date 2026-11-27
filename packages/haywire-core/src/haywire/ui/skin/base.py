@@ -42,8 +42,7 @@ class SkinIdentity(BaseIdentity):
 
 
 class BaseSkin(ABC):
-    """
-    Abstract base class for all NodeSkin classes.
+    """Abstract base class for all NodeSkin classes.
 
     NodeSkin classes define the look and structure of nodes.
     They are cached and reused by the SkinFactory.
@@ -59,8 +58,7 @@ class BaseSkin(ABC):
     pin_icons: ClassVar[PinIconResolver] = DEFAULT_PIN_ICONS
 
     def __init__(self, widget_factory: IWidgetFactory):
-        """
-        Initialize the skin with a widget factory.
+        """Initialize the skin with a widget factory.
 
         Args:
             widget_factory: Factory for creating widget instances
@@ -259,8 +257,7 @@ class BaseSkin(ABC):
 
     @abstractmethod
     def render(self, main_card: ui.card, wrapper: NodeWrapper, *, on_stage: bool) -> UINodeCard:
-        """
-        Render a node into the main_card.
+        """Render a node into the main_card.
 
         Usage:
         ```
@@ -305,8 +302,7 @@ class BaseSkin(ABC):
         return True
 
     def render_widget(self, port: DataPort, node_id: str, classes: str = "") -> ui.element | None:
-        """
-        Render a widget for the given inlet and node ID.
+        """Render a widget for the given inlet and node ID.
 
         Args:
             port: The data port inlet to render the widget for

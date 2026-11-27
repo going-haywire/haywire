@@ -79,7 +79,8 @@ def test_installed_with_notes_yields_a_click_target_and_edit_icon(tmp_path):
 @pytest.mark.unit
 def test_click_target_opens_the_file_even_when_it_does_not_exist_yet(tmp_path, monkeypatch):
     """CodeEditor creates the file on Save — the link must not require the
-    file to already exist."""
+    file to already exist.
+    """
     from haybale_marketplace.editors.library_overview_editor import LibraryOverviewEditor
 
     editor = LibraryOverviewEditor(wrapper=None)

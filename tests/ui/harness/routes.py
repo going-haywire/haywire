@@ -1,5 +1,4 @@
-"""
-Harness route handlers for the Settings UI test harness.
+"""Harness route handlers for the Settings UI test harness.
 
 Routes:
   GET  /status               — liveness probe, returns {"status": "ok"}
@@ -271,7 +270,8 @@ _ADD_PORT_KEY = "haybale-testing:node:AddPortProbeNode"
 
 def _build_edge_appearance_graph(node_factory):
     """One edge of each kind the edge-appearance tests read: data, control, callback, an invalid one,
-    and a styled one on the test visual wire."""
+    and a styled one on the test visual wire.
+    """
     from haywire.core.graph.editor import Editor
 
     graph = _harness_graph("Edge Appearance Fixture")
@@ -801,7 +801,6 @@ def _harness_session_context(library_service):
 
 def register_routes(library_service) -> None:
     """Register all harness routes with NiceGUI/FastAPI."""
-
     registry: SettingsRegistry = library_service.get_settings_registry()
     theme_registry = library_service.get_theme_registry()
     theme_css = _build_theme_css(registry, theme_registry)

@@ -71,7 +71,8 @@ def _failed(failure: PreconditionFailure) -> ShareFlow:
 
 def preflight_dirty_tree() -> ShareFlow:
     """act-kind, takes input. The message is a multi-line file list — the case
-    that made the old modal's single-line label useless."""
+    that made the old modal's single-line label useless.
+    """
     return _failed(
         PreconditionFailure(
             message=(
@@ -266,7 +267,8 @@ def preflight_unreachable_https() -> ShareFlow:
 
 def preflight_unreachable_unknown_host() -> ShareFlow:
     """No provider for this host, so the remedy falls back to the guide rather
-    than inventing a docs URL from the hostname."""
+    than inventing a docs URL from the hostname.
+    """
     return _unreachable(
         "git@git.example.org:someone/haywire.git",
         "git.example.org",

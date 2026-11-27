@@ -1,6 +1,5 @@
 # packages/haywire-app/src/haywire_studio/editors/file_viewer.py
-"""
-FileViewerEditor — displays the contents of the file selected in FileBrowserEditor.
+"""FileViewerEditor — displays the contents of the file selected in FileBrowserEditor.
 
 Occupies a middle-area tab ('file_viewer'). Reacts to FILE_SELECTED events
 and renders the file contents with basic syntax highlighting via ui.code,
@@ -50,8 +49,7 @@ _LANGUAGE_MAP: dict = {
     requires=AccessTier.VIEW,
 )
 class FileViewerEditor(BaseEditor):
-    """
-    Renders file contents in the middle area.
+    """Renders file contents in the middle area.
 
     Responds to FILE_SELECTED events. Supports syntax-highlighted code
     (via ui.code), rendered markdown, and plain text. Binary files and

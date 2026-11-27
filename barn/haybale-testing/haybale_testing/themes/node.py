@@ -1,6 +1,4 @@
-"""
-Minimal node-flavoured theme fixture for testing the theme system.
-"""
+"""Minimal node-flavoured theme fixture for testing the theme system."""
 
 from __future__ import annotations
 

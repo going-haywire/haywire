@@ -1,6 +1,5 @@
 # haywire/core/settings/decorators.py
-"""
-Decorators for the Haywire settings system.
+"""Decorators for the Haywire settings system.
 
 @settings(namespace=...) — marks a LibrarySettings subclass for auto-discovery
     by SettingsRegistry when a library folder is scanned (``add_folder()``).
@@ -22,8 +21,7 @@ _TSettings = TypeVar("_TSettings", bound=type)
 
 @dataclass
 class SettingsClassIdentity(BaseIdentity):
-    """
-    Identity object attached to LibrarySettings / FrameworkSettings classes.
+    """Identity object attached to LibrarySettings / FrameworkSettings classes.
 
     ``namespace`` is the class's settings namespace — library-qualified
     (``my_lib.ui.info``) when ``@settings`` built the identity.
@@ -35,8 +33,7 @@ class SettingsClassIdentity(BaseIdentity):
 def settings(
     namespace: str, label: str = "", description: str = "", deprecation_warning: str = ""
 ) -> Callable[[_TSettings], _TSettings]:
-    """
-    Decorator for library settings classes.
+    """Decorator for library settings classes.
 
     Sets ``class_identity``, ``class_library``, ``_namespace``, and
     ``_setting_key`` on every descriptor field, and promotes each field to

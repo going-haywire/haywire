@@ -1,5 +1,4 @@
-"""
-Tests for InteractionHandlers — handles drag and edge-click events.
+"""Tests for InteractionHandlers — handles drag and edge-click events.
 
 InteractionHandlers is a stateless handler object that translates canvas drag
 events into Editor calls (which handle undo internally).

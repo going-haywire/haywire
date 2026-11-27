@@ -104,7 +104,6 @@ class HaystackState(AppState):
         signal binding_id is the source of truth for the teardown set.
 
         """
-
         entry_ids = tuple(self._entries.keys())
 
         dispatcher = self._dispatcher()

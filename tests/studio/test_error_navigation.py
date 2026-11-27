@@ -65,7 +65,8 @@ def test_navigation_helpers_write_no_session_state():
     """The claim rule lives in the answering editor's @reveal_on hook, which
     runs before the reveal. A helper that ALSO wrote context would be a second
     copy of that rule, free to disagree — which is exactly how open_file_in_studio
-    used to bypass CodeEditor's extension veto."""
+    used to bypass CodeEditor's extension veto.
+    """
     from haybale_studio.editors.error_navigation import (
         open_component_docs,
         open_component_source,
@@ -88,7 +89,8 @@ def test_navigation_helpers_write_no_session_state():
 def test_open_component_docs_and_source_are_distinct_signals():
     """The two shortcuts must not collapse onto one signal — @reveal_on
     dispatches on the type, and that is what routes docs and source to two
-    different editors."""
+    different editors.
+    """
     from haybale_studio.editors.error_navigation import open_component_docs, open_component_source
 
     docs_ctx, source_ctx = MagicMock(), MagicMock()
@@ -102,7 +104,8 @@ def test_open_component_docs_and_source_are_distinct_signals():
 
 def test_open_file_in_studio_publishes_reveal_source():
     """Names no editor, so CodeEditor's hook — not this helper — decides whether
-    the path is editable."""
+    the path is editable.
+    """
     from haybale_studio.editors.error_navigation import open_file_in_studio
     from haywire.core.signals import RevealSource
 
@@ -119,7 +122,8 @@ def test_open_file_in_studio_publishes_reveal_source():
 def test_open_file_in_studio_routes_a_vetoed_extension_to_the_hook():
     """The bug this conversion fixed: a non-editable path used to be revealed
     into the CodeEditor directly, bypassing the veto. Now it travels as a
-    RevealSource that CodeEditor declines."""
+    RevealSource that CodeEditor declines.
+    """
     from haybale_studio.editors.code_editor import CodeEditor
     from haybale_studio.editors.error_navigation import open_file_in_studio
 
@@ -229,7 +233,8 @@ def test_code_editor_declares_reveal_on():
 
 def test_component_source_hook_points_the_viewer_and_proceeds():
     """The hook writes session state BEFORE the framework reveals, so the
-    revealed editor draws the component asked for rather than the previous one."""
+    revealed editor draws the component asked for rather than the previous one.
+    """
     from haybale_studio.editors.component_source_editor import ComponentSourceEditor
     from haywire.core.signals import RevealComponentSource
 
@@ -259,7 +264,8 @@ def test_code_editor_hook_claims_an_editable_file():
 
 def test_code_editor_hook_vetoes_an_extension_it_cannot_edit():
     """A veto means "not mine" — and it must leave no half-applied navigation
-    behind, so active_file stays untouched."""
+    behind, so active_file stays untouched.
+    """
     from haybale_studio.editors.code_editor import CodeEditor
     from haywire.core.signals import RevealSource
 
@@ -273,7 +279,8 @@ def test_code_editor_hook_vetoes_an_extension_it_cannot_edit():
 
 def test_reveal_source_binding_id_is_the_path_and_is_required():
     """RevealSource adds no path field: a file editor binds tabs BY path, so
-    binding_id already is the path. Carrying both would let them disagree."""
+    binding_id already is the path. Carrying both would let them disagree.
+    """
     import dataclasses
 
     from haywire.core.signals import RevealSource
@@ -285,7 +292,8 @@ def test_reveal_source_binding_id_is_the_path_and_is_required():
 
 def test_reveal_on_rejects_a_signal_that_is_not_a_reveal():
     """Decoration-time guard: a signal with no binding_id/label cannot
-    describe a reveal, and saying so at import beats a silent no-op later."""
+    describe a reveal, and saying so at import beats a silent no-op later.
+    """
     from haywire.core.session.handlers import reveal_on
     from haywire.core.signals import SelectionMoved
 

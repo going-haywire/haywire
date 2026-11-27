@@ -1,7 +1,4 @@
-"""
-CodeEditor — text/code editor for source-like files.
-
-"""
+"""CodeEditor — text/code editor for source-like files."""
 
 from __future__ import annotations
 

@@ -451,7 +451,8 @@ def test_load_tolerates_missing_run_table(tmp_workspace):
 
 def test_load_skips_graph_whose_autostart_fails(tmp_workspace, caplog):
     """A graph marked execute=true that fails to compile is skipped, not fatal,
-    and loading continues for the rest."""
+    and loading continues for the rest.
+    """
     import logging
 
     import toml

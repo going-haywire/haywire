@@ -45,7 +45,8 @@ def test_the_error_suggests_a_fix():
 
 def test_a_field_colliding_with_internal_state_is_rejected():
     """`_set_keys` is a data descriptor collision that used to blow up with
-    `AttributeError: 'int' object has no attribute 'add'` at construction."""
+    `AttributeError: 'int' object has no attribute 'add'` at construction.
+    """
     with pytest.raises(TypeError, match=r"_set_keys"):
 
         class Bad4(NodeSettings):
@@ -77,7 +78,8 @@ def test_redeclaring_an_inherited_field_is_still_legal():
 
 def test_non_setting_attributes_are_not_policed():
     """Only `setting` descriptors are field names; helpers and constants are
-    ordinary class attributes and may be spelled however the author likes."""
+    ordinary class attributes and may be spelled however the author likes.
+    """
 
     class WithHelpers(NodeSettings):
         _PRIVATE_CONSTANT = 42
@@ -92,5 +94,6 @@ def test_non_setting_attributes_are_not_policed():
 
 def test_the_framework_namespace_is_disjoint_from_field_names():
     """The invariant the rule rests on: nothing public remains on Settings, so
-    '_'-prefixed framework members and non-'_' field names cannot overlap."""
+    '_'-prefixed framework members and non-'_' field names cannot overlap.
+    """
     assert [n for n in dir(Settings) if not n.startswith("_")] == []

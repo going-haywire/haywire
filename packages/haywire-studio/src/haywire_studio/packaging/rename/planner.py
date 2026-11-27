@@ -1,5 +1,6 @@
 """The single planner. Both the dry run and the real run call this, so the plan
-printed and the plan executed cannot diverge."""
+printed and the plan executed cannot diverge.
+"""
 
 from __future__ import annotations
 

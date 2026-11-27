@@ -52,7 +52,6 @@ class TestSessionStateBase:
 class TestSessionStateLibrarySettingsProhibition:
     def test_bare_library_settings_field_rejected(self):
         """A field annotated as a LibrarySettings subclass must raise at class definition."""
-
         with pytest.raises(TypeError, match="LibrarySettings"):
 
             class BadState(SessionState):
@@ -60,7 +59,6 @@ class TestSessionStateLibrarySettingsProhibition:
 
     def test_optional_library_settings_field_rejected(self):
         """`Optional[X]` and `X | None` annotations also caught."""
-
         with pytest.raises(TypeError, match="LibrarySettings"):
 
             class BadState(SessionState):
@@ -68,7 +66,6 @@ class TestSessionStateLibrarySettingsProhibition:
 
     def test_union_library_settings_field_rejected(self):
         """Union annotations with LibrarySettings somewhere in the union are caught."""
-
         with pytest.raises(TypeError, match="LibrarySettings"):
 
             class BadState(SessionState):

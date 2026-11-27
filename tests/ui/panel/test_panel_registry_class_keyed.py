@@ -128,7 +128,8 @@ def test_get_root_surfaces_excludes_a_surface_named_in_hosts():
 def test_class_filter_accepts_decorated_panel_subclass():
     """Regression: PanelRegistry._class_filter must accept BasePanel subclasses
     decorated with @panel. Without this, the folder scanner silently skips
-    every panel at startup."""
+    every panel at startup.
+    """
     reg = PanelRegistry()
     assert reg._class_filter(_PanelA1) is True
     assert reg._class_filter(_PanelA2) is True

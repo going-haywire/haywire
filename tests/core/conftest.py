@@ -1,5 +1,4 @@
-"""
-Core module test fixtures.
+"""Core module test fixtures.
 
 Additional fixtures specific to core functionality testing.
 """
@@ -14,8 +13,7 @@ from haywire.core.graph.scheduler import SyncScheduler
 
 @pytest.fixture
 def empty_graph() -> BaseGraph:
-    """
-    Provide an empty test graph for unit tests.
+    """Provide an empty test graph for unit tests.
 
     This is a bare graph without library system loaded.
     Use for testing graph structure/API without nodes/edges.
@@ -29,8 +27,7 @@ def empty_graph() -> BaseGraph:
 
 @pytest.fixture
 def sample_graph_with_nodes(empty_graph: BaseGraph, node_factory):
-    """
-    Provide a graph with some test nodes.
+    """Provide a graph with some test nodes.
 
     Note: Implementation depends on available test nodes.
     This is a placeholder that returns an empty graph.

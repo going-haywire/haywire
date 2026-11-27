@@ -1,5 +1,6 @@
 """Tests verifying SessionManager calls container.attach_session / detach_session
-around session creation / removal."""
+around session creation / removal.
+"""
 
 from __future__ import annotations
 

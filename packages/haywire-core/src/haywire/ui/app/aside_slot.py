@@ -1,5 +1,4 @@
-"""
-AsideSlot — the TabSlot subclass for the ASIDE slot.
+"""AsideSlot — the TabSlot subclass for the ASIDE slot.
 
 A full-height column between the EDIT/INFO column and CONTEXT, with a tab bar
 on top. It has no rail: closed, the whole column leaves the layout, and the

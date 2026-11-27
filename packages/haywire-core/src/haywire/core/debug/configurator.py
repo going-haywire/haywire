@@ -28,8 +28,7 @@ _ROOT_NAMESPACE = "haywire"
 
 
 class LoggingConfigurator:
-    """
-    Watches DebugSettings and applies log levels to the Python logging hierarchy.
+    """Watches DebugSettings and applies log levels to the Python logging hierarchy.
 
     Construct with the SettingsRegistry to wire dynamic debug.library.* keys.
     Applies current levels immediately and subscribes for future changes.
@@ -62,8 +61,7 @@ class LoggingConfigurator:
     # ------------------------------------------------------------------
 
     def _attach_registry(self, registry: SettingsRegistry) -> None:
-        """
-        Scan already-defined library keys (libraries loaded before configurator)
+        """Scan already-defined library keys (libraries loaded before configurator)
         and apply their levels, then subscribe for future changes.
         """
         for key in list(registry.all_definitions()):
@@ -93,14 +91,14 @@ class LoggingConfigurator:
 
     def _apply_root(self, level: str) -> None:
         """Apply the global baseline log level to the root logger, and to
-        every namespace currently inheriting it (see _inherited_namespaces)."""
+        every namespace currently inheriting it (see _inherited_namespaces).
+        """
         logging.getLogger(_ROOT_NAMESPACE).setLevel(level)
         for namespace in self._inherited_namespaces:
             logging.getLogger(namespace).setLevel(level)
 
     def _apply_group(self, namespace: str, level: str) -> None:
-        """
-        Apply a log level to a specific logger namespace.
+        """Apply a log level to a specific logger namespace.
         namespace: the logger namespace to apply the level to (e.g. "haywire.core.execution"
         level: the log level to apply (e.g. "DEBUG" or "" to inherit the global baseline)
         """

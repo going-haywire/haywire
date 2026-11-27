@@ -1,6 +1,4 @@
-"""
-Basic type conversion adapters
-"""
+"""Basic type conversion adapters"""
 
 from __future__ import annotations
 

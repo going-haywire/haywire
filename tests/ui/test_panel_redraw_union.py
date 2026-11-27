@@ -187,7 +187,8 @@ class _PanelDeep(BasePanel):
 def test_get_redraw_signals_walks_into_hosted_surfaces():
     """A long-lived host subscribes on mount, before anything has rendered, so
     the union has to be computable from the static hosts= tree. A missing
-    subscription looks exactly like a signal that never fired."""
+    subscription looks exactly like a signal that never fired.
+    """
     reg = _fresh_registry_with_panels(_PanelX, _PanelHosting, _PanelNested, _PanelDeep)
     assert reg.get_redraw_signals(_TestSurface) == {
         _PanelSignalX,
@@ -203,7 +204,8 @@ def test_get_redraw_signals_picks_up_a_panel_two_levels_down():
 
 def test_get_redraw_signals_terminates_on_a_cycle():
     """A cycle is logged at registration, not rejected — the walk must still
-    terminate rather than recurse forever."""
+    terminate rather than recurse forever.
+    """
     reg = PanelRegistry()
 
     @panel(
@@ -239,7 +241,8 @@ def test_registration_logs_a_warning_naming_both_edges_of_the_cycle(caplog):
     guard is the enforcement (tested separately). The log fires on the
     *second* panel's registration — the one that closes the loop — and both
     panels are still in the registry afterward (this is 'logged, not
-    rejected', per ``_report_cycles``'s own docstring)."""
+    rejected', per ``_report_cycles``'s own docstring).
+    """
     reg = PanelRegistry()
 
     @panel(

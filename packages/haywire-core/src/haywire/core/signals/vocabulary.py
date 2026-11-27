@@ -1,6 +1,5 @@
 # packages/haywire-core/src/haywire/core/signals/vocabulary.py
-"""
-Concrete hand-authored signals dispatched through the per-session SignalBus.
+"""Concrete hand-authored signals dispatched through the per-session SignalBus.
 
 Two flavours coexist, expressed as inheritance:
 
@@ -59,8 +58,7 @@ class ActiveGraphMoved(Signal):
 # --8<-- [start:selection_moved]
 @dataclass(frozen=True)
 class SelectionMoved(Signal):
-    """
-    Node/edge selection moved on the canvas.
+    """Node/edge selection moved on the canvas.
 
     Carries no binding_id: subscribers read the selection from the library's
     SessionState (e.g. ``ctx.data[MyLibState].selected_nodes`` /
@@ -169,8 +167,7 @@ class GraphHistoryChanged(Signal):
 # --8<-- [start:library_catalog_changed]
 @dataclass(frozen=True)
 class LibraryCatalogChanged(Signal):
-    """
-    The set / state of installed libraries changed (install, uninstall,
+    """The set / state of installed libraries changed (install, uninstall,
     enable, disable). Cross-session — peer sessions need to refresh their
     library views.
 

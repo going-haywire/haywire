@@ -263,7 +263,8 @@ def pair_renames(removed: set[Symbol], added: set[Symbol]) -> list[tuple[Symbol,
          remaining additions of the same kind, with a same-parent bonus.
          Parameters require same parent (cross-function param pairing is hopeless).
 
-    A removed symbol may end up unpaired (returns None partner)."""
+    A removed symbol may end up unpaired (returns None partner).
+    """
     pairs: list[tuple[Symbol, Symbol | None, float]] = []
     candidates = list(added)
 

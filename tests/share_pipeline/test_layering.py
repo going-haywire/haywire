@@ -74,7 +74,8 @@ def test_no_internal_module_imports_the_package_root() -> None:
 
 def test_leaf_modules_have_no_in_package_dependencies() -> None:
     """git.py and barn.py are the bottom layer: everything may depend on
-    them, so they must depend on nothing here."""
+    them, so they must depend on nothing here.
+    """
     for leaf in ("git.py", "barn.py"):
         imports = _module_imports(_SHARE_ROOT / leaf)
         internal = {name for name in imports if name.startswith("haywire_studio")}

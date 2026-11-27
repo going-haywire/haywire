@@ -1,5 +1,4 @@
-"""
-Haywire Theme System
+"""Haywire Theme System
 
 Provides theming support via the single BaseTheme Python class, authored
 with @theme(theme_type='workbench'|'node') and registered through the

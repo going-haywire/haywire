@@ -109,7 +109,6 @@ class StepArrayNode(BaseNode):
 
     def _add_array_ports(self, element: Any | None) -> None:
         """Add `Array` and `Item`: open slots until an array is wired in."""
-
         self._element = element
         if element is None:
             self.add(

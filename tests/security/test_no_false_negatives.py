@@ -126,14 +126,16 @@ def test_broken_tls_is_always_critical_even_on_loopback(tls_state):
 
 def test_unreadable_roster_is_critical_not_assumed_safe():
     """An unreadable roster could be a disabled one; guessing benign is the
-    exact false negative this suite exists to prevent."""
+    exact false negative this suite exists to prevent.
+    """
     posture = _posture(exposed=True, roster_error="boom")
     assert posture.worst is Severity.CRITICAL
 
 
 def test_the_only_clean_reachable_configuration_is_fully_defended():
     """Exhaustive sweep: enumerate every combination and assert that the ONLY
-    ones producing no CRITICAL are the ones that genuinely deserve it."""
+    ones producing no CRITICAL are the ones that genuinely deserve it.
+    """
     for exposed, ranges, auth, tls_state in itertools.product(
         [True, False],
         ["", "192.168.0.0/24"],
@@ -211,7 +213,8 @@ def test_rules_are_independent_functions():
 
 def test_findings_is_exactly_the_union_of_the_rules():
     """No finding may be produced outside the RULES list — that is what makes
-    the list a complete description of what this command checks."""
+    the list a complete description of what this command checks.
+    """
     posture = _posture(exposed=True, ranges="10.0.0.0/8", auth=False)
     from_rules = [f for rule in RULES for f in rule(posture)]
     assert len(_findings(posture)) == len(from_rules)

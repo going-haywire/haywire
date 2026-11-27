@@ -65,7 +65,8 @@ def is_registry_key(value: str) -> bool:
 def _rewrite(value: object, old: str, new: str) -> tuple[object, int]:
     """Rewrite one key value if it belongs to *old*. Colon-scoped, so
     ``haybale-foo`` never matches ``haybale-foobar``, and grammar-guarded, so
-    prose parked in a key field is left alone."""
+    prose parked in a key field is left alone.
+    """
     if not isinstance(value, str):
         return value, 0
     if not value.startswith(old + ":") or not is_registry_key(value):
@@ -77,7 +78,8 @@ def _rewrite_module(value: object, old_module: str, new_module: str) -> tuple[ob
     """Rewrite a dotted-module-shaped value (``identity.module``): exact
     match, or ``<old_module>.<rest>`` for a submodule. Never a bare
     substring match — ``haybale_testing_extras`` must not match
-    ``haybale_testing``."""
+    ``haybale_testing``.
+    """
     if not isinstance(value, str):
         return value, 0
     if value == old_module:
@@ -93,7 +95,8 @@ def _rewrite_folder_path(
     """Rewrite ``library.folder_path``'s ``.../<old_dist>/<old_module>``
     tail. The workspace-root prefix is preserved untouched — only the two
     path segments that are actually this library's own name are rewritten,
-    never a blind substring replace across the whole path."""
+    never a blind substring replace across the whole path.
+    """
     if not isinstance(value, str):
         return value, 0
     suffix = f"/{old_dist}/{old_module}"

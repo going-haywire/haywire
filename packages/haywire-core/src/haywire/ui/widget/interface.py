@@ -17,8 +17,7 @@ if TYPE_CHECKING:
 
 
 class IWidget(ABC):
-    """
-    Minimal widget interface.
+    """Minimal widget interface.
 
     Subclass ``BaseWidget`` for the standard authoring surface (``build()`` plus
     the ``bind()`` sugar / ``on_model_changed()`` floor). Implement ``IWidget``
@@ -31,8 +30,7 @@ class IWidget(ABC):
 
     @abstractmethod
     def __init__(self, element: WidgetModel):
-        """
-        Initialize widget with a WidgetModel.
+        """Initialize widget with a WidgetModel.
 
         Args:
             element: WidgetModel (a DataPort, or a panel SettingWidgetModel
@@ -42,8 +40,7 @@ class IWidget(ABC):
 
     @abstractmethod
     def render(self) -> Any:
-        """
-        Render the widget and return the UI element.
+        """Render the widget and return the UI element.
 
         Returns:
             NiceGUI element or other UI representation
@@ -51,8 +48,7 @@ class IWidget(ABC):
         pass
 
     def cleanup(self) -> None:
-        """
-        Optional cleanup method.
+        """Optional cleanup method.
         Override if your widget needs to release resources.
         """
         pass
@@ -103,8 +99,7 @@ class IWidget(ABC):
 
     @classmethod
     def config(cls, **kwargs) -> dict[str, Any]:
-        """
-        Generate widget configuration dictionary for use in port creation.
+        """Generate widget configuration dictionary for use in port creation.
 
         This method simplifies widget configuration by combining the widget key
         and configuration into a single dictionary.

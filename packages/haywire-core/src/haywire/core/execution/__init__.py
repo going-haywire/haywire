@@ -1,5 +1,4 @@
-"""
-Haywire Execution System
+"""Haywire Execution System
 
 This module provides the runtime execution system for Haywire graphs.
 

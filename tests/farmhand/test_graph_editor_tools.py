@@ -16,7 +16,8 @@ CALLBACK_NODE_KEY = "haybale-testing:node:EdgeLinkProbeNode"  # has callback_out
 @pytest.fixture(autouse=True)
 def _restore_new_counter():
     """haybale-haystack_create_graph increments the persistent HaystackSettings.new_counter
-    on the ambient registry; restore it so settings tests keep their default."""
+    on the ambient registry; restore it so settings tests keep their default.
+    """
     from haybale_haystack.settings.haystack_settings import HaystackSettings
 
     before = HaystackSettings().new_counter
@@ -1157,7 +1158,8 @@ def test_operate_refuses_a_hidden_widget(farmhand_call):
 
 def test_operate_refuses_when_only_the_show_widget_strategy_hides_it(farmhand_call):
     """value_a has a widget, accepts its own value and is unlinked: only
-    ``should_show_widget()`` (strategy NEVER) can refuse it."""
+    ``should_show_widget()`` (strategy NEVER) can refuse it.
+    """
     from unittest.mock import patch
 
     from haywire.core.types.port import DataPort

@@ -18,8 +18,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass(slots=True)
 class ExecutionContext:
-    """
-    Context passed to worker functions during execution.
+    """Context passed to worker functions during execution.
 
     Contains all data needed by worker functions:
     - Global context (from external system)
@@ -64,8 +63,7 @@ class ExecutionContext:
         payload: dict[str, Any] | None = None,
         backlog: BacklogSettings | None = None,
     ) -> None:
-        """
-        Emit a callback to trigger other flows.
+        """Emit a callback to trigger other flows.
 
         Pass all of an emitter's subscriber names in one call: listeners whose
         Delivery is Pooled then share the callback (ADR 0097).

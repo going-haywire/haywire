@@ -1,5 +1,4 @@
-"""
-Event source type system for Haywire event nodes.
+"""Event source type system for Haywire event nodes.
 
 Defines the types of events that can trigger flow execution.
 """
@@ -23,8 +22,7 @@ class SystemEventType(Enum):
 
 @dataclass(frozen=True)
 class EventSource:
-    """
-    Base class for event sources.
+    """Base class for event sources.
 
     All event sources are immutable (frozen) to ensure they can be used
     as dictionary keys and compared reliably.
@@ -49,8 +47,7 @@ class EventSource:
     max_queue_size: int = field(default=100, compare=False, kw_only=True)
 
     def get_subscription_key(self) -> str:
-        """
-        Get unique key for event subscription registration.
+        """Get unique key for event subscription registration.
 
         Returns:
             String key that uniquely identifies this event source
@@ -58,8 +55,7 @@ class EventSource:
         raise NotImplementedError("Subclasses must implement get_subscription_key()")
 
     def matches(self, trigger_key: str) -> bool:
-        """
-        Check if this event source matches a trigger key.
+        """Check if this event source matches a trigger key.
 
         Args:
             trigger_key: Key from incoming trigger
@@ -72,8 +68,7 @@ class EventSource:
 
 @dataclass(frozen=True)
 class SystemEvent(EventSource):
-    """
-    Predefined system lifecycle events.
+    """Predefined system lifecycle events.
 
     These are standard events provided by the Haywire runtime:
     - BEGIN_PLAY: Fired once when execution starts
@@ -91,8 +86,7 @@ class SystemEvent(EventSource):
 
 @dataclass(frozen=True)
 class ExternalEvent(EventSource):
-    """
-    Events from external systems (input, network, etc).
+    """Events from external systems (input, network, etc).
 
     These events come from outside Haywire and are forwarded by
     the host application:
@@ -118,8 +112,7 @@ class ExternalEvent(EventSource):
 
 @dataclass(frozen=True)
 class CallbackEvent(EventSource):
-    """
-    Events from other flows via callback mechanism.
+    """Events from other flows via callback mechanism.
 
     These enable inter-flow communication within the same graph.
     A control node can emit a callback that triggers event nodes
@@ -149,8 +142,7 @@ class CallbackEvent(EventSource):
 
 @dataclass(frozen=True, slots=True)
 class Trigger:
-    """
-    Runtime trigger that activates a flow.
+    """Runtime trigger that activates a flow.
 
     Created when an event occurs and contains all data needed
     to execute the flow. Immutable: one trigger is shared by every flow

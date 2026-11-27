@@ -1,5 +1,4 @@
-"""
-Integration tests for edge connections using EdgeLinkProbeNode.
+"""Integration tests for edge connections using EdgeLinkProbeNode.
 
 Tests connection behaviors between different port types:
 - Data inlet many-to-one (replacement) and many-to-many (pooled)
@@ -103,8 +102,7 @@ class TestEdges:
     def test_data_inlet_second_valid_edge_replaces_first(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """
-        When a second valid connection targets a single-connection inlet,
+        """When a second valid connection targets a single-connection inlet,
         it should replace the first connection. The first edge should
         become unlinked on the inlet side.
         """
@@ -135,8 +133,7 @@ class TestEdges:
     def test_data_inlet_second_invalid_edge_does_not_replace_first(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """
-        When a second connection to an inlet is invalid (e.g. cross flow-type),
+        """When a second connection to an inlet is invalid (e.g. cross flow-type),
         it should NOT displace the first valid connection.
         Only valid connections should cause replacement.
         """
@@ -165,8 +162,7 @@ class TestEdges:
     def test_data_inlet_replacement_with_adapter_edge(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """
-        A second connection that requires adapters (e.g. bool→int inlet)
+        """A second connection that requires adapters (e.g. bool→int inlet)
         should still replace the first connection if valid.
         """
         graph = graph_with_library_system
@@ -209,8 +205,7 @@ class TestEdges:
         assert len(pooled_port.incoming.linked) == 2
 
     def test_pooled_inlet_with_adapter_edges(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        Pooled inlets should accept connections from different
+        """Pooled inlets should accept connections from different
         source types that require adapter chains.
         """
         graph = graph_with_library_system
@@ -290,8 +285,7 @@ class TestEdges:
     def test_array_same_element_type_no_element_adapter(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """
-        test array outlet to pooled_array_string_inlet for
+        """test array outlet to pooled_array_string_inlet for
         ARRAY[TEST_STRING] → ARRAY[TEST_STRING] (same).
         """
         graph = graph_with_library_system
@@ -306,8 +300,7 @@ class TestEdges:
     def test_array_different_element_type_has_adapter(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """
-        ARRAY[TEST_BOOL] outlet → pooled ARRAY[TEST_STRING] inlet should
+        """ARRAY[TEST_BOOL] outlet → pooled ARRAY[TEST_STRING] inlet should
         require an ArrayArrayAdapter wrapping a scalar chain.
 
         Since pooled_array_string_inlet stores ARRAY[TEST_STRING],
@@ -330,8 +323,7 @@ class TestEdges:
     def test_derived_type_to_parent_type_no_adapter(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """
-        TEST_TEMPERATURE (derived from TEST_FLOAT) → TEST_FLOAT inlet
+        """TEST_TEMPERATURE (derived from TEST_FLOAT) → TEST_FLOAT inlet
         should work without any adapters (child → parent passthrough).
         """
         graph = graph_with_library_system
@@ -345,8 +337,7 @@ class TestEdges:
     def test_derived_type_to_string_via_parent_chain(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """
-        TEST_TEMPERATURE → TEST_STRING should resolve via the
+        """TEST_TEMPERATURE → TEST_STRING should resolve via the
         ancestor chain: TEMPERATURE (as FLOAT) → STRING uses
         FloatToStringAdapter (1 adapter via MRO fallback).
         """
@@ -361,8 +352,7 @@ class TestEdges:
     def test_parent_type_to_derived_type_rejected(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """
-        TEST_FLOAT → TEST_TEMPERATURE inlet should fail because
+        """TEST_FLOAT → TEST_TEMPERATURE inlet should fail because
         parent → child is a narrowing conversion. Not every float
         is a valid temperature. An explicit adapter would be required.
         """
@@ -389,8 +379,7 @@ class TestEdges:
         assert edge.state.is_formally_validated
 
     def test_exec_outlet_single_edge_only(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        EXEC outlets should only allow one outgoing connection.
+        """EXEC outlets should only allow one outgoing connection.
         A second connection should replace the first.
         """
         graph = graph_with_library_system
@@ -412,9 +401,7 @@ class TestEdges:
         assert edge_2.state.is_valid()
 
     def test_exec_inlet_single_edge_only(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        EXEC inlets should allow more than one incoming connection.
-        """
+        """EXEC inlets should allow more than one incoming connection."""
         graph = graph_with_library_system
         node_a, node_b, node_c = self._create_three_nodes(graph)
 
@@ -554,8 +541,7 @@ class TestEdges:
     # ==================================================================
 
     def test_self_edge_data(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        Connecting a node's outlet to its own inlet should create
+        """Connecting a node's outlet to its own inlet should create
         an edge that passes formal validation (same node, valid types).
         """
         graph = graph_with_library_system
@@ -594,8 +580,7 @@ class TestEdges:
     def test_remove_edge_from_pooled_inlet_keeps_others(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """
-        Removing one edge from a pooled inlet should not affect
+        """Removing one edge from a pooled inlet should not affect
         other connections to the same inlet.
         """
         graph = graph_with_library_system
@@ -655,8 +640,7 @@ class TestEdges:
     # ==================================================================
 
     def test_scalar_to_array_inlet_rejected(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        A scalar outlet (TEST_BOOL) to an array-typed pooled inlet
+        """A scalar outlet (TEST_BOOL) to an array-typed pooled inlet
         (Pooled ARRAY[TEST_STRING]) should fail since scalar ↔ compound
         is not supported.
         """
@@ -750,8 +734,7 @@ class TestEdges:
     # ==================================================================
 
     def test_displaced_edge_remains_in_all_edges(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        When a second valid edge displaces the first on a single-connection
+        """When a second valid edge displaces the first on a single-connection
         inlet, the displaced edge should leave _linked_edges but remain
         tracked in _all_edges.
         """
@@ -772,8 +755,7 @@ class TestEdges:
         assert edge_2.edge_id in inlet_port.incoming.all
 
     def test_reenable_after_active_edge_removed(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        When the active edge on a single-connection inlet is removed,
+        """When the active edge on a single-connection inlet is removed,
         a previously displaced but functional edge should be automatically
         re-enabled (promoted back to _linked_edges).
         """
@@ -800,8 +782,7 @@ class TestEdges:
         assert edge_1.state.error_link is None
 
     def test_detach_removes_from_all_edges(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        detach() (via remove_edge_wrapper) should fully remove the edge
+        """detach() (via remove_edge_wrapper) should fully remove the edge
         from both _linked_edges and _all_edges on both ports.
         """
         graph = graph_with_library_system
@@ -822,8 +803,7 @@ class TestEdges:
         assert edge.edge_id not in outlet_port.outgoing.all
 
     def test_asymmetric_inlet_displacement(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        When an edge is displaced from an INLET, the source outlet
+        """When an edge is displaced from an INLET, the source outlet
         MUST be informed (the outlet removes the edge from its linked set
         so pipes are rebuilt correctly).
         """
@@ -846,8 +826,7 @@ class TestEdges:
         assert not edge_1.state.is_linked
 
     def test_asymmetric_outlet_displacement(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        When an edge is displaced from an OUTLET (e.g. exec outlet,
+        """When an edge is displaced from an OUTLET (e.g. exec outlet,
         single-connection), the sink inlet should NOT be informed.
         The inlet retains the stale edge in its linked set.
         """
@@ -875,8 +854,7 @@ class TestEdges:
         assert not edge_1.state.is_linked
 
     def test_reenable_skips_nonfunctional(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        Re-enablement should skip edges that lost functionality
+        """Re-enablement should skip edges that lost functionality
         (e.g. adapter chain broke during hot reload). Only functional
         candidates should be promoted.
         """
@@ -911,8 +889,7 @@ class TestEdges:
         )
 
     def test_node_validation_edges_stay_valid(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        After marking a node dirty with NODE_VALIDATION_REQUESTED, all edges
+        """After marking a node dirty with NODE_VALIDATION_REQUESTED, all edges
         attached to that node should remain valid and linked.
         """
         from haywire.core.graph.types import ChangeReason
@@ -939,8 +916,7 @@ class TestEdges:
     def test_node_hot_reload_edges_survive_rebuild(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """
-        After a full node hot reload (NODE_HOT_RELOADED), the node is
+        """After a full node hot reload (NODE_HOT_RELOADED), the node is
         completely rebuilt with new port objects. Edges should survive
         by rebinding to the new ports.
         """
@@ -975,8 +951,7 @@ class TestEdges:
     def test_node_hot_reload_adapter_chain_survives(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """
-        An edge with an adapter chain (bool→int) should survive a hot
+        """An edge with an adapter chain (bool→int) should survive a hot
         reload of either node, rebuilding its adapter chain against
         the new port objects.
         """
@@ -1004,8 +979,7 @@ class TestEdges:
     def test_node_hot_reload_displaced_edge_survives(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """
-        After a hot reload, displaced edges should still be tracked
+        """After a hot reload, displaced edges should still be tracked
         in _all_edges on the rebuilt ports, and the active edge should
         be the one that was last linked.
         """
@@ -1036,12 +1010,10 @@ class TestEdges:
         assert edge_1.edge_id not in new_inlet.incoming.linked
 
     def test_dynamic_port_removal_detaches_edge(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        When a dynamic port is removed via push/pop reconfiguration,
+        """When a dynamic port is removed via push/pop reconfiguration,
         the edge connected to that port should be detached (unlinked
         from both ports).
         """
-
         graph = graph_with_library_system
         dyn_node = self._create_dynamic_node(graph)
         node_b, _ = self._create_two_nodes(graph)
@@ -1062,12 +1034,10 @@ class TestEdges:
     def test_dynamic_port_edge_survives_reconfiguration(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """
-        When a dynamic port survives push/pop reconfiguration (same ID
+        """When a dynamic port survives push/pop reconfiguration (same ID
         re-added), the edge connected to it should remain valid after
         validation rebuilds it.
         """
-
         graph = graph_with_library_system
         dyn_node = self._create_dynamic_node(graph)
         node_b, _ = self._create_two_nodes(graph)
@@ -1092,11 +1062,9 @@ class TestEdges:
     def test_static_port_edge_survives_dynamic_reconfiguration(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """
-        Edges connected to static ports (not affected by push/pop)
+        """Edges connected to static ports (not affected by push/pop)
         should be completely unaffected by dynamic port reconfiguration.
         """
-
         graph = graph_with_library_system
         dyn_node = self._create_dynamic_node(graph)
         node_b, _ = self._create_two_nodes(graph)
@@ -1149,8 +1117,7 @@ class TestEdges:
         assert eager_edge.edge.to_dict()["propagation"] == "eager"
 
     def test_eager_edge_defers_on_change(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        Eager edge pushes value to inlet, but on_change should NOT fire
+        """Eager edge pushes value to inlet, but on_change should NOT fire
         at push time. It fires during resolve_dirty_data() instead.
         """
         graph = graph_with_library_system
@@ -1173,8 +1140,7 @@ class TestEdges:
         assert inlet_port.id in node_b.node._has_dirty_ports
 
     def test_lazy_edge_does_not_push_value(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        Lazy edge should NOT transform/push value when outlet changes.
+        """Lazy edge should NOT transform/push value when outlet changes.
         It should only mark the inlet as dirty with the pipe reference.
         """
         graph = graph_with_library_system
@@ -1202,8 +1168,7 @@ class TestEdges:
         assert len(inlet_port._pending_lazy_pipes) == 1
 
     def test_lazy_edge_pulls_on_resolve(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        resolve_dirty_data() should pull the latest value through the
+        """resolve_dirty_data() should pull the latest value through the
         adapter chain from the source outlet.
         """
         graph = graph_with_library_system
@@ -1233,8 +1198,7 @@ class TestEdges:
         assert len(inlet_port._pending_lazy_pipes) == 0
 
     def test_lazy_always_latest(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        When outlet changes A→B→C before resolve, lazy inlet should get C
+        """When outlet changes A→B→C before resolve, lazy inlet should get C
         (always-latest semantics, skipping intermediates).
         """
         graph = graph_with_library_system
@@ -1257,8 +1221,7 @@ class TestEdges:
         assert inlet_port.get_value() == 30
 
     def test_mixed_pooled_on_change_debounce(self, graph_with_library_system: BaseGraph, library_system):
-        """
-        Pooled inlet with eager + lazy edges: on_change should fire
+        """Pooled inlet with eager + lazy edges: on_change should fire
         once during resolve_dirty_data(), not per-edge-push.
         """
         graph = graph_with_library_system
@@ -1297,8 +1260,7 @@ class TestEdges:
     def test_widget_change_fires_on_change_immediately(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """
-        Widget/programmatic change (no edge_id) with on_change
+        """Widget/programmatic change (no edge_id) with on_change
         should fire on_change immediately, not deferred.
         """
         graph = graph_with_library_system

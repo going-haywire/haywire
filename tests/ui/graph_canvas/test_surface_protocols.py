@@ -44,7 +44,8 @@ def test_port_actions_declares_the_demote_verb():
     """PortActions carries real verbs, which is why it survived the rename
     while the empty NodeContextActions marker did not: removal of a
     user-created pin, demote beneath it, the widget-visibility choice, and the
-    two value verbs that put the backing setting back to a resting state."""
+    two value verbs that put the backing setting back to a resting state.
+    """
 
     class _PortImpl:
         def demote_setting(self, port_id: str) -> None: ...
@@ -77,7 +78,8 @@ def test_port_actions_declares_the_demote_verb():
 
     class _Partial:
         """Half an implementation must not satisfy the Protocol — the menu
-        would then draw a row whose handler does not exist."""
+        would then draw a row whose handler does not exist.
+        """
 
         def demote_setting(self, port_id: str) -> None: ...
 
@@ -88,7 +90,8 @@ def test_no_empty_marker_protocol_survives():
     """NodeContextActions was an empty Protocol every object satisfied. It
     existed only to route the custom-menu attribute through the action fork,
     and that fork is gone — so nothing in the graph editor's surfaces can be
-    satisfied by an arbitrary object."""
+    satisfied by an arbitrary object.
+    """
 
     class Anything:
         pass

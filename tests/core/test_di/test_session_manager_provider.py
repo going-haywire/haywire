@@ -1,5 +1,6 @@
 """Test that the DI providers wire SignalDispatcher + SessionManager
-via DI and ambient context."""
+via DI and ambient context.
+"""
 
 from __future__ import annotations
 

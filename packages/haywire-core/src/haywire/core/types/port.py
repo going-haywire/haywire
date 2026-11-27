@@ -1,5 +1,4 @@
-"""
-DataPort Class - Unified port for inlets and outlets.
+"""DataPort Class - Unified port for inlets and outlets.
 
 This module provides the DataPort class that integrates with the DataField hierarchy.
 Direction is determined by the is_inlet field (True for inlet, False for outlet).
@@ -74,9 +73,7 @@ def _wire_form(value: Any) -> Any:
 
 @dataclass
 class DataPort(DataTypeIdentity):
-    """
-    Unified port for both inlets and outlets; direction is set by ``port_type``.
-    """
+    """Unified port for both inlets and outlets; direction is set by ``port_type``."""
 
     # Port identifier within node (different from registry_id!)
     id: str = ""
@@ -272,9 +269,7 @@ class DataPort(DataTypeIdentity):
     """Reference to parent node (for callbacks)"""
 
     def __post_init__(self):
-        """
-        Create data field via type.
-        """
+        """Create data field via type."""
         # Skip parent's post_init for runtime ports
 
         if self.widget:
@@ -343,8 +338,7 @@ class DataPort(DataTypeIdentity):
     # ========================================================================
 
     def _trigger_callback(self, callback_name: str | None, *args):
-        """
-        Invoke a node callback by name.
+        """Invoke a node callback by name.
 
         ``callback_name`` is the node method name held by one of this port's
         callback attributes (``on_change`` / ``on_connect`` / ``on_disconnect``).
@@ -385,8 +379,7 @@ class DataPort(DataTypeIdentity):
         return self._data.get_stored_type()
 
     def get_value(self) -> Any:
-        """
-        Get unwrapped value for worker convenience.
+        """Get unwrapped value for worker convenience.
 
         Returns:
             - For PrimitiveField: Unwrapped primitive (42.0)
@@ -400,8 +393,7 @@ class DataPort(DataTypeIdentity):
         return self._data.get_value()
 
     def set_value(self, new_value: Any, edge_id: str | None = None) -> None:
-        """
-        Set port value. Single entry point for all value updates.
+        """Set port value. Single entry point for all value updates.
 
         ``on_change`` reports only what the port receives: an edge's write or a
         widget or programmatic write. ``out()`` and ``_emit`` never fire it,
@@ -562,7 +554,8 @@ class DataPort(DataTypeIdentity):
 
         Lazy edges (locked by ``is_linked_lazy``) just queue the sink pipe + mark
         it dirty; the consumer pulls the fresh value on its next execution frame.
-        No-op when the outlet has no pipes (unlinked)."""
+        No-op when the outlet has no pipes (unlinked).
+        """
         if self._pipes is not None:
             self._pipes.propagate()
 
@@ -571,8 +564,7 @@ class DataPort(DataTypeIdentity):
     # ========================================================================
 
     def resolve_dirty_data(self) -> None:
-        """
-        Resolve dirty data: pull lazy pipes, then fire deferred on_change.
+        """Resolve dirty data: pull lazy pipes, then fire deferred on_change.
 
         Called at the start of node execution, before on_validate and worker.
         """
@@ -586,8 +578,7 @@ class DataPort(DataTypeIdentity):
             self._trigger_callback(self.on_change, self.get_value())
 
     def _mark_as_data_dirty(self, pipe: Pipe | None = None) -> None:
-        """
-        Mark the port as data dirty and inform the node.
+        """Mark the port as data dirty and inform the node.
 
         Args:
             pipe: Pipe instance for lazy pull (only set for lazy edges)
@@ -606,8 +597,7 @@ class DataPort(DataTypeIdentity):
         return bool(self.incoming.linked) or bool(self.outgoing.linked)
 
     def should_show_widget(self) -> bool:
-        """
-        Resolve whether this port's inline widget should be rendered, given its
+        """Resolve whether this port's inline widget should be rendered, given its
         ``show_widget`` strategy and current link state.
 
         Note: this does NOT check ``widget_key`` — a caller must still confirm the
@@ -762,8 +752,7 @@ class DataPort(DataTypeIdentity):
         self._housekeeping()
 
     def _get_linked_edges_uuid(self) -> list[str]:
-        """
-        Get list of linked edge UUIDs.
+        """Get list of linked edge UUIDs.
 
         Returns:
             List of EdgeWrapper UUIDs linked to this port
@@ -796,8 +785,7 @@ class DataPort(DataTypeIdentity):
         self._is_dirty_structural = True
 
     def _housekeeping(self) -> None:
-        """
-        Called during graph housekeeping phase.
+        """Called during graph housekeeping phase.
         Rebuild connection pipes after structural changes (like reconnecting edges).
         This cannot be done immediately upon link changes since
         at the time of a link change, the edges are not yet validated.
@@ -810,8 +798,7 @@ class DataPort(DataTypeIdentity):
         self._is_dirty_structural = False
 
     def _refresh_pipes(self) -> None:
-        """
-        Refresh pipes based on the port's outgoing linked edges.
+        """Refresh pipes based on the port's outgoing linked edges.
         With outgoing linked edges, ensure pipes exist and are up-to-date.
         Without any, clear pipes.
         Called during graph housekeeping phase.
@@ -855,7 +842,8 @@ class DataPort(DataTypeIdentity):
     @property
     def wire_key(self) -> str | None:
         """The key this pin matches other pins by: its wire type's id, ``WILDCARD`` for a
-        bare ``ADD`` slot, or ``None`` for a port without a wire type. See ``wires_match``."""
+        bare ``ADD`` slot, or ``None`` for a port without a wire type. See ``wires_match``.
+        """
         if self.wire_type is not None:
             return self.wire_type.id
         if self.has_pin() and self.type_cls is not None and self.type_cls._is_any:
@@ -874,7 +862,8 @@ class DataPort(DataTypeIdentity):
     @property
     def is_dependent(self) -> bool:
         """True for a port on a ``DEPENDENT`` wire, and for a bare ``ADD`` slot, which
-        counts as one until it grows."""
+        counts as one until it grows.
+        """
         return self.has_role(WireRole.DEPENDENT) or self.wire_key == WILDCARD
 
     @property
@@ -913,8 +902,7 @@ class DataPort(DataTypeIdentity):
         wrapper: NodeWrapper,
         node: NodeData,
     ) -> DataPort:
-        """
-        Create a DataPort from a PortSpec dict.
+        """Create a DataPort from a PortSpec dict.
 
         Resolves the type from the spec and creates a DataPort instance
         with wrapper reference available immediately.

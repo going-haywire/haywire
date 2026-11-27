@@ -1,5 +1,4 @@
-"""
-Project scaffolding for Haywire.
+"""Project scaffolding for Haywire.
 
 Creates a new haywire project with:
 - pyproject.toml (uv workspace with haywire-studio dependency)

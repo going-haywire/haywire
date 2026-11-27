@@ -1,7 +1,5 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/edge.py
-"""
-Edge introspect panels — PropertiesEditor display-only surface.
-"""
+"""Edge introspect panels — PropertiesEditor display-only surface."""
 
 from __future__ import annotations
 

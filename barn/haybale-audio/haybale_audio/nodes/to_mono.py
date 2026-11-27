@@ -16,7 +16,8 @@ from haywire.api import BaseNode, ExecutionContext, NodeType, node
 )
 class MixToMonoNode(BaseNode):
     """Outputs one channel that is the average of the input's channels, which keeps the level of a
-    stereo pair that carries the same signal on both sides."""
+    stereo pair that carries the same signal on both sides.
+    """
 
     def init(self) -> None:
         from haybale_audio.types.audio import AUDIO

@@ -1,6 +1,5 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/edge/edge.py
-"""
-Edge context-menu panels — the surface ``EdgeMenu``.
+"""Edge context-menu panels — the surface ``EdgeMenu``.
 
 ``EdgeMenu`` is the menu half of the old ``EdgeFocus``, split out so the Edge
 properties tab (``EdgeInspector``, which keeps ``id="edge"``) and this menu

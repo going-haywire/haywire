@@ -11,8 +11,7 @@ if TYPE_CHECKING:
 
 
 class DebugOverlay(ui.element, component="debug_overlay.vue"):
-    """
-    A floating performance/debug HUD for the ZoomPanContainer.
+    """A floating performance/debug HUD for the ZoomPanContainer.
 
     Renders as a custom Vue component (debug_overlay.vue) that measures FPS,
     frame time, worst-1% jank, main-thread long tasks and a live DOM census

@@ -55,7 +55,8 @@ def test_loopback_default_is_clean():
 
 def test_hardened_and_exposed_raises_nothing_above_a_note():
     """A hardened studio still gets the "/mcp is reachable" NOTE — that is a fact
-    worth knowing, not a gap. Nothing louder may fire."""
+    worth knowing, not a gap. Nothing louder may fire.
+    """
     posture = assess_document(_hardened(), _tls(TlsState.OK))
     assert posture.worst in (None, Severity.NOTE)
     assert posture.reachable_by_others is True

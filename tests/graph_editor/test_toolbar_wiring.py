@@ -26,7 +26,6 @@ def test_toolbar_handler_keys_present():
     """SelectionToolbarHandlers contributes selectionBounds + selectionBoundsHide
     when wired via build_event_handler_map.
     """
-
     from unittest.mock import MagicMock
 
     from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map

@@ -70,7 +70,8 @@ def apply_graphs(
     new_module: str | None = None,
 ) -> None:
     """Rewrite each planned graph on disk. No backups — a clean tree is the
-    precondition, so ``git checkout .`` is the rollback."""
+    precondition, so ``git checkout .`` is the rollback.
+    """
     for change in changes:
         data = json.loads(change.path.read_text(encoding="utf-8"))
         patch_graph_tree(data, old, new, old_module=old_module, new_module=new_module)

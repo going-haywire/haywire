@@ -24,8 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class Slot(ABC):
-    """
-    Runtime manager for shell slots.
+    """Runtime manager for shell slots.
 
     Owns its editor wrappers, the currently active wrapper, its area
     container, and the slot's visibility state. Provides the switch,
@@ -43,8 +42,7 @@ class Slot(ABC):
         visible: bool = True,
         size: int = 300,
     ):
-        """
-        Args:
+        """Args:
             session: The owning session.
             name: Slot identifier — a :class:`SlotName`
                 (ACTION, CONTEXT, EDIT, INFO).
@@ -303,8 +301,7 @@ class Slot(ABC):
         ]
 
     def find_binding(self, editor_key: str, binding_id: str | None = None) -> EditorWrapper | None:
-        """
-        Lookup a wrapper by ``(editor_key, binding_id)``.
+        """Lookup a wrapper by ``(editor_key, binding_id)``.
 
         An exact match (both fields equal) always wins. When ``binding_id`` is
         ``None`` and no exact match exists, falls back to the first wrapper whose
@@ -407,8 +404,7 @@ class Slot(ABC):
             self._tab_client = None
 
     def _render_area_contents(self, parent: ui.element) -> None:
-        """
-        Create the area container (a headless ``ui.tab_panels``) as a child
+        """Create the area container (a headless ``ui.tab_panels``) as a child
         of ``parent`` and draw the active wrapper's editor into its panel.
 
         Each wrapper gets its own ``ui.tab_panel`` keyed by ``binding_id``.
@@ -526,8 +522,7 @@ class Slot(ABC):
     # ------------------------------------------------------------------
 
     def switch_to(self, editor_key: str, binding_id: str | None = None) -> bool:
-        """
-        Change the active wrapper to the one matching ``(editor_key, binding_id)``.
+        """Change the active wrapper to the one matching ``(editor_key, binding_id)``.
 
         Re-renders the area on success. No-op if the target is already
         active. Logs a warning and returns ``False`` when no wrapper matches.

@@ -112,7 +112,8 @@ def _open(page: Page, harness) -> None:
 
 def test_manual_width_is_a_minimum(page: Page, harness):
     """manual_width + width=140 writes a min-width; the slot never goes below it
-    and never clips — content wider than the minimum expands the node."""
+    and never clips — content wider than the minimum expands the node.
+    """
     _open(page, harness)
     nid = _node_id(page)
 
@@ -136,7 +137,8 @@ def test_manual_width_is_a_minimum(page: Page, harness):
 
 def test_manual_width_expands_past_skin_max(page: Page, harness):
     """A wide minimum (500px > max-w-sm 384px) drives both slot and card to it —
-    proves the min governs and the skin's max-width clamp is released."""
+    proves the min governs and the skin's max-width clamp is released.
+    """
     _open(page, harness)
     nid = _node_id(page)
 
@@ -198,7 +200,8 @@ def test_gadget_appears_for_single_selection(page: Page, harness):
 
 def test_gadget_follows_node_drag(page: Page, harness):
     """Dragging the selected node moves the gadget with it (the drag writes
-    style directly — the gadget must be refit per move, no observer fires)."""
+    style directly — the gadget must be refit per move, no observer fires).
+    """
     _open(page, harness)
     nid = _node_id(page)
 

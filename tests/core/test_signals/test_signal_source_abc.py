@@ -9,7 +9,8 @@ from haywire.core.signals import Signal, SignalSource
 
 def test_signal_source_is_abstract():
     """A class inheriting SignalSource without implementing _signal_emit
-    cannot be instantiated."""
+    cannot be instantiated.
+    """
 
     class Incomplete(SignalSource):
         pass

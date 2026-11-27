@@ -35,7 +35,8 @@ def repo(tmp_path: Path) -> Path:
 
 def test_build_entries_covers_every_barn_library(repo: Path) -> None:
     """The feed's contract is 'every haybale this repo offers' — a partial
-    rebuild would silently delete sibling entries."""
+    rebuild would silently delete sibling entries.
+    """
     entries = build_marketstall_entries(repo)
     assert sorted(e["name"] for e in entries) == ["haybale-alpha", "haybale-beta"]
 

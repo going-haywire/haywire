@@ -48,7 +48,8 @@ async def test_advance_runs_the_current_steps_method() -> None:
 
 async def test_advance_follows_the_step_it_lands_on() -> None:
     """Dispatch is re-read each call, not bound once — otherwise auto_start
-    would re-run the first step forever."""
+    would re-run the first step forever.
+    """
     flow = _Flow()
 
     await flow.advance()
@@ -60,7 +61,8 @@ async def test_advance_follows_the_step_it_lands_on() -> None:
 
 async def test_advance_raises_for_a_step_with_no_method() -> None:
     """The terminal step has no advance_from_*; naming it is better than a
-    silent no-op, which would look like a flow that hung."""
+    silent no-op, which would look like a flow that hung.
+    """
     flow = _Flow()
     flow.step = "done"
 

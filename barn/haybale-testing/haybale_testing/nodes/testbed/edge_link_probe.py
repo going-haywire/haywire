@@ -1,6 +1,4 @@
-"""
-Basic core node implementations
-"""
+"""Basic core node implementations"""
 
 # Import the node system base class
 from __future__ import annotations
@@ -15,8 +13,7 @@ from haywire.api import CALLBACK, EXEC, BaseNode, ExecutionContext, NodeType, no
     node_type=NodeType.CONTROL,
 )
 class EdgeLinkProbeNode(BaseNode):
-    """
-    Node specificly to test connection behaviors
+    """Node specificly to test connection behaviors
     in the UI. It has a wide variety of inlet and outlet types
     to test all the different connection rules.
     It does not perform any actual logic in its worker,

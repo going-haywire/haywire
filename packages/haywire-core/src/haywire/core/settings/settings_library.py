@@ -1,6 +1,5 @@
 # haywire/core/settings/settings_library.py
-"""
-LibrarySettings — library plugin-defined settings schemas.
+"""LibrarySettings — library plugin-defined settings schemas.
 
 Registered via BaseRegistry hot-reload machinery (_register_class /
 _unregister_class). May be instantiated by library code for live reactive
@@ -22,8 +21,7 @@ from haywire.core.settings.settings import Settings
 
 @dataclass_transform(field_specifiers=(setting, shadow))
 class LibrarySettings(Settings):
-    """
-    Library plugin-defined settings schema.
+    """Library plugin-defined settings schema.
 
     Decorate with ``@settings`` to be discoverable by ``SettingsRegistry``.
     Subclassing a subclass raises ``TypeError``, and so does a ``mirrors=``

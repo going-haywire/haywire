@@ -36,7 +36,8 @@ class TestDIWiring:
 
     def test_container_is_subscribed_to_registry_after_initialize(self):
         """After LibrarySystemService.initialize(), the container must be in
-        the registry's batch event subscriber list so lifecycle events flow."""
+        the registry's batch event subscriber list so lifecycle events flow.
+        """
         from haywire.core.di.config import LibrarySystemService
 
         injector = create_haywire_injector(watch_settings=False)
@@ -62,7 +63,8 @@ class TestDIWiring:
 
     def test_state_propagates_reload_to_node_panel_editor(self):
         """state_registry → node/panel/editor: state file changes cascade to
-        consumer classes that may hold a stale class reference."""
+        consumer classes that may hold a stale class reference.
+        """
         from haywire.core.di.config import LibrarySystemService
         from haywire.core.node.registry import NodeRegistry
         from haywire.ui.editor.registry import EditorRegistry

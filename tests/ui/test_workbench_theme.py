@@ -160,5 +160,6 @@ class TestWorkbenchThemeDecorator:
 
     def test_registry_key_format(self):
         """Standard 3-segment reg_key — theme_type lives on class_identity,
-        not encoded into the key (unlike the pre-collapse 4-segment format)."""
+        not encoded into the key (unlike the pre-collapse 4-segment format).
+        """
         assert TestDarkTheme.class_identity.registry_key == "haybale-testing:theme:TestDarkTheme"

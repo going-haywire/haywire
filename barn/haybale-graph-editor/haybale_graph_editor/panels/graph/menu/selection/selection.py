@@ -1,6 +1,5 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py
-"""
-Selection context-menu panels — the surface ``SelectionMenu``.
+"""Selection context-menu panels — the surface ``SelectionMenu``.
 
 These are also what the floating toolbar's ⋯ shows, since it hosts the same
 surface rather than duplicating a curated set.

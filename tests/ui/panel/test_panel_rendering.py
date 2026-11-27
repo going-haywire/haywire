@@ -49,7 +49,8 @@ def _panel(name, *, poll=True, on_draw=None):
 def _real_panel(name, *, poll=True, order=100, with_draw_disabled=False):
     """A real BasePanel subclass (needed for partition_panels' requires= check
     and for _implements_draw_disabled's identity comparison against
-    BasePanel.draw_disabled, which only works against real subclasses)."""
+    BasePanel.draw_disabled, which only works against real subclasses).
+    """
     draw_calls: list = []
     draw_disabled_calls: list = []
 
@@ -185,7 +186,8 @@ def test_render_panel_disabled_true_default_draw_disabled_is_a_no_op_and_returns
     """A panel implementing only draw() and inheriting the default no-op
     draw_disabled() must still vanish when poll() is false — the
     zero-migration guarantee: every panel that does not opt into greying
-    keeps vanishing exactly as it does today."""
+    keeps vanishing exactly as it does today.
+    """
     p = _real_panel("OnlyDraw", with_draw_disabled=False)
     rendered = render_panel(p, _ctx_view(), _layout(), disabled=True)
 
@@ -197,7 +199,8 @@ def test_render_panel_disabled_true_default_draw_disabled_is_a_no_op_and_returns
 def test_render_panel_disabled_true_calls_draw_disabled_not_draw():
     """A panel implementing draw_disabled() renders it when disabled=True —
     and draw() must NOT be called. The whole point is that the inapplicable
-    path never touches state draw() would read."""
+    path never touches state draw() would read.
+    """
     p = _real_panel("BothMethods", with_draw_disabled=True)
     rendered = render_panel(p, _ctx_view(), _layout(), disabled=True)
 
@@ -223,7 +226,8 @@ def test_partition_panels_splits_on_poll():
 
 def test_partition_panels_drops_access_denied_from_both_lists():
     """A panel denied by requires= is dropped from BOTH lists — a greyed entry
-    would advertise what the principal may not have (ADR-0029)."""
+    would advertise what the principal may not have (ADR-0029).
+    """
     denied = _real_panel("Denied", poll=True)
     denied.class_identity = PanelIdentity(
         registry_id="denied", registry_key="k:denied", label="Denied", requires=AccessTier.ADMIN
@@ -254,7 +258,8 @@ def test_partition_panels_interleaves_in_order_not_applies_then_disabled():
     """Confirmed real gap: hosts render both lists interleaved in `order`, not
     applies-then-disabled — otherwise a menu reshuffles as the selection
     changes. partition_panels itself returns two separate lists; this test
-    proves what a host must do with them: merge by `order`, not concatenate."""
+    proves what a host must do with them: merge by `order`, not concatenate.
+    """
     applies_low = _real_panel("AppliesLow", poll=True, order=10)
     disabled_mid = _real_panel("DisabledMid", poll=False, order=20)
     applies_high = _real_panel("AppliesHigh", poll=True, order=30)
@@ -313,7 +318,8 @@ def test_drawing_panel_is_reset_after_the_draw():
 
 def test_drawing_panel_is_reset_even_when_draw_raises():
     """A panel that raises is caught by the error boundary just outside; a dead
-    panel left published would misattribute whatever renders next."""
+    panel left published would misattribute whatever renders next.
+    """
 
     def _boom(_self):
         raise RuntimeError("boom")
@@ -330,7 +336,8 @@ def test_drawing_panel_is_reset_even_when_draw_raises():
 
 def test_nested_draws_report_the_innermost_panel():
     """A hosting panel rendering another panel's content: the inner panel is
-    the one that actually made the elements, so it is the one reported."""
+    the one that actually made the elements, so it is the one reported.
+    """
     inner = _panel("Inner")
     seen = []
 

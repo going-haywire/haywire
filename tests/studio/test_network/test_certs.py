@@ -45,7 +45,8 @@ def test_every_requested_name_lands_in_the_san_extension(names):
 
 def test_not_valid_before_is_backdated(names):
     """Clock skew between the studio and a phone on the same LAN otherwise
-    yields ERR_CERT_NOT_YET_VALID, which looks like a broken command."""
+    yields ERR_CERT_NOT_YET_VALID, which looks like a broken command.
+    """
     import datetime
 
     cert = sign_cert(generate_key(), names)

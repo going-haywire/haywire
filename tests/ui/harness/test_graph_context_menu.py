@@ -43,7 +43,8 @@ def test_innermost_menu_surface_id_wins_over_an_outer_one(page: Page, harness):
     ordered port/custom pair let an outer marker beat a nearer one; one
     attribute with closest() semantics fixes that. Injects two nested
     elements directly (no real surface/panel needed — this is testing
-    canvas.vue's own DOM routing, not the Python-side surface resolution)."""
+    canvas.vue's own DOM routing, not the Python-side surface resolution).
+    """
     goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-canvas-ready]")
 

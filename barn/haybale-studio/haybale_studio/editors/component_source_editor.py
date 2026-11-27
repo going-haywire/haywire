@@ -1,5 +1,4 @@
-"""
-ComponentSourceEditor — source code of the currently selected component.
+"""ComponentSourceEditor — source code of the currently selected component.
 
 Right-slot editor that mirrors ``context.active_component`` (a registry_key
 string).  Works for any component type managed by a BaseRegistry subclass

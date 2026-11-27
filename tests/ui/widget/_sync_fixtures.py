@@ -50,7 +50,8 @@ class _StandInElement:
 
 class _RecordingElement(_StandInElement):
     """Stand-in that records which (event, handler) pairs were registered,
-    so a test can prove whether a view→model handler was wired."""
+    so a test can prove whether a view→model handler was wired.
+    """
 
     def __init__(self) -> None:
         super().__init__()

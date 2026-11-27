@@ -20,7 +20,8 @@ pytestmark = pytest.mark.integration
 def _restore_new_counter():
     """create_graph increments the persistent HaystackSettings.new_counter on the
     ambient (session-scoped server) registry; restore it so unrelated settings
-    tests that assert the default still pass regardless of run order."""
+    tests that assert the default still pass regardless of run order.
+    """
     from haybale_haystack.settings.haystack_settings import HaystackSettings
 
     before = HaystackSettings().new_counter

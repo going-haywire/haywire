@@ -45,7 +45,8 @@ class SettingInfo:
 def _port_direction(port: Any) -> str:
     """Four-way port direction: ``'swinglet'`` (checked first, since it is also an
     inlet and an outlet), ``'inlet'``, ``'outlet'``, or ``'config'`` for a port that
-    is none of them."""
+    is none of them.
+    """
     if port.is_swinglet():
         return "swinglet"
     if port.is_inlet():
@@ -57,7 +58,8 @@ def _port_direction(port: Any) -> str:
 
 def _port_type_key(port: Any) -> str | None:
     """The port's concrete data-type registry key, or ``None`` when the port carries
-    no type identity."""
+    no type identity.
+    """
     identity = getattr(port.type_cls, "class_identity", None)
     return getattr(identity, "registry_key", None)
 

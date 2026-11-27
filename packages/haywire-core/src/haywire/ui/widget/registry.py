@@ -65,8 +65,7 @@ class WidgetRegistry(BaseRegistry[IWidget]):
         return unreg
 
     def get_widget_event(self, key: str | None) -> LifeCycleEvent:
-        """
-        Get last lifecycle widget event by registry key
+        """Get last lifecycle widget event by registry key
 
         Args:
             key: Registry key in format "library_id:widget:widget_name"

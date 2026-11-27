@@ -1,6 +1,5 @@
 # haywire/core/settings/settings_graph.py
-"""
-GraphSettings — base class for graph-owned settings bags.
+"""GraphSettings — base class for graph-owned settings bags.
 
 The Settings flavour parallel to NodeSettings:
 

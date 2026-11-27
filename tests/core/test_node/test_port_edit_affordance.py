@@ -60,7 +60,8 @@ class TestTheRowTooltipDescription:
 
     def test_it_leaves_out_the_types_own_blurb(self, ports):
         """An undocumented port inherits its type's description; every port of
-        that type would repeat it, so it is noise rather than documentation."""
+        that type would repeat it, so it is noise rather than documentation.
+        """
         port = ports["resolved"]
 
         assert port.description == port.type_cls.class_identity.description

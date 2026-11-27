@@ -1,5 +1,4 @@
-"""
-Haywire built-in node theme — the default node rendering appearance.
+"""Haywire built-in node theme — the default node rendering appearance.
 
 Hot-reloadable: edit this file in an editable install and ThemeRegistry
 will update automatically on the next library reload cycle.

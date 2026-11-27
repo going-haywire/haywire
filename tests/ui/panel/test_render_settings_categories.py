@@ -70,7 +70,8 @@ def test_only_the_named_category_renders():
 
 def test_several_categories_keep_declaration_order_not_argument_order():
     """Passing ("layout", "state") must not reorder anything: the filter never
-    re-sorts, so state (declared first) still renders first."""
+    re-sorts, so state (declared first) still renders first.
+    """
     seq = _sequence(_render(_MixedBag(), categories=("layout", "state")))
     assert seq == [
         ("group", "state"),

@@ -235,7 +235,8 @@ def test_slot_with_no_bindings_has_no_active_binding() -> None:
 
 def test_slot_resolves_initial_active_with_payload() -> None:
     """composite active_key must exact-match the binding_id-carrying binding,
-    not fall through to the first same-key binding."""
+    not fall through to the first same-key binding.
+    """
     reg = _FakeRegistry()
     sess = _session_with_context()
     slot = _tab_slot(session=sess, name=SlotName.EDIT, registry=reg)
@@ -257,7 +258,8 @@ def test_slot_resolves_initial_active_with_payload() -> None:
 
 def test_render_area_creates_tab_panels_and_draws_active(monkeypatch) -> None:
     """_render_area mounts a ui.tab_panels container, creates a tab_panel per
-    binding, and eagerly draws only the active binding."""
+    binding, and eagerly draws only the active binding.
+    """
     reg = _FakeRegistry()
     sess = _session_with_context()
     slot = _tab_slot(session=sess, name=SlotName.ACTION, registry=reg)
@@ -289,7 +291,8 @@ def test_render_area_creates_tab_panels_and_draws_active(monkeypatch) -> None:
 
 def test_switch_to_toggles_active_panel_without_clearing(monkeypatch) -> None:
     """Switching sets the tab_panels value and lazy-draws the newly active
-    binding into its own panel — the area container is not cleared."""
+    binding into its own panel — the area container is not cleared.
+    """
     reg = _FakeRegistry()
     sess = _session_with_context()
     slot = _tab_slot(session=sess, name=SlotName.ACTION, registry=reg)
@@ -317,7 +320,8 @@ def test_switch_to_toggles_active_panel_without_clearing(monkeypatch) -> None:
 
 def test_switch_to_second_time_does_not_redraw(monkeypatch) -> None:
     """Switching back to a previously-drawn binding is a pure value flip —
-    no second draw() call."""
+    no second draw() call.
+    """
     reg = _FakeRegistry()
     sess = _session_with_context()
     slot = _tab_slot(session=sess, name=SlotName.ACTION, registry=reg)
@@ -899,7 +903,8 @@ class TestSlotPopulateFromSnapshot:
 
 class TestSlotHotLoadOrdering:
     """A REQUIRED editor hot-loaded at runtime (CLASS_ADDED) lands at the bar
-    position dictated by class_identity.order, not at the end."""
+    position dictated by class_identity.order, not at the end.
+    """
 
     def _emit_class_added(self, slot, cls):
         from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType

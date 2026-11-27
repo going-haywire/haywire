@@ -15,8 +15,7 @@ from haywire.api import BaseAdapter, adapter
     priority=0,
 )
 class MapsStringArrayAdapter(BaseAdapter):
-    """
-    Transforms STRING_MAP[str, X] → ARRAY[Y].
+    """Transforms STRING_MAP[str, X] → ARRAY[Y].
 
     Uses internal adapter chain for element transformation.
     Always skips None values to prevent chain failures.

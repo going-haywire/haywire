@@ -118,7 +118,8 @@ class TestPromotedPortWritesThroughTheSetting:
 @pytest.mark.integration
 class TestOptionalStaysClearable:
     """The reported trap: an optional promoted to an outlet, edited on the card,
-    with no route back to absence."""
+    with no route back to absence.
+    """
 
     def test_a_card_edit_leaves_reset_available(self, graph_with_library_system: BaseGraph):
         node, port = _promoted(graph_with_library_system, "optional_int", PortType.OUTLET)

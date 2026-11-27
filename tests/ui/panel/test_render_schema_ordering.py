@@ -1,5 +1,4 @@
-"""
-Declaration-order regression for render_schema (settings panel field ordering).
+"""Declaration-order regression for render_schema (settings panel field ordering).
 
 render_schema must walk schema_cls._settings_descriptors() directly (declaration
 order), filtering to only registry-known keys, WITHOUT re-sorting by
@@ -39,7 +38,8 @@ def _dom_sequence(anchor) -> list[tuple[str, str]]:
     """Walk the rendered tree in DOM order, returning one entry per element
     that carries EITHER a data-category-group or a data-field prop, tagged
     ("group", category) or ("field", attr_name) respectively — in the exact
-    order they appear."""
+    order they appear.
+    """
     sequence: list[tuple[str, str]] = []
     for el in _walk(anchor):
         props = getattr(el, "_props", {})
@@ -55,7 +55,8 @@ def _dom_sequence(anchor) -> list[tuple[str, str]]:
 class _SchemaOrderingBag(FrameworkSettings, namespace="test.schema_ordering"):
     """Same declared-vs-order= mismatch shape as Task 2's _OrderingBag, but as
     a registry-backed FrameworkSettings schema (render_schema's actual input
-    shape) instead of a plain Settings instance."""
+    shape) instead of a plain Settings instance.
+    """
 
     zebra = setting[STRING]("z", label="Zebra", category="z", order=5)
     apple = setting[STRING]("a", label="Apple", category="a", order=1)
@@ -102,7 +103,8 @@ def test_render_keys_still_sorts_by_order_not_declaration():
     merged, cross-class view must still sort by (category, order, key) —
     a_field (order=1) before z_field (order=2), even though z_field is
     DECLARED first. If this test ever fails, someone accidentally changed
-    render_keys — see the spec's "Why the split" section for why it must not."""
+    render_keys — see the spec's "Why the split" section for why it must not.
+    """
     reg = SettingsRegistry()
     reg.register_schema(_KeysUnchangedBagAlpha)
 

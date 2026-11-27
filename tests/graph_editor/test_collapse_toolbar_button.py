@@ -108,7 +108,8 @@ class TestItReadsStateRatherThanCapturingIt:
 
     def test_every_click_toggles(self, nicegui_slot_context):
         """The regression. A handler that closed over the draw-time state would
-        send the same value forever and stop after the first press."""
+        send the same value forever and stop after the first press.
+        """
         actions = _Actions(collapsed=False)
         button = _draw(actions)
 
@@ -122,7 +123,8 @@ class TestItReadsStateRatherThanCapturingIt:
 
     def test_the_icon_follows_along_without_a_redraw(self, nicegui_slot_context):
         """The toolbar usually re-renders after a fold (the selection bounds
-        move), but the button must not depend on that."""
+        move), but the button must not depend on that.
+        """
         actions = _Actions(collapsed=False)
         button = _draw(actions)
 
@@ -133,7 +135,8 @@ class TestItReadsStateRatherThanCapturingIt:
 
     def test_it_carries_exactly_one_tooltip_after_toggling(self, nicegui_slot_context):
         """`.tooltip()` STACKS rather than replaces, which is why the panel
-        builds its own and retexts it."""
+        builds its own and retexts it.
+        """
         actions = _Actions(collapsed=False)
         button = _draw(actions)
 
@@ -146,7 +149,8 @@ class TestItReadsStateRatherThanCapturingIt:
 
     def test_the_tooltip_names_the_action_not_the_state(self, nicegui_slot_context):
         """Icon and tooltip must agree — an icon showing the current state
-        beside a word naming the next one reads as a contradiction."""
+        beside a word naming the next one reads as a contradiction.
+        """
         actions = _Actions(collapsed=True)
         button = _draw(actions)
 

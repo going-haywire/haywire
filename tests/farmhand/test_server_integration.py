@@ -35,7 +35,8 @@ def test_tool_round_trip_structured_json(farmhand_call):
 
 def test_tool_result_carries_structured_content_alongside_text(farmhand_call):
     """Both halves of the MCP result are populated: text for text-only clients,
-    structuredContent so a structure-aware one skips the string parse."""
+    structuredContent so a structure-aware one skips the string parse.
+    """
 
     async def scenario(session, init):
         return await session.call_tool("haybale-testing_echo", {"text": "hi"})

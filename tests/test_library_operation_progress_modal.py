@@ -208,7 +208,8 @@ async def test_finish_restart_registers_exactly_one_click_handler(user: User) ->
 async def test_finish_done_registers_exactly_one_click_handler(user: User) -> None:
     """No-flags 'Done' button must register exactly one click handler that
     closes the popup. Regression-guards the implicit-else branch that used
-    to rely on the construction-time ``on_click=popup.close``."""
+    to rely on the construction-time ``on_click=popup.close``.
+    """
     captured: dict[str, LibraryOperationProgressModal] = {}
 
     @ui.page("/")

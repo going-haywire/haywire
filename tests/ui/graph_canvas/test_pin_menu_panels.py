@@ -92,7 +92,8 @@ def test_type_row_polls_true_for_a_registered_type():
 def test_type_row_polls_false_for_an_unregistered_type():
     """An unregistered class (test double, generated type) has no
     class_identity, so there is no key to open — draw no row rather than a
-    dead one."""
+    dead one.
+    """
     bare = cast(type, type("Bare", (), {}))
     assert PortTypeMenuPanel.poll(_ctx(_port(stored_type=bare))) is False
 
@@ -109,7 +110,8 @@ def test_widget_row_polls_false_when_the_port_has_no_widget():
 
 def test_widget_row_polls_false_for_an_uninstalled_widget_key():
     """widget_key is resolved through the registry, never trusted: a key
-    naming a widget that isn't installed resolves to None."""
+    naming a widget that isn't installed resolves to None.
+    """
     assert PortWidgetMenuPanel.poll(_ctx(_port(widget_key="nope:widget:missing"))) is False
 
 
@@ -164,7 +166,8 @@ def test_detach_still_draws_greyed_when_it_does_not_apply():
 def test_clicking_a_row_publishes_reveal_component_source():
     """The row reveals rather than only assigning active_component: from a
     pin right-click the CONTEXT slot may be collapsed, and only a reveal
-    expands it."""
+    expands it.
+    """
     from haybale_graph_editor.panels.graph.menu.component_rows import reveal_component
 
     ctx = _ctx(_port())
@@ -192,7 +195,8 @@ def test_edit_source_row_sits_after_detach_on_the_parent_menu():
 def test_edit_row_polls_on_what_its_body_will_hold():
     """A submenu whose body would be empty must not draw its anchor: a
     ``hui.submenu_row`` with nothing inside greys itself retroactively, which
-    reads as a broken command rather than an absent one."""
+    reads as a broken command rather than an absent one.
+    """
     assert PinEditMenuPanel.poll(_ctx(_port(stored_type=_typed()))) is True
     assert PinEditMenuPanel.poll(_ctx(_port())) is False
     assert PinEditMenuPanel.poll(_ctx(None)) is False
@@ -218,7 +222,8 @@ def _promoted_port(strategy: Any) -> Any:
 
 def test_show_widget_row_polls_only_on_a_promoted_port():
     """An author-declared port's visibility stays the author's decision
-    (ADR 0003); only a promoted port's strategy is the user's to set."""
+    (ADR 0003); only a promoted port's strategy is the user's to set.
+    """
     from haywire.core.types.enums import ShowWidgetStrategy
 
     assert PinShowWidgetMenuPanel.poll(_ctx(_promoted_port(ShowWidgetStrategy.NEVER))) is True
@@ -228,7 +233,8 @@ def test_show_widget_row_polls_only_on_a_promoted_port():
 
 def test_show_widget_row_still_draws_greyed_when_it_does_not_apply():
     """Same convention as Detach beside it — an inapplicable command greys
-    rather than disappearing."""
+    rather than disappearing.
+    """
     assert "draw_disabled" in vars(PinShowWidgetMenuPanel)
 
 
@@ -246,7 +252,8 @@ def test_show_widget_row_sits_after_detach():
 
 def test_strategy_panel_offers_every_strategy_exactly_once():
     """A menu that cannot represent a state the field holds would show no
-    selection on a port already in that state."""
+    selection on a port already in that state.
+    """
     from haywire.core.types.enums import ShowWidgetStrategy
 
     offered = [strategy for strategy, _label in PortShowWidgetStrategyPanel._CHOICES]
@@ -258,7 +265,8 @@ def test_strategy_rows_are_drawn_by_one_panel():
     """All four rows come from ONE panel on purpose: the leaf counter is
     bumped once per panel and not at all by hui.menu_row, so the count is 1
     and the hosting submenu_row opens. Zero panels is what greys a populated
-    flyout with nothing in the DOM to explain it."""
+    flyout with nothing in the DOM to explain it.
+    """
     from haybale_graph_editor.surfaces import PinWidgetMenu
 
     surface = PortShowWidgetStrategyPanel.class_identity.surface

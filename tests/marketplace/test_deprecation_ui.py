@@ -72,7 +72,8 @@ def test_deprecation_message_version_aware_when_installed_below_since():
 def test_deprecation_message_not_version_aware_when_not_installed():
     """A not-installed row's version is the catalog's *current* advertised
     version, not something the user is "on" — the version-aware phrasing
-    must not fire."""
+    must not fire.
+    """
     from haybale_marketplace.editors.library_overview_editor import deprecation_message
 
     row = Haybale(

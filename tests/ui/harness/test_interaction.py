@@ -1,5 +1,4 @@
-"""
-Interaction tests: verify value write/read-back, mirror indicator (• prefix),
+"""Interaction tests: verify value write/read-back, mirror indicator (• prefix),
 and the Reset item in the row's right-click Setting-row menu.
 """
 
@@ -60,7 +59,8 @@ def test_mirror_field_dot_prefix_after_local_override(page: Page, harness):
 
 def test_reset_button_appears_after_override(page: Page, harness):
     """After overriding intensity locally, the row's Setting-row menu offers an
-    enabled Reset item (right-click the label cell to open it)."""
+    enabled Reset item (right-click the label cell to open it).
+    """
     goto_ready(page, f"{harness}{_NODE_PATH}")
     page.wait_for_selector("[data-field]")
 
@@ -124,7 +124,8 @@ def test_color_mirror_dot_prefix_after_local_override(page: Page, harness):
 
 def test_color_mirror_reset_button_appears_after_override(page: Page, harness):
     """After overriding tint locally, the row's Setting-row menu offers an
-    enabled Reset item."""
+    enabled Reset item.
+    """
     goto_ready(page, f"{harness}{_NODE_PATH}")
     page.wait_for_selector("[data-field]")
 

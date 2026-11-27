@@ -116,7 +116,8 @@ def test_build_entry_uses_haybale_toml_over_pyproject(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_build_entry_emits_git_source_with_subdirectory_install_spec(tmp_path: Path) -> None:
     """Libraries in git_publish_order keep the builder's own git+subdirectory
-    install_spec — the script only overrides install_spec for source="pypi"."""
+    install_spec — the script only overrides install_spec for source="pypi".
+    """
     pkg_dir = tmp_path / "haybale-alpha"
     _write_package(pkg_dir, name="haybale-alpha", version="0.0.3")
 
@@ -131,7 +132,8 @@ def test_build_entry_emits_git_source_with_subdirectory_install_spec(tmp_path: P
 @pytest.mark.unit
 def test_build_entry_falls_back_to_pyproject_when_haybale_toml_absent(tmp_path: Path) -> None:
     """A package with no haybale.toml still produces a row (name/version from
-    pyproject; label falls back to the dist name via the shared builder)."""
+    pyproject; label falls back to the dist name via the shared builder).
+    """
     pkg_dir = tmp_path / "haybale-bare"
     pkg_dir.mkdir(parents=True)
     (pkg_dir / "pyproject.toml").write_text(
@@ -195,7 +197,8 @@ def test_emit_stall_toml_round_trips_via_tomllib() -> None:
 @pytest.mark.unit
 def test_emit_stall_toml_includes_name_in_header() -> None:
     """Each generated stall file's comment header should mention the dist name
-    so a human reader can identify it without parsing TOML."""
+    so a human reader can identify it without parsing TOML.
+    """
     entry = {
         "name": "haybale-x",
         "version": "0.0.1",
@@ -215,7 +218,8 @@ def test_emit_marketplace_toml_writes_one_stall_per_url() -> None:
 
     `preference` and `blocked` are a consumer's opinion about their own
     subscriptions and the remote parser reads neither, so a published feed does
-    not carry them."""
+    not carry them.
+    """
     out = generate_marketstall.emit_marketplace_toml(
         [
             "https://example.github.io/feed/stalls/haybale-a.toml",
@@ -310,7 +314,8 @@ def test_generate_walks_publish_order_and_returns_toml(tmp_path: Path) -> None:
 def test_generate_finds_module_dir_regardless_of_entry_point_name(tmp_path: Path) -> None:
     """The module dir is found by `find_module_dir` (flat/src layout scan),
     not by reading [project.entry-points."haywire.libraries"] — so a module
-    directory whose name differs from the dist name is still found."""
+    directory whose name differs from the dist name is still found.
+    """
     root = tmp_path / "pyproject.toml"
     root.write_text(
         '[tool.uv.workspace]\nmembers = ["pkgs/*"]\n'
@@ -337,7 +342,8 @@ def test_generate_finds_module_dir_regardless_of_entry_point_name(tmp_path: Path
 @pytest.mark.unit
 def test_generate_tolerates_missing_haybale_toml(tmp_path: Path) -> None:
     """A package with no haybale.toml still generates an entry, falling back
-    to pyproject name/version/description via the shared builder."""
+    to pyproject name/version/description via the shared builder.
+    """
     root = tmp_path / "pyproject.toml"
     root.write_text(
         '[tool.uv.workspace]\nmembers = ["pkgs/*"]\n'
@@ -370,7 +376,8 @@ def test_generate_tolerates_missing_haybale_toml(tmp_path: Path) -> None:
 def test_generate_requires_feed_base_url(tmp_path: Path) -> None:
     """If neither the pyproject nor the CLI provides a feed_base_url, the
     generator can't compose [[stalls]] URLs and must fail loudly rather than
-    emit broken subscription URLs (spec §11)."""
+    emit broken subscription URLs (spec §11).
+    """
     root = tmp_path / "pyproject.toml"
     root.write_text(
         '[tool.uv.workspace]\nmembers = ["pkgs/*"]\n'
@@ -389,7 +396,8 @@ def test_generate_requires_feed_base_url(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_cli_writes_marketplace_and_stalls_to_out_dir(tmp_path: Path) -> None:
     """End-to-end: main() writes <out-dir>/marketplace.toml plus one
-    <out-dir>/stalls/<dist>.toml per publish_order entry."""
+    <out-dir>/stalls/<dist>.toml per publish_order entry.
+    """
     root = tmp_path / "pyproject.toml"
     root.write_text((FIXTURE_DIR / "sample_marketstall_root_pyproject.toml").read_text())
 
@@ -437,7 +445,8 @@ def test_generate_accepts_relative_root_pyproject_path(monkeypatch: pytest.Monke
     directory to find the git root via `.resolve()`, so a relative `pkg_dir`
     passed alongside it raises ValueError on `.relative_to()` — this is the
     real repo checkout (which has a git root and remote), run with a relative
-    root path, guarding against that regression."""
+    root path, guarding against that regression.
+    """
     repo_root = Path(__file__).resolve().parents[2]
     monkeypatch.chdir(repo_root)
 

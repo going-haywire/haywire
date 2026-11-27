@@ -411,7 +411,8 @@ def test_share_help_lists_the_one_mode() -> None:
 
 def test_removed_flags_are_gone() -> None:
     """--save, --strict/--fix, and --check were prior shapes; leaving them would
-    imply behaviour the pipeline no longer has."""
+    imply behaviour the pipeline no longer has.
+    """
     result = subprocess.run(["uv", "run", "haywire", "share", "--help"], capture_output=True, text=True)
     assert "--save" not in result.stdout
     assert "--strict" not in result.stdout
@@ -655,7 +656,8 @@ def test_the_owner_checklist_lists_only_the_missing_names_and_asks_for_a_bump(
 
 def _pr_run(project: Path, *, gh: str | None = None, gh_result=None, gh_calls: list | None = None):
     """A ``--pr`` run. *gh* is where ``shutil.which`` finds gh (None: not installed),
-    *gh_result* what running it returns; *gh_calls* collects the command lines run."""
+    *gh_result* what running it returns; *gh_calls* collects the command lines run.
+    """
     from haywire.core.publishing.pipeline.steps import release_pr
     from haywire_studio.packaging.share_cli import run_share_cli
 

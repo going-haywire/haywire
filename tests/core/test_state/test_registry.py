@@ -130,7 +130,8 @@ class TestGetClassesForLibrary:
 
     def test_filters_by_library_id_not_object_identity(self):
         """Hot-reload may produce a fresh LibraryIdentity instance with the
-        same id. The filter must compare by id string, not Python identity."""
+        same id. The filter must compare by id string, not Python identity.
+        """
 
         class MyState(AppState):
             pass

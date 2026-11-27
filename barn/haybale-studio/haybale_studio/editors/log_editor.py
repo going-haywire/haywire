@@ -1,5 +1,4 @@
-"""
-LogEditor — scrollable application output panel.
+"""LogEditor — scrollable application output panel.
 
 Shows both Python `logging` records and `print()` / `console_print()` output,
 merged into one buffer and flushed to the UI on a single timer. Two producers
@@ -62,8 +61,7 @@ class _LogHandler(logging.Handler):
     requires=AccessTier.VIEW,
 )
 class LogEditor(BaseEditor):
-    """
-    Renders a scrollable log panel capturing both Python logging and stdout.
+    """Renders a scrollable log panel capturing both Python logging and stdout.
 
     `registry_id` must stay pinned to the old "TerminalEditor" class name: it
     defaults to the class name and `registry_key` derives from it, and slot

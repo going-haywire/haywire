@@ -1,5 +1,4 @@
-"""
-GraphCanvasManager — facade that wires handler objects to the Vue canvas.
+"""GraphCanvasManager — facade that wires handler objects to the Vue canvas.
 
 Public API is unchanged; all event-handling and visual-management logic has
 been moved into focused handler classes under handlers/.
@@ -87,8 +86,7 @@ wheel zoom or a node removal) are not in it.
 
 
 class GraphCanvasManager:
-    """
-    Facade that wires canvas event handlers and the Vue component together.
+    """Facade that wires canvas event handlers and the Vue component together.
 
     Responsibilities kept here:
     - Canvas/zoom/menu construction (_setup_canvas)

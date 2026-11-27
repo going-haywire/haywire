@@ -1,6 +1,5 @@
 # packages/haywire-core/src/haywire/core/session/handlers.py
-"""
-Method-level signal-handler decorators for editors.
+"""Method-level signal-handler decorators for editors.
 
 Editor authors declare which :class:`~haywire.core.signals.Signal`
 subclasses a handler method should fire on by decorating the method:

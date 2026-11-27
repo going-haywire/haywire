@@ -28,7 +28,8 @@ logger = logging.getLogger(__name__)
 def is_field_promoted(bag: Settings, field: str) -> bool:
     """True if ``<bag>.<field>`` is currently promoted to a port.
 
-    False for a field that is not promoted, and for one that does not exist."""
+    False for a field that is not promoted, and for one that does not exist.
+    """
     return bag._is_promoted(field)
 
 
@@ -36,7 +37,8 @@ def _resolve_promoted(node: NodeData, port_id: str) -> tuple[Settings, setting]:
     """Resolve the (settings-bag, descriptor) pair a promoted ``port_id`` binds, by
     matching the id against each descriptor's storage_key.
 
-    Raises ``KeyError`` if no descriptor on the node carries that key."""
+    Raises ``KeyError`` if no descriptor on the node carries that key.
+    """
     for accessor in type(node)._settings_bags:
         bag: NodeSettings = getattr(node, accessor)
         for _field, desc in type(bag)._settings_descriptors().items():
@@ -59,7 +61,8 @@ def bag_accessor(node: NodeData, bag: Settings) -> str | None:
 
 def _descriptor(node: NodeData, accessor: str, field: str) -> setting:
     """The setting descriptor for ``<accessor>.<field>`` on *node*, including a field
-    inherited from a settings-bag base class. Raises ``KeyError`` for an unknown field."""
+    inherited from a settings-bag base class. Raises ``KeyError`` for an unknown field.
+    """
     bag: NodeSettings = getattr(node, accessor)
     return type(bag)._settings_descriptors()[field]
 
@@ -122,7 +125,8 @@ def _bind_port(port, bag: Settings, desc: setting) -> None:
 
     The setting keeps its opinion: an unset mirror field keeps tracking its
     global in the cell's own value while an edge's value stands in front of
-    it. See ADR 0040."""
+    it. See ADR 0040.
+    """
     port.bind_field(bag._cell_for(desc))
 
 
@@ -236,7 +240,8 @@ def demote_setting(node: NodeData, port_id: str) -> None:
 
     A promotion whose port is gone is still cleared, so the setting can always be
     released. A port matching no setting — the library changed under a saved
-    graph — is still removed."""
+    graph — is still removed.
+    """
     try:
         bag, desc = _resolve_promoted(node, port_id)
         bag._clear_promoted(desc._attr_name)

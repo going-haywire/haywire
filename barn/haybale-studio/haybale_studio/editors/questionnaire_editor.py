@@ -1,5 +1,4 @@
-"""
-QuestionnaireEditor — the Questionnaire an agent posted, answered in the ASIDE slot.
+"""QuestionnaireEditor — the Questionnaire an agent posted, answered in the ASIDE slot.
 
 One tab, always present; ``RevealQuestionnaire`` brings it to the front in every
 session when an agent posts. It shows the current Questionnaire of

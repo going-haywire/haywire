@@ -1,5 +1,6 @@
 """End-to-end smoke: a panel on FileMenu appears in the menu when
-right_clicked_file is set, and reveal() fires."""
+right_clicked_file is set, and reveal() fires.
+"""
 
 from __future__ import annotations
 

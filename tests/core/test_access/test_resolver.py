@@ -30,7 +30,8 @@ def test_installed_resolver_is_consulted():
 def test_installed_resolver_receives_a_none_principal_intact():
     """A session with no login yet (or an internal/background session) has
     principal=None — the installed resolver decides what that means, core
-    must not substitute a default before the call reaches it."""
+    must not substitute a default before the call reaches it.
+    """
     seen: list[str | None] = []
 
     def _resolver(name: str | None) -> AccessTier:

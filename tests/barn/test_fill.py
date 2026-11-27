@@ -23,7 +23,8 @@ class TestDefaults:
 
     def test_default_stops_are_not_shared_between_instances(self):
         """A dataclass default_factory, not a shared list — one node mutating
-        its stops must not reach every other node's fill."""
+        its stops must not reach every other node's fill.
+        """
         a, b = FILL(), FILL()
         a.stops.append({"color": "#fff", "at": 100})
         assert len(b.stops) == 1
@@ -35,7 +36,8 @@ class TestToCss:
 
     def test_solid_ignores_further_stops(self):
         """Switching gradient → solid keeps the stops in the model, so solid has
-        to pick one rather than emit a gradient."""
+        to pick one rather than emit a gradient.
+        """
         fill = FILL(stops=[{"color": "#112233", "at": 0}, {"color": "#445566", "at": 100}])
         assert fill.to_css() == "#112233"
 
@@ -75,7 +77,8 @@ class TestHostileValues:
     def test_a_semicolon_in_a_colour_cannot_inject_css(self):
         """The reason FILL exists rather than a free-text CSS string: NiceGUI's
         .style() splits on ';', so a value carrying one would escape its own
-        declaration and add arbitrary rules to the card."""
+        declaration and add arbitrary rules to the card.
+        """
         fill = FILL(stops=[{"color": "red; position: fixed; top: 0; width: 100vw", "at": 0}])
         assert ";" not in fill.to_css()
         assert fill.to_css() == "#1e1e1eff"
@@ -96,7 +99,8 @@ class TestHostileValues:
 
     def test_a_malformed_stop_does_not_raise(self):
         """Non-dict stops are dropped at construction — a hand-edited graph must
-        not blow up before to_css ever gets a chance to clean it."""
+        not blow up before to_css ever gets a chance to clean it.
+        """
         fill = FILL(kind=LINEAR, stops=["not-a-dict", None])
         assert fill.stops == [{"color": "#1e1e1eff", "at": 0}]
         assert fill.to_css().startswith("linear-gradient(")
@@ -124,7 +128,8 @@ class TestSerialization:
 
     def test_equality_is_by_value(self):
         """A port no-ops a write equal to the current value, so a value-equal
-        FILL must compare equal or every render marks the node dirty."""
+        FILL must compare equal or every render marks the node dirty.
+        """
         assert FILL() == FILL()
         assert FILL(kind=LINEAR) != FILL()
 
@@ -139,7 +144,8 @@ class TestConstruction:
 
     def test_stops_are_copied_not_aliased(self):
         """A caller's list must not stay wired to the fill's — mutating one
-        would silently restyle the other."""
+        would silently restyle the other.
+        """
         stops = [{"color": "#abcdef", "at": 0}]
         fill = FILL(stops=stops)
         stops[0]["color"] = "#000000"

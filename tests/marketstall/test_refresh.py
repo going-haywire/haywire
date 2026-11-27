@@ -42,7 +42,8 @@ def test_preferred_sources_is_empty_when_nobody_claims_anything() -> None:
 @pytest.mark.unit
 def test_preferred_sources_breaks_a_double_claim_by_file_order() -> None:
     """Only reachable by hand-editing; first in file order wins and the dedup
-    step still reports the collision so the user can re-settle it."""
+    step still reports the collision so the user can re-settle it.
+    """
     from haywire.core.marketstall.refresh import preferred_sources
     from haywire.core.marketstall.types import MarketplaceFile, Subscription
 
@@ -489,7 +490,8 @@ def test_refresh_blocked_entry_disappears_from_caches(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_count_updates_available_flags_installed_below_cache_min(monkeypatch) -> None:
     """An installed dist whose version is below the cache `version` counts
-    as an available update (spec §10.3)."""
+    as an available update (spec §10.3).
+    """
     import importlib.metadata as _meta
 
     from haywire.core.marketstall.refresh import _count_updates_available
@@ -531,7 +533,8 @@ def test_count_updates_available_skips_stale_entries(monkeypatch) -> None:
     """Stale cache entries hold OLD version values from a previous refresh
     where the upstream wasn't reachable. Comparing against them would falsely
     report 'up-to-date' just because the user happened to install the same
-    old version."""
+    old version.
+    """
     import importlib.metadata as _meta
 
     from haywire.core.marketstall.refresh import _count_updates_available
@@ -567,7 +570,8 @@ def test_count_updates_available_handles_multiple(monkeypatch) -> None:
 @pytest.mark.unit
 def test_refresh_populates_updates_available_in_report(tmp_path: Path, monkeypatch) -> None:
     """End-to-end: refresh() must set RefreshReport.updates_available based on
-    what the new caches contain."""
+    what the new caches contain.
+    """
     import importlib.metadata as _meta
 
     from haywire.core.marketstall.refresh import refresh
@@ -610,7 +614,8 @@ def test_refresh_evicts_doc_dir_for_dropped_library(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_malformed_caches_are_discarded_not_fatal(tmp_path):
     """[[caches]] are derived artifacts refetched on every refresh. A strict
-    parser must not let a malformed cache block the refresh that heals it."""
+    parser must not let a malformed cache block the refresh that heals it.
+    """
     from haywire.core.marketstall.parsing import parse_project_marketplace
 
     project = tmp_path / "marketplace.toml"
@@ -885,7 +890,8 @@ def test_preference_picks_the_winner_regardless_of_subscription_order(tmp_path: 
 @pytest.mark.unit
 def test_a_preference_still_reports_the_collision(tmp_path: Path) -> None:
     """Settling a collision does not hide it — the losers are still listed, so
-    the resolved step can keep offering the other sources."""
+    the resolved step can keep offering the other sources.
+    """
     from haywire.core.marketstall.refresh import fetch_sources, resolve
 
     url_a, url_b = "https://a.example/s.toml", "https://b.example/s.toml"

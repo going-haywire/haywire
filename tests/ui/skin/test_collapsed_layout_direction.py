@@ -123,7 +123,8 @@ def _pins(container: ui.element) -> list:
 class TestFoldingPreservesLayoutDirection:
     def test_folded_pins_sit_on_the_direction_s_own_edges(self, ctx, direction, inlet_side, outlet_side):
         """The regression this file exists for: a folded vertical node must NOT
-        be re-sided onto the horizontal axis."""
+        be re-sided onto the horizontal axis.
+        """
         pins = _pins(_render_folded(ctx, direction))
         assert pins, "a folded card drew no pins at all"
 
@@ -153,7 +154,8 @@ class TestFoldingPreservesLayoutDirection:
 
     def test_folded_pins_advertise_the_node_s_layout(self, ctx, direction, inlet_side, outlet_side):
         """`data-hw-layout` is what the edge layer reads; a fold that rewrites it
-        re-routes every wire on the node."""
+        re-routes every wire on the node.
+        """
         for pin in _pins(_render_folded(ctx, direction)):
             assert pin._props["data-hw-layout"] == direction.value
 

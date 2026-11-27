@@ -115,7 +115,8 @@ def test_a_picked_colour_carries_alpha(page: Page, harness):
 
 def test_clearing_the_colour_returns_to_inheriting(page: Page, harness):
     """Emptiness IS the unset signal — there is no separate reset affordance,
-    and no is_locally_set question anywhere in the chain."""
+    and no is_locally_set question anywhere in the chain.
+    """
     goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-field]")
 

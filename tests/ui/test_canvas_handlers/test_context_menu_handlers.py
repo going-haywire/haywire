@@ -1,5 +1,4 @@
-"""
-Tests for IContextMenuProvider protocol and ContextMenuHandlers.
+"""Tests for IContextMenuProvider protocol and ContextMenuHandlers.
 
 ContextMenuHandlers translates canvas events into intent calls on an
 IContextMenuProvider. The provider decides how to surface the menu

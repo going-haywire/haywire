@@ -10,16 +10,14 @@ from haywire.ui.widget.interface import IWidget
 
 
 class UINodeCard:
-    """
-    Container for a rendered node's UI elements and widget instances.
+    """Container for a rendered node's UI elements and widget instances.
 
     Holds the NiceGUI card element and mappings to all widget instances
     for easy access and management.
     """
 
     def __init__(self):
-        """
-        Initialize UINodeCard with UI elements and widget instances.
+        """Initialize UINodeCard with UI elements and widget instances.
 
         Args:
             ui_card: The main NiceGUI card element

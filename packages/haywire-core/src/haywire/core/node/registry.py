@@ -183,7 +183,8 @@ class NodeRegistry(BaseRegistry[BaseNode]):
 
     def get_alternate_node_registry_keys(self, registry_key: str) -> list[str]:
         """The keys of every registered node sharing this key's registry_id but coming
-        from a different library. The key itself is excluded."""
+        from a different library. The key itself is excluded.
+        """
         registry_id = get_registry_id_from_key(registry_key)
         alternates = []
         for key in self._classes.keys():

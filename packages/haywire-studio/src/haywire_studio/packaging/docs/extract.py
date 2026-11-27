@@ -15,7 +15,8 @@ from haywire_studio.packaging.docs.model import ComponentRecord, LibraryDoc
 
 def _extra_for_kind(kind: str, cls: Any, identity: Any) -> dict[str, Any]:
     """Kind-specific introspected payload. Only reads declared class/identity
-    data — never infers. Unknown kinds return {}."""
+    data — never infers. Unknown kinds return {}.
+    """
     if kind == "type":
         return {
             "wire_type": identity.wire_type.id if getattr(identity, "wire_type", None) is not None else None,

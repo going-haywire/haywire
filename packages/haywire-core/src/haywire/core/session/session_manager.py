@@ -14,8 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class SessionManager:
-    """
-    Manages all active browser Sessions::
+    """Manages all active browser Sessions::
 
         manager = SessionManager(dispatcher=dispatcher, container=app.library_state_container)
         session = manager.create_session(app_state=app, workspace_manager=ws)
@@ -38,8 +37,7 @@ class SessionManager:
     # ------------------------------------------------------------------
 
     def create_session(self, **session_kwargs) -> Session:
-        """
-        Create a new Session and register it.
+        """Create a new Session and register it.
 
         All keyword arguments are forwarded to the Session constructor;
         ``dispatcher`` is injected automatically so every session lands in the
@@ -63,8 +61,7 @@ class SessionManager:
         return session
 
     def remove_session(self, session_id: str) -> None:
-        """
-        Clean up and remove a session by ID.
+        """Clean up and remove a session by ID.
 
         ``Session.cleanup()`` unregisters it from the dispatcher, so a removed
         session stops receiving broadcasts immediately.

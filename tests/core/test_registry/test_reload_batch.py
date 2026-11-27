@@ -132,7 +132,8 @@ def test_a_helper_saved_with_its_dependents_reloads_each_module_once(wired, pack
 
 def test_a_dependent_reloaded_before_its_helper_is_reloaded_again_after_it(wired, package):
     """Saved in this order, a node module's own event comes first; skipping it at the
-    helper's event would leave it holding the helper's old values."""
+    helper's event would leave it holding the helper's old values.
+    """
     _save(wired, package, "nodes/a.py", "nodes/b.py", "helper.py")
 
     assert wired.reloads == {f"{_PKG}.helper": 1, f"{_PKG}.nodes.a": 2, f"{_PKG}.nodes.b": 2}

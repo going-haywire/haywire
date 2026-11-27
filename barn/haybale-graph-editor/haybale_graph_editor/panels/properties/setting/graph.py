@@ -1,6 +1,5 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/properties/setting/graph.py
-"""
-GraphSettingsPanel — renders the active graph's settings bag (graph.props).
+"""GraphSettingsPanel — renders the active graph's settings bag (graph.props).
 
 The graph-level section of the properties editor: shown on GraphInspector
 (the graph itself is the subject, no node selected). Reuses the generic bag renderer;

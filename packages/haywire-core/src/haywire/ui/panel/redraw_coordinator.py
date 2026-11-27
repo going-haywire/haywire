@@ -75,7 +75,8 @@ class PanelRedrawCoordinator:
     def start(self) -> None:
         """Attach to the registry lifecycle channel and build the
         per-signal subscription set. Idempotent attach; safe to call once
-        per coordinator instance."""
+        per coordinator instance.
+        """
         if not self._attached:
             try:
                 self._registry.add_batch_event_subscriber(self._on_registry_event)
@@ -86,7 +87,8 @@ class PanelRedrawCoordinator:
 
     def cleanup(self) -> None:
         """Drop all per-signal subscriptions and detach from the registry
-        lifecycle channel. Safe to call multiple times."""
+        lifecycle channel. Safe to call multiple times.
+        """
         self._unsubscribe_all()
         if self._attached:
             try:
@@ -102,7 +104,8 @@ class PanelRedrawCoordinator:
     def _rebuild(self) -> None:
         """Drop current per-signal subs and re-subscribe to the union of
         ``redraw_on`` signals across the host's current surfaces (each
-        walked transitively through ``hosts=``)."""
+        walked transitively through ``hosts=``).
+        """
         self._unsubscribe_all()
         signal_types: set[type[Signal]] = set()
         try:
@@ -120,7 +123,8 @@ class PanelRedrawCoordinator:
     def _make_redraw_handler(self) -> Callable[[Signal], None]:
         """Closure subscribed to every redraw signal. The panel author
         already declared the intent via ``redraw_on=``; the handler just
-        asks the host to redraw."""
+        asks the host to redraw.
+        """
 
         def _on_signal(signal: Signal) -> None:
             del signal  # forwarded, not inspected
@@ -144,7 +148,8 @@ class PanelRedrawCoordinator:
         (a panel registers / unregisters / reloads with a different
         ``redraw_on=``). Drop all subs and recompute. The catalog change
         can mean new signal types appeared, so the current rendered state
-        may be stale — ask for a redraw too."""
+        may be stale — ask for a redraw too.
+        """
         del events  # consumed by the LifeCycleBatchCallback interface
         self._rebuild()
         self._on_redraw()

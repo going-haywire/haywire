@@ -1,5 +1,4 @@
-"""
-Local haybale library for the studio project.
+"""Local haybale library for the studio project.
 
 Add your custom components in the corresponding folders:
 - nodes/      — node definitions

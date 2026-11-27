@@ -1,5 +1,4 @@
-"""
-ErrorsEditor — master-detail view of the error ledger with seen-state triage.
+"""ErrorsEditor — master-detail view of the error ledger with seen-state triage.
 
 Sits next to the Terminal editor in the bottom (INFO) slot.
 

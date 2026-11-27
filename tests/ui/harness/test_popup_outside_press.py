@@ -25,7 +25,8 @@ def _open(page: Page, harness) -> dict:
 
 def _empty_canvas_point(page: Page) -> dict:
     """The first point on screen, scanning from the bottom right, whose topmost element is
-    the canvas itself: no node, edge, menu or overlay."""
+    the canvas itself: no node, edge, menu or overlay.
+    """
     point = page.evaluate(
         """() => {
             for (let y = window.innerHeight - 20; y > 0; y -= 20) {

@@ -1,5 +1,4 @@
-"""
-Edge data structure for Haywire graphs.
+"""Edge data structure for Haywire graphs.
 
 This module contains the Edge dataclass which represents a connection
 between two nodes. The Edge is a pure data container - lifecycle
@@ -16,8 +15,7 @@ from ..types import Propagation
 
 @dataclass
 class Edge:
-    """
-    Data structure representing a connection between two nodes.
+    """Data structure representing a connection between two nodes.
 
     This is a pure data container - lifecycle is managed by EdgeWrapper.
     Stores connection endpoints and adapter chain metadata for

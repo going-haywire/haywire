@@ -1,6 +1,5 @@
 # packages/haywire-app/src/haywire_studio/editors/library_browser.py
-"""
-LibraryBrowser — searchable library list editor for the left area.
+"""LibraryBrowser — searchable library list editor for the left area.
 
 Displays installed and marketplace libraries in a compact scrollable list.
 Selecting a library updates context.active_library and fires LIBRARY_STATE_CHANGED.
@@ -72,8 +71,7 @@ def derive_provenance_label(haybale, mf) -> str | None:
     order=30,
 )
 class LibraryBrowserEditor(BaseEditor):
-    """
-    Shows a searchable list of installed (enabled/disabled) libraries.
+    """Shows a searchable list of installed (enabled/disabled) libraries.
 
     On selection, updates context.active_library and notifies subscribers
     via LIBRARY_STATE_CHANGED. The library_manager is retrieved from

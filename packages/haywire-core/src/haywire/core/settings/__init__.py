@@ -1,6 +1,5 @@
 # haywire/core/settings/__init__.py
-"""
-Settings system — global registry, TOML persistence, and public node-author API.
+"""Settings system — global registry, TOML persistence, and public node-author API.
 
 Public API for node authors:
     from haywire.core.settings import Settings, setting, Color, Icon

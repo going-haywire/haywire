@@ -24,8 +24,7 @@ from haywire.api import (
     node_type=NodeType.EVENT,
 )
 class MergedCallbackEventNode(BaseNode):
-    """
-    Listens for a specified number of callbacks from other flows.
+    """Listens for a specified number of callbacks from other flows.
 
     Config:
         callback_name: Name of the callback to listen for
@@ -77,7 +76,6 @@ class MergedCallbackEventNode(BaseNode):
 
     def hb_reconfigure(self, number_of_callbacks: int = 1):
         """Reconfigure the node based on current settings."""
-
         self.cache.store = {}
 
         with self.rejig(exclude=["custom_callback_count"]):

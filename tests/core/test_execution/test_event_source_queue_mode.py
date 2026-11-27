@@ -71,7 +71,8 @@ class TestEventNodeQueueMode:
         self, graph_with_library_system: BaseGraph, library_system: LibrarySystemService
     ):
         """The default 'block' event node keeps the legacy BLOCK / 100 queue —
-        existing graphs are unchanged."""
+        existing graphs are unchanged.
+        """
         graph = self._build(graph_with_library_system, "batch_cb", "block")
 
         interpreter = Interpreter()

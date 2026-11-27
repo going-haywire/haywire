@@ -36,7 +36,8 @@ def test_promote_binds_shared_cell(make_node_with_setting):
 
 def test_edge_drive_reads_through_setting_without_mark_helper(make_node_with_setting):
     """An edge-driven write into the promoted inlet's shared cell is visible via
-    getattr(bag, field): the setting reads the shared cell, which shows the linked value."""
+    getattr(bag, field): the setting reads the shared cell, which shows the linked value.
+    """
     from haywire.core.node.promotion import promote_setting
 
     node = make_node_with_setting(accessor="filter", field="threshold")

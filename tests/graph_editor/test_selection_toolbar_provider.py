@@ -149,7 +149,8 @@ def test_refresh_does_nothing_when_hidden_or_never_shown(monkeypatch):
 
 def test_toolbar_hides_when_nothing_drew(monkeypatch):
     """A toolbar holding only the ⋯, whose flyout body came up empty, is not
-    worth showing — the same emptiness rule the context-menu host uses."""
+    worth showing — the same emptiness rule the context-menu host uses.
+    """
     prov, _, _ = _provider(monkeypatch)
 
     class HostingPanel:
@@ -261,7 +262,8 @@ def test_provider_satisfies_selection_actions(monkeypatch):
 )
 def test_missing_verbs_delegate_to_the_menu_provider(monkeypatch, verb, args):
     """Fixed by delegation, not by duplication: SessionContextMenuProvider
-    already implements every verb against the same canvas."""
+    already implements every verb against the same canvas.
+    """
     menu_provider = MagicMock()
     prov, _, _ = _provider(monkeypatch, menu_provider=menu_provider)
     getattr(prov, verb)(*args)

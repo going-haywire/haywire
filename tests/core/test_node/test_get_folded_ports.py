@@ -32,7 +32,8 @@ class _FakePort:
 
 class _FakeNode:
     """Stands in for NodeData's port accessors — get_folded_ports is defined
-    in terms of get_all_ports, so faking that one is enough."""
+    in terms of get_all_ports, so faking that one is enough.
+    """
 
     def __init__(self, ports):
         self._ports = ports
@@ -47,7 +48,8 @@ def _fake_node(ports: list[Any]):
 
 def _get_folded_ports(node) -> list[Any]:
     """Call the real, unbound method against the fake — get_folded_ports has
-    no dependency on anything else NodeData carries."""
+    no dependency on anything else NodeData carries.
+    """
     return NodeData.get_folded_ports(node)
 
 
@@ -62,7 +64,8 @@ class TestGetFoldedPorts:
     def test_ignores_group_collapse(self):
         """An edge must always find its endpoint: a linked port hidden by a
         collapsed GROUP still gets a pin on a folded card, because a folded
-        card is all header and there is nowhere else for it to go."""
+        card is all header and there is nowhere else for it to go.
+        """
         buried = _FakePort("buried", order=1, linked=True, visible=False)
         node = _fake_node([buried])
 
@@ -85,7 +88,8 @@ class TestGetFoldedPorts:
 
     def test_drops_unlinked_ports(self):
         """The element-count win: a freshly added node has no edges, so
-        folding it drops every pin."""
+        folding it drops every pin.
+        """
         loose = _FakePort("loose", order=1, linked=False)
         node = _fake_node([loose])
 
@@ -96,7 +100,8 @@ class TestGetFoldedPorts:
 class TestAgainstRealNodeData:
     """The fakes above pin the filter; this pins that it fits reality — a
     NodeData port accessor that changes shape fails here rather than
-    silently in a card."""
+    silently in a card.
+    """
 
     def _add_node(self, graph_obj):
         from haybale_testing.nodes.testbed.print_probe import PrintProbeNode

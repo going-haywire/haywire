@@ -509,7 +509,8 @@ def _edge_error(edge) -> str | None:
 
 def _edge_style(edge) -> dict | None:
     """An edge's look by style field: every field its bag declares while it validates, else the
-    values it saved; ``None`` for an edge whose wire type declares no style."""
+    values it saved; ``None`` for an edge whose wire type declares no style.
+    """
     bag = edge.style
     if bag is not None:
         from haywire.api import settings_fields

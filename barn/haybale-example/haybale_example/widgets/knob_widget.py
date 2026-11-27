@@ -9,8 +9,7 @@ from haywire.api import BaseWidget, PrimitiveUnwrappingConverter, widget
 
 @widget(description="knob widget")
 class KnobWidget(BaseWidget):
-    """
-    Rotary knob widget for numeric ports.
+    """Rotary knob widget for numeric ports.
 
     Config options (via ``KnobWidget.config(properties={...})``):
 

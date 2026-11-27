@@ -1,5 +1,6 @@
 """Class identity for Farmhand (MCP tool) components — extends BaseIdentity
-like every sibling identity (NodeIdentity, EditorIdentity, LibraryStateClassIdentity)."""
+like every sibling identity (NodeIdentity, EditorIdentity, LibraryStateClassIdentity).
+"""
 
 from __future__ import annotations
 

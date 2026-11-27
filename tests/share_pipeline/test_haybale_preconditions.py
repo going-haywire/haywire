@@ -83,7 +83,8 @@ def test_a_declared_path_that_does_not_exist_blocks_the_publish(project: Path) -
 
 def test_the_fix_offers_candidates_when_any_exist(project: Path) -> None:
     """Offered rather than typed: a repair cannot introduce a second wrong
-    value if the user picks from what is actually on disk."""
+    value if the user picks from what is actually on disk.
+    """
     (project / "examples").mkdir()
     _declared_file(project).write_text(_DECLARED + 'examples_path = "wrong/"\n')
 
@@ -133,7 +134,8 @@ def test_an_existing_declared_path_passes(project: Path) -> None:
 
 def test_a_pyproject_that_disagrees_blocks_the_publish(project: Path) -> None:
     """The author edited pyproject by hand — the obvious place, since every
-    other Python tool says so. Publishing would discard it silently."""
+    other Python tool says so. Publishing would discard it silently.
+    """
     pyproject = _lib(project) / "pyproject.toml"
     pyproject.write_text(pyproject.read_text().replace('description = "d"', 'description = "edited"'))
 
@@ -157,7 +159,8 @@ def test_sync_regenerates_from_haybale_toml(project: Path) -> None:
 
 def test_drift_is_reported_before_it_is_applied(project: Path) -> None:
     """The write is unconditional, but it must never be a surprise: the caller
-    can see every changed field first."""
+    can see every changed field first.
+    """
     pyproject = _lib(project) / "pyproject.toml"
     pyproject.write_text(pyproject.read_text().replace('description = "d"', 'description = "edited"'))
 
@@ -168,7 +171,8 @@ def test_drift_is_reported_before_it_is_applied(project: Path) -> None:
 
 def test_sync_preserves_hand_authored_fields(project: Path) -> None:
     """[project] dependencies and the build machinery are pyproject's own —
-    generation must not touch them."""
+    generation must not touch them.
+    """
     pyproject = _lib(project) / "pyproject.toml"
     pyproject.write_text(
         '[project]\nname = "haybale-alpha"\nversion = "0.1.0"\ndescription = "stale"\n'
@@ -188,7 +192,8 @@ def test_sync_preserves_hand_authored_fields(project: Path) -> None:
 
 def test_version_is_now_generated_from_haybale_toml(project: Path) -> None:
     """haybale.toml is canon for version (D6/D7): pyproject carries a generated
-    copy, since pip/uv/PyPI read that file and cannot read haybale.toml."""
+    copy, since pip/uv/PyPI read that file and cannot read haybale.toml.
+    """
     _declared_file(project).write_text(_DECLARED + 'version = "9.9.9"\n')
 
     sync_pyproject_from_haybale(_lib(project))
@@ -198,7 +203,8 @@ def test_version_is_now_generated_from_haybale_toml(project: Path) -> None:
 
 def test_a_deprecated_block_projects_into_a_classifier(project: Path) -> None:
     """PEP 621 has no deprecation field; this classifier is the ecosystem's
-    only signal."""
+    only signal.
+    """
     _declared_file(project).write_text(_DECLARED + '\n[deprecated]\nsince = "0.2.0"\nreason = "x"\n')
 
     sync_pyproject_from_haybale(_lib(project))
@@ -212,7 +218,8 @@ def test_a_deprecated_block_projects_into_a_classifier(project: Path) -> None:
 def test_a_project_below_the_git_root_blocks_the_publish(tmp_path: Path) -> None:
     """Declared paths are project-relative but resolved git-root-relative, so a
     mismatch sends every consumer to the wrong directory — while the
-    publisher's own paths keep working."""
+    publisher's own paths keep working.
+    """
     repo = tmp_path / "repo"
     nested = repo / "projects" / "foo"
     module = nested / "barn" / "haybale-alpha" / "haybale_alpha"
@@ -242,7 +249,8 @@ def test_a_project_below_the_git_root_blocks_the_publish(tmp_path: Path) -> None
 
 def test_the_bump_writes_the_version_into_haybale_toml_too(project: Path) -> None:
     """Phase A: the declaration is finalized before anything reads it. Writing
-    only pyproject would leave the shipped file advertising the old version."""
+    only pyproject would leave the shipped file advertising the old version.
+    """
     SharePipeline(project).apply_bump("1.2.3")
 
     assert 'version = "1.2.3"' in _declared_file(project).read_text()
@@ -251,7 +259,8 @@ def test_the_bump_writes_the_version_into_haybale_toml_too(project: Path) -> Non
 
 def test_the_bump_records_where_the_library_is_published_from(project: Path) -> None:
     """origin is an observation about this checkout, not something authored —
-    which is what makes a fork correct for free on its first publish."""
+    which is what makes a fork correct for free on its first publish.
+    """
     SharePipeline(project).apply_bump("1.2.3")
 
     declared = _declared_file(project).read_text()
@@ -261,7 +270,8 @@ def test_the_bump_records_where_the_library_is_published_from(project: Path) -> 
 def test_the_first_release_leaves_no_pyproject_drift(project: Path) -> None:
     """#33: the first publish writes ``origin`` into haybale.toml; the bump must
     carry it into ``[project.urls] Source`` too, or the release itself leaves
-    the drift that blocks the next ``share --status``."""
+    the drift that blocks the next ``share --status``.
+    """
     import tomllib
 
     assert pyproject_drift(_lib(project)) == {}
@@ -278,7 +288,8 @@ def test_the_first_release_leaves_no_pyproject_drift(project: Path) -> None:
 
 def test_the_row_prefers_the_declaration_over_re_deriving_it(project: Path) -> None:
     """Phase B reads what Phase A wrote. Re-deriving would let the row and the
-    shipped file disagree about where the library came from."""
+    shipped file disagree about where the library came from.
+    """
     from haywire.core.publishing.marketstall import _build_entry_for_library
 
     _declared_file(project).write_text(
@@ -294,7 +305,8 @@ def test_the_row_prefers_the_declaration_over_re_deriving_it(project: Path) -> N
 
 def test_a_self_hosted_row_resolves_without_local_config(project: Path) -> None:
     """The point of publishing origin_provider: a consumer has never heard of
-    the publisher's forge and has nothing in ~/.haywire/config.toml."""
+    the publisher's forge and has nothing in ~/.haywire/config.toml.
+    """
     from haywire.core.library.haybale import Haybale
     from haywire.core.marketstall.host_providers import provider_for
 

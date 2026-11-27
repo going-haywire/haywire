@@ -1,6 +1,5 @@
 # tests/core/test_settings/test_promoted_keys.py
-"""
-_promoted_keys state + accessors on Settings (Task 1 of settings-owned-promotion):
+"""_promoted_keys state + accessors on Settings (Task 1 of settings-owned-promotion):
 
 - set_promoted / clear_promoted / is_promoted / get_promoted_direction
 - keyed by storage_key, storing a PortType direction
@@ -136,7 +135,8 @@ class TestSerializationShape:
 
     def test_from_dict_rejects_a_pre_v3_bare_direction_string(self):
         """The v2 shape must never be silently accepted here — the prehydrator
-        migrates it, and tolerating both would leave two live spellings."""
+        migrates it, and tolerating both would leave two live spellings.
+        """
         bag = PromoSettings()
         with pytest.raises(PromotedFormatError):
             bag._from_dict({"values": {}, "promoted": {"beta": "outlet"}})

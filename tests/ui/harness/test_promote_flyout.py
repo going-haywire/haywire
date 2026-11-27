@@ -36,7 +36,8 @@ def _open_row_menu(page: Page, harness, field: str):
 
 def test_the_promote_anchor_is_not_greyed(page: Page, harness):
     """Regression: a submenu anchor whose body draws no counted leaf greys
-    ITSELF retroactively — a menu you can see and cannot open."""
+    ITSELF retroactively — a menu you can see and cannot open.
+    """
     _open_row_menu(page, harness, "optional_int")
     anchor = page.locator('.q-menu .q-item:has-text("Promote to")').first
 
@@ -82,7 +83,8 @@ def test_an_absent_default_field_still_offers_set_to_none(page: Page, harness):
 @pytest.mark.parametrize("field", ["optional_int", "example_int"])
 def test_reset_is_listed_for_every_row(page: Page, harness, field: str):
     """Listed permanently and greyed while clean — so the menu never renders
-    empty and its shape does not shift with the current value."""
+    empty and its shape does not shift with the current value.
+    """
     _open_row_menu(page, harness, field)
     texts = [t.strip() for t in page.locator(".q-menu .q-item").all_inner_texts()]
     assert "Reset to default" in texts

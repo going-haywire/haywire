@@ -1,5 +1,6 @@
 """End-to-end: promote a setting, wire an upstream outlet to the new inlet, confirm
-the driven value reaches the setting read-tier, then demote and confirm fallback."""
+the driven value reaches the setting read-tier, then demote and confirm fallback.
+"""
 
 from __future__ import annotations
 
@@ -52,7 +53,8 @@ def test_full_promote_drive_demote_cycle(graph_with_library_system, library_syst
 def test_promoted_outlet_drives_consumer_lazily(graph_with_library_system, library_system):
     """A promoted OUTLET wired to a consumer inlet: a setting write (out of frame)
     fires on_changed → the outlet propagates lazily → the consumer pulls the fresh
-    value on its next execution. The linked edge is locked lazy."""
+    value on its next execution. The linked edge is locked lazy.
+    """
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
 
@@ -88,7 +90,8 @@ def test_promoted_outlet_drives_consumer_lazily(graph_with_library_system, libra
 
 def test_promoted_inlet_does_not_subscribe_to_propagate(make_node_with_setting):
     """A promoted INLET has nothing downstream to drive, so bind_field must NOT
-    install an on_changed→propagate handler on the shared cell."""
+    install an on_changed→propagate handler on the shared cell.
+    """
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
 
@@ -102,7 +105,8 @@ def test_promoted_inlet_does_not_subscribe_to_propagate(make_node_with_setting):
 
 def test_demote_removes_outlet_propagate_subscription(make_node_with_setting):
     """demote/unbind_field removes the outlet's on_changed handler — no dangling
-    handler left on the shared cell."""
+    handler left on the shared cell.
+    """
     from haywire.core.node.promotion import (
         demote_setting,
         promote_setting,

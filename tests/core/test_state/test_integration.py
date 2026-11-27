@@ -26,7 +26,8 @@ from haywire.core.state import (
 class TestLibraryStateIntegration:
     def test_class_added_event_triggers_full_lifecycle(self):
         """Simulate a library registering a LibraryState class via the registry's
-        public API path; verify the container picks it up and on_enable runs."""
+        public API path; verify the container picks it up and on_enable runs.
+        """
         injector = create_haywire_injector()
         service = LibrarySystemService(injector)
         service.initialize()

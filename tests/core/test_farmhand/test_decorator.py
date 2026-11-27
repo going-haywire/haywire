@@ -24,7 +24,8 @@ def _studio_identity():
 @pytest.fixture(autouse=True)
 def _stub_library_identity(monkeypatch):
     """These unit tests run outside any library module, so stub the derivation
-    (patch the name the decorator module imported, not the utils original)."""
+    (patch the name the decorator module imported, not the utils original).
+    """
     from haywire.core.farmhand import decorator as decorator_module
 
     monkeypatch.setattr(

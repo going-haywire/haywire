@@ -74,7 +74,8 @@ def test_no_examples_path_when_undeclared(tmp_path):
 
 def test_the_module_dir_is_derived_from_install_spec(tmp_path):
     """It used to be stored as docs_path, which could disagree with the spec
-    about which directory was published. Now it is a function of it."""
+    about which directory was published. Now it is a function of it.
+    """
     lib = _init_repo_with_lib(tmp_path)
     entry = cast(dict, _build_entry_for_library(lib))
     row = Haybale(**entry)
@@ -109,7 +110,8 @@ def test_paths_carry_no_ref_and_resolve_against_install_spec(tmp_path):
 def test_origin_provider_is_recorded(tmp_path):
     """The publisher resolved the host to let this publish through; recording
     which kind it is means a consumer needs no local config for a self-hosted
-    forge."""
+    forge.
+    """
     lib = _init_repo_with_lib(tmp_path)
     entry = cast(dict, _build_entry_for_library(lib))
     assert entry["origin_provider"] == "github"

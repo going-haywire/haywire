@@ -34,7 +34,8 @@ class _SigB(Signal):
 
 class _FakeSurface:
     """Stand-in Surface class. The coordinator only uses identity / passes it
-    straight to registry.get_redraw_signals, so any object works."""
+    straight to registry.get_redraw_signals, so any object works.
+    """
 
     id = "fake-surface"
 
@@ -156,7 +157,8 @@ def test_unsubscribed_signal_does_not_fire_redraw():
 
 def test_start_with_empty_union_makes_no_subscriptions():
     """No redraw_on signals → no per-signal subs (but still attaches the
-    lifecycle channel, so a later catalog change can add some)."""
+    lifecycle channel, so a later catalog change can add some).
+    """
     registry = _FakeRegistry({})
     session = _FakeSession()
     coord, _redraws, _surface = _make_coordinator(registry, session)
@@ -169,7 +171,8 @@ def test_start_with_empty_union_makes_no_subscriptions():
 
 def test_cleanup_drops_subs_and_detaches():
     """cleanup() unsubscribes every per-signal handle and detaches the
-    lifecycle channel."""
+    lifecycle channel.
+    """
     registry = _FakeRegistry()
     session = _FakeSession()
     coord, _redraws, surface = _make_coordinator(registry, session)
@@ -203,7 +206,8 @@ def test_cleanup_is_idempotent():
 def test_catalog_change_rebuilds_subscriptions_and_redraws():
     """Firing the registry lifecycle channel recomputes the union and
     redraws once. Start with an empty union, then 'install' a panel that
-    declares _SigA."""
+    declares _SigA.
+    """
     registry = _FakeRegistry({})
     session = _FakeSession()
     coord, redraws, surface = _make_coordinator(registry, session)
@@ -227,7 +231,8 @@ def test_catalog_change_rebuilds_subscriptions_and_redraws():
 
 def test_rebuild_drops_stale_subscriptions():
     """A catalog change that removes a signal from the union must
-    unsubscribe the stale per-signal handle."""
+    unsubscribe the stale per-signal handle.
+    """
     registry = _FakeRegistry()
     session = _FakeSession()
     coord, _redraws, surface = _make_coordinator(registry, session)
@@ -245,7 +250,8 @@ def test_rebuild_drops_stale_subscriptions():
 
 def test_registry_query_raising_degrades_gracefully():
     """If get_redraw_signals raises, the coordinator logs and
-    leaves zero subscriptions rather than propagating."""
+    leaves zero subscriptions rather than propagating.
+    """
 
     class _RaisingRegistry(_FakeRegistry):
         def get_redraw_signals(self, surface):
@@ -262,7 +268,8 @@ def test_registry_query_raising_degrades_gracefully():
 
 def test_coordinator_is_exported_from_panel_package():
     """PanelRedrawCoordinator is importable from the package root, like
-    PanelRegistry and Focus."""
+    PanelRegistry and Focus.
+    """
     from haywire.ui.panel import PanelRedrawCoordinator as Exported
 
     assert Exported is PanelRedrawCoordinator

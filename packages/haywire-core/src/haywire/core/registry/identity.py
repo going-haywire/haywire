@@ -1,6 +1,4 @@
-"""
-Base identity class for all registry components
-"""
+"""Base identity class for all registry components"""
 
 from __future__ import annotations
 

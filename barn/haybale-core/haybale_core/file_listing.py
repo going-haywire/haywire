@@ -87,7 +87,6 @@ def folder_root(folder: VolumePath) -> Path:
         VolumeUndefinedError: *folder*'s volume has no location.
         VolumeEscapeError: *folder* leads outside its volume.
     """
-
     root = resolve_volume_path(folder)
     if not root.is_dir():
         reason = "is not a folder" if root.exists() else "does not exist"

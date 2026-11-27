@@ -1,6 +1,4 @@
-"""
-Inset NodeSkin — a Graph-node card whose body shows its interior's stage
-"""
+"""Inset NodeSkin — a Graph-node card whose body shows its interior's stage"""
 
 from __future__ import annotations
 

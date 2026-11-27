@@ -6,7 +6,8 @@ import pytest
 @pytest.mark.integration
 def test_bag_receives_node_via_constructor(make_node_with_setting):
     """The settings bag holds a plain _node attribute set through __init__,
-    not via object.__setattr__ monkeypatching."""
+    not via object.__setattr__ monkeypatching.
+    """
     node = make_node_with_setting(accessor="filter", field="threshold")
     assert node.filter._node is node
 

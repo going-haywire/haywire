@@ -1,6 +1,5 @@
 # tests/core/test_settings/test_optional_setting.py
-"""
-``setting[OPTIONAL[T]]`` — a field that can hold absence.
+"""``setting[OPTIONAL[T]]`` — a field that can hold absence.
 
 Absence is a VALUE the user chooses ("do not pass this parameter to the wrapped
 library at all"), not an opinion about whether a tier has a view. The two axes

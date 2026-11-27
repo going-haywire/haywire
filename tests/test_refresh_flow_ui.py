@@ -386,7 +386,8 @@ async def test_no_collision_leaves_the_list_empty(tmp_path: Path) -> None:
 
 class _ConflictingState(_CollidingState):
     """Both stalls offer haybale-foo, but the resolver calls them different
-    libraries — the marketplace's identity policy said so."""
+    libraries — the marketplace's identity policy said so.
+    """
 
     def __init__(self, root: Path) -> None:
         super().__init__(root)
@@ -494,7 +495,8 @@ async def test_blocking_a_claimant_resolves_the_conflict_in_place(tmp_path: Path
 @pytest.mark.anyio
 async def test_an_unsettled_conflict_cannot_be_skipped(tmp_path: Path) -> None:
     """Even with nothing installed: leaving it unsettled is what lets a
-    survivor win by attrition on some later refresh."""
+    survivor win by attrition on some later refresh.
+    """
     flow = _conflicting_flow(tmp_path)
     mock = _conflict_reachable()
     try:
@@ -599,7 +601,8 @@ async def test_continue_needs_exactly_one_unblocked_claimant(tmp_path: Path) -> 
 @pytest.mark.anyio
 async def test_an_installed_claimant_cannot_be_blocked(tmp_path: Path) -> None:
     """Blocking the copy you are running would offer another author's code
-    under the same name on the next install."""
+    under the same name on the next install.
+    """
     from haywire.core.library.haybale import Haybale
 
     flow = _conflicting_flow(tmp_path)

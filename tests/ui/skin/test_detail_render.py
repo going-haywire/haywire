@@ -68,7 +68,8 @@ def _render(skin_factory: SkinFactory, wrapper, skin_key: str) -> int:
 
 def _render_container(skin_factory: SkinFactory, wrapper, skin_key: str) -> ui.element:
     """Render one card into a throwaway container; return the container itself
-    so a caller can inspect classes, not just count elements."""
+    so a caller can inspect classes, not just count elements.
+    """
     container = ui.element("div")
     with container:
         skin_factory.render(skin_registry_key=skin_key, wrapper=wrapper)
@@ -109,7 +110,8 @@ class TestElementCountIsStableAcrossRanks:
     """2026-09: NodeDetail stopped being a construction gate. Every rank now
     builds the SAME elements — an unfolded card's element count must not move
     with the rank at all, because nothing is omitted from construction any
-    more (ADR 0032's "Superseded" section)."""
+    more (ADR 0032's "Superseded" section).
+    """
 
     def test_every_unfolded_rank_builds_the_same_element_count(self, render_ctx):
         full = _count_at(render_ctx, NodeDetail.FULL)
@@ -127,7 +129,8 @@ class TestElementCountIsStableAcrossRanks:
 
     def test_folding_is_still_the_cheapest(self, render_ctx):
         """Collapse is UNCHANGED — still a real construction gate, so a folded
-        card still builds fewer elements than any unfolded rank."""
+        card still builds fewer elements than any unfolded rank.
+        """
         full = _count_at(render_ctx, NodeDetail.FULL)
         folded = _count_at(render_ctx, NodeDetail.FULL, collapsed=True)
 
@@ -138,7 +141,8 @@ class TestElementCountIsStableAcrossRanks:
 
     def test_folding_ignores_the_detail_rank(self, render_ctx):
         """`collapsed` short-circuits every predicate, so the rank underneath
-        it cannot leak back into the card."""
+        it cannot leak back into the card.
+        """
         assert _count_at(render_ctx, NodeDetail.FULL, collapsed=True) == _count_at(
             render_ctx, NodeDetail.PINS, collapsed=True
         )
@@ -164,7 +168,8 @@ class TestDetailClassesGateVisibility:
 
     def test_folded_card_builds_no_detail_classed_elements(self, render_ctx):
         """Folding is still a construction gate — nothing to tag because
-        nothing is built."""
+        nothing is built.
+        """
         container = _render_at(render_ctx, NodeDetail.FULL, collapsed=True)
         assert not _elements_with_class(container, "hw-detail-widget")
         assert not _elements_with_class(container, "hw-detail-label")
@@ -217,7 +222,8 @@ class TestCardStaysWellFormed:
         """`node-card` and `zoom-pan-lod0` are contracts canvas.vue keys off —
         omitting either fails silently at drag or hover time. The folded branch
         writes its own class list, so it needs its own check.
-        See docs/components/skins/skin-canon.md."""
+        See docs/components/skins/skin-canon.md.
+        """
         skin_factory, _g, wrapper, skin_key = render_ctx
         wrapper.node.props.detail = NodeDetail.FULL.value
         wrapper.node.props.collapsed = collapsed
@@ -269,7 +275,8 @@ class TestCommentBadge:
 
     def test_the_badge_survives_folding(self, render_ctx):
         """The point of drawing it at the COLLAPSED tier: a folded node is a box
-        with a title, and the comment is often the only thing saying why."""
+        with a title, and the comment is often the only thing saying why.
+        """
         assert self._render_with_comment(render_ctx, "load bearing", collapsed=True) == 1
 
     @pytest.mark.parametrize("detail", list(NodeDetail))
@@ -282,7 +289,8 @@ class TestCommentBadge:
 @pytest.mark.unit
 class TestRetiredFlags:
     """The five ADR-0032 deletions stay deleted. Each was declared-but-unread,
-    which is how they survived so long — nothing failed when they did nothing."""
+    which is how they survived so long — nothing failed when they did nothing.
+    """
 
     @pytest.mark.parametrize("gone", ["condensed", "show_comment"])
     def test_node_props_no_longer_declares(self, gone):

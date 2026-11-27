@@ -130,7 +130,8 @@ async def test_rebuild_row_hosts_the_three_commands_and_stays_live(user: User) -
 @pytest.mark.anyio
 async def test_rebuild_row_greys_without_a_selection(user: User) -> None:
     """poll() is False, so the host calls draw_disabled(): a row that does not
-    expand — the same fixed-shape convention every command in this menu keeps."""
+    expand — the same fixed-shape convention every command in this menu keeps.
+    """
     captured: dict[str, object] = {}
 
     @ui.page("/")

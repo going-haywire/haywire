@@ -1,5 +1,6 @@
 """E2E: LibraryOverview is opens='on_context'; no auto-populate; first click opens
-a singleton tab; second click with different library switches the same tab."""
+a singleton tab; second click with different library switches the same tab.
+"""
 
 from __future__ import annotations
 

@@ -1,5 +1,4 @@
-"""
-Mirror propagation tests: verify that changing a global LibrarySetting via
+"""Mirror propagation tests: verify that changing a global LibrarySetting via
 /api/set propagates to the mirrored NodeSettings field on re-render.
 """
 

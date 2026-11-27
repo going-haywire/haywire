@@ -95,8 +95,7 @@ class EdgeWrapperState:
 
 
 class EdgeWrapper:
-    """
-    Manages the complete lifecycle of an Edge instance.
+    """Manages the complete lifecycle of an Edge instance.
 
     Responsibilities:
     - Edge instance management and lifecycle
@@ -120,8 +119,7 @@ class EdgeWrapper:
         propagation: Propagation = Propagation.EAGER,
         style: Mapping[str, Any] | None = None,
     ):
-        """
-        Initialize EdgeWrapper (similar to NodeWrapper.__init__).
+        """Initialize EdgeWrapper (similar to NodeWrapper.__init__).
 
         Args:
             source_node_id: Source node ID
@@ -363,24 +361,21 @@ class EdgeWrapper:
     # =========================================================================
 
     def redraw(self) -> None:
-        """
-        Request a visual redraw of this edge in the UI.
+        """Request a visual redraw of this edge in the UI.
         Mirrors NodeWrapper.redraw().
         """
         if self._graph:
             self._graph._validation.mark_edge_dirty(self._edge_id, ChangeReason.EDGE_REDRAW_REQUESTED)
 
     def request_revalidation(self) -> None:
-        """
-        Request revalidation of this edge (rebuild + re-link).
+        """Request revalidation of this edge (rebuild + re-link).
         Mirrors NodeWrapper.mark_as_structuraly_dirty().
         """
         if self._graph:
             self._graph._validation.mark_edge_dirty(self._edge_id, ChangeReason.EDGE_VALIDATION_REQUESTED)
 
     def _request_endpoint_redraw(self) -> None:
-        """
-        Request a visual redraw of both endpoint nodes.
+        """Request a visual redraw of both endpoint nodes.
 
         Linking/unlinking changes a port's link state, which port-level rendering
         depends on (widget visibility via ShowWidgetStrategy). The
@@ -400,8 +395,7 @@ class EdgeWrapper:
     # =========================================================================
 
     def link(self) -> None:
-        """
-        Attempt to link this edge at both ports.
+        """Attempt to link this edge at both ports.
 
         Precondition: edge must be functional (is_functional() == True).
         If not functional, this is a no-op.
@@ -443,8 +437,7 @@ class EdgeWrapper:
         self._request_endpoint_redraw()
 
     def unlink(self) -> None:
-        """
-        Remove this edge from the linked set of both ports.
+        """Remove this edge from the linked set of both ports.
         The edge remains tracked in the port's ``all`` set for potential re-enablement.
 
         Used when the edge loses functionality (e.g. hot reload broke
@@ -473,8 +466,7 @@ class EdgeWrapper:
         self._request_endpoint_redraw()
 
     def detach(self) -> None:
-        """
-        Fully remove this edge from both ports (both tiers).
+        """Fully remove this edge from both ports (both tiers).
         Used when the edge is explicitly deleted or its port is destroyed.
 
         After detaching, attempts re-enablement on both ports.
@@ -504,8 +496,7 @@ class EdgeWrapper:
     # =========================================================================
 
     def _on_displaced_from_inlet(self) -> None:
-        """
-        Called when this edge was displaced from its INLET port by a newer edge.
+        """Called when this edge was displaced from its INLET port by a newer edge.
 
         Asymmetric rule: DOES inform the source outlet, because the outlet
         needs to remove this edge from its pipes.
@@ -531,8 +522,7 @@ class EdgeWrapper:
         self.redraw()
 
     def _on_displaced_from_outlet(self) -> None:
-        """
-        Called when this edge was displaced from its OUTLET port by a newer edge.
+        """Called when this edge was displaced from its OUTLET port by a newer edge.
 
         Asymmetric rule: does NOT inform the sink inlet. The inlet may
         have stale link state, but the edge will be drawn as invalid,
@@ -558,8 +548,7 @@ class EdgeWrapper:
     # =========================================================================
 
     def _update_link_state(self) -> None:
-        """
-        Update own link state flags based on whether each port considers
+        """Update own link state flags based on whether each port considers
         this edge as linked.
         """
         if self._inlet_port:
@@ -597,8 +586,7 @@ class EdgeWrapper:
             )
 
     def _try_reenable_on_ports(self) -> None:
-        """
-        After this edge is unlinked or detached, check both ports for
+        """After this edge is unlinked or detached, check both ports for
         re-enablement candidates.
         """
         if self._inlet_port:
@@ -618,9 +606,7 @@ class EdgeWrapper:
     # =========================================================================
 
     def build(self):
-        """
-        Build edge wrapper (including rebuild adapter chain).
-        """
+        """Build edge wrapper (including rebuild adapter chain)."""
         logger.debug(f"Start edge rebuilding: {self._edge_id} ... ")
 
         self._state.error_formal = None
@@ -679,8 +665,7 @@ class EdgeWrapper:
         self._state.has_test_passed = True
 
     def _check_chain_for_changes(self, chain: list[str]):
-        """
-        Check if adapter chain has changed compared to given chain.
+        """Check if adapter chain has changed compared to given chain.
         Issues a warning to the state if so.
 
         Args:
@@ -695,8 +680,7 @@ class EdgeWrapper:
             )
 
     def _build_adapter_chain(self) -> bool:
-        """
-        Build adapter chain for this edge.
+        """Build adapter chain for this edge.
 
         Precondition: ``_formal_validation`` has run successfully, which sets
         ``_inlet_port`` / ``_outlet_port`` and validates the graph reference.
@@ -789,8 +773,7 @@ class EdgeWrapper:
             return False
 
     def _formal_validation(self) -> bool:
-        """
-        Validate connection between ports.
+        """Validate connection between ports.
 
         This formally validates that the connection between
         the two ports is possible based on their existence and types.
@@ -802,7 +785,6 @@ class EdgeWrapper:
         Returns:
             True if validation successful, False otherwise
         """
-
         try:
             # Get node wrapper references
             self._source_wrapper = self._graph.get_node_wrapper(self.source_node_id)
@@ -891,14 +873,12 @@ class EdgeWrapper:
             return False
 
     def _test(self) -> bool:
-        """
-        test adapter chain with test value.
+        """test adapter chain with test value.
 
         Returns:
             True if test passes, False otherwise
 
         """
-
         try:
             # Execute adapter chain with performance tracking
 
@@ -939,8 +919,7 @@ class EdgeWrapper:
             return False
 
     def _on_adapter_lifecycle_event(self, batch: list[LifeCycleEvent]):
-        """
-        Handle adapter hot reload events.
+        """Handle adapter hot reload events.
 
         Called by AdapterFactory when adapters in our chain are reloaded.
         """
@@ -980,8 +959,7 @@ class EdgeWrapper:
             self._graph._validation.mark_edge_dirty(self._edge_id, ChangeReason.EDGE_ADAPTERS_RELOADED)
 
     def set_as_registered(self, is_registered: bool):
-        """
-        Set edge as registered or unregistered with graph.
+        """Set edge as registered or unregistered with graph.
 
         Args:
             is_registered: True to mark as registered, False otherwise
@@ -989,8 +967,7 @@ class EdgeWrapper:
         self._state.is_registered = is_registered
 
     def get_state(self) -> EdgeWrapperState:
-        """
-        Get metrics.
+        """Get metrics.
 
         Returns:
             shallow copy of internal EdgeWrapperState with execution statistics
@@ -1006,8 +983,7 @@ class EdgeWrapper:
         return data
 
     def restore_after_load(self) -> bool:
-        """
-        Restore edge state after graph load.
+        """Restore edge state after graph load.
 
         Called after both nodes have been loaded and the edge has been
         instantiated. Rebuilds the adapter chain based on current port

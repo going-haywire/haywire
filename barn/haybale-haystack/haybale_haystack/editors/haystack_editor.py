@@ -64,8 +64,7 @@ def _refused(context: SessionContext, required: AccessTier, action: str) -> bool
     requires=AccessTier.VIEW,
 )
 class HaystackEditor(BaseEditor):
-    """
-    Left-area editor that lists all graphs tracked by Haystack.
+    """Left-area editor that lists all graphs tracked by Haystack.
 
     One entry per open file or new unnamed graph.  Clicking an entry fires
     EDITOR_FOCUSED with reveal_editor=GraphEditor and reveal_payload=entry.binding_id.
@@ -98,7 +97,8 @@ class HaystackEditor(BaseEditor):
     )
     def _refresh_on_state_move(self, context: SessionContext, event) -> None:
         """Empty body — the decorator triggers ``wrapper.redraw()`` after
-        this returns, which re-runs ``draw`` and ``_render_list``."""
+        this returns, which re-runs ``draw`` and ``_render_list``.
+        """
 
     @react_on(HaystackTeardown)
     def _close_stale_tabs_on_teardown(self, context: SessionContext, event: HaystackTeardown) -> None:

@@ -1,5 +1,4 @@
-"""
-Declaration-order regression for render_settings (settings panel field ordering).
+"""Declaration-order regression for render_settings (settings panel field ordering).
 
 render_settings must lay out fields in class-body declaration order (base-first
 MRO walk, same order Settings._settings_descriptors() yields) — NOT sorted by
@@ -49,7 +48,8 @@ def _dom_sequence(anchor) -> list[tuple[str, str]]:
     that carries EITHER a data-category-group or a data-field prop, tagged
     ("group", category) or ("field", attr_name) respectively — in the exact
     order they appear. A category re-opened after being interrupted by
-    another shows up as a second, separate ("group", ...) entry."""
+    another shows up as a second, separate ("group", ...) entry.
+    """
     sequence: list[tuple[str, str]] = []
     for el in _walk(anchor):
         props = getattr(el, "_props", {})
@@ -137,7 +137,8 @@ class _BaseBag(Settings):
 
 class _SubBag(_BaseBag):
     """Subclass field must render AFTER the inherited base field (base-first
-    MRO walk, matching _settings_descriptors())."""
+    MRO walk, matching _settings_descriptors()).
+    """
 
     sub_field = setting[INT](2, label="Sub Field", category="shared")
 

@@ -110,7 +110,6 @@ class AudioMixerNode(BaseNode):
 
     def hb_resolve(self, port, edge_wrapper) -> None:
         """Turn the open input into an audio input with its pins and add a new open one below it."""
-
         from haybale_audio.types.audio import AUDIO
 
         if port.type_cls is None or not issubclass(port.type_cls, ADD):

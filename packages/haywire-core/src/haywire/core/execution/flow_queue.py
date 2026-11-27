@@ -1,5 +1,4 @@
-"""
-Flow Queue - the trigger queue of a single flow.
+"""Flow Queue - the trigger queue of a single flow.
 
 Each flow has its own queue that:
 - Queues incoming triggers under the flow's queue mode (block/drop)
@@ -45,8 +44,7 @@ class QueueMode(Enum):
 
 
 class FlowQueue:
-    """
-    The trigger queue and queue mode of one flow.
+    """The trigger queue and queue mode of one flow.
 
     Its frames run on its execution group's runner thread, one at a time, in
     trigger arrival order across all flows of the group. See ``ExecutionGroup``.
@@ -60,8 +58,7 @@ class FlowQueue:
         max_queue_size: int = 100,
         group: ExecutionGroup | None = None,
     ) -> None:
-        """
-        Initialize the queue.
+        """Initialize the queue.
 
         Args:
             flow: Flow to manage
@@ -107,8 +104,7 @@ class FlowQueue:
         logger.debug(f"Created queue for flow {flow.flow_id}")
 
     def enqueue_trigger(self, trigger: Trigger) -> bool:
-        """
-        Enqueue a trigger for execution.
+        """Enqueue a trigger for execution.
 
         ``DROP`` never waits: when the queue is full, the oldest pending trigger
         is discarded and ``trigger`` takes its place. ``BLOCK`` waits up to 5 s
@@ -237,8 +233,7 @@ class FlowQueue:
             self._is_executing.clear()
 
     def wait_for_completion(self, timeout: float | None = None) -> bool:
-        """
-        Wait for all queued triggers to complete.
+        """Wait for all queued triggers to complete.
 
         ``Queue.join()`` has no timeout, so when a producer keeps feeding the
         queue (e.g. a TickEmit thread emitting callbacks) a bare join never
@@ -320,8 +315,7 @@ class FlowQueue:
         return self._is_executing.is_set()
 
     def get_execution_stats(self) -> dict[str, Any]:
-        """
-        Get execution time statistics.
+        """Get execution time statistics.
 
         Returns:
             Dictionary containing execution statistics:

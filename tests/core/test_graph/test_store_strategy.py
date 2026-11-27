@@ -1,5 +1,4 @@
-"""
-Tests for StoreStrategy.should_store and the _is_set_by_node serialization gate.
+"""Tests for StoreStrategy.should_store and the _is_set_by_node serialization gate.
 
 Covers:
 - The pure truth table of StoreStrategy.should_store across every flag and state

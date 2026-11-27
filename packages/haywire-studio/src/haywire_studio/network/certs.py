@@ -52,7 +52,8 @@ class CertError(Exception):
 
 def default_dir() -> Path:
     """``~/.haywire/certs`` — global tier, beside the roster and the session
-    secret, because TLS is a property of the machine's network identity (D1)."""
+    secret, because TLS is a property of the machine's network identity (D1).
+    """
     return Path.home() / ".haywire" / CERT_DIRNAME
 
 
@@ -171,7 +172,8 @@ def load_cert(directory: Path | None = None) -> x509.Certificate:
 
 def cert_names(cert: x509.Certificate) -> LocalNames:
     """Read the SAN extension back out — the covered-names list for ``status``
-    and the starting point for ``update`` (D4: amend, never rebuild)."""
+    and the starting point for ``update`` (D4: amend, never rebuild).
+    """
     try:
         san = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName).value
     except x509.ExtensionNotFound:
@@ -205,7 +207,8 @@ def key_matches_cert(key: rsa.RSAPrivateKey, cert: x509.Certificate) -> bool:
 
 def fingerprint(cert: x509.Certificate) -> str:
     """SHA-256, colon-separated uppercase hex — the format every OS trust tool
-    displays, so a user can compare the two by eye."""
+    displays, so a user can compare the two by eye.
+    """
     raw = cert.fingerprint(hashes.SHA256())
     return ":".join(f"{byte:02X}" for byte in raw)
 

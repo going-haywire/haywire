@@ -321,7 +321,6 @@ def render_panel(
             ``draw_disabled()``. A panel inheriting that no-op is skipped and
             reports ``False``, so it never counts toward a menu opening.
     """
-
     # Callers are expected to filter through partition_panels() first, but
     # this is public API and a new host can reach it directly. Refusing here
     # makes the access rule a fact rather than a docstring request.

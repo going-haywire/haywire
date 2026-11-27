@@ -21,15 +21,13 @@ class BindingMode(Enum):
 
 
 class BindingConverter[T](ABC):
-    """
-    Base class for converting between model and view representations.
+    """Base class for converting between model and view representations.
     Converters can be stateful and specific to a binding instance.
     """
 
     @abstractmethod
     def to_view(self, model_value: Any) -> Any:
-        """
-        Convert model value to view representation.
+        """Convert model value to view representation.
 
         Args:
             model_value: Value from DataField
@@ -40,8 +38,7 @@ class BindingConverter[T](ABC):
         pass
 
     def to_model(self, view_value: Any) -> Any:
-        """
-        Convert view value back to model representation.
+        """Convert view value back to model representation.
 
         Args:
             view_value: Value from UI element
@@ -55,8 +52,7 @@ class BindingConverter[T](ABC):
         raise NotImplementedError(f"{self.__class__.__name__} is read-only")
 
     def validate(self, view_value: Any) -> tuple[bool, str | None]:
-        """
-        Validate view value before converting to model.
+        """Validate view value before converting to model.
 
         Returns:
             Tuple of (is_valid, error_message)
@@ -65,8 +61,7 @@ class BindingConverter[T](ABC):
 
 
 class PrimitiveUnwrappingConverter(BindingConverter):
-    """
-    Unwraps PrimitiveType instances to their underlying value.
+    """Unwraps PrimitiveType instances to their underlying value.
     Handles both single values and pooled fields.
     """
 
@@ -91,8 +86,7 @@ class PrimitiveUnwrappingConverter(BindingConverter):
         return value.value if hasattr(value, "value") else value
 
     def to_model(self, view_value: Any) -> Any:
-        """
-        For primitive updates, we use DataPort.set_value() which handles
+        """For primitive updates, we use DataPort.set_value() which handles
         the .value attribute update, so no wrapping needed here.
         """
         return view_value
@@ -115,8 +109,7 @@ class DisplayTextConverter(PrimitiveUnwrappingConverter):
 
 
 class CompositeConverter(BindingConverter):
-    """
-    Chains multiple converters in sequence.
+    """Chains multiple converters in sequence.
     Useful for complex transformations: unwrap → convert → format
     """
 
@@ -149,16 +142,13 @@ class CompositeConverter(BindingConverter):
 
 
 class RangeValidatingConverter(BindingConverter):
-    """
-    Validates and clamps numeric values to a range.
-    """
+    """Validates and clamps numeric values to a range."""
 
     def __init__(self, min_value: float | None = None, max_value: float | None = None, clamp: bool = True):
-        """
-        Args:
-            min_value: Minimum allowed value
-            max_value: Maximum allowed value
-            clamp: If True, clamp to range; if False, reject out-of-range values
+        """Args:
+        min_value: Minimum allowed value
+        max_value: Maximum allowed value
+        clamp: If True, clamp to range; if False, reject out-of-range values
         """
         self.min_value = min_value
         self.max_value = max_value

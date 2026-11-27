@@ -25,7 +25,8 @@ def _isolate_di_settings_registry():
     configured (get_settings_registry(), no constructor override — matches
     NodeData.__init__). Snapshot/restore the module-global slot around each
     test so a set_settings_registry() call here doesn't leak into other
-    test files in the same process."""
+    test files in the same process.
+    """
     from haywire.core.di import context as di_context
 
     saved = di_context._settings_registry
@@ -123,7 +124,8 @@ def test_cleanup_detaches_registry_subscription():
 def _make_registry():
     """Build an isolated registry AND make it the ambient DI registry, since
     BaseGraph.__init__ requires get_settings_registry() to resolve (no
-    constructor override — see _isolate_di_settings_registry above)."""
+    constructor override — see _isolate_di_settings_registry above).
+    """
     from haywire.core.di.context import set_settings_registry
 
     registry = create_test_settings_registry()
@@ -134,7 +136,8 @@ def _make_registry():
 
 def test_base_graph_wires_props_bag_from_di():
     """BaseGraph requires the DI context's registry (same precondition as
-    NodeData) and wires graph.props to it — no constructor override."""
+    NodeData) and wires graph.props to it — no constructor override.
+    """
     from haywire.core.graph.base import BaseGraph
 
     _make_registry()
@@ -181,7 +184,8 @@ def test_graph_cleanup_releases_bag():
 def test_graph_bag_never_carries_a_node():
     """The setting-row menu's promote guard keys on obj._node is None
     (_build_row_menu in render_utils). This invariant is what keeps promote
-    entries structurally absent for every GraphSettings bag."""
+    entries structurally absent for every GraphSettings bag.
+    """
     registry, bag = _make_bag()
     assert bag._node is None
     from haywire.core.graph.base import BaseGraph

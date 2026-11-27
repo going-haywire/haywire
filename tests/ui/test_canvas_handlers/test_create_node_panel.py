@@ -1,5 +1,4 @@
-"""
-Tests for the haybale-testing TestCreateNodePanel.
+"""Tests for the haybale-testing TestCreateNodePanel.
 
 Verifies:
 - Panel is registered on the TestCanvasMenu surface

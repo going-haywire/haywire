@@ -1,5 +1,6 @@
 """Tier-2 component doc drill on MarketplaceGetLibraryDocsTool: installed (wheel) vs
-available (docs_url, via the shared fetch_doc cache)."""
+available (docs_url, via the shared fetch_doc cache).
+"""
 
 from __future__ import annotations
 

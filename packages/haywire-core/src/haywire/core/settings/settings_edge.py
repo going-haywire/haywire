@@ -1,6 +1,5 @@
 # haywire/core/settings/settings_edge.py
-"""
-EdgeSettings — base class for an edge's style bag.
+"""EdgeSettings — base class for an edge's style bag.
 
 The Settings flavour parallel to GraphSettings and NodeSettings:
 

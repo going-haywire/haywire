@@ -11,8 +11,7 @@ from haywire.api import EXEC, FLOAT, BaseNode, ExecutionContext, NodeType, Syste
     node_type=NodeType.EVENT,
 )
 class BeginPlayEventNode(BaseNode):
-    """
-    Triggered once when execution starts.
+    """Triggered once when execution starts.
 
     Outputs:
         exec: Control flow

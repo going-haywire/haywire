@@ -1,6 +1,5 @@
 # tests/core/node/test_promotion_serialization.py
-"""
-Settings-owned promotion serialization:
+"""Settings-owned promotion serialization:
 
 - a promoted port is ABSENT from the serialized ports block
 - promotion is recorded in the owning bag's "promoted" section instead

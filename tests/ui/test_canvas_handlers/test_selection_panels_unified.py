@@ -1,5 +1,6 @@
 """Tests for the unified SelectionMenu command panels (count-aware labels,
-batch redraw/revalidate/reset, poll contracts)."""
+batch redraw/revalidate/reset, poll contracts).
+"""
 
 from __future__ import annotations
 
@@ -41,7 +42,8 @@ def test_batch_panel_registration(panel_cls):
 
 def test_rebuild_panel_hosts_the_batch_submenu():
     """The row sits on the Develop submenu and declares what it renders —
-    render_surface refuses any surface not listed in hosts=."""
+    render_surface refuses any surface not listed in hosts=.
+    """
     assert RebuildSelectionPanel.class_identity.surface is SelectionDevelopMenu
     assert RebuildSelectionPanel.class_identity.hosts == (SelectionRebuildMenu,)
     assert SelectionDevelopMenu.provides is SelectionActions

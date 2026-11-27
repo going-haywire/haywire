@@ -1,6 +1,5 @@
 # packages/haywire-core/src/haywire/ui/panel/decorator.py
-"""
-@panel decorator for marking classes as Haywire panel types.
+"""@panel decorator for marking classes as Haywire panel types.
 
 Sets class_identity on the class. Does NOT register the class —
 registration happens when the library calls add_folder() in

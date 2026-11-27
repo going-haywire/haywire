@@ -1,5 +1,4 @@
-"""
-Flow - Executable representation of a graph's control and data flows.
+"""Flow - Executable representation of a graph's control and data flows.
 
 A Flow is the assembled, executable form of a graph. It contains:
 - Entry event node
@@ -26,8 +25,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ControlNodeInfo:
-    """
-    Navigation information for a control node in the flow.
+    """Navigation information for a control node in the flow.
 
     Contains:
     - Node reference (BaseNode)
@@ -47,8 +45,7 @@ class ControlNodeInfo:
 
 @dataclass
 class LocalizedDataFlow:
-    """
-    Data flow execution sequence for a specific control node.
+    """Data flow execution sequence for a specific control node.
 
     Contains the ordered list of data nodes that must be evaluated
     before the control node can execute.
@@ -65,8 +62,7 @@ class LocalizedDataFlow:
 
 @dataclass
 class ControlFlowGraph:
-    """
-    Control flow navigation graph.
+    """Control flow navigation graph.
 
     This is NOT an execution sequence - it's a navigation structure
     that the VM uses to determine which node to execute next based
@@ -96,8 +92,7 @@ def overrides(node: BaseNode, method_name: str) -> bool:
 
 
 class Flow:
-    """
-    Assembled, executable flow.
+    """Assembled, executable flow.
 
     A Flow represents one complete execution path through a graph,
     starting from an event node and containing all control and data
@@ -111,8 +106,7 @@ class Flow:
         event_subscription: EventSource,
         graph_ref: BaseGraph,
     ):
-        """
-        Initialize a flow.
+        """Initialize a flow.
 
         Args:
             flow_id: Unique identifier for this flow
@@ -164,8 +158,7 @@ class Flow:
         return self.event_subscription.get_subscription_key()
 
     def get_all_nodes(self) -> list[BaseNode]:
-        """
-        Get all nodes (control + data) in this flow.
+        """Get all nodes (control + data) in this flow.
 
         Returns:
             List of all BaseNode instances, including:
@@ -213,8 +206,7 @@ class Flow:
         return nodes
 
     def get_nodes_with_on_frame_start(self) -> list[BaseNode]:
-        """
-        Get nodes that have overridden on_frame_start from BaseNode.
+        """Get nodes that have overridden on_frame_start from BaseNode.
 
         Filters nodes to only those that implement custom per-frame start
         logic, avoiding unnecessary method calls on nodes using default
@@ -235,8 +227,7 @@ class Flow:
         return filtered
 
     def get_nodes_with_on_frame_end(self) -> list[BaseNode]:
-        """
-        Get nodes that have overridden on_frame_end from BaseNode.
+        """Get nodes that have overridden on_frame_end from BaseNode.
 
         Filters nodes to only those that implement custom per-frame end
         logic, avoiding unnecessary method calls on nodes using default

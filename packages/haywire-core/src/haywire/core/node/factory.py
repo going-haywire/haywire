@@ -49,7 +49,8 @@ class NodeFactory:
 
     def get_alternate_node_registry_keys(self, registry_key: str) -> list[str]:
         """The registry keys of same-named nodes from other libraries. See
-        ``NodeRegistry.get_alternate_node_registry_keys``."""
+        ``NodeRegistry.get_alternate_node_registry_keys``.
+        """
         alternates = self.node_registry.get_alternate_node_registry_keys(registry_key)
         return alternates
 
@@ -151,7 +152,8 @@ class NodeFactory:
 
     def _listen_on_lifecycle_event(self, batch: list[LifeCycleEvent]) -> None:
         """Relay a batch of registry lifecycle events to the batch listeners, then each
-        event to the subscribers of its registry key."""
+        event to the subscribers of its registry key.
+        """
         for listener in self._lifecycle_batch_subscribers[:]:
             listener(batch)
 
@@ -230,22 +232,26 @@ class NodeFactory:
 
     def get_reroute_node(self) -> type[BaseNode] | None:
         """Return the reroute provider class (node registered with _is_reroute),
-        or None if no loaded library provides one."""
+        or None if no loaded library provides one.
+        """
         return self.node_registry._get_reroute_node()
 
     def get_subgraph_input_node(self) -> type[BaseNode] | None:
         """Return the Subgraph Input boundary class (node registered with
-        _is_subgraph_input), or None if no loaded library provides one."""
+        _is_subgraph_input), or None if no loaded library provides one.
+        """
         return self.node_registry._get_subgraph_input_node()
 
     def get_subgraph_output_node(self) -> type[BaseNode] | None:
         """Return the Subgraph Output boundary class (node registered with
-        _is_subgraph_output), or None if no loaded library provides one."""
+        _is_subgraph_output), or None if no loaded library provides one.
+        """
         return self.node_registry._get_subgraph_output_node()
 
     def get_graph_node(self) -> type[BaseNode] | None:
         """Return the Graph-node class (node registered with _is_graph_node),
-        or None if no loaded library provides one."""
+        or None if no loaded library provides one.
+        """
         return self.node_registry._get_graph_node()
 
     def get_menu_structure(self) -> dict[str, list[NodeInfo]]:
@@ -272,7 +278,8 @@ class NodeFactory:
 
     def search_nodes(self, query: str) -> list[NodeInfo]:
         """Return the visible nodes whose label, description or search tags contain
-        *query*, matched case-insensitively."""
+        *query*, matched case-insensitively.
+        """
         results: list[NodeInfo] = []
 
         for key in self._visible_keys():
@@ -305,5 +312,4 @@ class NodeFactory:
 
     def get_node_info(self, registry_key: str) -> NodeInfo | None:
         """The node's ``NodeInfo``, or ``None`` if the key is not registered."""
-
         return self._build_node_info(registry_key)

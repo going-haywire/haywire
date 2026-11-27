@@ -1,6 +1,5 @@
 # packages/haywire-core/src/haywire/ui/workspace/manager.py
-"""
-WorkspaceManager — dumb JSON persistence for the workspace snapshot.
+"""WorkspaceManager — dumb JSON persistence for the workspace snapshot.
 
 Holds a raw ``snapshot`` dict. Knows nothing about slots, editors, or
 OpenBehavior. Slots are responsible for interpreting and producing snapshots.
@@ -20,8 +19,7 @@ _STATE_FILENAME = "workspace_state.json"
 
 
 class WorkspaceManager:
-    """
-    Loads and saves the workspace snapshot dict to/from disk.
+    """Loads and saves the workspace snapshot dict to/from disk.
 
     The snapshot is a plain dict with one key per slot name plus a
     ``"haystack"`` key. The structure of each slot sub-dict is defined and

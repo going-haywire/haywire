@@ -1,5 +1,4 @@
-"""
-Core interfaces for the Haywire undo system.
+"""Core interfaces for the Haywire undo system.
 
 This module defines the fundamental interfaces that all undo system components
 must implement, following the three-layer separation of concerns architecture.
@@ -16,8 +15,7 @@ if TYPE_CHECKING:
 
 
 class IAction(ABC):
-    """
-    Interface for all undoable actions.
+    """Interface for all undoable actions.
 
     Actions encapsulate both forward (redo) and reverse (undo) transformations
     for specific operations on the graph structure.
@@ -25,23 +23,20 @@ class IAction(ABC):
 
     @abstractmethod
     def execute(self) -> None:
-        """
-        Execute the action (forward operation).
+        """Execute the action (forward operation).
         This method implements the actual change to the system state.
         """
         pass
 
     @abstractmethod
     def undo(self) -> None:
-        """
-        Undo the action (reverse operation).
+        """Undo the action (reverse operation).
         This method reverses the change made by execute().
         """
         pass
 
     def can_merge(self, other: IAction) -> bool:
-        """
-        Check if this action can be merged with another action.
+        """Check if this action can be merged with another action.
 
         Args:
             other: Another action to potentially merge with
@@ -52,8 +47,7 @@ class IAction(ABC):
         return False
 
     def merge(self, other: IAction) -> IAction | None:
-        """
-        Merge this action with another action.
+        """Merge this action with another action.
 
         Args:
             other: Another action to merge with
@@ -64,8 +58,7 @@ class IAction(ABC):
         return None
 
     def cleanup(self) -> None:
-        """
-        Clean up resources held by this action.
+        """Clean up resources held by this action.
 
         This method is called when the action is being permanently removed
         from the history stack (e.g., due to history limits or clearing).
@@ -80,8 +73,7 @@ class IAction(ABC):
 
     @property
     def description(self) -> str:
-        """
-        Human-readable description of the action for UI display.
+        """Human-readable description of the action for UI display.
 
         Returns:
             A string describing what this action does
@@ -90,8 +82,7 @@ class IAction(ABC):
 
 
 class IHistoryManager(ABC):
-    """
-    Interface for managing the undo/redo history.
+    """Interface for managing the undo/redo history.
 
     The history manager maintains the chronological sequence of actions
     and provides navigation mechanisms for undo/redo operations.
@@ -99,8 +90,7 @@ class IHistoryManager(ABC):
 
     @abstractmethod
     def add_action(self, action: IAction, *, origin: StepOrigin | None = None) -> bool:
-        """
-        Execute ``action`` and add it to the history.
+        """Execute ``action`` and add it to the history.
 
         Args:
             action: The action to add to the history
@@ -122,8 +112,7 @@ class IHistoryManager(ABC):
         *,
         origin: StepOrigin | None = None,
     ) -> bool:
-        """
-        Execute a value write and record it, amending the newest step while a merge run lasts.
+        """Execute a value write and record it, amending the newest step while a merge run lasts.
 
         A write that changed nothing records nothing. ``merge_owner`` is the session token a
         merge run belongs to; ``None`` never amends and is never amended.
@@ -141,8 +130,7 @@ class IHistoryManager(ABC):
 
     @abstractmethod
     def record_executed(self, action: IAction, *, origin: StepOrigin | None = None) -> None:
-        """
-        Add an action that has already been applied to the history, without running it.
+        """Add an action that has already been applied to the history, without running it.
 
         For a change made outside an action, whose undo the action carries. It
         ends the redo branch like any new step and never amends a running value
@@ -157,8 +145,7 @@ class IHistoryManager(ABC):
 
     @abstractmethod
     def add_fence(self) -> None:
-        """
-        Add a fence to group related actions together.
+        """Add a fence to group related actions together.
 
         Fences create logical boundaries that undo/redo operations
         respect when traversing the action history.
@@ -167,8 +154,7 @@ class IHistoryManager(ABC):
 
     @abstractmethod
     def undo(self, *, origin: StepOrigin | None = None) -> bool:
-        """
-        Undo the most recent action or action group.
+        """Undo the most recent action or action group.
 
         A successful undo becomes ``last_move()``, credited to ``origin``.
 
@@ -179,8 +165,7 @@ class IHistoryManager(ABC):
 
     @abstractmethod
     def redo(self, *, origin: StepOrigin | None = None) -> bool:
-        """
-        Redo the most recently undone action or action group.
+        """Redo the most recently undone action or action group.
 
         A successful redo becomes ``last_move()``, credited to ``origin``.
 
@@ -196,8 +181,7 @@ class IHistoryManager(ABC):
 
     @abstractmethod
     def can_undo(self) -> bool:
-        """
-        Check if undo operation is possible.
+        """Check if undo operation is possible.
 
         Returns:
             True if there are actions that can be undone
@@ -206,8 +190,7 @@ class IHistoryManager(ABC):
 
     @abstractmethod
     def can_redo(self) -> bool:
-        """
-        Check if redo operation is possible.
+        """Check if redo operation is possible.
 
         Returns:
             True if there are actions that can be redone
@@ -216,16 +199,14 @@ class IHistoryManager(ABC):
 
     @abstractmethod
     def clear(self) -> None:
-        """
-        Clear all history.
+        """Clear all history.
         This removes all actions and resets the history state.
         """
         pass
 
     @abstractmethod
     def get_undo_description(self) -> str | None:
-        """
-        Get description of the next action that would be undone.
+        """Get description of the next action that would be undone.
 
         Returns:
             Description string or None if nothing to undo
@@ -234,8 +215,7 @@ class IHistoryManager(ABC):
 
     @abstractmethod
     def get_redo_description(self) -> str | None:
-        """
-        Get description of the next action that would be redone.
+        """Get description of the next action that would be redone.
 
         Returns:
             Description string or None if nothing to redo
@@ -244,8 +224,7 @@ class IHistoryManager(ABC):
 
     @abstractmethod
     def snapshot(self) -> list[HistoryEntry]:
-        """
-        Return the history as read-only rows, oldest first.
+        """Return the history as read-only rows, oldest first.
 
         Rows cover the whole history, redo branch and fences included, followed by the
         steps still pending in the grouping window. Building a snapshot changes nothing:
@@ -260,8 +239,7 @@ class IHistoryManager(ABC):
 
     @abstractmethod
     def add_listener(self, listener: Callable[[], None]) -> None:
-        """
-        Call ``listener`` with no arguments whenever ``snapshot()`` would list different rows.
+        """Call ``listener`` with no arguments whenever ``snapshot()`` would list different rows.
 
         That is: a step recorded, a group flushed, a fence, an undo, a redo, a trim or a clear.
         A step merged into the pending one, or a value write that amends an open step, lists no

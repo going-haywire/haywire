@@ -1,6 +1,5 @@
 # haywire/core/settings/value.py
-"""
-SettingValue — a tier's stored opinion: either set (carries a value) or unset.
+"""SettingValue — a tier's stored opinion: either set (carries a value) or unset.
 
 A tier value is simply set-or-unset; resolution is highest-priority-set-wins.
 """

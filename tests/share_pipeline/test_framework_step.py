@@ -72,7 +72,8 @@ def test_keeping_the_declared_floor_is_the_recommended_option(tmp_path, monkeypa
 
 def test_raise_option_counts_the_consumers_it_locks_out(tmp_path, monkeypatch):
     """Consequence-annotated, following the deps-drift precedent: the option
-    that excludes consumers must say so concretely."""
+    that excludes consumers must say so concretely.
+    """
     monkeypatch.setattr(
         "haywire.core.publishing.pipeline.steps.framework._installed_core_version",
         lambda: "0.0.34",
@@ -86,7 +87,8 @@ def test_raise_option_counts_the_consumers_it_locks_out(tmp_path, monkeypatch):
 
 def test_no_ceiling_in_any_default_option(tmp_path, monkeypatch):
     """A <0.1.0 stamped today becomes a lie the moment 0.1.0 ships. Authors who
-    want a ceiling type one; ~= is offered but never recommended."""
+    want a ceiling type one; ~= is offered but never recommended.
+    """
     monkeypatch.setattr(
         "haywire.core.publishing.pipeline.steps.framework._installed_core_version",
         lambda: "0.0.34",
@@ -138,7 +140,8 @@ def test_apply_rejects_an_invalid_specifier(tmp_path):
 
 def test_apply_rejects_a_bare_version(tmp_path):
     """requires_haywire is a specifier, never a bare version — "0.0.34" alone
-    is not a valid SpecifierSet."""
+    is not a valid SpecifierSet.
+    """
     from haywire.core.publishing.pipeline import InvalidSpecifierError
 
     with pytest.raises(InvalidSpecifierError):
@@ -147,7 +150,8 @@ def test_apply_rejects_a_bare_version(tmp_path):
 
 def test_reordered_equivalent_specifiers_are_not_drift(tmp_path):
     """packaging reorders on str(): ">=0.0.31,<1.0.0" round-trips as
-    "<1.0.0,>=0.0.31". Comparing raw strings would report false drift."""
+    "<1.0.0,>=0.0.31". Comparing raw strings would report false drift.
+    """
     from haywire.core.publishing.pipeline.steps.framework import specifiers_equal
 
     assert specifiers_equal(">=0.0.31,<1.0.0", "<1.0.0,>=0.0.31")
@@ -234,7 +238,8 @@ def test_cli_without_the_flag_keeps_the_declared_floor(tmp_path, monkeypatch):
 
 def test_cli_with_the_flag_raises_the_floor(tmp_path, monkeypatch):
     """Raising a floor — the consumer-excluding direction — always requires the
-    explicit flag."""
+    explicit flag.
+    """
     from haywire_studio.packaging import share_cli
 
     applied: list[str] = []

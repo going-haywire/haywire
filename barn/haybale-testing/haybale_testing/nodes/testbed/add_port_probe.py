@@ -54,7 +54,6 @@ class AddPortProbeNode(BaseNode):
 
     def hb_resolve(self, port, edge_wrapper):
         """Retype *port* and append a new slot of the same kind."""
-
         from haybale_testing.types.test_types import TEST_STRING
 
         if port.type_cls is None or not issubclass(port.type_cls, ADD):

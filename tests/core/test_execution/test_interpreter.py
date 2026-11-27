@@ -1,5 +1,4 @@
-"""
-Integration tests for Interpreter with full library system.
+"""Integration tests for Interpreter with full library system.
 
 These tests require libraries to be loaded and are slower.
 """
@@ -22,8 +21,7 @@ class TestInterpreter:
     """Test Interpreter with real nodes from libraries."""
 
     def _create_simple_graph(self, graph: BaseGraph) -> BaseGraph:
-        """
-        Create a simple graph: BeginPlay → PrintMessage
+        """Create a simple graph: BeginPlay → PrintMessage
 
         Args:
             graph: The graph to populate
@@ -45,8 +43,7 @@ class TestInterpreter:
         return graph
 
     def _create_graph_with_math(self, graph: BaseGraph) -> BaseGraph:
-        """
-        Create graph: BeginPlay → PrintMessage with MathOP data flow
+        """Create graph: BeginPlay → PrintMessage with MathOP data flow
 
         Args:
             graph: The graph to populate
@@ -227,7 +224,6 @@ class TestInterpreter:
         self, graph_with_library_system: BaseGraph, library_system: LibrarySystemService
     ):
         """Test reloading a different graph into the interpreter"""
-
         # Create first graph
         graph1 = self._create_simple_graph(graph_with_library_system)
 
@@ -282,7 +278,6 @@ class TestInterpreter:
         self, graph_with_library_system: BaseGraph, library_system: LibrarySystemService
     ):
         """Test interpreter statistics reporting"""
-
         graph = self._create_graph_with_math(graph_with_library_system)
 
         interpreter = Interpreter()

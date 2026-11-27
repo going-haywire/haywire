@@ -1,5 +1,4 @@
-"""
-LazyFileBrowserEditor — eager-then-lazy project file tree.
+"""LazyFileBrowserEditor — eager-then-lazy project file tree.
 
 Hybrid strategy: walk three levels eagerly (so most navigation is instant),
 then plant a "Click to load children" sentinel under any folder that still

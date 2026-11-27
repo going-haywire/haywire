@@ -55,7 +55,8 @@ def test_node_decorator_collects_a_bag_declared_this_way():
 
 def test_bound_instance_is_what_the_attribute_resolves_to():
     """The fiction the helper tells is narrowly true: the ATTRIBUTE really is
-    an instance, because NodeData.__init__ replaces the class placeholder."""
+    an instance, because NodeData.__init__ replaces the class placeholder.
+    """
 
     class Holder:
         style = bag(Style)
@@ -70,7 +71,8 @@ def test_bound_instance_is_what_the_attribute_resolves_to():
 
 def test_subclass_redeclaration_check_still_applies():
     """@node permits redeclaring an inherited bag only as a subclass of it —
-    the `selection_bag()` pattern. bag() must not defeat that issubclass test."""
+    the `selection_bag()` pattern. bag() must not defeat that issubclass test.
+    """
 
     class Extended(Style):
         extra = setting[INT](9, label="Extra")

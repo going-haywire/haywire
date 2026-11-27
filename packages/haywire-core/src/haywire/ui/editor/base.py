@@ -18,8 +18,7 @@ if TYPE_CHECKING:
 
 
 class BaseEditor(ABC):
-    """
-    Abstract base class for all editor types.
+    """Abstract base class for all editor types.
 
     An editor is a self-contained UI module that renders into a slot of the
     workspace layout, one instance per session.
@@ -48,8 +47,7 @@ class BaseEditor(ABC):
         self.wrapper: EditorWrapper = wrapper
 
     def on_focus(self, context: SessionContext) -> None:
-        """
-        Called when this wrapper transitions from not-active to active in its slot
+        """Called when this wrapper transitions from not-active to active in its slot
         (not when re-selecting the already-active wrapper).
 
         Runs before draw() on the newly-activated wrapper, so context mutations here
@@ -88,8 +86,7 @@ class BaseEditor(ABC):
 
     @abstractmethod
     def draw(self, context: SessionContext, container: Element) -> None:
-        """
-        Build the editor UI into the given NiceGUI container element.
+        """Build the editor UI into the given NiceGUI container element.
 
         The orchestrator clears the container before calling this method.
 
@@ -133,8 +130,7 @@ class BaseEditor(ABC):
             ui.label(label)
 
     def cleanup(self) -> None:
-        """
-        Optional cleanup when the editor is permanently removed.
+        """Optional cleanup when the editor is permanently removed.
         Override to release resources, cancel timers, etc.
         """
         pass

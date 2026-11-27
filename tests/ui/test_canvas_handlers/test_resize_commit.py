@@ -22,7 +22,8 @@ def test_resize_commit_publishes_graph_data_mutated():
     """Size props are cosmetic — they never mark a node dirty, so nothing else
     broadcasts. The handler must publish GraphDataMutated so the toolbar's
     undo/redo enablement refreshes immediately after a resize (regression: the
-    undo button stayed stale until the next validating op)."""
+    undo button stayed stale until the next validating op).
+    """
     editor = MagicMock()
     session = MagicMock()
     h = InteractionHandlers(edit_route(editor), session=session)

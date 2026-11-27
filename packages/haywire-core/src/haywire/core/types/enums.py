@@ -28,8 +28,7 @@ class Propagation(Enum):
 
 
 class PortType(Enum):
-    """
-    - INLET: Can receives data/control via Inlets
+    """- INLET: Can receives data/control via Inlets
     - OUTLET: Sends data/control via Outlets
     - SWINGLET: One port that may be either end of an edge
     - CONFIG: Has neither Inlets nor Outlets
@@ -63,8 +62,7 @@ class PortOrigin(Enum):
 
 
 class LayoutDirection(Enum):
-    """
-    Orientation of flow across a node card.
+    """Orientation of flow across a node card.
 
     Purely presentational: the execution engine imposes no directionality on a
     graph, so this only decides which card edge a port's pin sits on and how a
@@ -277,8 +275,7 @@ _NODE_DETAIL_RANKS: dict[NodeDetail, int] = {
 
 
 class StoreStrategy(IntFlag):
-    """
-    Bitwise flags for when a port saves its own value.
+    """Bitwise flags for when a port saves its own value.
 
     - NEVER: do not store
     - HAS_WIDGET: store when the port has a widget
@@ -321,8 +318,7 @@ class StoreStrategy(IntFlag):
 
 
 class ShowWidgetStrategy(Enum):
-    """
-    When a port's inline widget is rendered on the node card, relative to link state.
+    """When a port's inline widget is rendered on the node card, relative to link state.
 
     The states are mutually exclusive — link state is a single boolean, so the
     widget shows in the linked state, the unlinked state, both, or neither. This
