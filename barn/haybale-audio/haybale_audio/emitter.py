@@ -99,6 +99,25 @@ def deliver_to_subscribers(
         context.emit_callback(event_name=names, payload=payload, backlog=backlog)
 
 
+def deliver_clip_to_subscribers(
+    context: ExecutionContext,
+    subscribers: dict[str, Any] | None,
+    clip: AudioBlock,
+    number: int,
+    seconds: float,
+    backlog: BacklogSettings | None = None,
+) -> None:
+    """Send ``clip`` to every Clip Event subscribed on the emitter's ``CLIP_CALLBACK`` inlet.
+
+    One emit carries every subscriber's name, so Clip Events set to Pooled share the clips;
+    ``backlog`` is the emitter's own ``BacklogSettings``, as for ``deliver_to_subscribers``.
+    """
+    payload = {"clip": clip, "timestamp": seconds, "clip_number": number}
+    names = [name for sub in (subscribers or {}).values() if (name := getattr(sub, "name", None))]
+    if names:
+        context.emit_callback(event_name=names, payload=payload, backlog=backlog)
+
+
 def set_status(node: Any, text: str) -> None:
     """Show ``text`` on the node's ``status`` label; a node that is going away may have no port."""
     try:

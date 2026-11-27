@@ -7,7 +7,11 @@ Audio blocks, events and routing shared by speech and streaming libraries
 - **Audio Clock** — Emits a silent audio block at a steady rate
 - **Audio Event** — Triggered for each audio block a connected audio emitter delivers
 - **Audio Mixer** — Sums several audio sources into one block per clock tick
+- **Clip Event** — Triggered for each audio clip a connected clip emitter delivers
 - **Clip Player** — Plays an audio clip as audio blocks, in real time
+- **Clip Queue** — Holds audio clips until a flow takes them, one at a time
+- **Clip Segmenter** — Cuts a live audio flow into clips at the pauses, such as one clip per sentence
+- **Collect Clip** — Gathers the audio blocks of a flow into one clip, sent on Stop
 - **Device In** — Records a sound device's input as audio blocks
 - **Device Out** — Plays audio blocks on a sound device
 - **File Player** — Plays an audio file as audio blocks, in real time
@@ -22,4 +26,6 @@ Audio blocks, events and routing shared by speech and streaming libraries
 ## Types
 - **Audio** — A block of audio samples. Never saved with the graph.
 - **Audio Callback** — Subscription for emitters that deliver audio blocks
+- **Audio Clip** — A whole audio clip, such as one utterance, as one block. Never saved with the graph.
 - **Audio Execution Signal** — Signal for sequencing the nodes of an audio flow
+- **Clip Callback** — Subscription for emitters that deliver whole audio clips

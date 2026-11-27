@@ -54,3 +54,80 @@ No version bump.
 6 b: a Keep Running setting, off by default, sends silence after the clip until Stop, so an
 Audio Mixer counts no stall at a clip's end (one stall per clip otherwise). An end-of-stream
 signal the mixer understands would be the general fix, a change of its own.
+
+## Round 2: clip type and clip toolkit (owner, 2026-11-27)
+
+Decided: a new type `AUDIO_CLIP` (same `AudioBlock` value, own colour) for clip ports · clip and
+stream never connect directly; nodes are the bridges · Collect Clip and Speech Segmenter move to
+haybale-audio, as Collect Clip and Clip Segmenter, keeping the input's rate and channels (the
+16 kHz mono conversion moves into Transcribe) · Clip Segmenter gets a `clip` outlet and a
+`Segment` control outlet, like Collect Clip · two nodes on one buffer: Collect Clip cuts on Stop,
+Clip Segmenter at pauses plus a `Cut` inlet · Clip Queue: `Push`, `Pop`, `Clear` in; `clip`,
+`count` out; Order (oldest first / newest first / newest only), Max Clips (drop oldest), Auto ·
+Clip Player gets a `Finished` signal · everything in #276 (haybale-speech drops its copies and
+moves to `AUDIO_CLIP` in its own PR).
+
+Found: a node's own thread starts a flow only by `emit_callback` to an event node (Audio Event,
+Tick Event); an EXEC outlet fires only inside the flow that ran the node. So Clip Player's
+`Finished` (fired from its pump thread) and Clip Queue's Auto (a clip handed on in a flow of its
+own) need a callback route. Open: decisions 7 and 8 of round 2.
+
+Decided: 7 a, Clip Player's `On Finish` is a `POOLED[CALLBACK]` inlet for Tick Events · 8 a, a new
+`CLIP_CALLBACK` type and a Clip Event node, the clip in the payload.
+
+## Round 3: parallel consumers of one clip stream
+
+Today (core, read 2026-11-27):
+
+- Each event node listens on a callback named by its own node id; an emitter sends to every
+  subscriber, so two Clip Events would each get **every** clip (broadcast, not shared work).
+- Each flow has its own `FlowQueue` (`BLOCK` waits up to 5 s for room, then drops; `DROP` keeps
+  the newest). An emitter in an audio flow that hits a full `BLOCK` queue holds the audio flow.
+- Flows that share a control node form one execution group and run on one thread (ADR 0064). Two
+  worker flows that both end on the same Clip Queue (`Pop`) share a group, so they never run in
+  parallel.
+- `FlowQueue._run_one` knows when a frame ends; nothing outside it is told.
+
+Open: decisions 9 and 10 of round 3.
+
+Owner, round 3 so far: pooled delivery is general (any callback), chosen per **event node**
+(Delivery: every / pooled), the emitter unaware of distribution; core forms the pool from the
+pooled listeners of one emit; the **emitter** sets the pool's backlog (size, full rule). Its own
+core PR first (ADR, issue). Clip Queue stays, for flow-controlled playback (Pop driven by Clip
+Player's On Finish); its Auto setting goes, the pooled backlog covers that case.
+Open: 13, 14, 15 (revised), 16, 17.
+
+Decided: 13 a, 14 a, 15 a (revised), 16 a, 17 a.
+
+### Measured: two faster-whisper runs in parallel (2026-11-27)
+
+i7-7700K (4 cores, 8 threads), faster-whisper 1.2.1, `small`, int8, a 15.4 s clip; a pure-Python
+probe thread counts loop turns (16 M/s idle) to show whether the GIL is held.
+
+| cpu_threads | two clips in turn | 2 threads, 1 model | 1 model, num_workers=2 | 2 models |
+|---|---|---|---|---|
+| 4 | 3.45 s | 4.39 s | 3.45 s | 3.44 s |
+| 2 | 4.85 s | 4.84 s | 3.82 s | 3.93 s |
+
+- The GIL is released during inference: the probe keeps 15.5 M/s at 2 threads each; it falls
+  to 10 M/s only when 8 compute threads hold every core.
+- Parallel runs gain only when one run leaves cores idle (1.27x at 2 threads each); at 4 the
+  cores are already full. The limit is cores, not the GIL.
+- One model with `num_workers=2` is as fast as two models, at one model's memory. A model
+  without it serialises concurrent calls (4.39 s, slower than in turn).
+- haybale-speech's `transcribe` holds `model.lock`, which serialises every call: pooled
+  Transcribe flows need it gone and a Workers setting on Load STT Model (`num_workers`).
+
+## Built (after #283, ADR 0097)
+
+- Types `AUDIO_CLIP`, `CLIP_CALLBACK`; Clip Event (Dispatch + Delivery bags, `Clip Ready` plain EXEC).
+- Collect Clip (`clip` is `AUDIO_CLIP`) and Clip Segmenter (Subscribers → Clip Event, the input
+  format kept, `Cut`, Backlog bag) in `audio/clip`; `ClipBuffer` and `Segmenter` in `dsp/`.
+- Clip Queue: Push / Pop / Clear; Pushed / Popped / Empty / Cleared; `clip_out`, `count`;
+  Order, Max Clips.
+- Clip Player: `clip` is `AUDIO_CLIP`, Backlog bag, `On Finish` (`POOLED[CALLBACK]`), run when a
+  clip plays to its end (Keep Running: when its silence begins), never on Stop.
+
+D10: two pooled Transcribe flows run at once only when each has its own Transcribe node (a shared
+DATA node runs under its exec_lock) and they share no control node (one group, one thread). And
+haybale-speech's `model.lock` serialises runs until it goes and Load STT Model passes `num_workers`.

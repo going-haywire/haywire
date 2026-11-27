@@ -11,9 +11,11 @@ from haybale_audio.emitter import BlockPump, deliver_to_subscribers, set_status
 from haybale_audio.value import AudioBlock
 from haywire.api import (
     BOOL,
+    CALLBACK,
     EXEC,
     INT,
     STRING,
+    BacklogSettings,
     BaseNode,
     ExecutionContext,
     LabelWidget,
@@ -70,6 +72,10 @@ class ClipPlayerNode(BaseNode):
     clip's sample rate, to every Audio Event listening. The clip's own sample rate and channel count
     are kept: Device Out and the Audio Mixer convert it, and Resample does for any other node.
 
+    `On Finish` runs the Tick Events wired to it when a clip has played to its end (with
+    `Keep Running`, when its silence begins); a Stop runs none. Wire it to a Clip Queue's Pop to
+    play queued clips one after another.
+
     A Start while a clip plays switches to the clip now on `Clip`, from its first block and without a
     gap. A new value on `Clip` alone changes nothing until the next Start.
 
@@ -81,25 +87,34 @@ class ClipPlayerNode(BaseNode):
         start / stop: Begin playing the clip on `clip`, or end playback
         clip: The audio clip to play
         callbacks: Pooled AUDIO_CALLBACK subscriptions from Audio Event nodes
+        finish_callbacks: Pooled CALLBACK subscriptions from the Tick Events to run at a clip's end
 
     Outputs:
         started / stopped: Control flow after the matching input
     """
 
     playback = bag(ClipPlayerSettings)
+    backlog = bag(BacklogSettings)
 
     def init(self) -> None:
         # reload: barn types are looked up fresh after a hot reload.
-        from haybale_audio.types.audio import AUDIO
+        from haybale_audio.types.audio_clip import AUDIO_CLIP
         from haybale_audio.types.callback import AUDIO_CALLBACK
         from haybale_core.types import POOLED
 
         self.add(EXEC.as_inlet("start", label="Start"))
         self.add(EXEC.as_inlet("stop", label="Stop"))
-        self.add(AUDIO.as_inlet("clip", label="Clip", description="Audio clip to play"))
+        self.add(AUDIO_CLIP.as_inlet("clip", label="Clip", description="Audio clip to play"))
         self.add(
             POOLED[AUDIO_CALLBACK].as_inlet(
                 "callbacks", label="Subscribers", description="Connect to an Audio Event node."
+            )
+        )
+        self.add(
+            POOLED[CALLBACK].as_inlet(
+                "finish_callbacks",
+                label="On Finish",
+                description="Tick Event Listen outlets whose flows run when a clip has played to its end",
             )
         )
         self.add(STRING.as_config("status", default="Idle", label="Status", widget=LabelWidget.config()))
@@ -134,26 +149,37 @@ class ClipPlayerNode(BaseNode):
         running = self.hb_pump is not None and self.hb_pump.running
         if not (running and self.hb_reader is not None and self.hb_reader.play(clip)):
             self.hb_stop()
-            self.hb_reader = _ClipReader(
+            reader = _ClipReader(
                 clip,
                 int(self.playback.block_size),
                 loop=bool(self.playback.loop),
                 keep_running=bool(self.playback.keep_running),
-                on_clip_end=lambda: set_status(self, "Silence until the next clip"),
+                on_clip_end=lambda: self.hb_finished(context, "Silence until the next clip"),
             )
+            self.hb_reader = reader
             self.hb_pump = BlockPump(
-                produce=self.hb_reader.read_block,
+                produce=reader.read_block,
                 deliver=lambda block, number, seconds: deliver_to_subscribers(
-                    context, self.value("callbacks"), block, number, seconds
+                    context, self.value("callbacks"), block, number, seconds, backlog=self.backlog
                 ),
-                on_end=self.hb_on_end,
+                on_end=lambda error: self.hb_on_end(context, reader, error),
             )
             self.hb_pump.start()
         set_status(self, f"Playing {clip.duration:.1f} s, {clip.channels} ch at {clip.sample_rate} Hz")
         return "started"
 
-    def hb_on_end(self, error: Exception | None) -> None:
-        set_status(self, f"Error: {error}" if error else "Finished")
+    def hb_on_end(self, context: ExecutionContext, reader: _ClipReader, error: Exception | None) -> None:
+        if error is not None:
+            set_status(self, f"Error: {error}")
+        elif reader.ended:  # played to its end; a Stop leaves the reader running
+            self.hb_finished(context, "Finished")
+
+    def hb_finished(self, context: ExecutionContext, status: str) -> None:
+        """Show ``status`` and run the Tick Events wired to `On Finish`."""
+        set_status(self, status)
+        names = [name for name in (self.value("finish_callbacks") or {}).values() if name]
+        if names:
+            context.emit_callback(event_name=names, payload=None, backlog=self.backlog)
 
     def hb_stop(self) -> None:
         # post_init() may never have run (init() failed during a reset or reload).
@@ -189,6 +215,12 @@ class _ClipReader:
         self._clip = clip
         self._position = 0
         self._silence = self._silence_for(clip)
+
+    @property
+    def ended(self) -> bool:
+        """Whether the clip has played to its end and the reader returned ``None``."""
+        with self._lock:
+            return self._ended
 
     def play(self, clip: AudioBlock) -> bool:
         """Switch to ``clip`` from its first block; return ``False`` once the reader has ended."""

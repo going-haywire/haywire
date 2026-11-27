@@ -31,6 +31,22 @@ _NODES = [
         "ClipPlayerNode",
         {"start": EXEC, "stop": EXEC, "started": EXEC, "stopped": EXEC},
     ),
+    ("clip_event", "ClipEventNode", {"clip_ready": EXEC}),
+    ("collect_clip", "CollectClipNode", {"add": AUDIO_EXEC, "next": AUDIO_EXEC, "stop": EXEC, "done": EXEC}),
+    ("clip_segmenter", "ClipSegmenterNode", {"add": AUDIO_EXEC, "next": AUDIO_EXEC, "cut": EXEC}),
+    (
+        "clip_queue",
+        "ClipQueueNode",
+        {
+            "push": EXEC,
+            "pop": EXEC,
+            "clear": EXEC,
+            "pushed": EXEC,
+            "popped": EXEC,
+            "empty": EXEC,
+            "cleared": EXEC,
+        },
+    ),
     (
         "audio_clock",
         "AudioClockNode",
