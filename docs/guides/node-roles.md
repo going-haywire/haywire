@@ -22,7 +22,7 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/callback_emit_probe.
 `CallbackEmitProbeNode` is a CONTROL node with one EXEC inlet (`execute`) and one EXEC outlet (`exec`). It also demonstrates `POOLED[CALLBACK]` as an inlet, `post_init()` for non-serializable state, and dispatching via `context.emit_callback`:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/callback_emit_probe.py:16:88"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/callback_emit_probe.py:18:94"
 ```
 
 from: `CallbackEmitProbeNode` — registry_key: `haybale-testing:node:CallbackEmitProbeNode`
@@ -72,7 +72,7 @@ from: `BeginPlayProbeNode` — registry_key: `haybale-testing:node:BeginPlayProb
 `CallbackEventNode` listens for named callbacks from other flows. It broadcasts its own ID via a `CALLBACK` outlet so emitters can wire to it, and updates its `event_subscription` dynamically when the config changes:
 
 ```python
---8<-- "barn/haybale-example/haybale_example/nodes/emits/callback_event.py:16:95"
+--8<-- "barn/haybale-example/haybale_example/nodes/emits/callback_event.py:18:111"
 ```
 
 from: `CallbackEventNode` — registry_key: `haybale-example:node:CallbackEventNode`
@@ -82,7 +82,7 @@ from: `CallbackEventNode` — registry_key: `haybale-example:node:CallbackEventN
 `CallbackEmitNode` is the CONTROL counterpart: it has an EXEC inlet, reads connected listener IDs via `POOLED[CALLBACK]`, and emits to them via `context.emit_callback`:
 
 ```python
---8<-- "barn/haybale-example/haybale_example/nodes/emits/callback_emit.py:16:105"
+--8<-- "barn/haybale-example/haybale_example/nodes/emits/callback_emit.py:16:106"
 ```
 
 from: `CallbackEmitNode` — registry_key: `haybale-example:node:CallbackEmitNode`
@@ -91,7 +91,8 @@ from: `CallbackEmitNode` — registry_key: `haybale-example:node:CallbackEmitNod
 
 - **One listener, many emitters:** a `CALLBACK` outlet fans out by its link ceiling, so a listener needs no flag to target several emitters (port detail in [guides/ports](./ports.md)).
 - **`POOLED[CALLBACK].as_inlet(...)`** on the emitter collects all connected listener IDs into a dict (port detail in [guides/ports](./ports.md)).
-- **`context.emit_callback(event_name=..., payload=...)`** dispatches to subscribers.
+- **`context.emit_callback(event_name=..., payload=...)`** dispatches to subscribers. Passing every subscriber name in one emit lets listeners set to *Pooled* share the callback.
+- **`delivery = bag(DeliverySettings)`** on the listener gives it the *Delivery* setting (Every / Pooled), passed into `CallbackEvent(delivery=...)` and re-read when the setting changes. See [callbacks §2.5](../architecture/execution/callbacks/callbacks-arch.md#25-delivery-every-or-pooled).
 - **`context.trigger.payload`** delivers the emitter's payload to the listener's worker.
 - **`wrapper.request_graph_reassembly()`** is called when the subscription changes so the flow graph is rebuilt with the new wiring.
 

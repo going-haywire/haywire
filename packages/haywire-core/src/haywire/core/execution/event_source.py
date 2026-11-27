@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from haywire.core.execution.delivery import Delivery
 from haywire.core.execution.flow_queue import QueueMode
 
 
@@ -127,11 +128,17 @@ class CallbackEvent(EventSource):
     Args:
         event_name: Name of the callback event
 
+        delivery: ``Delivery.EVERY`` (default) runs the flow for every
+            callback; ``Delivery.POOLED`` shares the callbacks of one emit with
+            the emit's other pooled listeners (ADR 0097). Like ``queue_mode`` it
+            is kw-only and takes no part in identity.
+
     Inherits ``queue_mode`` / ``max_queue_size`` (kw-only) from EventSource;
     camera/realtime event nodes set ``queue_mode=DROP, max_queue_size=1``.
     """
 
     event_name: str
+    delivery: Delivery = field(default=Delivery.EVERY, compare=False, kw_only=True)
 
     def get_subscription_key(self) -> str:
         return f"callback:{self.event_name}"

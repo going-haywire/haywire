@@ -56,6 +56,7 @@ from haywire.core.execution.event_source import (
     Trigger,
 )
 from haywire.core.execution.callback_manager import CallbackManager
+from haywire.core.execution.delivery import BacklogFull, Delivery
 
 __all__ = [
     # Main interface
@@ -67,6 +68,8 @@ __all__ = [
     "FlowQueue",
     "ExecutionGroup",
     "QueueMode",
+    "Delivery",
+    "BacklogFull",
     "CallbackManager",
     # Flow meter
     "FlowMeterSampler",

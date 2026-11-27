@@ -13,6 +13,12 @@ Listens for a specified number of callbacks from other flows
 | `triggered` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `payload_1` | outlet | `haywire-core:type:FLOAT` | Decimal number |
 
+## Settings
+
+| name | bag | default | description |
+|---|---|---|---|
+| `mode` | delivery | `'Every'` | Every runs this flow for every event. Pooled shares the events with the other pooled listeners of the same emitter: the next free one runs each event. |
+
 ## Notes
 
 Listens for a specified number of callbacks from other flows.
@@ -23,3 +29,6 @@ Config:
 Outputs:
     triggered: Control flow when callback received
     payload: Data from callback
+
+Delivery: `Every` runs for every callback; `Pooled` shares them with the emitter's other
+pooled listeners, the next free one taking each callback.

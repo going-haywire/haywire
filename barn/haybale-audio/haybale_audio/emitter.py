@@ -86,12 +86,15 @@ def deliver_to_subscribers(
     number: int,
     seconds: float,
 ) -> None:
-    """Send ``block`` to every Audio Event subscribed on the emitter's ``AUDIO_CALLBACK`` inlet."""
+    """Send ``block`` to every Audio Event subscribed on the emitter's ``AUDIO_CALLBACK`` inlet.
+
+    One emit carries every subscriber's name, so Audio Events set to Pooled share the blocks
+    (the default backlog: 16 blocks, the oldest dropped).
+    """
     payload = {"audio": block, "timestamp": seconds, "block_number": number}
-    for sub in (subscribers or {}).values():
-        name = getattr(sub, "name", None)
-        if name:
-            context.emit_callback(event_name=name, payload=payload)
+    names = [name for sub in (subscribers or {}).values() if (name := getattr(sub, "name", None))]
+    if names:
+        context.emit_callback(event_name=names, payload=payload)
 
 
 def set_status(node: Any, text: str) -> None:

@@ -1,7 +1,7 @@
 ---
 name: pooled-callback-delivery
 description: an event node's Delivery setting chooses Every (broadcast) or Pooled; one emit carries all subscriber names, core forms a pool from that emit's pooled listeners, the next free member takes the next trigger, the emitter's Backlog bag sets the waiting room, and a frame's end frees its flow
-status: proposed
+status: accepted
 see-also: ADR-0010, ADR-0064
 level: framework
 ---

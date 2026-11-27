@@ -100,8 +100,7 @@ class CallbackEmitNode(BaseNode):
                 self.callback_index = (self.callback_index + 1) % len(edge_callbacks)
                 context.emit_callback(event_name=edge_callback, payload=payload_dict)
             else:
-                # Non-sequential: emit to all callbacks
-                for edge_callback in edge_callbacks.values():
-                    context.emit_callback(event_name=edge_callback, payload=payload_dict)
+                # Non-sequential: one emit to all callbacks, so pooled listeners share it
+                context.emit_callback(event_name=list(edge_callbacks.values()), payload=payload_dict)
 
         return "exec"

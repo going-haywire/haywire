@@ -7,9 +7,11 @@ from haywire.api import (
     INT,
     BaseNode,
     CallbackEvent,
+    DeliverySettings,
     ExecutionContext,
     NodeType,
     NumberWidget,
+    bag,
     node,
 )
 
@@ -31,7 +33,12 @@ class MergedCallbackEventNode(BaseNode):
     Outputs:
         triggered: Control flow when callback received
         payload: Data from callback
+
+    Delivery: `Every` runs for every callback; `Pooled` shares them with the emitter's other
+    pooled listeners, the next free one taking each callback.
     """
+
+    delivery = bag(DeliverySettings)
 
     def init(self):
         # Config for callback name
@@ -51,7 +58,15 @@ class MergedCallbackEventNode(BaseNode):
     def post_init(self):
         # Set initial subscription
         self.cache.store = {}
-        self.event_subscription = CallbackEvent(event_name=self.node_id)
+        self._subscribe()
+        self.delivery._subscribe_field("mode", self._on_delivery)
+
+    def _on_delivery(self, _value: object, _old: object) -> None:
+        self._subscribe()
+
+    def _subscribe(self) -> None:
+        # Delivery takes effect when the graph next starts.
+        self.event_subscription = CallbackEvent(event_name=self.node_id, delivery=self.delivery.delivery)
 
     def hb_rebuild(self, *args, **kwargs) -> None:
         """Request a redraw of the node in the UI."""

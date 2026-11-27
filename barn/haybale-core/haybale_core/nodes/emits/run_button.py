@@ -11,12 +11,14 @@ from haywire.api import (
     BUTTON_WIDGET,
     CALLBACK,
     EXEC,
+    BacklogSettings,
     BaseNode,
     ExecutionContext,
     NodeSettings,
     NodeType,
     PortType,
     Promotable,
+    bag,
     node,
     setting,
 )
@@ -44,7 +46,12 @@ class RunButtonNode(BaseNode):
     The button works from *Start* until *Stop* or until the graph stops. A press
     made while the graph is stopped shows as pending and is cleared when the graph
     starts again.
+
+    Tick Events set to *Pooled* share the presses: the next free one runs each press,
+    and *Backlog Size* presses wait while all are busy (*When Full* decides the rest).
     """
+
+    backlog = bag(BacklogSettings)
 
     class button(NodeSettings):
         run = setting[BOOL](
@@ -108,7 +115,7 @@ class RunButtonNode(BaseNode):
             now = time.monotonic()
             delta = 0.0 if self._last_emit is None else now - self._last_emit
             self._last_emit = now
-        for name in list(self.value("callbacks").values()):
-            context.emit_callback(event_name=name, payload={"delta_time": delta})
+        names = list(self.value("callbacks").values())
+        context.emit_callback(event_name=names, payload={"delta_time": delta}, backlog=self.backlog)
         # Released after this write is done, on the validation thread (ADR 0064).
         self.post_value("button.run", False)

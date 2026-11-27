@@ -15,6 +15,7 @@ from haywire.core.node.behavior import NodeType
 from haywire.core.state.data_namespace import AppDataNamespace
 
 if TYPE_CHECKING:
+    from haywire.barn.builtin.delivery import BacklogSettings
     from haywire.core.execution.event_source import Trigger
     from haywire.core.execution.flow import Flow
     from haywire.core.node import BaseNode
@@ -475,18 +476,24 @@ class HaywireVM:
         policy = self._exception_bail() if self._exception_bail is not None else "branch"
         exec_ctx.bail = policy if policy in ("run", "frame", "branch") else "branch"
 
-    def emit_callback(self, event_name: str, payload: dict[str, Any] | None = None) -> None:
+    def emit_callback(
+        self,
+        event_name: str | Sequence[str],
+        payload: dict[str, Any] | None = None,
+        backlog: BacklogSettings | None = None,
+    ) -> None:
         """
         Emit a callback to trigger other flows.
 
         This is called by control nodes during execution to trigger
-        event nodes listening for this callback.
+        event nodes listening for this callback. See ``CallbackManager.emit_callback``.
 
         Args:
-            event_name: Name of callback event
+            event_name: Name of callback event, or the names of all the emitter's subscribers
             payload: Optional data to pass
+            backlog: The emitter's backlog for its pooled listeners; ``None`` uses the default
         """
         if self.callback_manager:
-            self.callback_manager.emit_callback(event_name, payload)
+            self.callback_manager.emit_callback(event_name, payload, backlog)
         else:
             logger.warning(f"Cannot emit callback '{event_name}': No callback manager registered")

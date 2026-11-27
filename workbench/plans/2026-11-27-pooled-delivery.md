@@ -2,6 +2,7 @@
 
 Issue #281 · ADR [0097](../../docs/adr/0097-pooled-callback-delivery.md) · branch `feat/pooled-delivery`.
 Decided by the owner on 2026-11-27 (clip-player plan, round 3): 11 a, 12 b, 13 a, 14 a, 15 a revised, 16 a.
+This plan's decisions: 1 a (`emit_callback` takes a name or a list), 2 a (Drop oldest, Wait), 3 a (Backlog bag on Tick Emit, Run Button, the emit probe), 4 a (Delivery on every callback event node here), 5 a (`Delivery`, `DeliverySettings`, `BacklogSettings`, `BacklogFull`).
 
 ## Today
 
@@ -134,5 +135,6 @@ Commands:
 | Step | State |
 |---|---|
 | Issue #281 | filed |
-| ADR 0097 | proposed |
-| Plan | waiting for the owner |
+| ADR 0097 | accepted with the PR |
+| Plan | decided 2026-11-27: 1 a · 2 a · 3 a · 4 a · 5 a |
+| Implementation | done; tests in `test_pooled_delivery.py` |

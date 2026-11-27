@@ -39,9 +39,12 @@ def _listen(node: Any, *names: str) -> None:
 
 
 def _context(control_pin: str, calls: list) -> SimpleNamespace:
+    """A context whose ``emit_callback`` records one ``(names, payload, backlog)`` per emit."""
     return SimpleNamespace(
         control_pin=control_pin,
-        emit_callback=lambda event_name, payload=None: calls.append((event_name, payload)),
+        emit_callback=lambda event_name, payload=None, backlog=None: calls.append(
+            (event_name, payload, backlog)
+        ),
     )
 
 
@@ -65,9 +68,10 @@ def test_press_emits_once_to_every_callback(button):
 
     button.button.run = True
 
-    assert sorted(calls) == [("tick_a", {"delta_time": 0.0}), ("tick_b", {"delta_time": 0.0})]
+    # One emit carries every name, so pooled Tick Events share the press (ADR 0097).
+    assert calls == [(["tick_a", "tick_b"], {"delta_time": 0.0}, button.backlog)]
     assert wait_until(lambda: button.button.run is False)
-    assert len(calls) == 2
+    assert len(calls) == 1
 
 
 def test_second_press_reports_time_since_previous(button):

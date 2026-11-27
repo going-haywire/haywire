@@ -49,7 +49,7 @@ def test_clock_emits_silent_blocks_to_its_subscribers(graph_with_library_system)
     calls = ctx.emit_callback.call_args_list
     assert len(calls) >= 10
     first = calls[0].kwargs
-    assert first["event_name"] == "listener"
+    assert first["event_name"] == ["listener"], "one emit carries every subscriber"
     assert first["payload"]["block_number"] == 0
     assert (first["payload"]["audio"].channels, first["payload"]["audio"].frames) == (1, 256)
 

@@ -68,6 +68,38 @@ Core's `TickEventNode` is a generic listener: it runs its flow for any emitter w
 
 By design, every callback-listener Flow has its own EVENT-node entry — typically `CallbackEvent(event_name=...)`.
 
+### 2.5 Delivery: every or pooled
+
+Each listener chooses how it takes callbacks, with the **Delivery** setting of core's `DeliverySettings` bag, which its event node passes into its `CallbackEvent(delivery=...)` (ADR 0097):
+
+- **Every** (`Delivery.EVERY`, the default) runs the listener's Flow for every callback, as a broadcast.
+- **Pooled** (`Delivery.POOLED`) shares the callbacks with the other pooled listeners **of the same emit**. Those listeners form a **pool**. The next free member, in turn, runs each callback. While all members are busy, the callback waits in the pool's **backlog**.
+
+For core to see which listeners hear the same event, an emitter passes **all its subscriber names in one emit**:
+
+```python
+names = list(self.value("callbacks").values())
+context.emit_callback(event_name=names, payload={"delta_time": delta}, backlog=self.backlog)
+```
+
+An emitter that emits one name at a time still delivers correctly, but each pooled listener is then a pool of its own, so no work is shared.
+
+**The emitter owns the backlog.** It includes core's `BacklogSettings` bag and passes it with each emit:
+
+- *Backlog Size* (default 16) sets how many callbacks wait.
+- *When Full* sets what a full backlog does. `Drop oldest` (`BacklogFull.DROP_OLDEST`, the default) loses the oldest waiting callback. `Wait` (`BacklogFull.WAIT`) holds the emitting thread up to 5 s for room and then loses the new callback. A runner thread never waits (ADR 0064 D6): it loses the new callback at once.
+
+An emit without the bag uses 16 and `Drop oldest`.
+
+**Rules of a pool:**
+
+- **Who belongs.** A pool is the emitter (the node owning the bag) plus the set of its pooled listeners. Two emitters never share one.
+- **Busy and free.** A pooled Flow is busy from the moment core hands it a callback until that frame ends, also when the frame raised. It counts as busy only once, even when it belongs to two pools.
+- **Its own queue.** A pooled Flow's queue holds at most the callback it runs, so its own *Queue Mode* and *Max Queue Size* have no effect.
+- **Order.** Callbacks lose their order across the members, since frames end in whatever order they take.
+- **Stop and recompile.** A stop or a recompile drops every pool and backlog.
+- **Execution groups.** Pooled Flows that share a control node are one execution group (ADR 0064), so they still run one after the other.
+
 ### 2.4 Through reroutes and Subgraph boundaries
 
 A callback edge may pass through reroutes. Every port on a callback flow is **immediate**: an edge-driven write fires `on_change` at once, and a reroute's inlet forwards to its outlet from that handler (`RerouteNode.forward_immediate`), so the subscription reaches the emitter without any node executing. Callback edges have no propagation — see [edges-arch §3.3](../edges/edges-arch.md).
@@ -112,7 +144,9 @@ Each Flow registered for event_name runs
 
 The listener Flow runs through the standard VM dispatch — it's a Flow like any other; the only thing special is how it was *triggered*.
 
-Emitting enqueues one trigger per listener flow. A listener whose queue mode is `BLOCK` and whose queue is full makes the emitting thread wait up to 5 s for room (a runner thread never waits: the trigger is dropped). An emitter triggered from the UI therefore emits from a thread it owns, never from the UI event loop: `RunButtonNode`'s button only wakes its thread, which emits.
+Emitting enqueues one trigger per *Every* listener flow, name by name. A listener whose queue mode is `BLOCK` and whose queue is full makes the emitting thread wait up to 5 s for room (a runner thread never waits: the trigger is dropped). A `Wait` backlog that is full holds the emitting thread the same way. An emitter triggered from the UI therefore emits from a thread it owns, never from the UI event loop: `RunButtonNode`'s button only wakes its thread, which emits.
+
+The *Pooled* listeners of the emit get the callback through their pool (§2.5). Each pooled Flow's `FlowQueue` reports every trigger it takes out of its queue to `CallbackManager.trigger_done`: one that ran, one that failed, and one discarded at a stop. The Flow then takes the oldest callback waiting in its pools, or becomes free. One lock guards pools, busy Flows and backlogs, and no `FlowQueue` is called while it is held.
 
 ### 3.3 Statistics
 
@@ -122,6 +156,7 @@ The Interpreter exposes callback statistics for debugging:
 stats = interpreter.get_statistics()
 
 stats['callbacks']                      # CallbackManager: registered event names and listener counts
+stats['callbacks']['pools']             # each pool's members, busy, waiting and dropped
 ```
 
 ### 3.4 Hot-reload behaviour
@@ -173,13 +208,16 @@ emitter.ports["custom_callback_name"].set_value("my_callback")
 ## 6. Open questions
 
 - **Cyclic callback chains.** A → B → A is currently undetected at assembly time. The Done-stack in the VM bounds runaway loops at execution but a static check would surface them earlier.
-- **Per-callback configuration** (priority, debouncing) is not exposed today — every listener runs on every emit.
+- **Per-callback configuration** (priority, debouncing) is not exposed today. Delivery (§2.5) is the only choice a listener makes.
+- **Pool names.** One emitter feeds one pool. Several separate pools behind one emitter would need a pool name (ADR 0097, *Considered*).
 - **Cross-Interpreter callbacks.** Each `GraphEntry` has its own Interpreter; callbacks are scoped to one Interpreter. Inter-graph callbacks would require an SessionManager-level dispatch that does not currently exist.
 
 ## Key files
 
 - `src/haywire/core/execution/interpreter.py` — `Interpreter` (per-graph; owns the CallbackManager and registers `CallbackEvent` Flows with it)
-- `src/haywire/core/execution/callback_manager.py` — `CallbackManager` (dispatch by event name)
+- `src/haywire/core/execution/callback_manager.py` — `CallbackManager` (dispatch by event name; pools, busy Flows and backlogs)
+- `src/haywire/core/execution/delivery.py` — `Delivery`, `BacklogFull`
+- `src/haywire/barn/builtin/delivery.py` — `DeliverySettings`, `BacklogSettings`
 - `src/haywire/core/execution/execution_context.py` — `ExecutionContext.emit_callback`
 - `src/haywire/core/execution/event_source.py` — `CallbackEvent` listener event-node (framework class; library nodes import it)
 - `src/haywire/core/assembly/flow_assembly_manager.py` — builds the Flows; reads each event node's `event_subscription` (no callback-edge handling)

@@ -23,6 +23,7 @@ from haywire.core.node.node_warning import NodeWarning
 
 from haywire.barn.builtin.carrier import CarrierValue
 from haywire.barn.builtin.field_text import fields_from_text, fields_to_text
+from haywire.barn.builtin.delivery import BacklogSettings, DeliverySettings
 from haywire.barn.builtin.progress import ProgressSettings, ProgressSpan, progress_field
 from haywire.barn.builtin.types import (
     ADD,
@@ -107,7 +108,9 @@ from haywire.core.edge.style import dash_choices
 from haywire.core.catalog import CatalogEntry, CatalogRegistry, ModelFile, Resource
 from haywire.core.errors import Refusal, report_failure
 from haywire.core.execution import (
+    BacklogFull,
     CallbackEvent,
+    Delivery,
     ExecutionContext,
     QueueMode,
     SystemEvent,
@@ -229,6 +232,10 @@ __all__ = [
     "CallbackEvent",
     "ExecutionContext",
     "QueueMode",
+    "Delivery",
+    "BacklogFull",
+    "DeliverySettings",
+    "BacklogSettings",
     "SystemEvent",
     "SystemEventType",
     # Errors

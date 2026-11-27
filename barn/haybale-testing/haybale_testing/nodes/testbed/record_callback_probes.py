@@ -1,6 +1,15 @@
 from __future__ import annotations
 
-from haywire.api import EXEC, BaseNode, CallbackEvent, ExecutionContext, NodeType, node
+from haywire.api import (
+    EXEC,
+    BaseNode,
+    CallbackEvent,
+    DeliverySettings,
+    ExecutionContext,
+    NodeType,
+    bag,
+    node,
+)
 
 
 @node(
@@ -12,6 +21,8 @@ from haywire.api import EXEC, BaseNode, CallbackEvent, ExecutionContext, NodeTyp
 )
 class RecordEventProbeNode(BaseNode):
     """Test-only event node publishing a `TEST_RECORD_CALLBACK` subscription named after itself."""
+
+    delivery = bag(DeliverySettings)
 
     def init(self):
         from haybale_testing.types import TEST_RECORD_CALLBACK
@@ -26,7 +37,14 @@ class RecordEventProbeNode(BaseNode):
         self.add(EXEC.as_outlet("triggered", label="Triggered"))
 
     def post_init(self):
-        self.event_subscription = CallbackEvent(event_name=self.node_id)
+        self._subscribe()
+        self.delivery._subscribe_field("mode", self._on_delivery)
+
+    def _on_delivery(self, _value: object, _old: object) -> None:
+        self._subscribe()
+
+    def _subscribe(self) -> None:
+        self.event_subscription = CallbackEvent(event_name=self.node_id, delivery=self.delivery.delivery)
 
     def worker(self, context: ExecutionContext) -> str | None:
         return "triggered"
