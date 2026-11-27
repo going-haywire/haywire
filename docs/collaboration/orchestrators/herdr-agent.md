@@ -55,13 +55,11 @@ the brief. A library task's worktree goes beside the repositories instead
 
 `hc send <address> "<text>"` arrives as the other agent's next input; `hc ls` lists the
 sessions with their space / tab; `hc --skill` prints the protocol. A task reports to the
-lead with `hc send` **before its turn ends**, including what the user told it directly.
-Without `hc`, the user relays.
+lead with `hc send`, in the form *Lead and tasks* in the workflow gives, **before its turn
+ends** (*Decided* first). Without `hc`, the user relays.
 
-**Needs a decision** (the workflow's four steps): the task ends its reply with the lead's
-address and sends the lead one line with its own. The lead marks the task's tab
-`? <name>` (`herdr-app do tab.rename --id <tab> --name "? <name>"`) and drops the `? ` on
-"Decided". The hook names a task's tab after its branch; the lead may add its tag
+**Needs a decision** (the workflow's four steps): the lead marks the task's tab `? <name>`
+(`herdr-app do tab.rename --id <tab> --name "? <name>"`). The hook names a task's tab after its branch; the lead may add its tag
 (`core › <branch>`).
 
 ## The view

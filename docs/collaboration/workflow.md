@@ -429,21 +429,28 @@ itself `<tag> ◆ lead`.
 and the session started with a brief from [the template](brief.md), each the
 orchestrator's way.
 
-**A task reports** to the lead through the orchestrator, one line each with the PR's URL,
-**before its turn ends**: *PR opened*, *Live check waiting*, *Ready* (with the live check's
-table or why there was none), *Blocked* (on what), *Needs a decision*, *Decided*,
-*Finished*. Whatever the user told the task directly goes to the lead too.
+**Messages between lead and task.** Content (plans, decisions, options, tables) stays in
+the thread of whoever wrote it. A message is one line, `<Report>: <what, at most one
+sentence> <PR URL if any>`, with the sender's own link as its last line. The reports are
+these and no others: *PR opened*, *Live check waiting*, *Ready* (the live check's table,
+or why there was none, goes in the PR body), *Blocked* (on what), *Needs a decision* (a
+plan that needs the user's word is one), *Decided*, *Finished*. A task sends each before
+its turn ends, *Decided* excepted, and passes on what the user told it directly.
+
+**Every reply to the user ends with the partner's link** as its last line.
 
 **A decision lives in the task's thread:**
 
 1. The task writes the decisions there in the format of *Asking the user for a
-   decision*, ending with the lead's link (in T3 the Markdown form
-   `[title](t3-thread://…)`), and sends the lead one line with its own link.
-2. The lead puts `? ` before the task's name, marks it unread, and gives the user the line
-   and the link.
+   decision*, with the lead's link as the last line (in T3 the Markdown form
+   `[title](t3-thread://…)`), and sends the lead *Needs a decision*.
+2. The lead puts `? ` before the task's name, marks it unread, and gives the user the
+   task's line with the task's link as the last line; it never restates the options.
 3. The user answers in the task. That is the user's word for that task, approvals
    included.
-4. The task sends the lead "Decided: … (approved: …)"; the lead drops the `? `.
+4. The first tool call of that turn sends the lead "Decided: … (approved: …)"; the lead
+   drops the `? `. A task that reports anything else while its name carries `? ` has been
+   answered: the lead drops the `? ` then and notes the missed *Decided*.
 
 **The lead merges** only on the user's word, watches `master`'s run (*Finishing as the
 maintainer*, step 4), warns the tasks whose PRs now conflict, and tells the task "merged";
