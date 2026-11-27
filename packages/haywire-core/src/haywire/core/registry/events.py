@@ -34,7 +34,10 @@ class FileChangeEvent:
     library_identity: LibraryIdentity
     timestamp: float
     reloaded_modules: set[str] = dc_field(default_factory=set)
-    """Track modules already reloaded in this event chain"""
+    """Modules already reloaded in this batch.
+
+    The file watcher shares one set between a registry's events of one debounce window.
+    """
     dependency_event: bool = False  # Whether this event is due to dependency reload
     """indicates if this event is a result of a dependency change (detected by a different registry)"""
 
