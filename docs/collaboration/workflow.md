@@ -437,7 +437,8 @@ table or why there was none), *Blocked* (on what), *Needs a decision*, *Decided*
 **A decision lives in the task's thread:**
 
 1. The task writes the decisions there in the format of *Asking the user for a
-   decision*, ending with the lead's link, and sends the lead one line with its own link.
+   decision*, ending with the lead's link (in T3 the Markdown form
+   `[title](t3-thread://…)`), and sends the lead one line with its own link.
 2. The lead puts `? ` before the task's name, marks it unread, and gives the user the line
    and the link.
 3. The user answers in the task. That is the user's word for that task, approvals
