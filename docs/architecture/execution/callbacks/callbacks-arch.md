@@ -68,6 +68,16 @@ Core's `TickEventNode` is a generic listener: it runs its flow for any emitter w
 
 By design, every callback-listener Flow has its own EVENT-node entry — typically `CallbackEvent(event_name=...)`.
 
+### 2.4 Through reroutes and Subgraph boundaries
+
+A callback edge may pass through reroutes. Every port on a callback flow is **immediate**: an edge-driven write fires `on_change` at once, and a reroute's inlet forwards to its outlet from that handler (`RerouteNode.forward_immediate`), so the subscription reaches the emitter without any node executing. Callback edges have no propagation — see [edges-arch §3.3](../edges/edges-arch.md).
+
+Removing any edge on the path unsubscribes. An inlet left without a linked edge shows its own value (ADR 0040); for a callback port that is absent. The reroute forwards absence, and the emitter's pooled inlet removes the entry keyed by its own edge. A displaced edge that takes over keeps the subscription in place.
+
+On load, a relay with something upstream takes its value from upstream, not from its own saved value. Only an orphaned relay (nothing upstream) keeps what it saved; a relay saved before callbacks could be absent may hold `""`, now a real name, until it is relinked or deleted.
+
+A Subgraph boundary relays the same way. The card's immediate inlets and the Subgraph Output's immediate inlets carry `on_change = hb_relay`, which writes the partner port on the other side at once — the Subgraph Input's outlet for a card inlet, the card's outlet for a Subgraph Output inlet — found by id through `subgraph_crossing`. `reconcile_interface` copies every immediate pair once whenever card and interior meet, so load order and a macro reload leave both sides agreeing. Unlinking either side reveals the next port's own value, which the relay carries on. A listener is an EVENT node, which a Subgraph may not contain, so a subscription crosses inward to an interior emitter, or straight through a Group (a reroute or a nested card inside). See ADR 0041.
+
 ### 2.5 Delivery: every or pooled
 
 Each listener chooses how it takes callbacks, with the **Delivery** setting of core's `DeliverySettings` bag, which its event node passes into its `CallbackEvent(delivery=...)` (ADR 0097):
@@ -87,7 +97,8 @@ An emitter that emits one name at a time still delivers correctly, but each pool
 **The emitter owns the backlog.** It includes core's `BacklogSettings` bag and passes it with each emit:
 
 - *Backlog Size* (default 16) sets how many callbacks wait.
-- *When Full* sets what a full backlog does. `Drop oldest` (`BacklogFull.DROP_OLDEST`, the default) loses the oldest waiting callback. `Wait` (`BacklogFull.WAIT`) holds the emitting thread up to 5 s for room and then loses the new callback. A runner thread never waits (ADR 0064 D6): it loses the new callback at once.
+- *When Full* sets what a full backlog does. `Drop oldest` (`BacklogFull.DROP_OLDEST`, the default) loses the oldest waiting callback. `Wait` (`BacklogFull.WAIT`) holds the emitting thread up to 5 s for room and then loses the new callback. The runner thread of a member's group never waits (ADR 0064 D6), since its wait would hold the member it waits for: it loses the new callback at once. The runner of another group waits like any thread.
+- A lost callback counts as dropped on the queue of the member whose turn it was, so the Flow meter shows it. `Drop oldest` logs it at debug level, as `QueueMode.DROP` does; `Wait` logs a warning.
 
 An emit without the bag uses 16 and `Drop oldest`.
 
@@ -99,16 +110,6 @@ An emit without the bag uses 16 and `Drop oldest`.
 - **Order.** Callbacks lose their order across the members, since frames end in whatever order they take.
 - **Stop and recompile.** A stop or a recompile drops every pool and backlog.
 - **Execution groups.** Pooled Flows that share a control node are one execution group (ADR 0064), so they still run one after the other.
-
-### 2.4 Through reroutes and Subgraph boundaries
-
-A callback edge may pass through reroutes. Every port on a callback flow is **immediate**: an edge-driven write fires `on_change` at once, and a reroute's inlet forwards to its outlet from that handler (`RerouteNode.forward_immediate`), so the subscription reaches the emitter without any node executing. Callback edges have no propagation — see [edges-arch §3.3](../edges/edges-arch.md).
-
-Removing any edge on the path unsubscribes. An inlet left without a linked edge shows its own value (ADR 0040); for a callback port that is absent. The reroute forwards absence, and the emitter's pooled inlet removes the entry keyed by its own edge. A displaced edge that takes over keeps the subscription in place.
-
-On load, a relay with something upstream takes its value from upstream, not from its own saved value. Only an orphaned relay (nothing upstream) keeps what it saved; a relay saved before callbacks could be absent may hold `""`, now a real name, until it is relinked or deleted.
-
-A Subgraph boundary relays the same way. The card's immediate inlets and the Subgraph Output's immediate inlets carry `on_change = hb_relay`, which writes the partner port on the other side at once — the Subgraph Input's outlet for a card inlet, the card's outlet for a Subgraph Output inlet — found by id through `subgraph_crossing`. `reconcile_interface` copies every immediate pair once whenever card and interior meet, so load order and a macro reload leave both sides agreeing. Unlinking either side reveals the next port's own value, which the relay carries on. A listener is an EVENT node, which a Subgraph may not contain, so a subscription crosses inward to an interior emitter, or straight through a Group (a reroute or a nested card inside). See ADR 0041.
 
 ## 3. Lifecycle
 
@@ -144,7 +145,7 @@ Each Flow registered for event_name runs
 
 The listener Flow runs through the standard VM dispatch — it's a Flow like any other; the only thing special is how it was *triggered*.
 
-Emitting enqueues one trigger per *Every* listener flow, name by name. A listener whose queue mode is `BLOCK` and whose queue is full makes the emitting thread wait up to 5 s for room (a runner thread never waits: the trigger is dropped). A `Wait` backlog that is full holds the emitting thread the same way. An emitter triggered from the UI therefore emits from a thread it owns, never from the UI event loop: `RunButtonNode`'s button only wakes its thread, which emits.
+Emitting enqueues one trigger per *Every* listener flow, name by name. A listener whose queue mode is `BLOCK` and whose queue is full makes the emitting thread wait up to 5 s for room (a runner thread never waits: the trigger is dropped). A `Wait` backlog that is full holds the emitting thread the same way, except a runner of a pool member's group. An emitter triggered from the UI therefore emits from a thread it owns, never from the UI event loop: `RunButtonNode`'s button only wakes its thread, which emits.
 
 The *Pooled* listeners of the emit get the callback through their pool (§2.5). Each pooled Flow's `FlowQueue` reports every trigger it takes out of its queue to `CallbackManager.trigger_done`: one that ran, one that failed, and one discarded at a stop. The Flow then takes the oldest callback waiting in its pools, or becomes free. One lock guards pools, busy Flows and backlogs, and no `FlowQueue` is called while it is held.
 
@@ -156,7 +157,7 @@ The Interpreter exposes callback statistics for debugging:
 stats = interpreter.get_statistics()
 
 stats['callbacks']                      # CallbackManager: registered event names and listener counts
-stats['callbacks']['pools']             # each pool's members, busy, waiting and dropped
+stats['callbacks']['pools']             # each pool's members, busy, waiting, dropped, and emitters waiting for room
 ```
 
 ### 3.4 Hot-reload behaviour

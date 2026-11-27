@@ -290,6 +290,10 @@ class FlowQueue:
         """Get current number of queued triggers."""
         return self.trigger_queue.qsize()
 
+    def count_dropped(self) -> None:
+        """Count one Trigger meant for this flow and lost before reaching its queue (a pooled one)."""
+        self._dropped += 1
+
     def get_dropped_count(self) -> int:
         """Return how many Triggers this queue has discarded without running them."""
         return self._dropped

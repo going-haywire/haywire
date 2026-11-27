@@ -29,11 +29,13 @@ level: framework
 - **D5** **Busy and free are tracked per Flow, not per pool.** A pooled Flow is busy from the moment core hands it a trigger until that trigger's frame ends. A Flow that belongs to two pools still counts as busy once. On an emit, core gives the trigger to the next free member, in turn, in the emitter's subscriber order. When no member is free, the trigger waits in the pool's backlog. So a pooled Flow's own queue never holds more than the one trigger it runs, and its *Queue Mode* and *Max Queue Size* have no effect.
 - **D6** **The emitter owns the backlog.** Core's `BacklogSettings` bag, which an emitter includes and passes with its emit, sets the backlog's **size** (default 16) and its **full rule**:
   - *Drop oldest* (default): the oldest waiting trigger makes room.
-  - *Wait*: the emitting thread waits up to 5 s for room, then the new trigger is dropped. A runner thread never waits (ADR 0064 D6): it drops the new trigger, with a warning.
+  - *Wait*: the emitting thread waits up to 5 s for room, then the new trigger is dropped, with a warning. The runner thread of a member's group never waits (ADR 0064 D6): its wait would hold the member it waits for, so it drops the new trigger at once. The runner of any other group waits like any other thread, as a `BLOCK` enqueue into another group does.
+  
+  A dropped trigger counts on the queue of the member whose turn it was, so the Flow meter shows it.
   
   An emitter with no pooled listeners ignores the bag.
 - **D7** **A frame tells the pool when it ends.** `FlowQueue` reports every trigger it takes out of its queue to the callback manager: one that ran, one that failed, and one discarded at a stop or kill. The Flow then takes the oldest waiting trigger across its pools, or becomes free. A trigger the Flow's queue refuses, because its group is stopping, is dropped and the Flow becomes free.
-- **D8** **Thread safety.** One lock in the callback manager guards pools, busy Flows and backlogs. Core never calls into a `FlowQueue` while it holds that lock, so the lock order of ADR 0064 gains only a leaf.
+- **D8** **Thread safety.** One lock in the callback manager guards pools, busy Flows, backlogs and the clearing of registrations. Core never calls into a `FlowQueue` while it holds that lock, so the lock order of ADR 0064 gains only a leaf.
 - **D9** Stopping and recompiling drop every pool and backlog, together with the callback registrations.
 - **D10** Execution groups don't change (ADR 0064). Pooled Flows that share a control node are in one group, and they still run one after the other.
 

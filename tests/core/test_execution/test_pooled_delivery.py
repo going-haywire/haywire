@@ -78,9 +78,9 @@ class _Rig:
         self.vm = _VM()
         self.group = _Group()
 
-    def flow(self, name: str, delivery: Delivery = Delivery.POOLED) -> _Flow:
+    def flow(self, name: str, delivery: Delivery = Delivery.POOLED, group: _Group | None = None) -> _Flow:
         flow = _Flow(name, delivery)
-        flow.queue = FlowQueue(flow, self.vm, group=self.group)  # type: ignore[arg-type]  # stub flow, VM and group
+        flow.queue = FlowQueue(flow, self.vm, group=group or self.group)  # type: ignore[arg-type]  # stub flow, VM and group
         if delivery is Delivery.POOLED:
             flow.queue.on_done = self.manager.trigger_done
         self.manager.register_callback_listener(name, flow)  # type: ignore[arg-type]  # stub flow
@@ -91,6 +91,16 @@ class _Rig:
 
     def pools(self) -> list[dict[str, Any]]:
         return self.manager.get_statistics()["pools"]
+
+    def emitters_waiting(self) -> int:
+        return sum(pool["emitters_waiting"] for pool in self.pools())
+
+    def emit_in_thread(self, names: str, n: int, backlog: Any) -> threading.Thread:
+        """Start an emit on its own thread and return once it waits for room in the backlog."""
+        emitter = threading.Thread(target=self.emit, args=(names, n, backlog))
+        emitter.start()
+        assert wait_until(lambda: self.emitters_waiting() == 1), "the emit never reached its wait"
+        return emitter
 
 
 def _backlog(size: int, rule: BacklogFull = BacklogFull.DROP_OLDEST, owner: str | None = "emitter") -> Any:
@@ -141,7 +151,9 @@ class TestPool:
             rig.emit(["p1", "p2"], n)
 
         assert [q.flow.flow_id for q in rig.group.tokens] == ["p1", "p2"]
-        assert rig.pools() == [{"members": ["p1", "p2"], "busy": 2, "waiting": 2, "dropped": 0}]
+        assert rig.pools() == [
+            {"members": ["p1", "p2"], "busy": 2, "waiting": 2, "dropped": 0, "emitters_waiting": 0}
+        ]
 
         rig.group.run(1)
         assert rig.vm.ran == [("p1", 0)]
@@ -195,16 +207,18 @@ class TestPool:
 class TestFullBacklog:
     def test_drop_oldest_keeps_the_newest(self):
         rig = _Rig()
-        rig.flow("p1")
+        p1 = rig.flow("p1")
         for n in range(3):
             rig.emit("p1", n, _backlog(1))
         assert rig.pools()[0]["dropped"] == 1
+        assert p1.queue is not None
+        assert p1.queue.get_dropped_count() == 1, "the Flow meter counts the pool's drop"
         rig.group.run()
         assert rig.vm.ran == [("p1", 0), ("p1", 2)]
 
     def test_wait_gives_up_after_its_timeout_and_drops_the_new_callback(self):
         rig = _Rig(wait_timeout_s=0.2)
-        rig.flow("p1")
+        p1 = rig.flow("p1")
         backlog = _backlog(1, BacklogFull.WAIT)
         rig.emit("p1", 0, backlog)
         rig.emit("p1", 1, backlog)
@@ -213,6 +227,8 @@ class TestFullBacklog:
         rig.emit("p1", 2, backlog)
         assert time.monotonic() - started >= 0.2
         assert rig.pools()[0]["dropped"] == 1
+        assert p1.queue is not None
+        assert p1.queue.get_dropped_count() == 1
         rig.group.run()
         assert rig.vm.ran == [("p1", 0), ("p1", 1)]
 
@@ -223,9 +239,7 @@ class TestFullBacklog:
         rig.emit("p1", 0, backlog)
         rig.emit("p1", 1, backlog)
 
-        emitter = threading.Thread(target=rig.emit, args=("p1", 2, backlog))
-        emitter.start()
-        assert wait_until(lambda: emitter.is_alive())
+        emitter = rig.emit_in_thread("p1", 2, backlog)
         rig.group.run(1)
         emitter.join(timeout=2.0)
         assert not emitter.is_alive()
@@ -233,7 +247,7 @@ class TestFullBacklog:
         assert rig.vm.ran == [("p1", 0), ("p1", 1), ("p1", 2)]
         assert rig.pools()[0]["dropped"] == 0
 
-    def test_a_runner_thread_never_waits(self):
+    def test_the_runner_of_a_members_group_never_waits(self):
         rig = _Rig(wait_timeout_s=5.0)
         rig.flow("p1")
         backlog = _backlog(1, BacklogFull.WAIT)
@@ -246,6 +260,20 @@ class TestFullBacklog:
         assert time.monotonic() - started < 1.0
         assert rig.pools()[0]["dropped"] == 1
 
+    def test_the_runner_of_another_group_waits(self):
+        rig = _Rig(wait_timeout_s=0.2)
+        rig.flow("p1")
+        other = _Group()
+        rig.flow("e", Delivery.EVERY, group=other)  # a listener whose group runs the emit
+        backlog = _backlog(1, BacklogFull.WAIT)
+        rig.emit("p1", 0, backlog)
+        rig.emit("p1", 1, backlog)
+        other.runner = True
+
+        started = time.monotonic()
+        rig.emit("p1", 2, backlog)
+        assert time.monotonic() - started >= 0.2, "waiting here holds no member"
+
     def test_clearing_the_callbacks_wakes_a_waiting_emitter(self):
         rig = _Rig(wait_timeout_s=5.0)
         rig.flow("p1")
@@ -253,9 +281,7 @@ class TestFullBacklog:
         rig.emit("p1", 0, backlog)
         rig.emit("p1", 1, backlog)
 
-        emitter = threading.Thread(target=rig.emit, args=("p1", 2, backlog))
-        emitter.start()
-        time.sleep(0.05)  # lets the emitter reach its wait; a sleep never ends early
+        emitter = rig.emit_in_thread("p1", 2, backlog)
         rig.manager.clear_callbacks()
         emitter.join(timeout=1.0)
         assert not emitter.is_alive()
@@ -273,8 +299,52 @@ class TestStop:
         assert p1.queue is not None
         assert p1.queue._discard_pending() == 1
 
-        assert rig.pools()[0] == {"members": ["p1"], "busy": 0, "waiting": 0, "dropped": 0}
+        assert rig.pools()[0] == {
+            "members": ["p1"],
+            "busy": 0,
+            "waiting": 0,
+            "dropped": 0,
+            "emitters_waiting": 0,
+        }
         assert rig.vm.ran == []
+
+    def test_a_trigger_refused_while_stopping_frees_the_flow(self):
+        rig = _Rig()
+        rig.flow("p1")
+        rig.emit("p1", 0)
+        rig.emit("p1", 1)
+        rig.group.stopping = True
+        rig.group.run()
+
+        assert rig.vm.ran == [("p1", 0)], "the waiting callback is refused, not run"
+        assert rig.pools()[0]["busy"] == 0
+        assert rig.pools()[0]["waiting"] == 0
+
+
+@pytest.mark.unit
+class TestFlowQueueReportsTheEnd:
+    def test_on_done_follows_a_raising_frame(self):
+        rig = _Rig()
+        flow = _Flow("f", Delivery.POOLED)
+        queue = FlowQueue(flow, rig.vm, group=rig.group)  # type: ignore[arg-type]  # stub flow, VM and group
+        done: list[tuple[Any, int]] = []
+        queue.on_done = lambda f: done.append((f, queue.trigger_queue.unfinished_tasks))
+        queue.enqueue_trigger(Trigger(source_key="callback:f", payload={"n": 0, "boom": True}))
+        rig.group.run()
+
+        assert rig.vm.ran == [("f", 0)]
+        assert done == [(flow, 1)], "on_done runs once, before task_done"
+
+    def test_on_done_follows_each_discarded_trigger(self):
+        rig = _Rig()
+        flow = _Flow("f", Delivery.EVERY)
+        queue = FlowQueue(flow, rig.vm, group=rig.group)  # type: ignore[arg-type]  # stub flow, VM and group
+        done: list[Any] = []
+        queue.on_done = done.append
+        for n in range(2):
+            queue.enqueue_trigger(Trigger(source_key="callback:f", payload={"n": n}))
+        assert queue._discard_pending() == 2
+        assert done == [flow, flow]
 
 
 @pytest.mark.integration

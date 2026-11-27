@@ -50,6 +50,7 @@ class _Pool:
     waiting: deque[_Waiting] = field(default_factory=deque)
     turn: int = 0
     dropped: int = 0
+    emitters_waiting: int = 0
 
     def take_free(self, busy: set[Flow]) -> Flow | None:
         """Return the next free member after the last one taken, or ``None`` when all are busy."""
@@ -73,8 +74,8 @@ class CallbackManager:
     - Keep the pools of pooled listeners: busy flows and backlogs
     - Track callback statistics
 
-    One lock guards pools, busy flows and backlogs; no ``FlowQueue`` is called
-    while it is held.
+    One lock guards pools, busy flows, backlogs and the registrations
+    ``clear_callbacks`` removes; no ``FlowQueue`` is called while it is held.
     """
 
     def __init__(self, wait_timeout_s: float = 5.0) -> None:
@@ -142,8 +143,9 @@ class CallbackManager:
         queue, in name order. The ``POOLED`` listeners of all the names form one
         pool: the next free one gets the callback, and while none is free it
         waits in the pool's backlog. Under ``BacklogFull.WAIT`` a full backlog
-        holds the calling thread, except a runner thread, which drops the
-        callback instead.
+        holds the calling thread, except the runner thread of a member's group,
+        which drops the callback instead. A dropped callback counts on the
+        queue of the member whose turn it was.
 
         Args:
             event_name: Name of the callback event, or the names of every
@@ -192,38 +194,60 @@ class CallbackManager:
         rule = backlog.rule if backlog is not None else BacklogFull.DROP_OLDEST
         timestamp = time.time()
         deadline: float | None = None
+        picked: Flow | None = None
+        dropped: tuple[_Pool, str] | None = None
+        dropped_on: Flow | None = None
         with self._cond:
             generation = self._generation
             pool = self._pool_for(owner, members)
             pool.size, pool.rule = size, rule
-            while True:
-                if generation != self._generation:
-                    return
-                flow = pool.take_free(self._busy)
-                if flow is not None:
-                    self._busy.add(flow)
+            while generation == self._generation:
+                picked = pool.take_free(self._busy)
+                if picked is not None:
+                    self._busy.add(picked)
                     break
                 if len(pool.waiting) < pool.size:
                     self._seq += 1
                     pool.waiting.append(_Waiting(self._seq, payload, timestamp))
-                    return
+                    break
                 if rule is BacklogFull.DROP_OLDEST:
                     pool.waiting.popleft()
-                    pool.dropped += 1
+                    dropped = (pool, "the backlog is full, its oldest callback makes room")
                     continue
-                if self._on_runner_thread():
-                    pool.dropped += 1
-                    logger.warning("Dropping a callback: the pool's backlog is full (emitted in-group)")
-                    return
+                if self._is_member_runner(pool):
+                    # A member's own runner would wait for itself (ADR 0064 D6).
+                    dropped = (pool, "the backlog is full and the emit runs in a member's group")
+                    break
                 if deadline is None:
                     deadline = time.monotonic() + self._wait_timeout_s
                 remaining = deadline - time.monotonic()
                 if remaining <= 0.0:
-                    pool.dropped += 1
-                    logger.warning("Dropping a callback: the pool's backlog stayed full")
-                    return
-                self._cond.wait(remaining)
-        self._enqueue_pooled(flow, payload, timestamp)
+                    dropped = (pool, f"the backlog stayed full for {self._wait_timeout_s} s")
+                    break
+                pool.emitters_waiting += 1
+                try:
+                    self._cond.wait(remaining)
+                finally:
+                    pool.emitters_waiting -= 1
+            if dropped is not None:
+                dropped_on = self._count_drop(dropped[0])
+        if dropped is not None and dropped_on is not None:
+            self._report_drop(dropped_on, dropped[1], rule)
+        if picked is not None:
+            self._enqueue_pooled(picked, payload, timestamp)
+
+    def _count_drop(self, pool: _Pool) -> Flow:
+        """Count a drop on ``pool`` and return the member whose turn it was; call under the lock."""
+        pool.dropped += 1
+        return pool.members[pool.turn]
+
+    def _report_drop(self, member: Flow, reason: str, rule: BacklogFull) -> None:
+        """Count a drop on the queue of the member whose turn it was, for the Flow meter, and log it."""
+        if member.queue is not None:
+            member.queue.count_dropped()
+        # Drop oldest loses callbacks by design, as QueueMode.DROP does; Wait losing one is a warning.
+        level = logging.DEBUG if rule is BacklogFull.DROP_OLDEST else logging.WARNING
+        logger.log(level, "Dropping a pooled callback for %s: %s", member.flow_id, reason)
 
     def _pool_for(self, owner: str | None, members: list[Flow]) -> _Pool:
         """Return the pool of ``owner`` and ``members``, creating it on first use; call under the lock."""
@@ -242,8 +266,12 @@ class CallbackManager:
             flow.event_subscription.event_name if isinstance(flow.event_subscription, CallbackEvent) else ""
         )
         trigger = Trigger(source_key=f"callback:{event_name}", payload=payload, timestamp=timestamp)
-        if flow.queue is not None and flow.queue.enqueue_trigger(trigger):
+        if flow.queue is None:
+            logger.warning("Dropping a pooled callback: flow %s has no queue", flow.flow_id)
+        elif flow.queue.enqueue_trigger(trigger):
             return
+        else:
+            logger.debug("Dropping a pooled callback: flow %s refused it (stopping)", flow.flow_id)
         with self._cond:
             self._busy.discard(flow)
             self._cond.notify_all()
@@ -269,13 +297,13 @@ class CallbackManager:
             item = source.waiting.popleft()
         self._enqueue_pooled(flow, item.payload, item.timestamp)
 
-    def _on_runner_thread(self) -> bool:
-        """Return ``True`` when called on the runner thread of a listening flow's group."""
-        for flows in self.callbacks.values():
-            for flow in flows:
-                group = flow.queue.group if flow.queue is not None else None
-                if group is not None and group.is_runner_thread():
-                    return True
+    @staticmethod
+    def _is_member_runner(pool: _Pool) -> bool:
+        """Return ``True`` when called on the runner thread of a pool member's group."""
+        for flow in pool.members:
+            group = flow.queue.group if flow.queue is not None else None
+            if group is not None and group.is_runner_thread():
+                return True
         return False
 
     def get_listeners(self, event_name: str) -> list[Flow]:
@@ -292,8 +320,8 @@ class CallbackManager:
 
     def clear_callbacks(self) -> None:
         """Clear all callback registrations, pools and backlogs; an emit waiting for room gives up."""
-        self.callbacks.clear()
         with self._cond:
+            self.callbacks.clear()
             self._generation += 1
             self._pools.clear()
             self._pools_of.clear()
@@ -307,8 +335,8 @@ class CallbackManager:
 
         Returns:
             Dictionary with callback stats; ``pools`` lists each pool's members
-            (flow ids), how many are busy, how many callbacks wait and how many
-            were dropped.
+            (flow ids), how many are busy, how many callbacks wait, how many
+            were dropped and how many emitting threads wait for room.
         """
         with self._cond:
             pools = [
@@ -317,6 +345,7 @@ class CallbackManager:
                     "busy": sum(1 for flow in pool.members if flow in self._busy),
                     "waiting": len(pool.waiting),
                     "dropped": pool.dropped,
+                    "emitters_waiting": pool.emitters_waiting,
                 }
                 for pool in self._pools.values()
             ]
