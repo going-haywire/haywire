@@ -69,15 +69,15 @@ picks it up in FIFO order with the group's other tokens.
   and backlogs.
 - `enqueue_trigger` is never called while that lock is held, so the lock is a leaf in ADR 0064's lock order.
 - Emits come from runner threads, node threads (Tick Emit, `BlockPump`) and the Run Button thread.
-- *Wait* blocks only a thread that isn't a runner (`group.is_runner_thread()` of any registered group, ADR 0064 D6),
+- *Wait* blocks any thread except the runner thread of a pool member's group (`group.is_runner_thread()` of a member's group, ADR 0064 D6),
   for up to 5 s (a constructor argument, so tests can shorten it). After that the new trigger is dropped with a warning.
 - Registration happens before the groups start, and `clear_callbacks` after they stop, as today.
 
 **A full backlog.**
 
 - *Drop oldest*: pop the head, count it as dropped, append the new trigger.
-- *Wait*: off a runner thread, wait on the condition until `trigger_done` frees room, or the deadline passes, or
-  `clear_callbacks` runs. Then append the trigger, or drop it. On a runner thread, drop the new trigger with a warning.
+- *Wait*: off the runner thread of a pool member's group, wait on the condition until `trigger_done` frees room, or the deadline passes, or
+  `clear_callbacks` runs. Then append the trigger, or drop it. On the runner thread of a pool member's group, drop the new trigger with a warning.
 - Dropped counts show in `get_statistics()["callbacks"]["pools"]`.
 
 **Libraries.**
@@ -110,7 +110,7 @@ picks it up in FIFO order with the group's other tokens.
   - *Every* and *Pooled* mixed on one emit;
   - *Drop oldest* counts drops and keeps the newest;
   - *Wait* waits, then drops after the (shortened) timeout;
-  - on a runner thread it never waits;
+  - on the runner thread of a pool member's group it never waits; another group's runner waits;
   - a Flow in two pools is busy once and takes the oldest head;
   - a frame that raises still frees its Flow;
   - discard at stop frees; enqueue refused while stopping frees;

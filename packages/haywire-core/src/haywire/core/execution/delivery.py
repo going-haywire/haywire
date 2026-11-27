@@ -22,4 +22,6 @@ class BacklogFull(Enum):
     """What a pool's backlog does with a new callback when it is full."""
 
     DROP_OLDEST = "drop_oldest"  # The oldest waiting callback makes room.
-    WAIT = "wait"  # The emitter waits for room (never a runner thread), then drops the new one.
+    # The emitter waits for room, then drops the new one;
+    # the runner thread of a pool member's group never waits.
+    WAIT = "wait"
