@@ -1,4 +1,4 @@
-# haybale-image — component index (v0.6.5)
+# haybale-image — component index (v0.6.6)
 
 ## node
 - `haybale-image:node:ImageEventNode` — Image Event — Triggered for each image a connected image emitter delivers  _tags: image, frame, event, callback, receive, stream, camera_

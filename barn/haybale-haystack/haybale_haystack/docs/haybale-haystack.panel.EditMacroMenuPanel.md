@@ -15,4 +15,5 @@ Open the document behind a macro placement, in its own editor tab.
 
 Only visible on a placement. Its interior is runtime state rebuilt from the
 template, so it cannot be edited in place; this row opens the document that
-can.
+can. Needs admin, the tier every verb that writes into a library needs:
+saving that document writes the macro file in its library.
