@@ -27,6 +27,9 @@ It does what a new checkout lacks:
    session-start slot waits for (outside the checkout, so no repository sees it). It writes
    ``haywire-setup-started`` there first, so the slot waits only while a setup runs.
 
+In a checkout with no ``pyproject.toml`` at its root (the umbrella), it does steps 1 and 5 alone:
+no core link, no environment, no studio port, and says so.
+
 ``--lead <link>`` also records the task's lead (a T3 thread link, a herdr address) in
 ``haywire-lead`` in the worktree's git folder, which the session-start slot reads back. Where
 a setup already ran or is running, it only records the lead.
@@ -210,11 +213,18 @@ def main(argv: list[str] | None = None) -> int:
         print(f"lead: {read_lead(git_dir)}")
         if (git_dir / STARTED).exists() or (git_dir / DONE).exists():
             return 0
-    if shutil.which("uv") is None:
+    # A checkout with no uv project (the umbrella) gets the branch and nothing else: no core
+    # link, no environment, no studio port. It is not a library either.
+    project = (checkout / "pyproject.toml").is_file()
+    if project and shutil.which("uv") is None:
         print("uv is not installed: https://docs.astral.sh/uv/")
         return 1
     (git_dir / STARTED).write_text("")
     print(update_branch(checkout))
+    if not project:
+        print("environment: skipped (no pyproject.toml), and with it the studio port")
+        (git_dir / DONE).write_text("")
+        return 0
     if (link := core_link(checkout, main_checkout)) is not None:
         link[0].symlink_to(link[1], target_is_directory=True)
         print(f"core: linked {link[0]} -> {link[1]}")

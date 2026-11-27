@@ -12,6 +12,7 @@ from scripts.worktree_setup import (
     DONE,
     FIRST_WORKTREE_PORT,
     LEAD,
+    SETTINGS,
     choose_studio_port,
     core_link,
     read_lead,
@@ -137,3 +138,35 @@ def test_lead_on_a_set_up_worktree_only_records_the_lead(tmp_path, monkeypatch, 
     assert worktree_setup.main(["--lead", "herdr-lead (t1)"]) == 0
     assert capsys.readouterr().out == "lead: herdr-lead (t1)\n"
     assert read_lead(git_dir) == "herdr-lead (t1)"
+
+
+def _umbrella_worktree(tmp_path: Path) -> tuple[Path, Path]:
+    """A worktree of a clone whose repository tracks no ``pyproject.toml``, and its git folder."""
+    seed = tmp_path / "seed"
+    seed.mkdir()
+    _git(seed, "init", "-q", "-b", "master")
+    (seed / "README.md").write_text("umbrella\n")
+    _git(seed, "add", "README.md")
+    _git(seed, "commit", "-q", "-m", "x")
+    _git(tmp_path, "clone", "-q", str(seed), "main")
+    worktree = tmp_path / "work"
+    _git(tmp_path / "main", "worktree", "add", "-q", "-b", "chore/x", str(worktree), "origin/master")
+    git_dir = Path(_git(worktree, "rev-parse", "--path-format=absolute", "--git-dir"))
+    return worktree, git_dir
+
+
+@pytest.mark.parametrize("lead", [None, "herdr-lead (t1)"])
+def test_a_checkout_without_pyproject_skips_the_environment(tmp_path, monkeypatch, capsys, lead):
+    worktree, git_dir = _umbrella_worktree(tmp_path)
+    monkeypatch.chdir(worktree)
+    monkeypatch.setattr(worktree_setup.shutil, "which", lambda name: None)
+    for step in ("core_link", "build_environment", "assign_studio_port"):
+        monkeypatch.setattr(worktree_setup, step, pytest.fail)
+    assert worktree_setup.main(["--lead", lead] if lead else []) == 0
+    out = capsys.readouterr().out.splitlines()
+    assert out[-1] == "environment: skipped (no pyproject.toml), and with it the studio port"
+    assert out[-2] == "branch: up to date with origin/master"
+    assert (git_dir / DONE).exists()
+    assert read_lead(git_dir) == lead
+    assert not (worktree / "haywire-repo").exists()
+    assert not (worktree / SETTINGS).exists()
