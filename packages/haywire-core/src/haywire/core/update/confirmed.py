@@ -49,7 +49,8 @@ def confirm_update(from_version: str, to_version: str) -> None:
     if _confirmed is not None:
         return
     _confirmed = (from_version, to_version)
-    _register(lambda: print(banner_text(from_version, to_version)))
+    # A print, not a log: logging may already be shut down when atexit runs this.
+    _register(lambda: print(banner_text(from_version, to_version)))  # noqa: T201
 
 
 def update_confirmed() -> tuple[str, str] | None:

@@ -39,7 +39,7 @@ class TestInitialApplication:
     def test_root_logger_set_to_log_level_default(self):
         registry = _make_registry()
         _make_configurator(registry)
-        assert logging.getLogger(_ROOT_NAMESPACE).level == logging.INFO
+        assert logging.getLogger(_ROOT_NAMESPACE).level == logging.WARNING
 
     def test_root_logger_set_to_custom_log_level(self):
         registry = _make_registry()
@@ -51,16 +51,16 @@ class TestInitialApplication:
         registry = _make_registry()
         _make_configurator(registry)
         for namespace in _GROUP_MAP.values():
-            assert logging.getLogger(namespace).level == logging.INFO
+            assert logging.getLogger(namespace).level == logging.WARNING
 
     def test_group_logger_outside_haywire_tree_inherits_global_baseline(self):
         """Regression: namespaces like 'mcp' aren't descendants of 'haywire', so
         Python's own logger-tree inheritance can't carry the baseline to them —
         the configurator must set their level explicitly."""
         registry = _make_registry()
-        registry.set_global("debug.log_level", "WARNING")
+        registry.set_global("debug.log_level", "ERROR")
         _make_configurator(registry)
-        assert logging.getLogger("mcp").level == logging.WARNING
+        assert logging.getLogger("mcp").level == logging.ERROR
 
     def test_group_logger_set_when_configured(self):
         registry = _make_registry()
@@ -77,8 +77,8 @@ class TestInitialApplication:
         assert logging.getLogger("haywire.core.execution").level == logging.DEBUG
         assert logging.getLogger("haywire.core.assembly").level == logging.WARNING
         assert logging.getLogger("haywire.ui").level == logging.ERROR
-        # unset groups inherit the global baseline (log_level default: INFO)
-        assert logging.getLogger("haywire.core.graph").level == logging.INFO
+        # unset groups inherit the global baseline (log_level default: WARNING)
+        assert logging.getLogger("haywire.core.graph").level == logging.WARNING
 
 
 # ---------------------------------------------------------------------------
@@ -90,8 +90,8 @@ class TestReactiveUpdates:
     def test_log_level_change_updates_root_logger(self):
         registry = _make_registry()
         _, debug = _make_configurator(registry)
-        debug.log_level = "WARNING"
-        assert logging.getLogger(_ROOT_NAMESPACE).level == logging.WARNING
+        debug.log_level = "ERROR"
+        assert logging.getLogger(_ROOT_NAMESPACE).level == logging.ERROR
 
     def test_group_change_sets_level(self):
         registry = _make_registry()
@@ -105,7 +105,7 @@ class TestReactiveUpdates:
         debug.log_graph = "DEBUG"
         assert logging.getLogger("haywire.core.graph").level == logging.DEBUG
         debug.log_graph = ""
-        assert logging.getLogger("haywire.core.graph").level == logging.INFO
+        assert logging.getLogger("haywire.core.graph").level == logging.WARNING
 
     def test_root_level_change_propagates_to_inherited_groups(self):
         """Regression: changing the global baseline after construction must
@@ -113,7 +113,7 @@ class TestReactiveUpdates:
         the 'haywire' logger tree, which Python's own inheritance can't reach."""
         registry = _make_registry()
         _, debug = _make_configurator(registry)
-        assert logging.getLogger("mcp").level == logging.INFO
+        assert logging.getLogger("mcp").level == logging.WARNING
         debug.log_level = "ERROR"
         assert logging.getLogger("mcp").level == logging.ERROR
         assert logging.getLogger("haywire.core.graph").level == logging.ERROR

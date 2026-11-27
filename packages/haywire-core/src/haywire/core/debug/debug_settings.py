@@ -54,7 +54,7 @@ class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
 
     # Logging — global baseline -> if key changes, apply it to GLOBAL_BASELINE_LOG_LEVEL_KEY
     log_level = setting[CHOICES](
-        "INFO",
+        "WARNING",
         label="Global Log Level",
         description="Minimum log level for the haywire root logger",
         category=CATEGORY_LOG_LEVEL,

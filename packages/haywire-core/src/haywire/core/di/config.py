@@ -66,6 +66,8 @@ from .context import (
     set_type_registry,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class HaywireModule(Module):
     """
@@ -403,10 +405,8 @@ class LibrarySystemService:
         if self._initialized:
             return self
 
-        print("=" * 70)
-        print("Initializing Haywire Library System")
-        print("=" * 70)
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.WARNING)
+        logger.info("Initializing the library system")
 
         # Get all required services from DI — order matters for ambient context:
         # TypeRegistry and SettingsRegistry are used by BaseNode constructors,
@@ -479,7 +479,7 @@ class LibrarySystemService:
 
         # --8<-- [start:startup-state-wiring]
         # Startup wiring for the LibraryStateContainer's two-phase lifecycle.
-        print("\n🔍 Scanning for libraries...")
+        logger.debug("Scanning for libraries")
         library_registry.scan_for_libraries()
 
         # Skip user-disabled libraries before the enable loop.
@@ -495,7 +495,7 @@ class LibrarySystemService:
         set_library_system(self)
         set_global_injector(self.injector)
 
-        print("\n⚡ Enabling libraries...")
+        logger.debug("Enabling libraries")
         library_registry.enable_all_libraries()
 
         # Subscribe AFTER the enable loop, then catch up on every library that
@@ -507,94 +507,69 @@ class LibrarySystemService:
                 library_state_container.on_library_enabled(library)
         # --8<-- [end:startup-state-wiring]
 
-        # Print detailed library discovery results
-        self._print_library_discovery_results()
-
-        # Print registry status
-        print("\n📋 Registry Status:")
-        print("-" * 70)
-        self.print_registry_status()
-
-        # Print settings status
-        print("\n⚙️  Settings Status:")
-        print("-" * 70)
-        self._print_settings_status(settings_registry)
+        self._log_library_discovery_results()
+        self.log_registry_status()
+        self._log_settings_status(settings_registry)
 
         self._initialized = True
-        print("\n" + "=" * 70)
-        print("✅ Library system initialized successfully!")
-        print("=" * 70 + "\n")
+        logger.info("Library system initialized")
 
         return self
 
-    def _print_settings_status(self, registry: SettingsRegistry) -> None:
-        """Print settings registry status."""
+    def _log_settings_status(self, registry: SettingsRegistry) -> None:
+        """Log the settings registry's tiers and categories at DEBUG."""
+        if not logger.isEnabledFor(logging.DEBUG):
+            return
         definitions = registry.all_definitions()
         categories = registry.definitions_by_category()
+        custom_values = sum(1 for name in definitions if registry.get_global(name).is_set)
 
-        # Count custom (set) values
-        custom_values = 0
-        for name in definitions:
-            sv = registry.get_global(name)
-            if sv.is_set:
-                custom_values += 1
-
-        print(f"   Total settings:     {len(definitions)}")
-        print(f"   Categories:         {len(categories)}")
-        print(f"   Custom values:      {custom_values}")
-        print(f"   Global tier:        {registry._global_path}")
-        print(f"   Workspace tier:     {registry._workspace_path}")
-        print(
+        lines = [
+            "Settings status:",
+            f"   Total settings:     {len(definitions)}",
+            f"   Categories:         {len(categories)}",
+            f"   Custom values:      {custom_values}",
+            f"   Global tier:        {registry._global_path}",
+            f"   Workspace tier:     {registry._workspace_path}",
             f"   File watching:      "
             f"global={'on' if registry._global_watch_enabled else 'off'}, "
-            f"workspace={'on' if registry._workspace_watch_enabled else 'off'}"
-        )
+            f"workspace={'on' if registry._workspace_watch_enabled else 'off'}",
+            "   Categories:",
+        ]
+        lines += [
+            f"      • {cat_name}: {len(defns)} settings" for cat_name, defns in sorted(categories.items())
+        ]
+        logger.debug("\n".join(lines))
 
-        # List categories
-        print("\n   Categories:")
-        for cat_name, defns in sorted(categories.items()):
-            print(f"      • {cat_name}: {len(defns)} settings")
-
-    def _print_library_discovery_results(self) -> None:
-        """Print detailed information about discovered libraries."""
+    def _log_library_discovery_results(self) -> None:
+        """Log how many libraries loaded at INFO, and each one's details at DEBUG."""
         library_registry = self.injector.get(LibraryRegistry)
-
-        print("\n📊 Library Discovery Results:")
-        print("-" * 70)
-
-        # Test entry point discovery directly
-        print("\n🔍 Entry Point Discovery:")
-        print("-" * 70)
-
-        from haywire.core.library.discovery import LibraryDiscovery
-
-        discovered = LibraryDiscovery.discover_installed_libraries()
-
-        if discovered:
-            print(f"\n✅ Found {len(discovered)} libraries via entry points:\n")
-
-            for lib_info in discovered:
-                print(f"  • {lib_info.identity.label} ({lib_info.identity.name})")
-                print(f"      Type: {lib_info.install_type.value}")
-                print(f"      Path: {lib_info.library_path}")
-                if lib_info.entry_point_name:
-                    print(f"      Entry Point: {lib_info.entry_point_name}")
-                print()
-        else:
-            print("ℹ️  No libraries found via entry points")
-            print("   (This is normal if libraries aren't pip installed)")
-
-        print("-" * 70)
-
-        # List all loaded libraries
         loaded_libraries = library_registry.list_names()
 
         if not loaded_libraries:
-            print("⚠️  No libraries loaded!")
+            logger.warning("No libraries loaded")
+            return
+        logger.info(f"Loaded {len(loaded_libraries)} libraries")
+
+        if not logger.isEnabledFor(logging.DEBUG):
             return
 
-        print(f"\n✅ Loaded {len(loaded_libraries)} libraries:\n")
+        from haywire.core.library.discovery import InstallType, LibraryDiscovery
 
+        discovered = LibraryDiscovery.discover_installed_libraries()
+        if discovered:
+            lines = [f"Found {len(discovered)} libraries via entry points:"]
+            for lib_info in discovered:
+                lines.append(f"  • {lib_info.identity.label} ({lib_info.identity.name})")
+                lines.append(f"      Type: {lib_info.install_type.value}")
+                lines.append(f"      Path: {lib_info.library_path}")
+                if lib_info.entry_point_name:
+                    lines.append(f"      Entry Point: {lib_info.entry_point_name}")
+        else:
+            lines = ["No libraries found via entry points (normal if libraries aren't pip installed)"]
+        logger.debug("\n".join(lines))
+
+        lines = ["Loaded libraries:"]
         for lib_id in loaded_libraries:
             identity = library_registry.get_library_identity(lib_id)
             source = library_registry.get_library_source(lib_id)
@@ -602,35 +577,32 @@ class LibrarySystemService:
             enabled = library_registry.is_library_enabled(lib_id)
 
             # Determine how the library was added
-            install_method = "❓ Unknown"
-            if install_type:
-                from haywire.core.library.discovery import InstallType
-
-                if install_type == InstallType.REGULAR:
-                    install_method = "📦 Pip (regular install)"
-                elif install_type == InstallType.EDITABLE:
-                    install_method = "🔗 Pip (editable install)"
-                elif install_type == InstallType.FOLDER:
-                    # Determine if it's core or search path
-                    if source and "src/haywire/libraries" in source:
-                        install_method = "⭐ Core library"
-                    else:
-                        install_method = "📁 Search path"
+            install_method = "Unknown"
+            if install_type == InstallType.REGULAR:
+                install_method = "Pip (regular install)"
+            elif install_type == InstallType.EDITABLE:
+                install_method = "Pip (editable install)"
+            elif install_type == InstallType.FOLDER:
+                # Determine if it's core or search path
+                if source and "src/haywire/libraries" in source:
+                    install_method = "Core library"
+                else:
+                    install_method = "Search path"
 
             status = "✓" if enabled else "✗"
-            print(f"  {status} {identity.label}")
-            print(f"      ID:             {lib_id}")
-            print(f"      Version:        {identity.version}")
-            print(f"      Enabled:        {enabled}")
-            print(f"      Linked:         {identity.linked_libraries}")
-            print(f"      Source:         {source}")
-            print(f"      Install Method: {install_method}")
-            print()
+            lines += [
+                f"  {status} {identity.label}",
+                f"      ID:             {lib_id}",
+                f"      Version:        {identity.version}",
+                f"      Enabled:        {enabled}",
+                f"      Linked:         {identity.linked_libraries}",
+                f"      Source:         {source}",
+                f"      Install Method: {install_method}",
+            ]
+        logger.debug("\n".join(lines))
 
-        print("-" * 70)
-
-    def print_registry_status(self) -> None:
-        """Print the status of all registries in a beautiful format."""
+    def log_registry_status(self) -> None:
+        """Log every registry's contents at DEBUG and their totals at INFO."""
         adapter_registry = self.injector.get(AdapterRegistry)
         widget_registry = self.injector.get(WidgetRegistry)
         skin_registry = self.injector.get(SkinRegistry)
@@ -640,86 +612,60 @@ class LibrarySystemService:
         panel_registry = self.injector.get(PanelRegistry)
         theme_registry = self.injector.get(ThemeRegistry)
         farmhand_registry = self.injector.get(FarmhandRegistry)
-        self.injector.get(SettingsRegistry)
         library_registry = self.injector.get(LibraryRegistry)
 
-        # Print registered libraries
-        print("\n📚 Registered Libraries:")
         all_libraries = library_registry.list_names()
-        for lib_key in all_libraries:
-            print(f"   • {lib_key}")
-
-        # Print registered nodes
-        print("\n🛠 Registered Nodes:")
         all_nodes = node_registry.list_names()
-        for node_key in all_nodes:
-            print(f"   • {node_key}")
-
-        # Print registered custom types
-        print("\n📦 Registered Types:")
         all_types = type_registry.list_names()
-        for type_key in all_types:
-            print(f"   • {type_key}")
-
-        # Print registered adapters
-        print("\n🔗 Registered Adapters:")
         all_adapters = adapter_registry.list_names()
-        for adapter_key in all_adapters:
-            print(f"   • {adapter_key}")
-
-        # Print registered widgets
-        print("\n🔧 Registered Widgets:")
         all_widgets = widget_registry.list_names()
-        for widget_key in all_widgets:
-            print(f"   • {widget_key}")
-
-        # Print registered skins
-        print("\n🎨 Registered Skins:")
         all_skins = skin_registry.list_names()
-        for skin_key in all_skins:
-            print(f"   • {skin_key}")
-
-        # Print registered editors
-        print("\n🖥 Registered Editors:")
         all_editors = editor_registry.list_names()
-        for editor_key in all_editors:
-            print(f"   • {editor_key}")
-
-        # Print registered panels grouped by surface
-        print("\n📋 Registered Panels:")
         all_panels = panel_registry.list_names()
-        by_surface: dict[str, list] = {}
-        for panel_key in all_panels:
-            cls = panel_registry.get(panel_key)
-            if cls is None:
-                continue
-            surface = getattr(cls.class_identity, "surface", None)
-            surface_id = getattr(surface, "id", "?") if surface is not None else "?"
-            by_surface.setdefault(surface_id, []).append((panel_key, cls))
-        for surface_id in sorted(by_surface):
-            print(f"   {surface_id}:")
-            for panel_key, cls in by_surface[surface_id]:
-                hosts = getattr(cls.class_identity, "hosts", ())
-                hosted = ", ".join(getattr(h, "id", "?") for h in hosts) if hosts else "leaf"
-                print(f"      • {panel_key}  (hosts: {hosted})")
-
-        # Print registered themes
-        print("\n🌈 Registered Themes:")
         all_workbench_themes = theme_registry.list_workbench_keys()
-        for theme_key in all_workbench_themes:
-            print(f"   • {theme_key} (workbench)")
         all_node_themes = theme_registry.list_node_theme_keys()
-        for theme_key in all_node_themes:
-            print(f"   • {theme_key} (node)")
-
-        # Print registered farmhands (MCP tools)
-        print("\n🚜 Registered Farmhands:")
         all_farmhands = farmhand_registry.list_names()
-        for farmhand_key in all_farmhands:
-            print(f"   • {farmhand_key}")
 
-        print(
-            f"\nTotal: {len(all_libraries)} libraries, {len(all_nodes)} nodes, "
+        if logger.isEnabledFor(logging.DEBUG):
+            lines = ["Registry status:"]
+            for title, keys in (
+                ("Libraries", all_libraries),
+                ("Nodes", all_nodes),
+                ("Types", all_types),
+                ("Adapters", all_adapters),
+                ("Widgets", all_widgets),
+                ("Skins", all_skins),
+                ("Editors", all_editors),
+            ):
+                lines.append(f"  {title}:")
+                lines += [f"   • {key}" for key in keys]
+
+            # Panels grouped by surface
+            lines.append("  Panels:")
+            by_surface: dict[str, list] = {}
+            for panel_key in all_panels:
+                cls = panel_registry.get(panel_key)
+                if cls is None:
+                    continue
+                surface = getattr(cls.class_identity, "surface", None)
+                surface_id = getattr(surface, "id", "?") if surface is not None else "?"
+                by_surface.setdefault(surface_id, []).append((panel_key, cls))
+            for surface_id in sorted(by_surface):
+                lines.append(f"   {surface_id}:")
+                for panel_key, cls in by_surface[surface_id]:
+                    hosts = getattr(cls.class_identity, "hosts", ())
+                    hosted = ", ".join(getattr(h, "id", "?") for h in hosts) if hosts else "leaf"
+                    lines.append(f"      • {panel_key}  (hosts: {hosted})")
+
+            lines.append("  Themes:")
+            lines += [f"   • {key} (workbench)" for key in all_workbench_themes]
+            lines += [f"   • {key} (node)" for key in all_node_themes]
+            lines.append("  Farmhands:")
+            lines += [f"   • {key}" for key in all_farmhands]
+            logger.debug("\n".join(lines))
+
+        logger.info(
+            f"Registered: {len(all_libraries)} libraries, {len(all_nodes)} nodes, "
             f"{len(all_types)} types, {len(all_adapters)} adapters, "
             f"{len(all_widgets)} widgets, {len(all_skins)} skins, "
             f"{len(all_editors)} editors, {len(all_panels)} panels, "

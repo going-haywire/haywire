@@ -148,4 +148,4 @@ def console_print(*args, **kwargs) -> None:
         from haywire.ui.console_bridge import console_print
         console_print("Value:", 42)
     """
-    print(*args, **kwargs)
+    print(*args, **kwargs)  # noqa: T201 (the bridge to the studio log is stdout)

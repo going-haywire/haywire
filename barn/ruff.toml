@@ -12,6 +12,8 @@ extend = "../pyproject.toml"
 # import order is load-bearing (the root config says why).
 "**" = ["PT"]
 "**/__init__.py" = ["I001"]
+# T20 (CS-L2): a `python -m` harness; print is its output to the person running it.
+"haybale-share/haybale_share/_flow/__main__.py" = ["T20"]
 # Libraries that still import internals: not yet moved onto the Author API, or
 # moved and holding an allowlist in tests/api/allowlist.py, which a test keeps
 # shrinking. A library leaves this list when its allowlist is empty.

@@ -208,7 +208,7 @@ def main():
         output_path = os.path.join(generated_dir, name)
         with open(output_path, "w") as f:
             f.write(generate())
-        print(f"Generated {output_path}")
+        print(f"Generated {output_path}")  # noqa: T201 (a build script's output)
 
 
 if __name__ == "__main__":

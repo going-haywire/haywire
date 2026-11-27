@@ -45,8 +45,7 @@ class HaywireApp:
     def __init__(self, workspace_root: str | None = None):
         self.workspace_root = workspace_root or os.getcwd()
         set_workspace_root(self.workspace_root)
-        print(f"Haywire workspace: {self.workspace_root}")
-        print("Setting up Haywire application...")
+        logger.info(f"Haywire workspace: {self.workspace_root}")
 
         register_code_intelligence_endpoints()
         register_code_intelligence_render_endpoint()
@@ -130,17 +129,17 @@ class HaywireApp:
         if self._is_shutting_down:
             return
         self._is_shutting_down = True
-        print("Application shutdown initiated...")
+        logger.info("Application shutdown initiated")
 
         # 1. Clean up all sessions
-        print(f"  Cleaning up {self.session_manager.session_count} sessions...")
+        logger.debug(f"Cleaning up {self.session_manager.session_count} sessions")
         self.session_manager.cleanup_all()
 
         # 2. Clean up stdout tee history (sinks are detached by each editor's own cleanup())
         try:
             get_stdout_tee().clear_history()
         except Exception as e:
-            print(f"  Error clearing stdout tee history: {e}")
+            logger.warning(f"Error clearing stdout tee history: {e}")
 
         self._error_hooks.uninstall()
 
@@ -149,17 +148,17 @@ class HaywireApp:
             try:
                 get_error_ledger().remove_listener(self._error_ledger_listener)
             except Exception as e:
-                print(f"  Error removing error-ledger listener: {e}")
+                logger.warning(f"Error removing error-ledger listener: {e}")
             self._error_ledger_listener = None
 
         if self._activity_tracker_listener is not None:
             try:
                 get_activity_tracker().remove_listener(self._activity_tracker_listener)
             except Exception as e:
-                print(f"  Error removing activity-tracker listener: {e}")
+                logger.warning(f"Error removing activity-tracker listener: {e}")
             self._activity_tracker_listener = None
 
-        print("Application shutdown complete")
+        logger.info("Application shutdown complete")
 
     def on_client_deleted(self, client):
         """Tear down the shell and session of a discarded page.
@@ -175,14 +174,14 @@ class HaywireApp:
         session_id = self._client_to_session.pop(client.id, None)
         if not session_id:
             return
-        print(f"Client deleted, cleaning up session {session_id[:8]}")
+        logger.debug(f"Client deleted, cleaning up session {session_id[:8]}")
 
         shell = self._shells.pop(session_id, None)
         if shell is not None:
             try:
                 shell.cleanup()
             except Exception as e:
-                print(f"  Error cleaning up shell for session {session_id[:8]}: {e}")
+                logger.warning(f"Error cleaning up shell for session {session_id[:8]}: {e}")
 
         self.session_manager.remove_session(session_id)
         self.signal_dispatcher.broadcast(PresenceChanged())
@@ -215,7 +214,7 @@ class HaywireApp:
             watch_settings=False,
             host_store=host_store,
         )
-        print("Library system initialized.")
+        logger.debug("Library system initialized")
 
     def setup_shared_services(self):
         """Setup services shared across all sessions."""
@@ -249,7 +248,7 @@ class HaywireApp:
         self._wire_stdout_scrollback()
         self._wire_stall_watchdog()
 
-        print("Shared services configured successfully.")
+        logger.debug("Shared services configured")
 
     def _wire_stdout_scrollback(self) -> None:
         """Drive the stdout backlog cap from DebugSettings.
@@ -346,7 +345,7 @@ class HaywireApp:
             from haywire.ui.app.shell import AppShell
             from haywire.ui.editor.registry import EditorRegistry
 
-            print(f"Creating UI for session: {context.client.id[:8]}")
+            logger.debug(f"Creating UI for session: {context.client.id[:8]}")
 
             editor_registry = self.library_service.injector.get(EditorRegistry)
 
@@ -413,7 +412,7 @@ class HaywireApp:
             workspace_root=self.workspace_root,
         )
         self._auth_cache = cache
-        print(f"🔒 Authentication enabled — {len(document.auth.principals)} principal(s)")
+        logger.info(f"Authentication enabled — {len(document.auth.principals)} principal(s)")
         return True
 
     def _studio_port(self) -> int:
@@ -432,7 +431,7 @@ class HaywireApp:
 
     def run(self, *, open_browser: bool = True):
         """Run the application."""
-        print("Starting Haywire...")
+        logger.info("Starting Haywire")
         self.create_ui()
 
         port = self._studio_port()
@@ -466,7 +465,7 @@ class HaywireApp:
                 **ssl_kwargs,  # type: ignore[arg-type]
             )
         except KeyboardInterrupt:
-            print("\nKeyboard interrupt received")
+            logger.info("Keyboard interrupt received")
         finally:
             if not self._is_shutting_down:
                 self.cleanup()
@@ -487,7 +486,10 @@ class HaywireApp:
         try:
             raw = load_document()
         except SecurityError as exc:
-            print(f"ERROR: Haywire cannot start — the security document is unreadable.\n  {exc}")
+            # A print, not a log: the reason the command refused to start (CS-L2).
+            print(  # noqa: T201
+                f"ERROR: Haywire cannot start — the security document is unreadable.\n  {exc}"
+            )
             raise SystemExit(1) from exc
 
         document, reasons = sanitize(raw)
@@ -549,7 +551,7 @@ class HaywireApp:
             # parsing the real, Starlette-owned instance will run later.
             IPAllowlistMiddleware(None, allowed_ranges=allowed_ranges, trusted_proxies=trusted_proxies)
         except ValueError as e:
-            print(
+            print(  # noqa: T201
                 "ERROR: Haywire cannot start — invalid network settings.\n"
                 f"  {e}\n"
                 "Run 'haywire security status' to see the current configuration."
@@ -584,7 +586,7 @@ def _ssl_kwargs(certfile: str, keyfile: str) -> dict[str, str]:
         return {}
 
     if bool(certfile) != bool(keyfile):
-        print(
+        print(  # noqa: T201
             "ERROR: Haywire cannot start — incomplete TLS configuration.\n"
             "  Set BOTH the certificate and key, or neither.\n"
             "  Run 'haywire ssl status' to see the current state."
@@ -593,7 +595,7 @@ def _ssl_kwargs(certfile: str, keyfile: str) -> dict[str, str]:
 
     for label, value in (("ssl_certfile", certfile), ("ssl_keyfile", keyfile)):
         if not Path(value).is_file():
-            print(
+            print(  # noqa: T201
                 f"ERROR: Haywire cannot start — {label} does not point at a file: {value}\n"
                 "  Run 'haywire ssl status' to see the current state."
             )

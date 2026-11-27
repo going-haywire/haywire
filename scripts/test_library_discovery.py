@@ -11,6 +11,7 @@ Tests all loading priorities:
 
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
 
@@ -21,6 +22,8 @@ sys.path.insert(0, str(project_root / "src"))
 
 def test_library_discovery():
     """Test the library discovery system"""
+    # The registry listing below is logged at DEBUG; show it.
+    logging.basicConfig(level=logging.DEBUG)
     print("=" * 70)
     print("Testing Haywire Library Discovery System")
     print("=" * 70)
@@ -88,10 +91,7 @@ def test_library_discovery():
 
     print("-" * 70)
 
-    # Print registry status
-    print("\n📋 Registry Status:")
-    print("-" * 70)
-    service.print_registry_status()
+    service.log_registry_status()
 
     return True
 
