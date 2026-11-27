@@ -8,7 +8,7 @@ from collections.abc import Callable
 from typing import Any
 
 from haybale_audio.value import AudioBlock
-from haywire.api import ExecutionContext
+from haywire.api import BacklogSettings, ExecutionContext
 
 #: Seconds between status updates of a running node; one per block would flood the UI.
 STATUS_INTERVAL = 0.5
@@ -85,16 +85,18 @@ def deliver_to_subscribers(
     block: AudioBlock,
     number: int,
     seconds: float,
+    backlog: BacklogSettings | None = None,
 ) -> None:
     """Send ``block`` to every Audio Event subscribed on the emitter's ``AUDIO_CALLBACK`` inlet.
 
-    One emit carries every subscriber's name, so Audio Events set to Pooled share the blocks
-    (the default backlog: 16 blocks, the oldest dropped).
+    One emit carries every subscriber's name, so Audio Events set to Pooled share the blocks.
+    ``backlog`` is the emitter's own ``BacklogSettings``, where blocks wait while every pooled
+    Audio Event is busy; ``None`` holds 16 and drops the oldest.
     """
     payload = {"audio": block, "timestamp": seconds, "block_number": number}
     names = [name for sub in (subscribers or {}).values() if (name := getattr(sub, "name", None))]
     if names:
-        context.emit_callback(event_name=names, payload=payload)
+        context.emit_callback(event_name=names, payload=payload, backlog=backlog)
 
 
 def set_status(node: Any, text: str) -> None:

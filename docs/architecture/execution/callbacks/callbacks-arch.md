@@ -104,7 +104,7 @@ An emit without the bag uses 16 and `Drop oldest`.
 
 **Rules of a pool:**
 
-- **Who belongs.** A pool is the emitter (the node owning the bag) plus the set of its pooled listeners. Two emitters never share one.
+- **Who belongs.** A pool is the emitter (the node owning the bag) plus the set of its pooled listeners. Two emitters that pass their bags never share one; every emitter in core's libraries does. An emit without a bag can't name its emitter (`ExecutionContext.node` is whichever node the frame ran last), so its pool is its listeners alone: bag-less emitters feeding the same pooled listeners share one pool (ADR 0097 D4).
 - **Busy and free.** A pooled Flow is busy from the moment core hands it a callback until that frame ends, also when the frame raised. It counts as busy only once, even when it belongs to two pools.
 - **Its own queue.** A pooled Flow's queue holds at most the callback it runs, so its own *Queue Mode* and *Max Queue Size* have no effect.
 - **Order.** Callbacks lose their order across the members, since frames end in whatever order they take.

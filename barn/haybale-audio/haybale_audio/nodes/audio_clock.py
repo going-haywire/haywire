@@ -8,6 +8,7 @@ from haywire.api import (
     EXEC,
     INT,
     STRING,
+    BacklogSettings,
     BaseNode,
     ExecutionContext,
     LabelWidget,
@@ -79,6 +80,7 @@ class AudioClockNode(BaseNode):
     """
 
     clock = bag(ClockSettings)
+    backlog = bag(BacklogSettings)
 
     def init(self) -> None:
         from haybale_audio.types.callback import AUDIO_CALLBACK
@@ -123,7 +125,7 @@ class AudioClockNode(BaseNode):
         self.hb_pump = BlockPump(
             produce=lambda: silence,
             deliver=lambda block, number, seconds: deliver_to_subscribers(
-                context, self.value("callbacks"), block, number, seconds
+                context, self.value("callbacks"), block, number, seconds, backlog=self.backlog
             ),
             on_end=lambda error: set_status(self, f"Error: {error}" if error else "Stopped"),
         )

@@ -138,3 +138,4 @@ Commands:
 | ADR 0097 | accepted with the PR |
 | Plan | decided 2026-11-27: 1 a · 2 a · 3 a · 4 a · 5 a |
 | Implementation | done; tests in `test_pooled_delivery.py` |
+| Review (lead) | findings 1–8 fixed; owner 3 a (Record Emit Probe: one emit, Backlog bag), 4 a (Backlog bag on every emitter here, audio and Callback Emit included) |

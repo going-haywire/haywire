@@ -82,7 +82,7 @@ from: `CallbackEventNode` — registry_key: `haybale-example:node:CallbackEventN
 `CallbackEmitNode` is the CONTROL counterpart: it has an EXEC inlet, reads connected listener IDs via `POOLED[CALLBACK]`, and emits to them via `context.emit_callback`:
 
 ```python
---8<-- "barn/haybale-example/haybale_example/nodes/emits/callback_emit.py:16:106"
+--8<-- "barn/haybale-example/haybale_example/nodes/emits/callback_emit.py:18:114"
 ```
 
 from: `CallbackEmitNode` — registry_key: `haybale-example:node:CallbackEmitNode`

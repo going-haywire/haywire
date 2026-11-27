@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from haywire.api import (
     EXEC,
+    BacklogSettings,
     BaseNode,
     CallbackEvent,
     DeliverySettings,
@@ -58,7 +59,13 @@ class RecordEventProbeNode(BaseNode):
     node_type=NodeType.CONTROL,
 )
 class RecordEmitProbeNode(BaseNode):
-    """Test-only emitter collecting `TEST_RECORD_CALLBACK` subscriptions in a pooled inlet."""
+    """Test-only emitter collecting `TEST_RECORD_CALLBACK` subscriptions in a pooled inlet.
+
+    One emit reaches every subscription, so pooled Record Event Probes share it. The payload
+    is `{"weights": {name: weight}}`, each listener's weight under its name.
+    """
+
+    backlog = bag(BacklogSettings)
 
     def init(self):
         from haybale_core.types import POOLED
@@ -69,6 +76,11 @@ class RecordEmitProbeNode(BaseNode):
         self.add(EXEC.as_outlet("exec", label="Then"))
 
     def worker(self, context: ExecutionContext) -> str | None:
-        for record in self.value("subscriptions").values():
-            context.emit_callback(event_name=record.name, payload={"weight": record.weight})
+        records = list(self.value("subscriptions").values())
+        weights = {record.name: record.weight for record in records}
+        context.emit_callback(
+            event_name=[record.name for record in records],
+            payload={"weights": weights},
+            backlog=self.backlog,
+        )
         return "exec"

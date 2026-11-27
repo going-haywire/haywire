@@ -151,8 +151,10 @@ class CallbackManager:
             event_name: Name of the callback event, or the names of every
                 subscriber of one emitter, so its pooled listeners share the callback.
             payload: Optional data to pass to triggered flows
-            backlog: The emitter's backlog settings; ``None`` uses a backlog of
-                ``DEFAULT_BACKLOG_SIZE`` that drops the oldest.
+            backlog: The emitter's backlog settings, which also name the emitter
+                the pool belongs to; ``None`` uses a backlog of ``DEFAULT_BACKLOG_SIZE``
+                that drops the oldest, in a pool shared by every bag-less emit to
+                the same pooled listeners.
 
         Example::
 
