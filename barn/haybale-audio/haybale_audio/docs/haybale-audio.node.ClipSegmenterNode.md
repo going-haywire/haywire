@@ -12,11 +12,6 @@ Cuts a live audio flow into clips at the pauses, such as one clip per sentence
 | `cut` | inlet | `haywire-core:type:EXEC` | End the open segment now and send it |
 | `audio` | inlet | `haybale-audio:type:AUDIO` | Block to listen to |
 | `callbacks` | inlet | `haybale-core:type:POOLED` | Connect to the Clip Event nodes that get the clips. |
-| `threshold` | config | `haywire-core:type:FLOAT` | Level (RMS) above which a block counts as sound |
-| `hangover_ms` | config | `haywire-core:type:INT` | Pause that ends a segment |
-| `preroll_ms` | config | `haywire-core:type:INT` | Audio kept from before the first loud block |
-| `min_seconds` | config | `haywire-core:type:FLOAT` | Shortest sound sent; shorter is discarded |
-| `max_seconds` | config | `haywire-core:type:FLOAT` | Longest segment; a longer one is cut there |
 | `status` | config | `haywire-core:type:STRING` | Text data |
 | `next` | outlet | `haybale-audio:type:AUDIO_EXEC` | Signal for sequencing the nodes of an audio flow |
 
@@ -24,6 +19,12 @@ Cuts a live audio flow into clips at the pauses, such as one clip per sentence
 
 | name | bag | default | description |
 |---|---|---|---|
+| `threshold` | segmenting | `0.01` | Level (RMS) above which a block counts as sound. The status shows the level. |
+| `hangover_ms` | segmenting | `500` | Pause that ends a clip. |
+| `preroll_ms` | segmenting | `200` | Audio kept from before the first loud block, so a soft start is not cut off. |
+| `postroll_ms` | segmenting | `100` | Audio kept from the pause that ends the clip, so a soft ending is not cut off. At most the Hang-over. |
+| `min_seconds` | segmenting | `0.3` | Shortest sound sent, pre-roll and post-roll left out; shorter is discarded. |
+| `max_seconds` | segmenting | `30.0` | Longest clip; a longer one is cut there and the sound goes on in the next. |
 | `size` | backlog | `16` | How many events wait while every pooled listener is busy. |
 | `full` | backlog | `'Drop oldest'` | Drop oldest makes room by losing the oldest waiting event. Wait holds the emitter up to 5 s for room, then loses the new event. |
 
@@ -35,9 +36,9 @@ The clip keeps the flow's sample rate and channels; Transcribe converts it for i
 
 A block is loud when its level (RMS) is above `Threshold`. The first loud block opens a
 segment, together with the `Pre-roll` before it, so a quiet first sound is kept. A pause
-of `Hang-over` ends the segment and the clip goes to every Audio Event listening on
-`Subscribers`; the pause itself is left out. Speech shorter than `Min Seconds` (a click, a
-cough) is discarded; a segment that reaches `Max Seconds` is sent at once and the next loud
+of `Hang-over` ends the segment; its first `Post-roll` stays in the clip, so a soft ending
+is kept, and the rest is left out. Sound shorter than `Min Seconds` (a click, a cough) is
+discarded; a segment that reaches `Max Seconds` is sent at once and the next loud
 block opens a new one. `Cut` ends the open segment at once, as a pause would. The status
 shows the level, which helps to set the threshold.
 
@@ -59,11 +60,6 @@ Inputs:
     cut: End the open segment now and send it
     audio: The block
     callbacks: Pooled CLIP_CALLBACK subscriptions from the Clip Event nodes that get the clips
-    threshold: Level (RMS) above which a block counts as sound
-    hangover_ms: Pause that ends a segment
-    preroll_ms: Audio kept from before the first loud block
-    min_seconds: Shortest sound sent; shorter is discarded
-    max_seconds: Longest segment; a longer one is cut there
 
 Outputs:
     next: Control flow after the block is taken

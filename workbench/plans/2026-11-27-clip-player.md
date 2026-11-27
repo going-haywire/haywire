@@ -131,3 +131,12 @@ probe thread counts loop turns (16 M/s idle) to show whether the GIL is held.
 D10: two pooled Transcribe flows run at once only when each has its own Transcribe node (a shared
 DATA node runs under its exec_lock) and they share no control node (one group, one thread). And
 haybale-speech's `model.lock` serialises runs until it goes and Load STT Model passes `num_workers`.
+
+## Round 4 (owner, 2026-11-27, after live check round 2 passed)
+
+1 a: Clip Segmenter's settings move into a Segmenting bag (promotable to config ports), with a
+new Post-roll (default 100 ms, at most the Hang-over; it does not count towards Min Seconds) ·
+2 a: a block stream is never pooled: Delivery leaves Audio Event, the Backlog bag leaves Device In,
+File Player, Clip Player, Audio Clock, Resample and Reblock; ADR 0097 D11 · 3 a: in #276. A graph
+saved with those settings loads without them (`test_saved_graphs`, fixture
+`pooled_audio_settings.haywire`).

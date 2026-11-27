@@ -152,11 +152,20 @@ def test_collect_clip_drops_blocks_past_max_seconds(graph_with_library_system):
 
 # --- Clip Segmenter ----------------------------------------------------------------------------
 
-_SETTINGS = {"threshold": 0.01, "hangover_ms": 100, "preroll_ms": 0, "min_seconds": 0.1, "max_seconds": 30.0}
+_SETTINGS = {
+    "threshold": 0.01,
+    "hangover_ms": 100,
+    "preroll_ms": 0,
+    "postroll_ms": 0,
+    "min_seconds": 0.1,
+    "max_seconds": 30.0,
+}
 
 
-def _segmenter(graph: Any, subscribed: bool = True) -> Any:
+def _segmenter(graph: Any, subscribed: bool = True, **settings: Any) -> Any:
     node = _node(graph, "clip_segmenter", "ClipSegmenterNode")
+    for name, value in {**_SETTINGS, **settings}.items():
+        setattr(node.segmenting, name, value)
     if subscribed:
         cb = importlib.import_module("haybale_audio.types.clip_callback").CLIP_CALLBACK
         subs = {"a": cb(name="worker_a"), "b": cb(name="worker_b")}
@@ -166,7 +175,7 @@ def _segmenter(graph: Any, subscribed: bool = True) -> Any:
 
 def _feed(node: Any, ctx: Any, blocks: list[Any]) -> None:
     for block in blocks:
-        assert node.worker(ctx, audio=block, **_SETTINGS) == "next"
+        assert node.worker(ctx, audio=block) == "next"
 
 
 def test_clip_segmenter_sends_each_clip_in_the_flows_format_in_one_emit(graph_with_library_system):
@@ -190,7 +199,7 @@ def test_clip_segmenter_sends_each_clip_in_the_flows_format_in_one_emit(graph_wi
 def test_clip_segmenter_cut_with_nothing_open_sends_nothing(graph_with_library_system):
     node = _segmenter(graph_with_library_system)
     cut = _context("cut")
-    assert node.worker(cut, audio=None, **_SETTINGS) is None
+    assert node.worker(cut, audio=None) is None
     assert cut.emit_callback.call_count == 0
 
 
@@ -198,9 +207,21 @@ def test_clip_segmenter_cut_sends_the_open_segment_at_once(graph_with_library_sy
     node = _segmenter(graph_with_library_system)
     _feed(node, _context("add"), _tone(30))
     cut = _context("cut")
-    node.worker(cut, audio=None, **_SETTINGS)
+    node.worker(cut, audio=None)
     (call,) = cut.emit_callback.call_args_list
     assert call.kwargs["payload"]["clip"].frames == 30 * BLOCK
+
+
+def test_clip_segmenter_keeps_the_post_roll_at_most_the_hang_over(graph_with_library_system):
+    node = _segmenter(graph_with_library_system, postroll_ms=50)
+    ctx = _context("add")
+    _feed(node, ctx, _tone(30) + _silence(10))
+    assert ctx.emit_callback.call_args_list[0].kwargs["payload"]["clip"].frames == 35 * BLOCK
+
+    node = _segmenter(graph_with_library_system, postroll_ms=400)  # more than the 100 ms hang-over
+    ctx = _context("add")
+    _feed(node, ctx, _tone(30) + _silence(10))
+    assert ctx.emit_callback.call_args_list[0].kwargs["payload"]["clip"].frames == 40 * BLOCK
 
 
 def test_clip_segmenter_without_subscriber_sends_nothing(graph_with_library_system):
@@ -307,7 +328,7 @@ def test_clip_player_runs_on_finish_once_a_clip_has_played(graph_with_library_sy
 
     assert wait_until(lambda: len(_finish_emits(ctx)) == 1)
     (emit,) = _finish_emits(ctx)
-    assert emit["backlog"] is node.backlog
+    assert "backlog" not in emit, "On Finish uses the default backlog"
 
 
 def test_clip_player_runs_no_on_finish_on_stop(graph_with_library_system):

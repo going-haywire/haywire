@@ -16,10 +16,75 @@ from haywire.api import (
     BaseNode,
     ExecutionContext,
     LabelWidget,
+    NodeSettings,
     NodeType,
+    Promotable,
     bag,
     node,
+    setting,
 )
+
+
+class SegmentingSettings(NodeSettings):
+    """Where a clip starts and ends. Applies from the next block."""
+
+    threshold = setting[FLOAT](
+        0.01,
+        min=0.0,
+        max=1.0,
+        label="Threshold",
+        category="Segmenting",
+        description="Level (RMS) above which a block counts as sound. The status shows the level.",
+        promotable=Promotable.CONFIG,
+    )
+    hangover_ms = setting[INT](
+        500,
+        min=0,
+        max=10000,
+        label="Hang-over (ms)",
+        category="Segmenting",
+        description="Pause that ends a clip.",
+        promotable=Promotable.CONFIG,
+    )
+    preroll_ms = setting[INT](
+        200,
+        min=0,
+        max=5000,
+        label="Pre-roll (ms)",
+        category="Segmenting",
+        description="Audio kept from before the first loud block, so a soft start is not cut off.",
+        promotable=Promotable.CONFIG,
+    )
+    postroll_ms = setting[INT](
+        100,
+        min=0,
+        max=5000,
+        label="Post-roll (ms)",
+        category="Segmenting",
+        description=(
+            "Audio kept from the pause that ends the clip, so a soft ending is not cut off. "
+            "At most the Hang-over."
+        ),
+        promotable=Promotable.CONFIG,
+    )
+    min_seconds = setting[FLOAT](
+        0.3,
+        min=0.0,
+        max=60.0,
+        label="Min Seconds",
+        category="Segmenting",
+        description="Shortest sound sent, pre-roll and post-roll left out; shorter is discarded.",
+        promotable=Promotable.CONFIG,
+    )
+    max_seconds = setting[FLOAT](
+        30.0,
+        min=0.1,
+        max=600.0,
+        label="Max Seconds",
+        category="Segmenting",
+        description="Longest clip; a longer one is cut there and the sound goes on in the next.",
+        promotable=Promotable.CONFIG,
+    )
 
 
 @node(
@@ -48,9 +113,9 @@ class ClipSegmenterNode(BaseNode):
 
     A block is loud when its level (RMS) is above `Threshold`. The first loud block opens a
     segment, together with the `Pre-roll` before it, so a quiet first sound is kept. A pause
-    of `Hang-over` ends the segment and the clip goes to every Audio Event listening on
-    `Subscribers`; the pause itself is left out. Speech shorter than `Min Seconds` (a click, a
-    cough) is discarded; a segment that reaches `Max Seconds` is sent at once and the next loud
+    of `Hang-over` ends the segment; its first `Post-roll` stays in the clip, so a soft ending
+    is kept, and the rest is left out. Sound shorter than `Min Seconds` (a click, a cough) is
+    discarded; a segment that reaches `Max Seconds` is sent at once and the next loud
     block opens a new one. `Cut` ends the open segment at once, as a pause would. The status
     shows the level, which helps to set the threshold.
 
@@ -72,16 +137,12 @@ class ClipSegmenterNode(BaseNode):
         cut: End the open segment now and send it
         audio: The block
         callbacks: Pooled CLIP_CALLBACK subscriptions from the Clip Event nodes that get the clips
-        threshold: Level (RMS) above which a block counts as sound
-        hangover_ms: Pause that ends a segment
-        preroll_ms: Audio kept from before the first loud block
-        min_seconds: Shortest sound sent; shorter is discarded
-        max_seconds: Longest segment; a longer one is cut there
 
     Outputs:
         next: Control flow after the block is taken
     """
 
+    segmenting = bag(SegmentingSettings)
     backlog = bag(BacklogSettings)
 
     def init(self) -> None:
@@ -99,43 +160,6 @@ class ClipSegmenterNode(BaseNode):
                 "callbacks",
                 label="Subscribers",
                 description="Connect to the Clip Event nodes that get the clips.",
-            )
-        )
-        self.add(
-            FLOAT.as_config(
-                "threshold",
-                default=0.01,
-                label="Threshold",
-                description="Level (RMS) above which a block counts as sound",
-            )
-        )
-        self.add(
-            INT.as_config(
-                "hangover_ms", default=500, label="Hang-over (ms)", description="Pause that ends a segment"
-            )
-        )
-        self.add(
-            INT.as_config(
-                "preroll_ms",
-                default=200,
-                label="Pre-roll (ms)",
-                description="Audio kept from before the first loud block",
-            )
-        )
-        self.add(
-            FLOAT.as_config(
-                "min_seconds",
-                default=0.3,
-                label="Min Seconds",
-                description="Shortest sound sent; shorter is discarded",
-            )
-        )
-        self.add(
-            FLOAT.as_config(
-                "max_seconds",
-                default=30.0,
-                label="Max Seconds",
-                description="Longest segment; a longer one is cut there",
             )
         )
         self.add(STRING.as_config("status", default="Idle", label="Status", widget=LabelWidget.config()))
@@ -157,27 +181,20 @@ class ClipSegmenterNode(BaseNode):
         if segmenter is not None:
             segmenter.reset()
 
-    def worker(
-        self,
-        context: ExecutionContext,
-        audio: AudioBlock | None = None,
-        threshold: float = 0.01,
-        hangover_ms: int = 500,
-        preroll_ms: int = 200,
-        min_seconds: float = 0.3,
-        max_seconds: float = 30.0,
-    ) -> str | None:
+    def worker(self, context: ExecutionContext, audio: AudioBlock | None = None) -> str | None:
         segmenter = self.hb_segmenter
         if context.control_pin == "cut":
             self.hb_send(context, segmenter.cut())
             return None
         if audio is None:
             raise ValueError("add needs an audio block")
-        segmenter.threshold = float(threshold)
-        segmenter.hangover = max(0, int(hangover_ms)) / 1000
-        segmenter.preroll = max(0, int(preroll_ms)) / 1000
-        segmenter.min_length = float(min_seconds)
-        segmenter.max_length = max(float(max_seconds), audio.duration)
+        settings = self.segmenting
+        segmenter.threshold = float(settings.threshold)
+        segmenter.hangover = max(0, int(settings.hangover_ms)) / 1000
+        segmenter.preroll = max(0, int(settings.preroll_ms)) / 1000
+        segmenter.postroll = min(max(0, int(settings.postroll_ms)) / 1000, segmenter.hangover)
+        segmenter.min_length = float(settings.min_seconds)
+        segmenter.max_length = max(float(settings.max_seconds), audio.duration)
         self.hb_send(context, segmenter.feed(audio))
         return "next"
 

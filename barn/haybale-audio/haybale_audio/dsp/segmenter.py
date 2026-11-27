@@ -35,8 +35,9 @@ class Segmenter:
 
     A block is loud when its RMS is above ``threshold``. The first loud block opens a segment,
     with up to ``preroll`` seconds of the blocks before it, so a quiet onset is kept. From then on
-    every block is appended; ``hangover`` seconds of silence end the segment, and that trailing
-    silence is left out. A segment whose audio from its first loud block is shorter than
+    every block is appended; ``hangover`` seconds of silence end the segment. Of that trailing
+    silence the first ``postroll`` seconds are kept, so a soft ending is not cut off, and the rest
+    is left out. A segment whose audio from its first loud block to its last is shorter than
     ``min_length`` is discarded and counted; one that reaches ``max_length`` is sent at once and
     the next loud block opens a new one.
 
@@ -51,10 +52,12 @@ class Segmenter:
         preroll: float = 0.2,
         min_length: float = 0.3,
         max_length: float = 30.0,
+        postroll: float = 0.0,
     ) -> None:
         self.threshold = threshold
         self.hangover = hangover
         self.preroll = preroll
+        self.postroll = postroll
         self.min_length = min_length
         self.max_length = max_length
         self.level = 0.0  # RMS of the last block
@@ -134,6 +137,21 @@ class Segmenter:
             return self._end()
         return None
 
+    def _keep_postroll(self, pause: list[AudioBlock]) -> int:
+        """Append the first ``postroll`` seconds of ``pause`` to the open segment; return its frames."""
+        left = int(round(max(0.0, self.postroll) * self._rate)) if self._rate else 0
+        kept = 0
+        for block in pause:
+            if left <= 0:
+                break
+            part = (
+                block if block.frames <= left else AudioBlock(block.data[:, :left].copy(), block.sample_rate)
+            )
+            self._buffer.add(part)
+            kept += part.frames
+            left -= part.frames
+        return kept
+
     def _remember(self, block: AudioBlock) -> None:
         self._before.append(block)
         self._before_frames += block.frames
@@ -152,14 +170,15 @@ class Segmenter:
         self._buffer.add(block)
 
     def _end(self) -> Segment | None:
-        audio = self._buffer.take()
         pause, self._silence, self._silence_frames = self._silence, [], 0
-        for block in pause:  # the trailing pause is left out, and is the next segment's pre-roll
+        tail = self._keep_postroll(pause)
+        audio = self._buffer.take()
+        for block in pause:  # the whole pause is the next segment's pre-roll
             self._remember(block)
         self._open = False
         if audio is None:
             return None
-        if (audio.frames - self._lead_frames) / audio.sample_rate < self.min_length:
+        if (audio.frames - self._lead_frames - tail) / audio.sample_rate < self.min_length:
             self.discarded += 1
             return None
         self.sent += 1

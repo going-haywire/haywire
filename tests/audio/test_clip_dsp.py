@@ -151,3 +151,18 @@ def test_clip_buffer_drops_blocks_past_the_limit() -> None:
     assert clip is not None
     assert clip.frames == 200
     assert buffer.dropped == 0
+
+
+@pytest.mark.unit
+def test_the_postroll_keeps_the_start_of_the_closing_pause() -> None:
+    seg = Segmenter(threshold=0.01, hangover=0.1, preroll=0.0, min_length=0.0, postroll=0.035)
+    (segment,) = _feed(seg, _tone(30) + _silence(10))
+    assert segment.audio.frames == 30 * BLOCK + int(0.035 * RATE)  # 3.5 blocks of the pause
+    assert np.allclose(segment.audio.data[:, 30 * BLOCK :], 0.0)
+
+
+@pytest.mark.unit
+def test_the_postroll_does_not_count_towards_the_minimum() -> None:
+    seg = Segmenter(threshold=0.01, hangover=0.1, preroll=0.0, min_length=0.2, postroll=0.1)
+    assert _feed(seg, _tone(15) + _silence(10)) == []  # 150 ms of sound, 250 ms with the post-roll
+    assert seg.discarded == 1

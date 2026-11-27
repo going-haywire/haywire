@@ -85,18 +85,17 @@ def deliver_to_subscribers(
     block: AudioBlock,
     number: int,
     seconds: float,
-    backlog: BacklogSettings | None = None,
 ) -> None:
     """Send ``block`` to every Audio Event subscribed on the emitter's ``AUDIO_CALLBACK`` inlet.
 
-    One emit carries every subscriber's name, so Audio Events set to Pooled share the blocks.
-    ``backlog`` is the emitter's own ``BacklogSettings``, where blocks wait while every pooled
-    Audio Event is busy; ``None`` holds 16 and drops the oldest.
+    One emit carries every subscriber's name. Every Audio Event takes every block: a block stream
+    is never pooled, since a listener that got every other block would hear no continuous sound
+    (ADR 0097), so an audio emitter has no Backlog.
     """
     payload = {"audio": block, "timestamp": seconds, "block_number": number}
     names = [name for sub in (subscribers or {}).values() if (name := getattr(sub, "name", None))]
     if names:
-        context.emit_callback(event_name=names, payload=payload, backlog=backlog)
+        context.emit_callback(event_name=names, payload=payload)
 
 
 def deliver_clip_to_subscribers(
@@ -110,7 +109,8 @@ def deliver_clip_to_subscribers(
     """Send ``clip`` to every Clip Event subscribed on the emitter's ``CLIP_CALLBACK`` inlet.
 
     One emit carries every subscriber's name, so Clip Events set to Pooled share the clips;
-    ``backlog`` is the emitter's own ``BacklogSettings``, as for ``deliver_to_subscribers``.
+    ``backlog`` is the emitter's own ``BacklogSettings``, where clips wait while every pooled Clip
+    Event is busy; ``None`` holds 16 and drops the oldest.
     """
     payload = {"clip": clip, "timestamp": seconds, "clip_number": number}
     names = [name for sub in (subscribers or {}).values() if (name := getattr(sub, "name", None))]

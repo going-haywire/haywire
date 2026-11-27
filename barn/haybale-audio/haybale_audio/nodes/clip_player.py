@@ -15,7 +15,6 @@ from haywire.api import (
     EXEC,
     INT,
     STRING,
-    BacklogSettings,
     BaseNode,
     ExecutionContext,
     LabelWidget,
@@ -94,7 +93,6 @@ class ClipPlayerNode(BaseNode):
     """
 
     playback = bag(ClipPlayerSettings)
-    backlog = bag(BacklogSettings)
 
     def init(self) -> None:
         # reload: barn types are looked up fresh after a hot reload.
@@ -160,7 +158,7 @@ class ClipPlayerNode(BaseNode):
             self.hb_pump = BlockPump(
                 produce=reader.read_block,
                 deliver=lambda block, number, seconds: deliver_to_subscribers(
-                    context, self.value("callbacks"), block, number, seconds, backlog=self.backlog
+                    context, self.value("callbacks"), block, number, seconds
                 ),
                 on_end=lambda error: self.hb_on_end(context, reader, error),
             )
@@ -179,7 +177,7 @@ class ClipPlayerNode(BaseNode):
         set_status(self, status)
         names = [name for name in (self.value("finish_callbacks") or {}).values() if name]
         if names:
-            context.emit_callback(event_name=names, payload=None, backlog=self.backlog)
+            context.emit_callback(event_name=names, payload=None)
 
     def hb_stop(self) -> None:
         # post_init() may never have run (init() failed during a reset or reload).

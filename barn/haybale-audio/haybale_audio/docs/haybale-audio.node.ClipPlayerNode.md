@@ -24,8 +24,6 @@ Plays an audio clip as audio blocks, in real time
 | `block_size` | playback | `256` | Samples per block. The clip's own sample rate and channels are kept. |
 | `loop` | playback | `False` | Start again at the end of the clip instead of stopping. |
 | `keep_running` | playback | `False` | After the clip, send silent blocks until Stop instead of stopping. For a player wired to an Audio Mixer: the mixer sees one source that never ends, so a clip's end is no stall. |
-| `size` | backlog | `16` | How many events wait while every pooled listener is busy. |
-| `full` | backlog | `'Drop oldest'` | Drop oldest makes room by losing the oldest waiting event. Wait holds the emitter up to 5 s for room, then loses the new event. |
 
 ## Notes
 
