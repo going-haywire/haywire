@@ -40,7 +40,7 @@ Record it first: `python3 <core>/dev/scripts/worktree_setup.py --lead <link>`, t
 ```
 
 **Approved** is the only place a task reads its limits from. The lead widens it with a
-message naming the line ("Approved: push and draft PR"). The user's answer in the task's
-thread widens it too, and the task reports that as *Decided*. A plan or question for the
-user is a *Needs a decision* in the task's thread; the lead gets one line, never the
+message naming the line ("Approved: push and draft PR"); the user, in the task's thread,
+only as step 3 of *Lead and tasks* in [the workflow](workflow.md) says. A plan or question
+for the user is a *Needs a decision* in the task's thread; the lead gets one line, never the
 content (*Lead and tasks* in [the workflow](workflow.md)).
