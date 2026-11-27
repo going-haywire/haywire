@@ -143,3 +143,5 @@ saved with those settings loads without them (`test_saved_graphs`, fixture
 
 Owner, via the lead: Clip Queue keeps Pushed, Popped, Empty and Cleared (3 a); Cut stays without an
 outlet (4 a); no post-roll listen (6 a); a code review of #276 before the merge.
+
+Owner, review finding 1: Clip Player's On Finish needs no Backlog bag; ADR 0097 D4 names it as an exception.
